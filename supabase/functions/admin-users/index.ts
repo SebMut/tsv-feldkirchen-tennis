@@ -190,6 +190,29 @@ Deno.serve(async (req: Request) => {
     return Response.json({ ok: true }, { headers: cors });
   }
 
+  if (action === "send_access_mail") {
+    const userId = String(body.user_id ?? "");
+    const redirectTo = allowedRedirect(body.redirect_to);
+    if (!userId) return Response.json({ error: "user_id fehlt." }, { status: 400, headers: cors });
+
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .select("email")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profileError || !profile?.email) {
+      return Response.json({ error: profileError?.message ?? "E-Mail-Adresse nicht gefunden." }, { status: 404, headers: cors });
+    }
+
+    const { error } = await admin.auth.resetPasswordForEmail(profile.email, {
+      ...(redirectTo ? { redirectTo } : {}),
+    });
+    if (error) return Response.json({ error: error.message }, { status: 400, headers: cors });
+
+    return Response.json({ ok: true }, { headers: cors });
+  }
+
   if (action === "set_role") {
     const userId = String(body.user_id ?? "");
     const globalRole = String(body.global_role ?? "");
