@@ -825,9 +825,16 @@ async function inviteUser(event: Event) {
 
 function renderInviteTeamCards() {
   const invite = $('#invite-teams');
-  if (!invite || !state.isSuper) return;
+  const section = $('#invite-team-section');
+  if (!invite || !section || !state.isSuper) return;
 
   const isSuperAdmin = $<HTMLSelectElement>('#invite-global-role')?.value === 'super_admin';
+  section.classList.toggle('hidden', isSuperAdmin);
+
+  if (isSuperAdmin) {
+    invite.innerHTML = '';
+    return;
+  }
 
   invite.innerHTML = state.teams.map((team) => `
     <div class="invite-team-card card flat" data-invite-team-card>
