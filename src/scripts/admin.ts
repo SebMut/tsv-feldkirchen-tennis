@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { mediaUrl, supabase } from '../lib/supabase';
 import { optimizeImage } from '../lib/images';
 import { initAdvancedAdmin, loadAdvancedUsers } from './admin-advanced';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
@@ -173,48 +173,151 @@ async function refreshPlayers() {
   const tsId = $<HTMLSelectElement>('#players-team-season')?.value;
   const target = $('#players-list');
   if (!tsId || !target) return;
-  const { data: links } = await supabase.from('team_players').select('*').eq('team_season_id', tsId).order('sort_order');
+
+  const { data: links } = await supabase
+    .from('team_players')
+    .select('*')
+    .eq('team_season_id', tsId)
+    .order('sort_order');
+
   const ids = (links ?? []).map((x) => x.player_id);
-  const players = ids.length ? (await supabase.from('players').select('*').in('id', ids)).data ?? [] : [];
+  const players = ids.length
+    ? (await supabase.from('players').select('*').in('id', ids)).data ?? []
+    : [];
   const pMap = new Map(players.map((p) => [p.id, p]));
-  target.innerHTML = `<table class="data-table"><thead><tr><th>Name</th><th>Rolle</th><th></th></tr></thead><tbody>${(links ?? []).map((link) => {
-    const p: any = pMap.get(link.player_id);
-    return `<tr><td>${escapeHtml(p?.display_name || '')}</td><td>${link.is_captain ? 'Mannschaftsführung' : 'Kader'}</td><td><button class="button ghost" data-remove-player="${link.id}">Entfernen</button></td></tr>`;
-  }).join('')}</tbody></table>`;
+
+  target.innerHTML = `<table class="data-table roster-admin-table">
+    <thead><tr><th>Foto</th><th>Name</th><th>Rolle</th><th>Sichtbarkeit</th><th></th></tr></thead>
+    <tbody>${(links ?? []).map((link) => {
+      const p: any = pMap.get(link.player_id);
+      const photo = p?.photo_path
+        ? `<img class="admin-thumb" src="${escapeHtml(mediaUrl(p.photo_path))}" alt="" />`
+        : '<span class="admin-thumb admin-thumb--empty" aria-hidden="true">•</span>';
+      return `<tr data-player-row="${link.id}" data-player-id="${link.player_id}">
+        <td>${photo}</td>
+        <td><strong>${escapeHtml(p?.display_name || '')}</strong></td>
+        <td>${link.is_captain ? 'Mannschaftsführung' : 'Kader'}</td>
+        <td>${link.public_visible ? 'Öffentlich' : 'Intern'}</td>
+        <td>
+          <div class="actions">
+            <button class="button ghost" data-edit-player="${link.player_id}">Bearbeiten</button>
+            <button class="button ghost" data-toggle-captain="${link.id}">${link.is_captain ? 'Führung entfernen' : 'Als Führung'}</button>
+            <button class="button ghost" data-toggle-visible="${link.id}">${link.public_visible ? 'Verbergen' : 'Veröffentlichen'}</button>
+            <button class="button ghost" data-remove-player="${link.id}">Entfernen</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+
+  target.querySelectorAll<HTMLButtonElement>('[data-edit-player]').forEach((button) => button.addEventListener('click', () => {
+    const playerId = button.dataset.editPlayer;
+    const player: any = pMap.get(playerId);
+    const link = (links ?? []).find((row) => row.player_id === playerId);
+    if (!player || !link) return;
+    ($<HTMLInputElement>('#player-edit-id')!).value = player.id;
+    ($<HTMLInputElement>('#player-display-name')!).value = player.display_name ?? '';
+    ($<HTMLInputElement>('#player-captain')!).checked = !!link.is_captain;
+    ($<HTMLInputElement>('#player-public-visible')!).checked = !!link.public_visible;
+    const submit = $<HTMLButtonElement>('#player-submit');
+    if (submit) submit.textContent = 'Spieler speichern';
+    $<HTMLButtonElement>('#player-cancel-edit')?.classList.remove('hidden');
+    $<HTMLInputElement>('#player-display-name')?.focus();
+  }));
+
+  target.querySelectorAll<HTMLButtonElement>('[data-toggle-captain]').forEach((button) => button.addEventListener('click', async () => {
+    const link = (links ?? []).find((row) => row.id === button.dataset.toggleCaptain);
+    if (!link) return;
+    const { error } = await supabase.from('team_players').update({ is_captain: !link.is_captain }).eq('id', link.id);
+    if (error) status(error.message, 'error'); else refreshPlayers();
+  }));
+
+  target.querySelectorAll<HTMLButtonElement>('[data-toggle-visible]').forEach((button) => button.addEventListener('click', async () => {
+    const link = (links ?? []).find((row) => row.id === button.dataset.toggleVisible);
+    if (!link) return;
+    const { error } = await supabase.from('team_players').update({ public_visible: !link.public_visible }).eq('id', link.id);
+    if (error) status(error.message, 'error'); else {
+      status(link.public_visible ? 'Spieler ist jetzt intern.' : 'Spieler ist jetzt öffentlich sichtbar.', 'success');
+      refreshPlayers();
+    }
+  }));
+
   target.querySelectorAll<HTMLButtonElement>('[data-remove-player]').forEach((button) => button.addEventListener('click', async () => {
     if (!confirm('Spieler aus dieser Mannschaft entfernen?')) return;
     const { error } = await supabase.from('team_players').delete().eq('id', button.dataset.removePlayer);
-    if (error) status(error.message, 'error'); else { status('Kader aktualisiert.', 'success'); refreshPlayers(); }
+    if (error) status(error.message, 'error'); else {
+      status('Kader aktualisiert.', 'success');
+      resetPlayerForm();
+      refreshPlayers();
+    }
   }));
 }
 
-async function addPlayer(event: Event) {
+function resetPlayerForm() {
+  ($<HTMLFormElement>('#player-form'))?.reset();
+  const editId = $<HTMLInputElement>('#player-edit-id');
+  if (editId) editId.value = '';
+  const visible = $<HTMLInputElement>('#player-public-visible');
+  if (visible) visible.checked = true;
+  const submit = $<HTMLButtonElement>('#player-submit');
+  if (submit) submit.textContent = 'Spieler hinzufügen';
+  $<HTMLButtonElement>('#player-cancel-edit')?.classList.add('hidden');
+}
+
+async function savePlayer(event: Event) {
   event.preventDefault();
   const tsId = $<HTMLSelectElement>('#players-team-season')?.value;
   const ts = state.teamSeasons.find((x) => x.id === tsId);
   const displayName = $<HTMLInputElement>('#player-display-name')?.value.trim();
+  const editId = $<HTMLInputElement>('#player-edit-id')?.value || '';
   if (!tsId || !ts || !displayName) return;
 
-  const { data: player, error } = await supabase.from('players').insert({ display_name: displayName }).select().single();
-  if (error || !player) return status(error?.message || 'Spieler konnte nicht angelegt werden.', 'error');
+  let playerId = editId;
+
+  if (editId) {
+    const { error } = await supabase.from('players').update({
+      display_name: displayName,
+      active: true,
+    }).eq('id', editId);
+    if (error) return status(error.message, 'error');
+  } else {
+    const { data: player, error } = await supabase
+      .from('players')
+      .insert({ display_name: displayName, active: true })
+      .select()
+      .single();
+    if (error || !player) return status(error?.message || 'Spieler konnte nicht angelegt werden.', 'error');
+    playerId = player.id;
+
+    const { error: linkError } = await supabase.from('team_players').insert({
+      team_season_id: tsId,
+      player_id: playerId,
+      is_captain: $<HTMLInputElement>('#player-captain')?.checked ?? false,
+      public_visible: $<HTMLInputElement>('#player-public-visible')?.checked ?? true,
+    });
+    if (linkError) return status(linkError.message, 'error');
+  }
+
+  if (editId) {
+    const { error: linkError } = await supabase.from('team_players').update({
+      is_captain: $<HTMLInputElement>('#player-captain')?.checked ?? false,
+      public_visible: $<HTMLInputElement>('#player-public-visible')?.checked ?? true,
+    }).eq('team_season_id', tsId).eq('player_id', playerId);
+    if (linkError) return status(linkError.message, 'error');
+  }
 
   const file = $<HTMLInputElement>('#player-photo')?.files?.[0];
   if (file) {
-    const image = await optimizeImage(file, 1600, 0.82);
-    const path = `teams/${ts.team_id}/players/${player.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+    const image = await optimizeImage(file, 1200, 0.82);
+    const path = `teams/${ts.team_id}/players/${playerId}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
     const { error: uploadError } = await supabase.storage.from('media').upload(path, image);
-    if (!uploadError) await supabase.from('players').update({ photo_path: path }).eq('id', player.id);
+    if (uploadError) return status(uploadError.message, 'error');
+    const { error: photoError } = await supabase.from('players').update({ photo_path: path }).eq('id', playerId);
+    if (photoError) return status(photoError.message, 'error');
   }
 
-  const { error: linkError } = await supabase.from('team_players').insert({
-    team_season_id: tsId,
-    player_id: player.id,
-    is_captain: $<HTMLInputElement>('#player-captain')?.checked ?? false,
-    public_visible: true,
-  });
-  if (linkError) return status(linkError.message, 'error');
-  ($<HTMLFormElement>('#player-form'))?.reset();
-  status('Spieler hinzugefügt.', 'success');
+  resetPlayerForm();
+  status(editId ? 'Spieler aktualisiert.' : 'Spieler hinzugefügt.', 'success');
   refreshPlayers();
 }
 
@@ -385,11 +488,69 @@ async function addEvent(event: Event) {
 
 async function refreshGalleries() {
   const ids = allowedTeamIds();
-  if (!ids.length) return;
-  const { data } = await supabase.from('galleries').select('*').in('team_id', ids).order('created_at', { ascending: false });
   const target = $('#galleries-list');
   if (!target) return;
-  target.innerHTML = (data ?? []).map((g) => `<article class="card flat"><p class="eyebrow">${escapeHtml(state.teams.find((t) => t.id === g.team_id)?.name || '')}</p><h3>${escapeHtml(g.title)}</h3><p class="muted">${g.published ? 'Öffentlich' : 'Entwurf'}</p></article>`).join('') || '<p class="muted">Noch keine Galerien.</p>';
+  if (!ids.length) {
+    target.innerHTML = '<p class="muted">Noch keine Mannschaft zugeordnet.</p>';
+    return;
+  }
+
+  const { data } = await supabase
+    .from('galleries')
+    .select('*')
+    .in('team_id', ids)
+    .order('created_at', { ascending: false });
+
+  const galleries = data ?? [];
+  const galleryIds = galleries.map((g) => g.id);
+  const items = galleryIds.length
+    ? (await supabase.from('gallery_items').select('*').in('gallery_id', galleryIds).order('sort_order')).data ?? []
+    : [];
+
+  target.innerHTML = galleries.map((g) => {
+    const galleryItems = items.filter((item) => item.gallery_id === g.id);
+    const preview = galleryItems[0]?.storage_path
+      ? `<img class="gallery-admin-preview" src="${escapeHtml(mediaUrl(galleryItems[0].storage_path))}" alt="" />`
+      : '';
+    return `<article class="card flat" data-gallery-card="${g.id}">
+      ${preview}
+      <p class="eyebrow">${escapeHtml(state.teams.find((t) => t.id === g.team_id)?.name || '')}</p>
+      <h3>${escapeHtml(g.title)}</h3>
+      <p class="muted">${galleryItems.length} Bild${galleryItems.length === 1 ? '' : 'er'} · ${g.published ? 'Öffentlich' : 'Entwurf'}</p>
+      <div class="actions">
+        <button class="button ghost" data-toggle-gallery="${g.id}">${g.published ? 'Als Entwurf' : 'Veröffentlichen'}</button>
+        <button class="button ghost" data-delete-gallery="${g.id}">Galerie löschen</button>
+      </div>
+    </article>`;
+  }).join('') || '<p class="muted">Noch keine Galerien.</p>';
+
+  target.querySelectorAll<HTMLButtonElement>('[data-toggle-gallery]').forEach((button) => button.addEventListener('click', async () => {
+    const gallery = galleries.find((g) => g.id === button.dataset.toggleGallery);
+    if (!gallery) return;
+    const { error } = await supabase.from('galleries').update({ published: !gallery.published }).eq('id', gallery.id);
+    if (error) status(error.message, 'error'); else {
+      status(gallery.published ? 'Galerie ist jetzt ein Entwurf.' : 'Galerie veröffentlicht.', 'success');
+      refreshGalleries();
+    }
+  }));
+
+  target.querySelectorAll<HTMLButtonElement>('[data-delete-gallery]').forEach((button) => button.addEventListener('click', async () => {
+    const galleryId = button.dataset.deleteGallery;
+    if (!galleryId || !confirm('Galerie und alle zugehörigen Bilder löschen?')) return;
+    const galleryItems = items.filter((item) => item.gallery_id === galleryId);
+    const paths = galleryItems.map((item) => item.storage_path).filter(Boolean);
+    if (paths.length) {
+      const { error: storageError } = await supabase.storage.from('media').remove(paths);
+      if (storageError) return status(storageError.message, 'error');
+    }
+    const { error: itemError } = await supabase.from('gallery_items').delete().eq('gallery_id', galleryId);
+    if (itemError) return status(itemError.message, 'error');
+    const { error } = await supabase.from('galleries').delete().eq('id', galleryId);
+    if (error) status(error.message, 'error'); else {
+      status('Galerie gelöscht.', 'success');
+      refreshGalleries();
+    }
+  }));
 }
 
 async function addGallery(event: Event) {
@@ -398,19 +559,33 @@ async function addGallery(event: Event) {
   const title = $<HTMLInputElement>('#gallery-title')?.value.trim();
   const files = Array.from($<HTMLInputElement>('#gallery-files')?.files ?? []);
   if (!teamId || !title || !files.length) return;
-  const { data: gallery, error } = await supabase.from('galleries').insert({ title, team_id: teamId, published: true, created_by: state.user.id }).select().single();
+
+  const { data: gallery, error } = await supabase.from('galleries').insert({
+    title,
+    team_id: teamId,
+    published: $<HTMLInputElement>('#gallery-published')?.checked ?? true,
+    created_by: state.user.id,
+  }).select().single();
   if (error || !gallery) return status(error?.message || 'Galerie konnte nicht angelegt werden.', 'error');
 
   for (const [index, file] of files.entries()) {
-    const image = await optimizeImage(file);
+    const image = await optimizeImage(file, 1800, 0.82);
     const path = `teams/${teamId}/galleries/${gallery.id}/${Date.now()}-${index}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
     const { error: uploadError } = await supabase.storage.from('media').upload(path, image);
     if (uploadError) return status(uploadError.message, 'error');
-    const { error: itemError } = await supabase.from('gallery_items').insert({ gallery_id: gallery.id, storage_path: path, alt_text: title, sort_order: index });
+    const { error: itemError } = await supabase.from('gallery_items').insert({
+      gallery_id: gallery.id,
+      storage_path: path,
+      alt_text: `${title} – Bild ${index + 1}`,
+      sort_order: index,
+    });
     if (itemError) return status(itemError.message, 'error');
   }
+
   ($<HTMLFormElement>('#gallery-form'))?.reset();
-  status('Galerie veröffentlicht.', 'success');
+  const published = $<HTMLInputElement>('#gallery-published');
+  if (published) published.checked = true;
+  status('Galerie gespeichert.', 'success');
   refreshGalleries();
 }
 
@@ -558,8 +733,9 @@ function renderSelectors() {
 function bindForms() {
   $<HTMLFormElement>('#team-form')?.addEventListener('submit', saveTeam);
   $<HTMLSelectElement>('#team-select')?.addEventListener('change', fillTeamForm);
-  $<HTMLFormElement>('#player-form')?.addEventListener('submit', addPlayer);
-  $<HTMLSelectElement>('#players-team-season')?.addEventListener('change', refreshPlayers);
+  $<HTMLFormElement>('#player-form')?.addEventListener('submit', savePlayer);
+  $<HTMLSelectElement>('#players-team-season')?.addEventListener('change', () => { resetPlayerForm(); refreshPlayers(); });
+  $<HTMLButtonElement>('#player-cancel-edit')?.addEventListener('click', resetPlayerForm);
   $<HTMLFormElement>('#match-form')?.addEventListener('submit', addMatch);
   $<HTMLFormElement>('#news-form')?.addEventListener('submit', addNews);
   $<HTMLFormElement>('#event-form')?.addEventListener('submit', addEvent);
