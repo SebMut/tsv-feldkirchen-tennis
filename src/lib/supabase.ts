@@ -20,6 +20,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 
 export function mediaUrl(path?: string | null) {
   if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
   return `${SUPABASE_URL}/storage/v1/object/public/media/${path
     .split('/')
     .map(encodeURIComponent)
