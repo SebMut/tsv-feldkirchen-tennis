@@ -151,6 +151,13 @@ Deno.serve(async (req: Request) => {
           error: "Supabase hat das E-Mail-Versandlimit erreicht. Bitte einige Minuten warten und dann erneut versuchen.",
         }, { status: 200, headers: cors });
       }
+      if (normalized.includes("535") || normalized.includes("badcredentials") || normalized.includes("username and password not accepted")) {
+        return Response.json({
+          ok: false,
+          code: "smtp_bad_credentials",
+          error: "SMTP-Anmeldung bei Gmail fehlgeschlagen. Bitte in Supabase das vollständige Gmail-Konto als Benutzer und ein Google App-Passwort verwenden.",
+        }, { status: 200, headers: cors });
+      }
       if (normalized.includes("already") || normalized.includes("registered") || normalized.includes("exists")) {
         return Response.json({
           ok: false,
