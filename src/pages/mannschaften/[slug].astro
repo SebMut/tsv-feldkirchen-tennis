@@ -17,11 +17,12 @@ const { slug } = Astro.params;
     <div id="team-header"><p class="muted">Mannschaft wird geladen …</p></div>
     <section class="grid two">
       <article class="card"><p class="eyebrow">Kader</p><div id="team-roster"></div></article>
-      <article class="card"><p class="eyebrow">Saison</p><div id="team-season"></div></article>
+      <article class="card"><p class="eyebrow">Saison</p><div id="team-season"></div><div class="field"><label for="team-season-select">Saison wählen</label><select id="team-season-select"></select></div></article>
     </section>
     <section class="card"><p class="eyebrow">Spiele</p><div id="team-matches" class="match-list"></div></section>
     <section class="card"><p class="eyebrow">Neuigkeiten</p><div id="team-news" class="news-list"></div></section>
     <section class="card"><p class="eyebrow">Bilder</p><div id="team-gallery" class="grid"></div></section>
+    <section id="team-sponsors" class="hidden" aria-label="Mannschaftssponsoren"></section>
   </div>
 </MainLayout>
 <script>
