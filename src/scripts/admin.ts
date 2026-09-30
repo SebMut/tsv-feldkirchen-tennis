@@ -44,6 +44,13 @@ function currentTeamSeason(teamId: string) {
     ?? state.teamSeasons.find((ts) => ts.team_id === teamId);
 }
 
+function defaultTeamImagePath(team: Row) {
+  if (team.gender === 'men') return 'teams/herren.png';
+  if (team.gender === 'women') return 'teams/damen.png';
+  if (team.gender === 'youth') return 'teams/jugend.png';
+  return null;
+}
+
 function teamSeasonLabel(ts: Row) {
   const team = state.teams.find((t) => t.id === ts.team_id);
   const season = state.seasons.find((s) => s.id === ts.season_id);
@@ -144,6 +151,14 @@ function fillTeamForm() {
   ($<HTMLInputElement>('#team-league')!).value = ts?.league ?? '';
   ($<HTMLInputElement>('#team-group')!).value = ts?.group_name ?? '';
   ($<HTMLInputElement>('#team-btv-url')!).value = ts?.btv_url ?? '';
+  const preview = $('#team-image-preview');
+  if (preview) {
+    const path = team.image_path || defaultTeamImagePath(team);
+    const isDefault = path === defaultTeamImagePath(team);
+    preview.innerHTML = path
+      ? `<img src="${escapeHtml(mediaUrl(path))}" alt="Aktuelles Mannschaftsbild ${escapeHtml(team.name)}" /><div><strong>${isDefault ? 'Standardbild' : 'Individuelles Mannschaftsfoto'}</strong><p class="muted">${isDefault ? 'Bis ein echtes Mannschaftsfoto hochgeladen wird.' : 'Dieses Bild wird öffentlich angezeigt.'}</p></div>`
+      : '<p class="muted">Noch kein Mannschaftsbild vorhanden.</p>';
+  }
 }
 
 async function saveTeam(event: Event) {
@@ -183,6 +198,27 @@ async function saveTeam(event: Event) {
   fillTeamForm();
   await refreshDashboard();
   status('Mannschaft gespeichert.', 'success');
+}
+
+async function resetTeamImage() {
+  const teamId = $<HTMLSelectElement>('#team-select')?.value;
+  const team = state.teams.find((row) => row.id === teamId);
+  if (!teamId || !team) return;
+  const fallback = defaultTeamImagePath(team);
+  if (!fallback) return status('Für diese Mannschaft ist kein Standardbild definiert.', 'error');
+
+  const currentPath = team.image_path;
+  const { error } = await supabase.from('teams').update({ image_path: fallback }).eq('id', teamId);
+  if (error) return status(error.message, 'error');
+
+  if (currentPath && currentPath !== fallback && currentPath.startsWith(`teams/${teamId}/team/`)) {
+    await supabase.storage.from('media').remove([currentPath]);
+  }
+
+  await loadCore();
+  renderSelectors();
+  fillTeamForm();
+  status('Standardbild wiederhergestellt.', 'success');
 }
 
 async function refreshPlayers() {
@@ -755,6 +791,7 @@ function renderSelectors() {
 function bindForms() {
   $<HTMLFormElement>('#team-form')?.addEventListener('submit', saveTeam);
   $<HTMLSelectElement>('#team-select')?.addEventListener('change', fillTeamForm);
+  $<HTMLButtonElement>('#team-image-reset')?.addEventListener('click', resetTeamImage);
   $<HTMLFormElement>('#player-form')?.addEventListener('submit', savePlayer);
   $<HTMLSelectElement>('#players-team-season')?.addEventListener('change', () => { resetPlayerForm(); refreshPlayers(); });
   $<HTMLButtonElement>('#player-cancel-edit')?.addEventListener('click', resetPlayerForm);
