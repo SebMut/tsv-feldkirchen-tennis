@@ -59,3 +59,38 @@ sind zusätzlich über `public_visible` bzw. `published` eingeschränkt.
 Die alte Website liefert keine echten Kader oder individuellen Mannschaftsfotos.
 Diese Daten müssen daher über **Mein TSV** mit realen Vereinsdaten gepflegt werden.
 Die technische Funktion ist vorhanden.
+
+
+## 2.6 Punktspiel-Galerien
+
+Galerien können jetzt zusätzlich einem konkreten Punktspiel zugeordnet werden.
+
+Im Admin:
+- Mannschaft wählen
+- optional ein Punktspiel dieser Mannschaft wählen
+- Galerie hochladen
+- als Entwurf oder öffentlich speichern
+
+Öffentlich:
+- Spieleinträge führen auf `/spiel/?match=<id>`
+- dort werden Mannschaft, Gegner, Datum, Ort und Ergebnis/Livestatus dargestellt
+- veröffentlichte Galerien mit passender `match_id` erscheinen direkt auf dieser Spielseite
+- wenn noch keine Galerie existiert, wird ein leerer Hinweis angezeigt
+- bei Live-Spielen bleibt der Liveticker zusätzlich direkt erreichbar
+
+## 2.7 Nächstes Spiel
+
+Auf jeder Mannschaftsseite ist ein eigener hervorgehobener Bereich für das nächste
+zukünftige Punktspiel vorgesehen. Ein laufendes Live-Spiel hat dabei Vorrang.
+
+Der Block zeigt:
+- Heim/Auswärts
+- Gegner
+- Datum und Uhrzeit
+- Ort
+- direkten Einstieg zur Spielseite
+- bei laufendem Spiel zusätzlich den Liveticker
+
+Aktuell liegen die importierten 2026-Punktspiele bereits in der Vergangenheit.
+Der Block wird deshalb erst sichtbar, sobald ein zukünftiges Spiel angelegt bzw.
+die nächste Saison importiert wurde.
