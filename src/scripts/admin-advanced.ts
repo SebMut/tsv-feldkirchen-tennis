@@ -31,6 +31,17 @@ function matchTeam(base: BaseState, match: Row) {
   return base.teams.find((row) => row.id === teamSeason?.team_id);
 }
 
+function canEditTeam(base: BaseState, teamId?: string | null) {
+  if (base.isSuper) return true;
+  if (!teamId) return false;
+  return base.memberships.some((membership) =>
+    membership.user_id === base.user?.id &&
+    membership.team_id === teamId &&
+    membership.active &&
+    ['manager', 'editor'].includes(membership.role)
+  );
+}
+
 async function loadSeasons(base: BaseState) {
   if (!base.isSuper) return;
   const { data, error } = await supabase.from('seasons').select('*').order('year', { ascending: false });
@@ -322,7 +333,8 @@ function decorateMatchCards(base: BaseState) {
       const matchId = card.dataset.matchCard!;
       const match = base.matches.find((row) => row.id === matchId);
       const actions = card.querySelector<HTMLElement>('.actions');
-      if (actions) {
+      const team = match ? matchTeam(base, match) : null;
+      if (actions && canEditTeam(base, team?.id)) {
         const edit = document.createElement('button');
         edit.type = 'button';
         edit.className = 'button ghost';
@@ -405,16 +417,40 @@ export async function loadAdvancedUsers(base: BaseState) {
 
   target.innerHTML = `<div class="stack">${(data.users ?? []).map((user: Row) => {
     const membershipMap = new Map((user.team_memberships ?? []).filter((m: Row) => m.active).map((m: Row) => [m.team_id, m]));
-    return `<article class="card flat" data-user-card="${user.id}">
-      <div class="page-head"><div><strong>${escapeHtml(user.display_name)}</strong><div class="match-meta">${escapeHtml(user.email)}</div></div>
-        <label>Globale Rolle <select data-user-global><option value="user" ${user.global_role === 'user' ? 'selected' : ''}>Mannschafts-Nutzer</option><option value="super_admin" ${user.global_role === 'super_admin' ? 'selected' : ''}>SuperAdmin</option></select></label>
+    const accountStatus = user.last_sign_in_at ? 'Aktiv' : user.invited_at ? 'Einladung offen' : 'Angelegt';
+    const accountTone = user.last_sign_in_at ? '' : ' pending';
+    const isSelf = user.id === base.user?.id;
+    return `<article class="card flat user-admin-card" data-user-card="${user.id}">
+      <div class="page-head">
+        <div>
+          <div class="actions"><strong>${escapeHtml(user.display_name)}</strong><span class="status-pill${accountTone}">${escapeHtml(accountStatus)}</span></div>
+          <div class="match-meta">${escapeHtml(user.email)}</div>
+          ${user.last_sign_in_at ? `<div class="match-meta">Letzte Anmeldung: ${escapeHtml(formatDateTime(user.last_sign_in_at))}</div>` : ''}
+        </div>
+        <label>Globale Rolle
+          <select data-user-global ${isSelf ? 'title="Den eigenen SuperAdmin-Zugang nicht versehentlich herabstufen"' : ''}>
+            <option value="user" ${user.global_role === 'user' ? 'selected' : ''}>Mannschafts-Nutzer</option>
+            <option value="super_admin" ${user.global_role === 'super_admin' ? 'selected' : ''}>SuperAdmin</option>
+          </select>
+        </label>
       </div>
-      <div class="grid">${base.teams.map((team) => {
-        const membership = membershipMap.get(team.id) as Row | undefined;
-        return `<div class="card flat"><label><input type="checkbox" data-user-team="${team.id}" ${membership ? 'checked' : ''}/> ${escapeHtml(team.name)}</label>
-          <select data-user-team-role="${team.id}"><option value="manager" ${membership?.role === 'manager' ? 'selected' : ''}>Manager</option><option value="editor" ${!membership || membership.role === 'editor' ? 'selected' : ''}>Editor</option><option value="ticker" ${membership?.role === 'ticker' ? 'selected' : ''}>Nur Liveticker</option></select></div>`;
-      }).join('')}</div>
-      <div class="actions" style="margin-top:12px"><button class="button" data-save-user>Rechte speichern</button></div>
+      <div class="user-team-permissions ${user.global_role === 'super_admin' ? 'is-super' : ''}">
+        ${user.global_role === 'super_admin' ? '<p class="muted">SuperAdmins benötigen keine einzelnen Mannschaftszuordnungen.</p>' : `
+        <div class="grid">${base.teams.map((team) => {
+          const membership = membershipMap.get(team.id) as Row | undefined;
+          return `<div class="card flat user-team-card">
+            <label><input type="checkbox" data-user-team="${team.id}" ${membership ? 'checked' : ''}/> ${escapeHtml(team.name)}</label>
+            <select data-user-team-role="${team.id}">
+              <option value="manager" ${membership?.role === 'manager' ? 'selected' : ''}>Manager</option>
+              <option value="editor" ${!membership || membership.role === 'editor' ? 'selected' : ''}>Editor</option>
+              <option value="ticker" ${membership?.role === 'ticker' ? 'selected' : ''}>Nur Liveticker</option>
+            </select>
+          </div>`;
+        }).join('')}</div>`}</div>
+      <div class="actions" style="margin-top:12px">
+        <button class="button" data-save-user>Rechte speichern</button>
+        ${isSelf ? '' : '<button class="button danger" data-delete-user>Zugang löschen</button>'}
+      </div>
     </article>`;
   }).join('')}</div>`;
 
@@ -422,7 +458,7 @@ export async function loadAdvancedUsers(base: BaseState) {
     card.querySelector<HTMLButtonElement>('[data-save-user]')?.addEventListener('click', async () => {
       const userId = card.dataset.userCard!;
       const globalRole = card.querySelector<HTMLSelectElement>('[data-user-global]')?.value || 'user';
-      const memberships = Array.from(card.querySelectorAll<HTMLInputElement>('[data-user-team]:checked')).map((box) => ({
+      const memberships = globalRole === 'super_admin' ? [] : Array.from(card.querySelectorAll<HTMLInputElement>('[data-user-team]:checked')).map((box) => ({
         team_id: box.dataset.userTeam!,
         role: card.querySelector<HTMLSelectElement>(`[data-user-team-role="${box.dataset.userTeam}"]`)?.value || 'editor',
       }));
@@ -434,6 +470,16 @@ export async function loadAdvancedUsers(base: BaseState) {
       if (membershipResult.error || membershipResult.data?.error) return reportStatus(membershipResult.data?.error || membershipResult.error?.message || 'Mannschaftsrechte konnten nicht gespeichert werden.', 'error');
 
       reportStatus('Benutzerrechte gespeichert.', 'success');
+      loadAdvancedUsers(base);
+    });
+
+    card.querySelector<HTMLButtonElement>('[data-delete-user]')?.addEventListener('click', async () => {
+      const userId = card.dataset.userCard!;
+      const name = card.querySelector('strong')?.textContent || 'diesen Benutzer';
+      if (!confirm(`Zugang für ${name} wirklich vollständig löschen? Mannschaftsrechte und Login werden entfernt.`)) return;
+      const result = await supabase.functions.invoke('admin-users', { body: { action: 'delete', user_id: userId } });
+      if (result.error || result.data?.error) return reportStatus(result.data?.error || result.error?.message || 'Zugang konnte nicht gelöscht werden.', 'error');
+      reportStatus('Benutzerzugang gelöscht.', 'success');
       loadAdvancedUsers(base);
     });
   });
