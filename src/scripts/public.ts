@@ -386,18 +386,35 @@ export async function loadLiveTicker(matchId: string | null) {
 
   await refresh();
 
+  // Public visitors receive row changes through RLS-protected Postgres Changes.
+  // Signed-in users additionally use the private Broadcast channel created by the DB triggers.
+  const publicChannel = supabase
+    .channel(`public-match:${matchId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_live_state', filter: `match_id=eq.${matchId}` }, refresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'live_ticker_entries', filter: `match_id=eq.${matchId}` }, refresh)
+    .subscribe();
+
+  const channels = [publicChannel];
+
   try {
-    await supabase.realtime.setAuth();
-    const channel = supabase
-      .channel(`match:${matchId}:ticker`, { config: { private: true } })
-      .on('broadcast', { event: 'INSERT' }, refresh)
-      .on('broadcast', { event: 'UPDATE' }, refresh)
-      .on('broadcast', { event: 'DELETE' }, refresh)
-      .subscribe();
-    window.addEventListener('beforeunload', () => { supabase.removeChannel(channel); });
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session) {
+      await supabase.realtime.setAuth(sessionData.session.access_token);
+      const privateChannel = supabase
+        .channel(`match:${matchId}:ticker`, { config: { private: true } })
+        .on('broadcast', { event: 'INSERT' }, refresh)
+        .on('broadcast', { event: 'UPDATE' }, refresh)
+        .on('broadcast', { event: 'DELETE' }, refresh)
+        .subscribe();
+      channels.push(privateChannel);
+    }
   } catch {
-    // Polling below remains as a resilient fallback.
+    // Public Postgres Changes plus polling remain available.
   }
 
-  window.setInterval(refresh, 15000);
+  window.addEventListener('beforeunload', () => {
+    channels.forEach((channel) => { supabase.removeChannel(channel); });
+  });
+
+  window.setInterval(refresh, 30000);
 }
