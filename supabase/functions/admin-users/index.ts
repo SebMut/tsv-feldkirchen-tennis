@@ -155,7 +155,14 @@ Deno.serve(async (req: Request) => {
         return Response.json({
           ok: false,
           code: "smtp_bad_credentials",
-          error: "SMTP-Anmeldung bei Gmail fehlgeschlagen. Bitte in Supabase das vollständige Gmail-Konto als Benutzer und ein Google App-Passwort verwenden.",
+          error: "SMTP-Anmeldung fehlgeschlagen. Bitte SMTP-Benutzername, Passwort bzw. App-Passwort und den verwendeten Mailanbieter prüfen.",
+        }, { status: 200, headers: cors });
+      }
+      if (normalized.includes("context deadline exceeded") || normalized.includes("request_timeout") || normalized.includes("timeout")) {
+        return Response.json({
+          ok: false,
+          code: "smtp_timeout",
+          error: "Der SMTP-Server hat nicht rechtzeitig geantwortet. Bitte Host, Port, Verschlüsselung und Authentifizierungsart des Mailanbieters prüfen.",
         }, { status: 200, headers: cors });
       }
       if (normalized.includes("already") || normalized.includes("registered") || normalized.includes("exists")) {
