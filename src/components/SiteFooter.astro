@@ -1,5 +1,9 @@
 ---
 import { COURTBOOKING_URL } from '../lib/supabase';
+
+const IMPRESSUM_URL = 'https://tsvfeldkirchen.de/impressum';
+const PRIVACY_URL = 'https://tsvfeldkirchen.de/datenschutz-dsgvo';
+const STATUTES_URL = 'https://tsvfeldkirchen.de/satzung';
 ---
 <footer class="site-footer">
   <div class="container footer-grid">
@@ -13,8 +17,9 @@ import { COURTBOOKING_URL } from '../lib/supabase';
       <a href="/funktionaere/">Funktionäre</a>
       <a href="/sponsoren/">Sponsoren</a>
       <a href="/kontakt/">Kontakt</a>
-      <a href="/impressum/">Impressum</a>
-      <a href="/datenschutz/">Datenschutz</a>
+      <a href={IMPRESSUM_URL} target="_blank" rel="noreferrer">Impressum ↗</a>
+      <a href={PRIVACY_URL} target="_blank" rel="noreferrer">Datenschutz ↗</a>
+      <a href={STATUTES_URL} target="_blank" rel="noreferrer">Satzung ↗</a>
     </div>
   </div>
 </footer>
