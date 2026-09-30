@@ -8,7 +8,7 @@ Status: **abgeschlossen**
 Siehe `docs/phase-1-content-audit.md`.
 
 ## Phase 2 – Mannschaften und Medien
-Status: **in Umsetzung / Test ausstehend**
+Status: **technisch abgeschlossen / Browserabnahme offen**
 
 - Übergangsbilder für alle Mannschaften eingerichtet
 - Mannschaftsfoto-Upload vorhanden
@@ -19,7 +19,7 @@ Status: **in Umsetzung / Test ausstehend**
 - Galerien inkl. Entwurf/Veröffentlichen/Löschen
 - Bildoptimierung auf WebP
 
-Noch offen: reale Mannschaftsfotos und Kaderdaten durch den Verein einpflegen und Browser-Test durchführen.
+Noch offen: Browser-Abnahme durchführen und reale Mannschaftsfotos/Kaderdaten nach und nach durch den Verein einpflegen. Die technische Umsetzung ist abgeschlossen.
 
 ## Phase 3 – Admin und Rechte
 - realen Mannschafts-Nutzer einladen
