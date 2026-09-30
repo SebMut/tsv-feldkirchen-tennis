@@ -791,21 +791,69 @@ async function loadUsers() {
 
 async function inviteUser(event: Event) {
   event.preventDefault();
-  const checked = Array.from(document.querySelectorAll<HTMLInputElement>('#invite-teams input[type="checkbox"]:checked')).map((x) => x.value);
+  const globalRole = $<HTMLSelectElement>('#invite-global-role')?.value || 'user';
+  const memberships = globalRole === 'super_admin'
+    ? []
+    : Array.from(document.querySelectorAll<HTMLElement>('#invite-teams [data-invite-team-card]'))
+        .map((card) => {
+          const checkbox = card.querySelector<HTMLInputElement>('[data-invite-team]');
+          const role = card.querySelector<HTMLSelectElement>('[data-invite-team-role]');
+          if (!checkbox?.checked) return null;
+          return {
+            team_id: checkbox.value,
+            role: role?.value || 'editor',
+          };
+        })
+        .filter((item): item is { team_id: string; role: string } => item !== null);
+
   const payload = {
     action: 'invite',
     display_name: $<HTMLInputElement>('#invite-name')?.value.trim(),
     email: $<HTMLInputElement>('#invite-email')?.value.trim(),
-    global_role: $<HTMLSelectElement>('#invite-global-role')?.value,
-    team_role: $<HTMLSelectElement>('#invite-team-role')?.value,
-    team_ids: checked,
+    global_role: globalRole,
+    memberships,
     redirect_to: `${location.origin}${import.meta.env.BASE_URL}admin/`,
   };
   const { data, error } = await supabase.functions.invoke('admin-users', { body: payload });
   if (error || data?.error) return status(data?.error || error?.message || 'Einladung fehlgeschlagen.', 'error');
+
   ($<HTMLFormElement>('#invite-form'))?.reset();
+  renderInviteTeamCards();
   status('Einladung wurde versendet.', 'success');
   loadUsers();
+}
+
+function renderInviteTeamCards() {
+  const invite = $('#invite-teams');
+  if (!invite || !state.isSuper) return;
+
+  const isSuperAdmin = $<HTMLSelectElement>('#invite-global-role')?.value === 'super_admin';
+
+  invite.innerHTML = state.teams.map((team) => `
+    <div class="invite-team-card card flat" data-invite-team-card>
+      <label class="invite-team-check">
+        <input data-invite-team type="checkbox" value="${team.id}" ${isSuperAdmin ? 'disabled' : ''} />
+        <strong>${escapeHtml(team.name)}</strong>
+      </label>
+      <label class="invite-team-role">
+        <span>Rolle</span>
+        <select data-invite-team-role disabled>
+          <option value="editor" selected>Editor</option>
+          <option value="manager">Manager</option>
+          <option value="ticker">Nur Liveticker</option>
+        </select>
+      </label>
+    </div>
+  `).join('');
+
+  invite.querySelectorAll<HTMLElement>('[data-invite-team-card]').forEach((card) => {
+    const checkbox = card.querySelector<HTMLInputElement>('[data-invite-team]');
+    const role = card.querySelector<HTMLSelectElement>('[data-invite-team-role]');
+    checkbox?.addEventListener('change', () => {
+      if (role) role.disabled = !checkbox.checked;
+      card.classList.toggle('selected', !!checkbox?.checked);
+    });
+  });
 }
 
 function renderSelectors() {
@@ -819,8 +867,7 @@ function renderSelectors() {
   renderTeamSeasonOptions('#players-team-season', 'edit');
   renderTeamSeasonOptions('#match-team-season', 'edit');
 
-  const invite = $('#invite-teams');
-  if (invite && state.isSuper) invite.innerHTML = state.teams.map((team) => `<label class="card flat"><input type="checkbox" value="${team.id}" /> ${escapeHtml(team.name)}</label>`).join('');
+  renderInviteTeamCards();
 
   fillTeamForm();
 }
@@ -844,6 +891,7 @@ function bindForms() {
   $<HTMLFormElement>('#sponsor-form')?.addEventListener('submit', addSponsor);
   $<HTMLFormElement>('#official-form')?.addEventListener('submit', addOfficial);
   $<HTMLFormElement>('#invite-form')?.addEventListener('submit', inviteUser);
+  $<HTMLSelectElement>('#invite-global-role')?.addEventListener('change', renderInviteTeamCards);
   $<HTMLFormElement>('#password-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const password = $<HTMLInputElement>('#new-password')?.value;
