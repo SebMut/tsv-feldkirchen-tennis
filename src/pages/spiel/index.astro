@@ -1,0 +1,19 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+<MainLayout
+  title="Punktspiel | TSV Feldkirchen Tennis"
+  description="Punktspiel, Ergebnis und Bildergalerie beim TSV Feldkirchen Tennis."
+>
+  <div class="container stack" id="match-detail-root">
+    <section id="match-detail-head"><p class="muted">Spiel wird geladen …</p></section>
+    <section id="match-detail-score" class="card"></section>
+    <section id="match-detail-gallery" class="card"></section>
+    <section id="match-detail-sponsor" class="hidden" aria-label="Sponsor des Spiels"></section>
+  </div>
+</MainLayout>
+<script>
+  import { loadMatchDetail } from '../../scripts/public';
+  const matchId = new URLSearchParams(location.search).get('match');
+  loadMatchDetail(matchId);
+</script>
