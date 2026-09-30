@@ -15,8 +15,8 @@ import { COURTBOOKING_URL } from '../lib/supabase';
         </div>
       </div>
       <aside class="card hero__stats">
-        <div><strong>20 Mannschaften</strong><span>Herren, Damen und Jugend</span></div>
-        <div><strong>8 Sandplätze</strong><span>Olympiastrasse 1, Feldkirchen</span></div>
+        <div><strong id="home-team-count">20 Mannschaften</strong><span>Herren, Damen und Jugend</span></div>
+        <div><strong id="home-court-count">8 Sandplätze</strong><span>Olympiastrasse 1, Feldkirchen</span></div>
         <div><strong>Live am Spieltag</strong><span>Tickermeldungen ohne Seitenreload</span></div>
       </aside>
     </section>
@@ -27,6 +27,7 @@ import { COURTBOOKING_URL } from '../lib/supabase';
     </section>
 
     <section id="live-center" class="card live-center hidden" aria-live="polite"></section>
+    <section id="home-sponsors" class="hidden" aria-label="Sponsoren"></section>
 
     <section class="grid two">
       <article class="card">
