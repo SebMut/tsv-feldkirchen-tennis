@@ -1,4 +1,6 @@
-import { mediaUrl, supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
+import { optimizeImage } from '../lib/images';
+import { initAdvancedAdmin, loadAdvancedUsers } from './admin-advanced';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
 
 type Row = Record<string, any>;
@@ -152,8 +154,9 @@ async function saveTeam(event: Event) {
 
   const file = $<HTMLInputElement>('#team-image')?.files?.[0];
   if (file) {
-    const path = `teams/${teamId}/team/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
-    const { error: uploadError } = await supabase.storage.from('media').upload(path, file, { upsert: false });
+    const image = await optimizeImage(file);
+    const path = `teams/${teamId}/team/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+    const { error: uploadError } = await supabase.storage.from('media').upload(path, image, { upsert: false });
     if (uploadError) return status(uploadError.message, 'error');
     const { error: imageError } = await supabase.from('teams').update({ image_path: path }).eq('id', teamId);
     if (imageError) return status(imageError.message, 'error');
@@ -197,8 +200,9 @@ async function addPlayer(event: Event) {
 
   const file = $<HTMLInputElement>('#player-photo')?.files?.[0];
   if (file) {
-    const path = `teams/${ts.team_id}/players/${player.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
-    const { error: uploadError } = await supabase.storage.from('media').upload(path, file);
+    const image = await optimizeImage(file, 1600, 0.82);
+    const path = `teams/${ts.team_id}/players/${player.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+    const { error: uploadError } = await supabase.storage.from('media').upload(path, image);
     if (!uploadError) await supabase.from('players').update({ photo_path: path }).eq('id', player.id);
   }
 
@@ -317,7 +321,7 @@ async function addNews(event: Event) {
   const teamId = $<HTMLSelectElement>('#news-team')?.value || null;
   const matchId = $<HTMLSelectElement>('#news-match')?.value || null;
   const publication = $<HTMLSelectElement>('#news-status')?.value || 'draft';
-  const { error } = await supabase.from('news').insert({
+  const { data: article, error } = await supabase.from('news').insert({
     slug: `${slugify(title)}-${Date.now().toString(36)}`,
     title,
     excerpt: $<HTMLTextAreaElement>('#news-excerpt')?.value.trim() || null,
@@ -327,8 +331,20 @@ async function addNews(event: Event) {
     status: publication,
     author_id: state.user.id,
     published_at: publication === 'published' ? new Date().toISOString() : null,
-  });
-  if (error) return status(error.message, 'error');
+  }).select().single();
+  if (error || !article) return status(error?.message || 'Beitrag konnte nicht gespeichert werden.', 'error');
+
+  const file = $<HTMLInputElement>('#news-image')?.files?.[0];
+  if (file) {
+    const image = await optimizeImage(file);
+    const base = teamId ? `teams/${teamId}/news/${article.id}` : `site/news/${article.id}`;
+    const path = `${base}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+    const { error: uploadError } = await supabase.storage.from('media').upload(path, image);
+    if (uploadError) return status(uploadError.message, 'error');
+    const { error: imageError } = await supabase.from('news').update({ hero_image_path: path }).eq('id', article.id);
+    if (imageError) return status(imageError.message, 'error');
+  }
+
   ($<HTMLFormElement>('#news-form'))?.reset();
   status('Beitrag gespeichert.', 'success');
   refreshNews();
@@ -386,8 +402,9 @@ async function addGallery(event: Event) {
   if (error || !gallery) return status(error?.message || 'Galerie konnte nicht angelegt werden.', 'error');
 
   for (const [index, file] of files.entries()) {
-    const path = `teams/${teamId}/galleries/${gallery.id}/${Date.now()}-${index}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
-    const { error: uploadError } = await supabase.storage.from('media').upload(path, file);
+    const image = await optimizeImage(file);
+    const path = `teams/${teamId}/galleries/${gallery.id}/${Date.now()}-${index}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+    const { error: uploadError } = await supabase.storage.from('media').upload(path, image);
     if (uploadError) return status(uploadError.message, 'error');
     const { error: itemError } = await supabase.from('gallery_items').insert({ gallery_id: gallery.id, storage_path: path, alt_text: title, sort_order: index });
     if (itemError) return status(itemError.message, 'error');
@@ -464,14 +481,27 @@ async function savePage(event: Event) {
 
 async function addSponsor(event: Event) {
   event.preventDefault();
-  const { error } = await supabase.from('sponsors').insert({
+  const { data: sponsor, error } = await supabase.from('sponsors').insert({
     name: $<HTMLInputElement>('#sponsor-name')?.value.trim(),
     url: $<HTMLInputElement>('#sponsor-url')?.value.trim() || null,
     description: $<HTMLTextAreaElement>('#sponsor-description')?.value.trim() || null,
     active: true,
-  });
-  if (error) status(error.message, 'error'); else { ($<HTMLFormElement>('#sponsor-form'))?.reset(); status('Sponsor gespeichert.', 'success'); }
+  }).select().single();
+  if (error || !sponsor) return status(error?.message || 'Sponsor konnte nicht gespeichert werden.', 'error');
+
+  const file = $<HTMLInputElement>('#sponsor-logo')?.files?.[0];
+  if (file) {
+    const image = await optimizeImage(file, 1400, 0.9);
+    const path = `site/sponsors/${sponsor.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+    const { error: uploadError } = await supabase.storage.from('media').upload(path, image);
+    if (uploadError) return status(uploadError.message, 'error');
+    const { error: logoError } = await supabase.from('sponsors').update({ logo_path: path }).eq('id', sponsor.id);
+    if (logoError) return status(logoError.message, 'error');
+  }
+  ($<HTMLFormElement>('#sponsor-form'))?.reset();
+  status('Sponsor gespeichert.', 'success');
 }
+
 async function addOfficial(event: Event) {
   event.preventDefault();
   const { error } = await supabase.from('officials').insert({
@@ -486,11 +516,7 @@ async function addOfficial(event: Event) {
 
 async function loadUsers() {
   if (!state.isSuper) return;
-  const { data, error } = await supabase.functions.invoke('admin-users', { body: { action: 'list' } });
-  if (error || data?.error) return status(data?.error || error?.message || 'Benutzer konnten nicht geladen werden.', 'error');
-  const target = $('#users-list');
-  if (!target) return;
-  target.innerHTML = `<table class="data-table"><thead><tr><th>Name</th><th>E-Mail</th><th>Rolle</th><th>Mannschaften</th></tr></thead><tbody>${(data.users ?? []).map((u: Row) => `<tr><td>${escapeHtml(u.display_name)}</td><td>${escapeHtml(u.email)}</td><td>${escapeHtml(u.global_role)}</td><td>${escapeHtml((u.team_memberships ?? []).filter((m: Row) => m.active).map((m: Row) => m.teams?.name || '').join(', '))}</td></tr>`).join('')}</tbody></table>`;
+  await loadAdvancedUsers(state);
 }
 
 async function inviteUser(event: Event) {
@@ -583,6 +609,7 @@ async function startApp(user: any) {
   bindForms();
   await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshEvents(), refreshGalleries()]);
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers()]);
+  await initAdvancedAdmin(state);
 }
 
 export async function initAdmin() {
