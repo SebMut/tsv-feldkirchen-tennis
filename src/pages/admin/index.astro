@@ -13,6 +13,13 @@ import MainLayout from '../../layouts/MainLayout.astro';
         <div class="field"><label for="login-password">Passwort</label><input id="login-password" name="password" type="password" autocomplete="current-password" required /></div>
         <div class="field full"><button class="button" type="submit">Anmelden</button></div>
       </form>
+      <details class="auth-help">
+        <summary>Passwort vergessen?</summary>
+        <form id="password-reset-form" class="form-grid">
+          <div class="field"><label for="reset-email">E-Mail</label><input id="reset-email" type="email" autocomplete="email" required /></div>
+          <div class="field"><button class="button secondary" type="submit">Link zum Zurücksetzen senden</button></div>
+        </form>
+      </details>
       <p class="muted">Neue Mannschaftsnutzer werden ausschließlich durch den SuperAdmin eingeladen.</p>
     </section>
 
@@ -251,7 +258,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <div class="card">
               <h2>Mein Konto</h2>
               <form id="password-form" class="form-grid">
-                <div class="field"><label>Neues Passwort</label><input id="new-password" type="password" minlength="12" required /></div>
+                <div class="field"><label>Neues Passwort</label><input id="new-password" type="password" minlength="12" autocomplete="new-password" required /><p class="muted">Mindestens 12 Zeichen. Verwende ein eigenes Passwort, das du nicht bei anderen Diensten nutzt.</p></div>
                 <div class="field"><button class="button" type="submit">Passwort setzen</button></div>
               </form>
             </div>
