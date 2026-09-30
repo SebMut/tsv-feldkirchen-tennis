@@ -108,9 +108,29 @@ Deno.serve(async (req: Request) => {
     const email = String(body.email ?? "").trim().toLowerCase();
     const displayName = String(body.display_name ?? "").trim();
     const globalRole = allowedRoles.has(String(body.global_role)) ? String(body.global_role) : "user";
-    const teamRole = allowedTeamRoles.has(String(body.team_role)) ? String(body.team_role) : "editor";
-    const teamIds = Array.isArray(body.team_ids) ? [...new Set(body.team_ids.map(String).filter(Boolean))] : [];
     const redirectTo = allowedRedirect(body.redirect_to);
+
+    let memberships: Array<{ team_id: string; role: string }> = [];
+    if (globalRole !== "super_admin" && Array.isArray(body.memberships)) {
+      memberships = body.memberships
+        .map((item) => {
+          if (!item || typeof item !== "object") return null;
+          const raw = item as Record<string, unknown>;
+          const teamId = String(raw.team_id ?? "");
+          const role = String(raw.role ?? "editor");
+          if (!teamId || !allowedTeamRoles.has(role)) return null;
+          return { team_id: teamId, role };
+        })
+        .filter((item): item is { team_id: string; role: string } => item !== null);
+    } else if (globalRole !== "super_admin" && Array.isArray(body.team_ids)) {
+      const fallbackRole = allowedTeamRoles.has(String(body.team_role)) ? String(body.team_role) : "editor";
+      memberships = [...new Set(body.team_ids.map(String).filter(Boolean))].map((teamId) => ({
+        team_id: teamId,
+        role: fallbackRole,
+      }));
+    }
+
+    const uniqueMemberships = new Map(memberships.map((membership) => [membership.team_id, membership]));
 
     if (!email || !email.includes("@")) {
       return Response.json({ error: "Bitte eine gültige E-Mail-Adresse angeben." }, { status: 400, headers: cors });
@@ -133,11 +153,11 @@ Deno.serve(async (req: Request) => {
     });
     if (profileError) return Response.json({ error: profileError.message }, { status: 500, headers: cors });
 
-    if (teamIds.length && globalRole !== "super_admin") {
-      const rows = teamIds.map((teamId) => ({
+    if (uniqueMemberships.size && globalRole !== "super_admin") {
+      const rows = [...uniqueMemberships.values()].map((membership) => ({
         user_id: invited.user!.id,
-        team_id: teamId,
-        role: teamRole,
+        team_id: membership.team_id,
+        role: membership.role,
         active: true,
       }));
       const { error } = await admin.from("team_memberships").upsert(rows, { onConflict: "user_id,team_id" });
