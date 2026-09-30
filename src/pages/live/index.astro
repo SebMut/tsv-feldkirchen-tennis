@@ -1,14 +1,28 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 ---
-<MainLayout title="Liveticker | TSV Feldkirchen Tennis" description="Live vom Spieltag beim TSV Feldkirchen Tennis.">
-  <div class="container stack">
-    <div id="live-match-head"><p class="muted">Liveticker wird geladen …</p></div>
-    <section class="card live-center">
-      <div id="live-score"></div>
-      <div id="live-timeline" class="timeline"></div>
+<MainLayout
+  title="Liveticker | TSV Feldkirchen Tennis"
+  description="Live vom Spieltag beim TSV Feldkirchen Tennis."
+  headerVariant="light"
+  mainClass="main--flush"
+>
+  <div class="matchday-page">
+    <section class="matchday-hero matchday-hero--compact">
+      <div class="container">
+        <span class="matchday-badge">LIVE · TSV FELDKIRCHEN</span>
+        <div id="live-match-head"><p>Liveticker wird geladen …</p></div>
+      </div>
     </section>
-    <section id="live-sponsor" class="hidden" aria-label="Sponsor des Spieltags"></section>
+
+    <div class="container matchday-dashboard">
+      <section class="matchday-panel matchday-live-panel">
+        <div id="live-score"></div>
+        <div id="live-timeline" class="timeline"></div>
+      </section>
+      <section id="live-sponsor" class="hidden" aria-label="Sponsor des Spieltags"></section>
+      <p><a class="matchday-action" href="/spieltag/">← Zur Spieltagszentrale</a></p>
+    </div>
   </div>
 </MainLayout>
 <script>
