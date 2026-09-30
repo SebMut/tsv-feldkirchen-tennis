@@ -8,12 +8,16 @@ interface Props {
   description?: string;
   canonicalPath?: string;
   noindex?: boolean;
+  headerVariant?: 'dark' | 'light';
+  mainClass?: string;
 }
 const {
   title,
   description = 'Tennisabteilung TSV Feldkirchen: Mannschaften, Spieltage, Termine und Vereinsleben.',
   canonicalPath = Astro.url.pathname,
   noindex = false,
+  headerVariant = 'dark',
+  mainClass = '',
 } = Astro.props;
 
 const base = import.meta.env.BASE_URL;
@@ -35,7 +39,7 @@ const shouldNoindex = noindex || previewMode;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#103c34" />
+    <meta name="theme-color" content="#0d1b18" />
     <link rel="canonical" href={canonical} />
     {shouldNoindex && <meta name="robots" content="noindex,nofollow" />}
     <meta property="og:type" content="website" />
@@ -46,8 +50,8 @@ const shouldNoindex = noindex || previewMode;
     <title>{title}</title>
   </head>
   <body>
-    <SiteHeader />
-    <main><slot /></main>
+    <SiteHeader variant={headerVariant} />
+    <main class={mainClass}><slot /></main>
     <SiteFooter />
     <script is:inline define:vars={{ basePrefix }}>
       (() => {
