@@ -415,3 +415,11 @@ body{background:var(--sand);color:var(--text)}
 .match-detail-hero h1{color:var(--text)}
 
 .notice{background:#f3f5f4;color:var(--text)}
+
+.auth-help{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+.auth-help summary{cursor:pointer;font-weight:800;color:#a50b14}
+.auth-help form{margin-top:14px}
+.user-admin-card{border-left:4px solid #e30613}
+.user-team-permissions{margin-top:14px}
+.user-team-card{display:grid;gap:10px;box-shadow:none}
+.status-pill.pending{background:#f3f1e8;color:#7a5b00}
