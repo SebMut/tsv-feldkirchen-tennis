@@ -246,8 +246,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field"><label>Name</label><input id="invite-name" required /></div>
                 <div class="field"><label>E-Mail</label><input id="invite-email" type="email" required /></div>
                 <div class="field"><label>Globale Rolle</label><select id="invite-global-role"><option value="user">Mannschafts-Nutzer</option><option value="super_admin">SuperAdmin</option></select></div>
-                <div class="field"><label>Team-Rolle</label><select id="invite-team-role"><option value="editor">Editor</option><option value="manager">Manager</option><option value="ticker">Nur Liveticker</option></select></div>
-                <div class="field full"><label>Mannschaften</label><div id="invite-teams" class="grid"></div></div>
+                <div class="field full">
+                  <label>Mannschaften und Rollen</label>
+                  <p class="muted">Initial ist keine Mannschaft ausgewählt. Für jede gewählte Mannschaft kann eine eigene Rolle vergeben werden.</p>
+                  <div id="invite-teams" class="invite-team-grid"></div>
+                </div>
                 <div class="field"><button class="button" type="submit">Einladung senden</button></div>
               </form>
             </div>
