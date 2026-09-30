@@ -34,3 +34,9 @@ Das Ergebnis liegt in `dist/` und wird später auf den United-Domains-Webspace �
 3. Auth und Mannschaftsrechte
 4. Mannschaften, Spiele und Liveticker
 5. WordPress-Migration
+
+
+## Designentscheidung
+
+- Öffentliche Website: Konzept **03 – Modern Premium**
+- Spieltagszentrale und Liveticker: Konzept **05 – Matchday Dashboard**
