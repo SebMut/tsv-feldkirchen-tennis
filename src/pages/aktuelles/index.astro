@@ -1,0 +1,13 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+<MainLayout title="Aktuelles | TSV Feldkirchen Tennis" description="News und Spielberichte der Tennisabteilung TSV Feldkirchen.">
+  <div class="container stack">
+    <div class="page-head"><div><p class="eyebrow">Vereinsleben</p><h1>Aktuelles</h1></div></div>
+    <div id="news-list" class="grid two"><p class="muted">Beiträge werden geladen …</p></div>
+  </div>
+</MainLayout>
+<script>
+  import { loadNews } from '../../scripts/public';
+  loadNews();
+</script>

@@ -1,0 +1,37 @@
+name: Deploy to United Domains
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm install
+      - run: npm run build
+      - name: Install SFTP client
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+      - name: Upload dist via SFTP
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_REMOTE_PATH: ${{ secrets.SFTP_REMOTE_PATH }}
+        run: |
+          test -n "$SFTP_HOST"
+          test -n "$SFTP_USER"
+          test -n "$SFTP_PASSWORD"
+          test -n "$SFTP_REMOTE_PATH"
+          PORT="${SFTP_PORT:-22}"
+          printf 'cd %s\nput -r dist/*\nbye\n' "$SFTP_REMOTE_PATH" > /tmp/sftp-batch.txt
+          sshpass -p "$SFTP_PASSWORD" sftp -o StrictHostKeyChecking=accept-new -P "$PORT" -b /tmp/sftp-batch.txt "$SFTP_USER@$SFTP_HOST"

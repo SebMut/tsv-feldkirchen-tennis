@@ -1,0 +1,9 @@
+RewriteEngine On
+
+Redirect 301 /herrenmannschaften/ /mannschaften/
+Redirect 301 /damenmannschaften/ /mannschaften/
+Redirect 301 /jugendmannschaften/ /mannschaften/
+Redirect 301 /spielplaene/ /termine/
+Redirect 301 /kalender-downloaden/ /termine/#abos
+
+Options -Indexes

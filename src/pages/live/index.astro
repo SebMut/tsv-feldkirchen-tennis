@@ -1,0 +1,17 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+<MainLayout title="Liveticker | TSV Feldkirchen Tennis" description="Live vom Spieltag beim TSV Feldkirchen Tennis.">
+  <div class="container stack">
+    <div id="live-match-head"><p class="muted">Liveticker wird geladen …</p></div>
+    <section class="card live-center">
+      <div id="live-score"></div>
+      <div id="live-timeline" class="timeline"></div>
+    </section>
+  </div>
+</MainLayout>
+<script>
+  import { loadLiveTicker } from '../../scripts/public';
+  const matchId = new URLSearchParams(location.search).get('match');
+  loadLiveTicker(matchId);
+</script>

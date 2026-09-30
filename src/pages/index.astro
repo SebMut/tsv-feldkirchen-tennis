@@ -1,45 +1,58 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
-const courtbookingUrl = 'https://tsvfeldkirchen.courtbooking.de/';
+import { COURTBOOKING_URL } from '../lib/supabase';
 ---
-<MainLayout title="TSV Feldkirchen Tennis">
-  <div class="container">
+<MainLayout title="TSV Feldkirchen Tennis" description="Tennis beim TSV Feldkirchen: Mannschaften, Spieltage, Liveticker, Termine und Platzbuchung.">
+  <div class="container stack" id="home">
     <section class="hero">
       <div>
-        <p><strong>TENNIS TSV FELDKIRCHEN</strong></p>
+        <p class="eyebrow">Tennis TSV Feldkirchen</p>
         <h1>Verein. Mannschaften. Spieltag.</h1>
-        <p class="lead">Die neue technische Basis ohne WordPress: schnell, übersichtlich und vorbereitet für Team-Benutzer, Spieltage und Realtime-Liveticker.</p>
-        <a class="button" href="/mannschaften/">Mannschaften</a>
+        <p class="hero__lead">Tennis für alle Alters- und Spielklassen – mit 8 Sandplätzen, 20 Mannschaften und einem neuen digitalen Spieltagszentrum.</p>
+        <div class="actions">
+          <a class="button" href={COURTBOOKING_URL} target="_blank" rel="noreferrer">🎾 Platz buchen</a>
+          <a class="button secondary" href="/termine/">Spielplan & Termine</a>
+        </div>
       </div>
-      <aside class="panel dark">
-        <h2>Kernfunktionen</h2>
-        <p>20+ Mannschaften</p>
-        <p>Team-Nutzer mit eigenen Rechten</p>
-        <p>SuperAdmin</p>
-        <p>Live-Center am Spieltag</p>
+      <aside class="card hero__stats">
+        <div><strong>20 Mannschaften</strong><span>Herren, Damen und Jugend</span></div>
+        <div><strong>8 Sandplätze</strong><span>Olympiastrasse 1, Feldkirchen</span></div>
+        <div><strong>Live am Spieltag</strong><span>Tickermeldungen ohne Seitenreload</span></div>
       </aside>
     </section>
 
-    <section class="panel live">
-      <small>LIVE CENTER</small>
-      <h2>Am Spieltag erscheint hier automatisch der Liveticker</h2>
-      <p class="muted">Mehrere Mannschaften können gleichzeitig tickern. Sobald ein Team einen Ticker startet, wird dieser Bereich deutlich hervorgehoben.</p>
+    <section id="facility-card" class="card" aria-live="polite">
+      <p class="eyebrow">Anlagenstatus</p>
+      <h2>Wird geladen …</h2>
     </section>
 
-    <section class="grid">
+    <section id="live-center" class="card live-center hidden" aria-live="polite"></section>
+
+    <section class="grid two">
       <article class="card">
-        <h2>Platz buchen</h2>
-        <p class="muted">Courtbooking bleibt das führende System für Reservierungen.</p>
-        <a class="button" href={courtbookingUrl} target="_blank" rel="noreferrer">Courtbooking öffnen ↗</a>
+        <p class="eyebrow">Heute beim TSV</p>
+        <h2>Spieltagsmodus</h2>
+        <div id="today-matches" class="match-list"><p class="muted">Spiele werden geladen …</p></div>
       </article>
       <article class="card">
-        <h2>Mannschaften</h2>
-        <p class="muted">Kader, Bilder, Liga, Spiele, Ergebnisse und Liveticker je Team.</p>
+        <p class="eyebrow">Aktuelles</p>
+        <h2>Neuigkeiten</h2>
+        <div id="home-news" class="news-list"><p class="muted">News werden geladen …</p></div>
+        <p><a href="/aktuelles/">Alle Nachrichten →</a></p>
       </article>
-      <article class="card">
-        <h2>Mein TSV</h2>
-        <p class="muted">Mannschafts-Nutzer bearbeiten nur ihre Teams. Der SuperAdmin verwaltet alles.</p>
-      </article>
+    </section>
+
+    <section class="card">
+      <p class="eyebrow">Schnellzugriff</p>
+      <div class="grid">
+        <div><h3>Mannschaften</h3><p class="muted">Kader, Ligen, Spielpläne und Saisonarchiv.</p><a href="/mannschaften/">Teams ansehen →</a></div>
+        <div><h3>Kalender abonnieren</h3><p class="muted">Alle Punktspiele und Veranstaltungen direkt im eigenen Kalender.</p><a href="/termine/#abos">Kalender-Abos →</a></div>
+        <div><h3>Mitglied werden</h3><p class="muted">Beiträge, Kontakt und Einstieg in die Tennisabteilung.</p><a href="/mitglied-werden/">Mehr erfahren →</a></div>
+      </div>
     </section>
   </div>
 </MainLayout>
+<script>
+  import { loadHome } from '../scripts/public';
+  loadHome();
+</script>
