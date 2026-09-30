@@ -1,6 +1,6 @@
 # Phase 2 – Mannschaften und Medien
 
-Status: **technisch abgeschlossen / Browserabnahme offen**
+Status: **abgeschlossen**
 
 ## 2.1 Bestandsprüfung
 
@@ -129,3 +129,11 @@ nur in der Benutzeroberfläche.
 Aktuell sind noch keine echten Spieler/Kader aus der alten Website übernehmbar,
 weil diese dort nicht strukturiert vorhanden sind. Das ist kein technischer Blocker:
 sie werden später über **Mein TSV** gepflegt.
+
+
+## Abnahme
+
+Phase 2 wurde am 30.09.2026 abgenommen und ist **abgeschlossen**.
+
+Offene reale Vereinsdaten wie konkrete Mannschaftsfotos, Kader und Spielerbilder sind
+ab jetzt redaktionelle Pflegeinhalte und kein technischer Entwicklungsblocker mehr.
