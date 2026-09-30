@@ -1,0 +1,45 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+const courtbookingUrl = 'https://tsvfeldkirchen.courtbooking.de/';
+---
+<MainLayout title="TSV Feldkirchen Tennis">
+  <div class="container">
+    <section class="hero">
+      <div>
+        <p><strong>TENNIS TSV FELDKIRCHEN</strong></p>
+        <h1>Verein. Mannschaften. Spieltag.</h1>
+        <p class="lead">Die neue technische Basis ohne WordPress: schnell, übersichtlich und vorbereitet für Team-Benutzer, Spieltage und Realtime-Liveticker.</p>
+        <a class="button" href="/mannschaften/">Mannschaften</a>
+      </div>
+      <aside class="panel dark">
+        <h2>Kernfunktionen</h2>
+        <p>20+ Mannschaften</p>
+        <p>Team-Nutzer mit eigenen Rechten</p>
+        <p>SuperAdmin</p>
+        <p>Live-Center am Spieltag</p>
+      </aside>
+    </section>
+
+    <section class="panel live">
+      <small>LIVE CENTER</small>
+      <h2>Am Spieltag erscheint hier automatisch der Liveticker</h2>
+      <p class="muted">Mehrere Mannschaften können gleichzeitig tickern. Sobald ein Team einen Ticker startet, wird dieser Bereich deutlich hervorgehoben.</p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Platz buchen</h2>
+        <p class="muted">Courtbooking bleibt das führende System für Reservierungen.</p>
+        <a class="button" href={courtbookingUrl} target="_blank" rel="noreferrer">Courtbooking öffnen ↗</a>
+      </article>
+      <article class="card">
+        <h2>Mannschaften</h2>
+        <p class="muted">Kader, Bilder, Liga, Spiele, Ergebnisse und Liveticker je Team.</p>
+      </article>
+      <article class="card">
+        <h2>Mein TSV</h2>
+        <p class="muted">Mannschafts-Nutzer bearbeiten nur ihre Teams. Der SuperAdmin verwaltet alles.</p>
+      </article>
+    </section>
+  </div>
+</MainLayout>

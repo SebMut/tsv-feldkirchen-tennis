@@ -1,0 +1,29 @@
+---
+import '../styles/global.css';
+interface Props { title: string; description?: string; }
+const { title, description = 'Tennisabteilung TSV Feldkirchen' } = Astro.props;
+---
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width" />
+  <meta name="description" content={description} />
+  <title>{title}</title>
+</head>
+<body>
+<header>
+  <div class="container nav">
+    <a class="brand" href="/">TSV Feldkirchen · Tennis</a>
+    <nav class="nav-links" aria-label="Hauptnavigation">
+      <a href="/aktuelles/">Aktuelles</a>
+      <a href="/termine/">Termine</a>
+      <a href="/mannschaften/">Mannschaften</a>
+      <a href="/admin/">Login</a>
+    </nav>
+  </div>
+</header>
+<main><slot /></main>
+<footer><div class="container">TSV Feldkirchen Tennis · neue Plattform auf Astro + Supabase</div></footer>
+</body>
+</html>
