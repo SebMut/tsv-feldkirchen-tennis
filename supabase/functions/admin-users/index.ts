@@ -142,7 +142,23 @@ Deno.serve(async (req: Request) => {
 
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, options);
     if (inviteError || !invited.user) {
-      return Response.json({ error: inviteError?.message ?? "Einladung fehlgeschlagen." }, { status: 400, headers: cors });
+      const message = inviteError?.message ?? "Einladung fehlgeschlagen.";
+      const normalized = message.toLowerCase();
+      if (normalized.includes("rate limit") || normalized.includes("too many")) {
+        return Response.json({
+          ok: false,
+          code: "email_rate_limit",
+          error: "Supabase hat das E-Mail-Versandlimit erreicht. Bitte einige Minuten warten und dann erneut versuchen.",
+        }, { status: 200, headers: cors });
+      }
+      if (normalized.includes("already") || normalized.includes("registered") || normalized.includes("exists")) {
+        return Response.json({
+          ok: false,
+          code: "user_exists",
+          error: "Für diese E-Mail-Adresse existiert bereits ein Benutzerzugang.",
+        }, { status: 200, headers: cors });
+      }
+      return Response.json({ ok: false, error: message }, { status: 200, headers: cors });
     }
 
     const { error: profileError } = await admin.from("profiles").upsert({
@@ -228,7 +244,18 @@ Deno.serve(async (req: Request) => {
     const { error } = await admin.auth.resetPasswordForEmail(profile.email, {
       ...(redirectTo ? { redirectTo } : {}),
     });
-    if (error) return Response.json({ error: error.message }, { status: 400, headers: cors });
+    if (error) {
+      const message = error.message ?? "Zugangs-Mail konnte nicht gesendet werden.";
+      const normalized = message.toLowerCase();
+      if (normalized.includes("rate limit") || normalized.includes("too many")) {
+        return Response.json({
+          ok: false,
+          code: "email_rate_limit",
+          error: "Supabase hat das E-Mail-Versandlimit erreicht. Bitte einige Minuten warten und dann erneut versuchen.",
+        }, { status: 200, headers: cors });
+      }
+      return Response.json({ ok: false, error: message }, { status: 200, headers: cors });
+    }
 
     return Response.json({ ok: true }, { headers: cors });
   }
