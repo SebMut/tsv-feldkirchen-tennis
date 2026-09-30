@@ -310,7 +310,7 @@ function resetPlayerForm() {
   const editId = $<HTMLInputElement>('#player-edit-id');
   if (editId) editId.value = '';
   const visible = $<HTMLInputElement>('#player-public-visible');
-  if (visible) visible.checked = true;
+  if (visible) visible.checked = false;
   const submit = $<HTMLButtonElement>('#player-submit');
   if (submit) submit.textContent = 'Spieler hinzufügen';
   $<HTMLButtonElement>('#player-cancel-edit')?.classList.add('hidden');
@@ -345,7 +345,7 @@ async function savePlayer(event: Event) {
       team_season_id: tsId,
       player_id: playerId,
       is_captain: $<HTMLInputElement>('#player-captain')?.checked ?? false,
-      public_visible: $<HTMLInputElement>('#player-public-visible')?.checked ?? true,
+      public_visible: $<HTMLInputElement>('#player-public-visible')?.checked ?? false,
     });
     if (linkError) return status(linkError.message, 'error');
   }
