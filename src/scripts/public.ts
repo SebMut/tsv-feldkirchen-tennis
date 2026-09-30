@@ -307,7 +307,7 @@ export async function loadTeamDetail(slug: string) {
 
   const teamSeasonIds = teamSeasons.map((row: Row) => row.id);
   const [{ data: links }, { data: matches }, { data: allTeamMatches }, { data: news }, { data: galleries }] = await Promise.all([
-    supabase.from('team_players').select('*').eq('team_season_id', current.id).eq('public_visible', true).order('sort_order'),
+    supabase.from('team_players').select('*').eq('team_season_id', current.id).eq('public_visible', true).order('is_captain', { ascending: false }).order('sort_order'),
     supabase.from('matches').select('*').eq('team_season_id', current.id).order('starts_at'),
     teamSeasonIds.length
       ? supabase.from('matches').select('*').in('team_season_id', teamSeasonIds).eq('is_published', true).order('starts_at')
