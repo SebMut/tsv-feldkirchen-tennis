@@ -8,11 +8,18 @@ Status: **abgeschlossen**
 Siehe `docs/phase-1-content-audit.md`.
 
 ## Phase 2 – Mannschaften und Medien
-- Mannschaftsfotos
-- Spieler / Kader
+Status: **in Umsetzung / Test ausstehend**
+
+- Übergangsbilder für alle Mannschaften eingerichtet
+- Mannschaftsfoto-Upload vorhanden
+- Kader-/Spielerverwaltung erweitert
+- öffentliche Sichtbarkeit je Spieler
 - Spielerbilder
-- Sponsorlogos
-- Galerien und Bildoptimierung
+- Sponsorlogos vorhanden
+- Galerien inkl. Entwurf/Veröffentlichen/Löschen
+- Bildoptimierung auf WebP
+
+Noch offen: reale Mannschaftsfotos und Kaderdaten durch den Verein einpflegen und Browser-Test durchführen.
 
 ## Phase 3 – Admin und Rechte
 - realen Mannschafts-Nutzer einladen
