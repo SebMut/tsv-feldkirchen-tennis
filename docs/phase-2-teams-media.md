@@ -1,6 +1,6 @@
 # Phase 2 – Mannschaften und Medien
 
-Status: **in Umsetzung / technisch weitgehend fertig**
+Status: **technisch abgeschlossen / Browserabnahme offen**
 
 ## 2.1 Bestandsprüfung
 
@@ -33,7 +33,8 @@ Im Bereich **Mein TSV → Kader** können berechtigte Nutzer:
 - Spieler bearbeiten
 - Spieler aus der Mannschaft entfernen
 
-Öffentlich werden ausschließlich Einträge mit `public_visible = true` angezeigt.
+Neue Spieler werden aus Datenschutzgründen zunächst **intern** angelegt.
+Erst nach bewusstem Aktivieren von `public_visible` erscheinen Name und ggf. Foto öffentlich.
 Spielerbilder werden auf der öffentlichen Mannschaftsseite als Karten dargestellt.
 Ohne Foto wird ein Initialen-Platzhalter verwendet.
 
@@ -47,6 +48,8 @@ Im Bereich **Mein TSV → Bilder** können berechtigte Nutzer:
 - Galerie inklusive Storage-Dateien wieder löschen
 
 Galeriebilder werden beim Upload auf WebP optimiert und verkleinert.
+Allgemeine Mannschaftsgalerien erscheinen auf der Mannschaftsseite.
+Punktspiel-Galerien erscheinen ausschließlich auf der Detailseite des jeweiligen Spiels.
 
 ## 2.5 Sicherheit
 
@@ -94,3 +97,35 @@ Der Block zeigt:
 Aktuell liegen die importierten 2026-Punktspiele bereits in der Vergangenheit.
 Der Block wird deshalb erst sichtbar, sobald ein zukünftiges Spiel angelegt bzw.
 die nächste Saison importiert wurde.
+
+
+## 2.8 Medienbetrieb
+
+- aktuelles Mannschaftsbild ist im Admin sichtbar
+- Mannschaftsfotos können ersetzt oder auf das Kategorie-Standardbild zurückgesetzt werden
+- beim Ersetzen eigener Mannschafts- und Spielerfotos werden alte Dateien aus Storage aufgeräumt
+- Storage akzeptiert ausschließlich JPEG, PNG, WebP und AVIF
+- Bucket-Limit pro Datei: 8 MB
+- Bildoptimierung findet vor dem Upload im Browser statt
+
+## 2.9 Datenintegrität
+
+Für Punktspiel-Galerien existiert zusätzlich der Trigger
+`galleries_validate_match_team`.
+
+Dadurch kann eine Galerie nicht gleichzeitig Mannschaft A und einem Spiel von
+Mannschaft B zugeordnet werden. Diese Prüfung erfolgt in der Datenbank und nicht
+nur in der Benutzeroberfläche.
+
+## Technischer Abschlusscheck
+
+- 20 aktive Mannschaften
+- 20/20 Mannschaften mit Übergangsbild oder individuellem Bild
+- keine ungültigen Punktspiel-/Galerie-Zuordnungen
+- Astro-Build erfolgreich
+- GitHub-Pages-Preview erfolgreich
+- RLS- und Storage-Policies aktiv
+
+Aktuell sind noch keine echten Spieler/Kader aus der alten Website übernehmbar,
+weil diese dort nicht strukturiert vorhanden sind. Das ist kein technischer Blocker:
+sie werden später über **Mein TSV** gepflegt.
