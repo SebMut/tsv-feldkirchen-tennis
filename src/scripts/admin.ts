@@ -23,18 +23,35 @@ const status = (message: string, tone: 'info' | 'error' | 'success' = 'info') =>
   setStatus(el, message, tone);
 };
 
-function allowedTeamIds() {
-  if (state.isSuper) return state.teams.map((t) => t.id);
-  return state.memberships.filter((m) => m.active).map((m) => m.team_id);
+function ownMemberships() {
+  if (state.isSuper) return [];
+  return state.memberships.filter((m) => m.active && m.user_id === state.user?.id);
 }
 
-function allowedTeams() {
-  const ids = new Set(allowedTeamIds());
+function canEditTeamId(teamId: string) {
+  if (state.isSuper) return true;
+  return ownMemberships().some((m) => m.team_id === teamId && ['manager', 'editor'].includes(m.role));
+}
+
+function canTickTeamId(teamId: string) {
+  if (state.isSuper) return true;
+  return ownMemberships().some((m) => m.team_id === teamId && ['manager', 'editor', 'ticker'].includes(m.role));
+}
+
+function allowedTeamIds(mode: 'tick' | 'edit' = 'tick') {
+  if (state.isSuper) return state.teams.map((t) => t.id);
+  return ownMemberships()
+    .filter((m) => mode === 'edit' ? ['manager', 'editor'].includes(m.role) : ['manager', 'editor', 'ticker'].includes(m.role))
+    .map((m) => m.team_id);
+}
+
+function allowedTeams(mode: 'tick' | 'edit' = 'tick') {
+  const ids = new Set(allowedTeamIds(mode));
   return state.teams.filter((t) => ids.has(t.id));
 }
 
-function allowedTeamSeasons() {
-  const ids = new Set(allowedTeamIds());
+function allowedTeamSeasons(mode: 'tick' | 'edit' = 'tick') {
+  const ids = new Set(allowedTeamIds(mode));
   return state.teamSeasons.filter((ts) => ids.has(ts.team_id));
 }
 
@@ -57,17 +74,17 @@ function teamSeasonLabel(ts: Row) {
   return `${team?.name ?? 'Team'} · ${season?.name ?? ''}`;
 }
 
-function renderTeamOptions(selector: string, includeBlank = false) {
+function renderTeamOptions(selector: string, includeBlank = false, mode: 'tick' | 'edit' = 'edit') {
   const el = $<HTMLSelectElement>(selector);
   if (!el) return;
   el.innerHTML = (includeBlank ? '<option value="">Keine / Verein allgemein</option>' : '') +
-    allowedTeams().map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+    allowedTeams(mode).map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
 }
 
-function renderTeamSeasonOptions(selector: string) {
+function renderTeamSeasonOptions(selector: string, mode: 'tick' | 'edit' = 'edit') {
   const el = $<HTMLSelectElement>(selector);
   if (!el) return;
-  el.innerHTML = allowedTeamSeasons().map((ts) => `<option value="${ts.id}">${escapeHtml(teamSeasonLabel(ts))}</option>`).join('');
+  el.innerHTML = allowedTeamSeasons(mode).map((ts) => `<option value="${ts.id}">${escapeHtml(teamSeasonLabel(ts))}</option>`).join('');
 }
 
 function renderGalleryMatchOptions() {
@@ -127,15 +144,22 @@ function bindNav() {
 async function refreshDashboard() {
   const target = $('#dashboard-teams');
   if (!target) return;
-  target.innerHTML = allowedTeams().map((team) => {
+  target.innerHTML = allowedTeams('tick').map((team) => {
     const ts = currentTeamSeason(team.id);
-    return `<article class="card flat"><p class="eyebrow">${escapeHtml(ts?.league || 'Mannschaft')}</p><h3>${escapeHtml(team.name)}</h3><p class="muted">${escapeHtml(ts?.group_name || '')}</p><button class="button secondary" data-open-team="${team.id}">Bearbeiten</button></article>`;
+    const membership = ownMemberships().find((m) => m.team_id === team.id);
+    const editable = canEditTeamId(team.id);
+    const roleLabel = state.isSuper ? 'SuperAdmin' : membership?.role === 'ticker' ? 'Nur Liveticker' : membership?.role === 'manager' ? 'Manager' : 'Editor';
+    return `<article class="card flat"><p class="eyebrow">${escapeHtml(ts?.league || 'Mannschaft')}</p><h3>${escapeHtml(team.name)}</h3><p class="muted">${escapeHtml(ts?.group_name || '')}</p><p><span class="status-pill">${escapeHtml(roleLabel)}</span></p><button class="button secondary" data-open-team="${team.id}" data-editable="${editable ? '1' : '0'}">${editable ? 'Mannschaft bearbeiten' : 'Zum Liveticker'}</button></article>`;
   }).join('') || '<p class="muted">Noch keine Mannschaft zugeordnet.</p>';
   target.querySelectorAll<HTMLButtonElement>('[data-open-team]').forEach((button) => button.addEventListener('click', () => {
-    const select = $<HTMLSelectElement>('#team-select');
-    if (select) select.value = button.dataset.openTeam || '';
-    fillTeamForm();
-    showPanel('teams');
+    if (button.dataset.editable === '1') {
+      const select = $<HTMLSelectElement>('#team-select');
+      if (select) select.value = button.dataset.openTeam || '';
+      fillTeamForm();
+      showPanel('teams');
+    } else {
+      showPanel('matches');
+    }
   }));
 }
 
@@ -388,7 +412,7 @@ async function savePlayer(event: Event) {
 }
 
 async function refreshMatches() {
-  const ids = allowedTeamSeasons().map((ts) => ts.id);
+  const ids = allowedTeamSeasons('tick').map((ts) => ts.id);
   if (!ids.length) return;
   const { data } = await supabase.from('matches').select('*').in('team_season_id', ids).order('starts_at', { ascending: false });
   state.matches = data ?? [];
@@ -775,7 +799,7 @@ async function inviteUser(event: Event) {
     global_role: $<HTMLSelectElement>('#invite-global-role')?.value,
     team_role: $<HTMLSelectElement>('#invite-team-role')?.value,
     team_ids: checked,
-    redirect_to: `${location.origin}/admin/`,
+    redirect_to: `${location.origin}${import.meta.env.BASE_URL}admin/`,
   };
   const { data, error } = await supabase.functions.invoke('admin-users', { body: payload });
   if (error || data?.error) return status(data?.error || error?.message || 'Einladung fehlgeschlagen.', 'error');
@@ -785,15 +809,15 @@ async function inviteUser(event: Event) {
 }
 
 function renderSelectors() {
-  const teamOptions = allowedTeams().map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+  const teamOptions = allowedTeams('edit').map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
   const teamSelect = $<HTMLSelectElement>('#team-select');
   if (teamSelect) teamSelect.innerHTML = teamOptions;
-  renderTeamOptions('#news-team', state.isSuper);
-  renderTeamOptions('#event-team', state.isSuper);
-  renderTeamOptions('#gallery-team');
+  renderTeamOptions('#news-team', state.isSuper, 'edit');
+  renderTeamOptions('#event-team', state.isSuper, 'edit');
+  renderTeamOptions('#gallery-team', false, 'edit');
   renderGalleryMatchOptions();
-  renderTeamSeasonOptions('#players-team-season');
-  renderTeamSeasonOptions('#match-team-season');
+  renderTeamSeasonOptions('#players-team-season', 'edit');
+  renderTeamSeasonOptions('#match-team-season', 'edit');
 
   const invite = $('#invite-teams');
   if (invite && state.isSuper) invite.innerHTML = state.teams.map((team) => `<label class="card flat"><input type="checkbox" value="${team.id}" /> ${escapeHtml(team.name)}</label>`).join('');
@@ -839,6 +863,12 @@ async function startApp(user: any) {
   }
   state.isSuper = state.profile?.global_role === 'super_admin';
   await loadCore();
+
+  const canEditAny = state.isSuper || ownMemberships().some((m) => ['manager', 'editor'].includes(m.role));
+  const canTickAny = state.isSuper || ownMemberships().some((m) => ['manager', 'editor', 'ticker'].includes(m.role));
+  document.querySelectorAll<HTMLElement>('[data-editor-only]').forEach((el) => el.classList.toggle('hidden', !canEditAny));
+  document.querySelectorAll<HTMLElement>('[data-ticker-only]').forEach((el) => el.classList.toggle('hidden', !canTickAny));
+  $('#match-create-card')?.classList.toggle('hidden', !canEditAny);
 
   $('#auth-box')?.classList.add('hidden');
   $('#admin-app')?.classList.remove('hidden');
