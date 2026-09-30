@@ -27,7 +27,10 @@ Produktive Domain: **noch nicht umstellen**.
 - [x] keine anonymen Schreib-Policies
 - [x] Rollen SuperAdmin / Manager / Editor / Ticker technisch vorhanden
 - [x] Benutzer-Einladungen serverseitig über Edge Function
-- [ ] erster realer SuperAdmin
+- [x] erster realer SuperAdmin vorhanden
+- [x] Selbstregistrierung aus der Website entfernt; Benutzer werden nur noch eingeladen
+- [x] Self-Service-Rolleneskalation in RLS verhindert
+- [ ] Supabase Dashboard: "Allow new users to sign up" deaktivieren
 - [ ] reale Mannschaftsnutzer und Mehrfach-Team-Zuordnung testen
 
 ## Phase 4 – Spieltag und Liveticker
@@ -63,9 +66,11 @@ Produktive Domain: **noch nicht umstellen**.
 
 - [x] Astro CI-Build
 - [x] GitHub-Pages-Preview-Deployment
-- [x] Supabase Security Advisor ohne Findings
 - [x] Public-Service-Smoke-Test
-- [ ] erster SuperAdmin + Login
+- [ ] Supabase Auth: Leaked Password Protection ist laut Supabase erst auf Pro verfügbar; auf Free bleibt dieser Advisor-Hinweis bestehen
+- [x] Passwortfeld in Mein TSV auf mindestens 12 Zeichen angehoben
+- [x] erster SuperAdmin technisch vorhanden
+- [ ] SuperAdmin-Login in der Preview durch Betreiber bestätigen
 - [ ] Team-Nutzer-End-to-End-Test
 - [ ] Smartphone-Abnahme mit echten Accounts
 - [ ] finale Inhaltsfreigabe
