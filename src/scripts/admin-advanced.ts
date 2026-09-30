@@ -480,7 +480,8 @@ export async function loadAdvancedUsers(base: BaseState) {
       const result = await supabase.functions.invoke('admin-users', {
         body: { action: 'send_access_mail', user_id: userId, redirect_to: redirectTo },
       });
-      if (result.error || result.data?.error) return reportStatus(result.data?.error || result.error?.message || 'Zugangs-Mail konnte nicht gesendet werden.', 'error');
+      if (result.error) return reportStatus('Die Benutzerverwaltung ist momentan nicht erreichbar. Bitte erneut versuchen.', 'error');
+      if (result.data?.ok === false || result.data?.error) return reportStatus(result.data?.error || 'Zugangs-Mail konnte nicht gesendet werden.', 'error');
       reportStatus('Zugangs-Mail wurde erneut gesendet.', 'success');
     });
 
