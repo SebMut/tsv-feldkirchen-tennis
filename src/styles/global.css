@@ -213,3 +213,205 @@ p{line-height:1.65}
 .team-image-preview img{width:180px;max-width:38vw;aspect-ratio:16/9;object-fit:cover;border-radius:10px}
 .team-image-preview p{margin:.35rem 0 0}
 @media(max-width:620px){.team-image-preview{align-items:flex-start;flex-direction:column}.team-image-preview img{width:100%;max-width:none}}
+
+
+/* Global light TSV Feldkirchen CI */
+:root{
+  color-scheme:light;
+  --green-950:#1f2422;
+  --green-900:#292f2c;
+  --green-800:#3a423e;
+  --green-700:#e30613;
+  --green-100:#fbe9eb;
+  --sand:#f6f6f4;
+  --surface:#ffffff;
+  --text:#1b1f1d;
+  --muted:#66706b;
+  --line:#dfe3e0;
+  --accent:#e30613;
+  --live:#e30613;
+  --warning:#a15c00;
+  --success:#117a4d;
+  --shadow:0 14px 34px rgb(20 25 23 / .08);
+}
+
+body{background:var(--sand);color:var(--text)}
+
+.site-header,
+.site-header--light{
+  background:rgb(255 255 255 / .96);
+  color:var(--text);
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(14px);
+  box-shadow:0 4px 18px rgb(20 25 23 / .045);
+}
+.brand strong,
+.site-header--light .brand strong{color:var(--text)}
+.brand small,
+.site-header--light .brand small{color:#a50b14}
+.desktop-nav a,
+.site-header--light .desktop-nav a{color:#28302c}
+.desktop-nav a:hover,
+.desktop-nav a:focus-visible{color:var(--accent)}
+.nav-booking,
+.site-header--light .nav-booking{background:var(--accent);color:#fff!important}
+.mobile-nav summary,
+.site-header--light .mobile-nav summary{border-color:#cbd1cd;color:var(--text);background:#fff}
+.mobile-nav>div{background:#fff;color:var(--text);border-color:var(--line)}
+.mobile-nav a{color:var(--text)}
+.mobile-nav a:hover,.mobile-nav a:focus-visible{background:#fbeff0;color:#a50b14}
+
+.site-footer{
+  background:#fff;
+  color:var(--text);
+  border-top:3px solid var(--accent);
+}
+.site-footer p{color:var(--muted)}
+.footer-links a{color:var(--text)}
+.footer-links a:hover,.footer-links a:focus-visible{color:var(--accent)}
+
+.card{background:#fff;border-color:var(--line);box-shadow:var(--shadow)}
+.card.flat{box-shadow:none}
+
+.button{
+  background:var(--accent);
+  color:#fff;
+  border-color:var(--accent);
+}
+.button:hover,.button:focus-visible{background:#b9000c;border-color:#b9000c}
+.button.secondary{
+  background:#fff;
+  color:#a50b14;
+  border-color:#e7aeb3;
+}
+.button.secondary:hover,.button.secondary:focus-visible{background:#fbeff0;color:#8e0009;border-color:#d87f87}
+.button.ghost{
+  background:#fff;
+  color:var(--text);
+  border-color:#ccd2ce;
+}
+.button.ghost:hover,.button.ghost:focus-visible{background:#f5f6f5;border-color:#adb6b0;color:#a50b14}
+.button--hot{background:var(--accent);border-color:var(--accent);color:#fff}
+.button--outline{background:#fff;border-color:#d9ddda;color:var(--text)}
+
+.hero__stats{background:#fff;color:var(--text);border:1px solid var(--line)}
+.hero__stats span{color:var(--muted)}
+.live-center{background:#fff}
+.status-pill{background:#fbe9eb;color:#9d151d}
+
+.player-card,.gallery-item,.team-image-preview{
+  background:#fff;
+  border-color:var(--line);
+}
+.table-wrap{background:#fff}
+.admin-nav button:hover,.admin-nav button.active{background:#fbe9eb;color:#a50b14}
+
+/* Startseite: Premium-Layout jetzt hell */
+.premium-hero{
+  background:
+    radial-gradient(circle at 78% 24%,rgb(227 6 19 / .10),transparent 26%),
+    radial-gradient(circle at 20% 14%,rgb(0 0 0 / .025),transparent 26%),
+    linear-gradient(180deg,#fff 0%,#faf9f7 55%,#f2f1ee 100%);
+  color:var(--text);
+}
+.premium-hero:after{
+  border-color:rgb(227 6 19 / .13);
+  box-shadow:0 0 0 5vw rgb(227 6 19 / .018),0 0 0 10vw rgb(227 6 19 / .012);
+}
+.premium-hero h1{color:#171b19}
+.premium-hero h1 span{color:var(--accent)}
+.premium-hero__lead{color:#59635e}
+.premium-hero .button--outline{background:#fff;color:var(--text);border-color:#cfd5d1}
+
+.premium-metrics{
+  background:#fff;
+  border-color:var(--line);
+}
+.premium-metrics>div{border-color:var(--line)}
+.premium-metrics strong{color:var(--accent)}
+.premium-metrics span{color:var(--muted)}
+
+.premium-feature{
+  color:var(--text);
+  border-color:var(--line);
+  background:
+    linear-gradient(180deg,rgb(255 255 255 / .05),rgb(255 255 255 / .93) 78%),
+    radial-gradient(circle at 72% 24%,rgb(227 6 19 / .13),transparent 28%),
+    linear-gradient(135deg,#fff,#f3f2ef);
+}
+.premium-feature:before{border-color:rgb(227 6 19 / .07)}
+.premium-story{background:#fff;border-color:var(--line);color:var(--text)}
+.premium-live{background:#fff7f7;border-left-color:var(--accent)}
+
+/* Spieltag ebenfalls hell mit roten TSV-Akzenten */
+.matchday-page{
+  --surface:#fff;
+  --text:#1b1f1d;
+  --muted:#66706b;
+  --line:#dfe3e0;
+  --green-100:#fbe9eb;
+  --green-700:#a50b14;
+  color:var(--text);
+  background:#f5f6f4;
+}
+.matchday-hero{
+  background:
+    radial-gradient(circle at 82% 18%,rgb(227 6 19 / .10),transparent 28%),
+    linear-gradient(180deg,#fff,#f3f2ef);
+  color:var(--text);
+  border-bottom:1px solid var(--line);
+}
+.matchday-hero h1{color:#171b19}
+.matchday-hero h1 span{color:var(--accent)}
+.matchday-hero p{color:#5c6661}
+.matchday-badge{background:#fbe9eb;color:#a50b14}
+.matchday-hero__mark{
+  background:#fff;
+  color:var(--text);
+  border-color:#dfe3e0;
+  box-shadow:0 12px 30px rgb(20 25 23 / .08);
+}
+.matchday-hero__mark strong{color:var(--accent)}
+.matchday-panel{background:#fff;color:var(--text);border-color:var(--line)}
+.matchday-panel h2,.matchday-panel h3{color:var(--text)}
+.matchday-metric{color:var(--accent)}
+.matchday-action{background:var(--accent);color:#fff!important}
+.matchday-action:hover,.matchday-action:focus-visible{background:#b9000c}
+.matchday-action--red{background:var(--accent)}
+.matchday-live-panel .score{color:var(--text)}
+
+/* Mannschaftsseiten und Matchdetails hell */
+.next-match-card{
+  color:var(--text);
+  background:
+    radial-gradient(circle at 90% 20%,rgb(227 6 19 / .08),transparent 30%),
+    linear-gradient(135deg,#fff,#f7f6f3);
+  border-color:rgb(227 6 19 / .35);
+  box-shadow:0 16px 36px rgb(20 25 23 / .10);
+}
+.next-match-card__date strong{color:var(--text)}
+.next-match-card__date span{color:var(--muted)}
+.next-match-card__teams{
+  border-top-color:var(--line);
+  border-bottom-color:var(--line);
+}
+.next-match-card__teams>div{
+  background:#fff;
+  border-color:var(--line);
+}
+.next-match-card__teams .is-tsv{
+  background:#fff7f7;
+  border-color:rgb(227 6 19 / .42);
+  box-shadow:inset 0 0 0 1px rgb(227 6 19 / .08);
+}
+
+.match-detail-hero{
+  color:var(--text);
+  background:
+    radial-gradient(circle at 90% 20%,rgb(227 6 19 / .08),transparent 30%),
+    linear-gradient(135deg,#fff,#f7f6f3);
+  border-color:rgb(227 6 19 / .28);
+}
+.match-detail-hero h1{color:var(--text)}
+
+.notice{background:#f3f5f4;color:var(--text)}
