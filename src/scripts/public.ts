@@ -7,6 +7,17 @@ const fallbackImage =
   'data:image/svg+xml;charset=UTF-8,' +
   encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540"><rect width="100%" height="100%" fill="#e7f0ed"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="38" fill="#216052">TSV Feldkirchen Tennis</text></svg>');
 
+function teamFallbackImage(team: Row) {
+  if (team.gender === 'men') return mediaUrl('teams/herren.png');
+  if (team.gender === 'women') return mediaUrl('teams/damen.png');
+  if (team.gender === 'youth') return mediaUrl('teams/jugend.png');
+  return fallbackImage;
+}
+
+function initials(name = '') {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || 'TSV';
+}
+
 async function refs() {
   const [{ data: seasons }, { data: categories }, { data: teams }, { data: teamSeasons }] = await Promise.all([
     supabase.from('seasons').select('*').order('year', { ascending: false }),
@@ -244,7 +255,7 @@ export async function loadTeams() {
 
     target.innerHTML = rows.length ? rows.map(({ ts, team }: any) => `
       <article class="card team-card">
-        <img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || fallbackImage)}" alt="${escapeHtml(team.name)}" loading="lazy" />
+        <img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="${escapeHtml(team.name)}" loading="lazy" />
         <div><p class="eyebrow">${escapeHtml(ts.league || 'Mannschaft')}</p><h3>${escapeHtml(team.name)}</h3></div>
         <p class="muted">${escapeHtml([ts.league, ts.group_name].filter(Boolean).join(' · '))}</p>
         <div class="actions"><a class="button" href="/mannschaften/${escapeHtml(team.slug)}/">Mannschaft öffnen</a>${ts.btv_url ? `<a class="button ghost" href="${escapeHtml(ts.btv_url)}" target="_blank" rel="noreferrer">BTV ↗</a>` : ''}</div>
@@ -280,7 +291,7 @@ export async function loadTeamDetail(slug: string) {
   if (head) head.innerHTML = `
     <section class="hero">
       <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current?.btv_url ? `<a class="button" href="${escapeHtml(current.btv_url)}" target="_blank" rel="noreferrer">BTV Spielplan ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarFeedUrl({team: slug}))}">Kalender abonnieren</a></div></div>
-      <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || fallbackImage)}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" /></div>
+      <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" /></div>
     </section>
   `;
 
@@ -293,7 +304,7 @@ export async function loadTeamDetail(slug: string) {
   if (!current) return;
 
   const [{ data: links }, { data: matches }, { data: news }, { data: galleries }] = await Promise.all([
-    supabase.from('team_players').select('*').eq('team_season_id', current.id).order('sort_order'),
+    supabase.from('team_players').select('*').eq('team_season_id', current.id).eq('public_visible', true).order('sort_order'),
     supabase.from('matches').select('*').eq('team_season_id', current.id).order('starts_at'),
     supabase.from('news').select('*').eq('team_id', team.id).eq('status', 'published').order('published_at', { ascending: false }),
     supabase.from('galleries').select('*').eq('team_id', team.id).eq('published', true).order('created_at', { ascending: false }),
@@ -303,10 +314,24 @@ export async function loadTeamDetail(slug: string) {
   const players = playerIds.length ? (await supabase.from('players').select('*').in('id', playerIds)).data ?? [] : [];
   const playerMap = byId(players);
   const roster = document.querySelector<HTMLElement>('#team-roster');
-  if (roster) roster.innerHTML = links?.length ? links.map((link: Row) => {
-    const player = playerMap.get(link.player_id);
-    return `<div class="news-row"><div><strong>${escapeHtml(player?.display_name ?? 'Spieler/in')}</strong>${link.is_captain ? '<div class="match-meta">Mannschaftsführung</div>' : ''}</div></div>`;
-  }).join('') : '<p class="muted">Der öffentliche Kader wird noch gepflegt.</p>';
+  if (roster) roster.innerHTML = links?.length ? `
+    <div class="roster-grid">
+      ${links.map((link: Row) => {
+        const player = playerMap.get(link.player_id);
+        if (!player) return '';
+        const photo = player.photo_path
+          ? `<img class="player-card__photo" src="${escapeHtml(mediaUrl(player.photo_path))}" alt="${escapeHtml(player.display_name)}" loading="lazy" />`
+          : `<span class="player-card__placeholder" aria-hidden="true">${escapeHtml(initials(player.display_name))}</span>`;
+        return `<article class="player-card">
+          ${photo}
+          <div>
+            <strong>${escapeHtml(player.display_name)}</strong>
+            ${link.is_captain ? '<div class="match-meta">Mannschaftsführung</div>' : ''}
+          </div>
+        </article>`;
+      }).join('')}
+    </div>`
+    : '<p class="muted">Der öffentliche Kader wird noch gepflegt.</p>';
 
   const liveStates = matches?.length ? (await supabase.from('match_live_state').select('*').in('match_id', matches.map((m: Row) => m.id))).data ?? [] : [];
   const matchTarget = document.querySelector<HTMLElement>('#team-matches');
@@ -319,7 +344,8 @@ export async function loadTeamDetail(slug: string) {
   if (galleryTarget && galleries?.length) {
     const galleryIds = galleries.map((g: Row) => g.id);
     const items = (await supabase.from('gallery_items').select('*').in('gallery_id', galleryIds).order('sort_order')).data ?? [];
-    galleryTarget.innerHTML = items.slice(0, 12).map((item: Row) => `<figure><img src="${escapeHtml(mediaUrl(item.storage_path))}" alt="${escapeHtml(item.alt_text || team.name)}" loading="lazy" /><figcaption class="muted">${escapeHtml(item.caption || '')}</figcaption></figure>`).join('');
+    galleryTarget.classList.add('gallery-grid');
+    galleryTarget.innerHTML = items.slice(0, 12).map((item: Row) => `<figure class="gallery-item"><img src="${escapeHtml(mediaUrl(item.storage_path))}" alt="${escapeHtml(item.alt_text || team.name)}" loading="lazy" /><figcaption class="muted">${escapeHtml(item.caption || '')}</figcaption></figure>`).join('');
   } else if (galleryTarget) galleryTarget.innerHTML = '<p class="muted">Noch keine Bilder veröffentlicht.</p>';
 
   await renderSponsorPlacements('#team-sponsors', ['team'], { teamId: team.id });
