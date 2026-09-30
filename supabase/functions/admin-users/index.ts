@@ -29,21 +29,25 @@ Deno.serve(async (req: Request) => {
     return Response.json({ error: "Ungültige Sitzung." }, { status: 401, headers: cors });
   }
 
-  const { data: caller } = await admin.from("profiles")
-    .select("global_role").eq("id", userData.user.id).maybeSingle();
-  if (caller?.global_role !== "super_admin") {
+  const { data: caller, error: callerError } = await admin
+    .from("profiles")
+    .select("global_role")
+    .eq("id", userData.user.id)
+    .maybeSingle();
+
+  if (callerError || caller?.global_role !== "super_admin") {
     return Response.json({ error: "Nur SuperAdmins dürfen Benutzer verwalten." }, { status: 403, headers: cors });
   }
 
   let body: Record<string, unknown>;
-  try { body = await req.json(); } catch {
-    return Response.json({ error: "Ungültige Anfrage." }, { status: 400, headers: cors });
-  }
+  try { body = await req.json(); }
+  catch { return Response.json({ error: "Ungültige Anfrage." }, { status: 400, headers: cors }); }
 
   const action = String(body.action ?? "");
 
   if (action === "list") {
-    const { data, error } = await admin.from("profiles")
+    const { data, error } = await admin
+      .from("profiles")
       .select("id,display_name,email,global_role,created_at,team_memberships(id,team_id,role,active,teams(name,slug))")
       .order("display_name");
     if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
@@ -64,10 +68,14 @@ Deno.serve(async (req: Request) => {
 
     const options: { data?: Record<string, unknown>; redirectTo?: string } = {};
     if (displayName) options.data = { display_name: displayName };
-    if (redirectTo && (
-      redirectTo.startsWith("https://www.tennis-tsvfeldkirchen.de/") ||
-      redirectTo.startsWith("http://localhost:4321/")
-    )) options.redirectTo = redirectTo;
+    if (
+      redirectTo &&
+      (
+        redirectTo.startsWith("https://www.tennis-tsvfeldkirchen.de/") ||
+        redirectTo.startsWith("https://neu.tennis-tsvfeldkirchen.de/") ||
+        redirectTo.startsWith("http://localhost:4321/")
+      )
+    ) options.redirectTo = redirectTo;
 
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, options);
     if (inviteError || !invited.user) {
@@ -84,28 +92,55 @@ Deno.serve(async (req: Request) => {
 
     if (teamIds.length) {
       const rows = teamIds.map((teamId) => ({
-        user_id: invited.user!.id, team_id: teamId, role: teamRole, active: true,
+        user_id: invited.user!.id,
+        team_id: teamId,
+        role: teamRole,
+        active: true,
       }));
       const { error } = await admin.from("team_memberships").upsert(rows, { onConflict: "user_id,team_id" });
       if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
     }
+
     return Response.json({ ok: true, user_id: invited.user.id }, { headers: cors });
   }
 
   if (action === "memberships") {
     const userId = String(body.user_id ?? "");
-    const teamRole = allowedTeamRoles.has(String(body.team_role)) ? String(body.team_role) : "editor";
-    const teamIds = Array.isArray(body.team_ids) ? body.team_ids.map(String) : [];
     if (!userId) return Response.json({ error: "user_id fehlt." }, { status: 400, headers: cors });
+
+    let memberships: Array<{ team_id: string; role: string }> = [];
+
+    if (Array.isArray(body.memberships)) {
+      memberships = body.memberships
+        .map((item) => {
+          if (!item || typeof item !== "object") return null;
+          const raw = item as Record<string, unknown>;
+          const teamId = String(raw.team_id ?? "");
+          const role = String(raw.role ?? "editor");
+          if (!teamId || !allowedTeamRoles.has(role)) return null;
+          return { team_id: teamId, role };
+        })
+        .filter((item): item is { team_id: string; role: string } => item !== null);
+    } else {
+      const teamRole = allowedTeamRoles.has(String(body.team_role)) ? String(body.team_role) : "editor";
+      const teamIds = Array.isArray(body.team_ids) ? body.team_ids.map(String) : [];
+      memberships = teamIds.map((teamId) => ({ team_id: teamId, role: teamRole }));
+    }
 
     const { error: deleteError } = await admin.from("team_memberships").delete().eq("user_id", userId);
     if (deleteError) return Response.json({ error: deleteError.message }, { status: 500, headers: cors });
 
-    if (teamIds.length) {
-      const rows = teamIds.map((teamId) => ({ user_id: userId, team_id: teamId, role: teamRole, active: true }));
+    if (memberships.length) {
+      const rows = memberships.map((membership) => ({
+        user_id: userId,
+        team_id: membership.team_id,
+        role: membership.role,
+        active: true,
+      }));
       const { error } = await admin.from("team_memberships").insert(rows);
       if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
     }
+
     return Response.json({ ok: true }, { headers: cors });
   }
 
@@ -115,6 +150,27 @@ Deno.serve(async (req: Request) => {
     if (!userId || !allowedRoles.has(globalRole)) {
       return Response.json({ error: "Ungültige Rolle oder user_id." }, { status: 400, headers: cors });
     }
+
+    const { data: target, error: targetError } = await admin
+      .from("profiles")
+      .select("global_role")
+      .eq("id", userId)
+      .maybeSingle();
+    if (targetError || !target) {
+      return Response.json({ error: targetError?.message ?? "Benutzer nicht gefunden." }, { status: 404, headers: cors });
+    }
+
+    if (target.global_role === "super_admin" && globalRole !== "super_admin") {
+      const { count, error: countError } = await admin
+        .from("profiles")
+        .select("id", { head: true, count: "exact" })
+        .eq("global_role", "super_admin");
+      if (countError) return Response.json({ error: countError.message }, { status: 500, headers: cors });
+      if ((count ?? 0) <= 1) {
+        return Response.json({ error: "Der letzte SuperAdmin kann nicht herabgestuft werden." }, { status: 409, headers: cors });
+      }
+    }
+
     const { error } = await admin.from("profiles").update({ global_role: globalRole }).eq("id", userId);
     if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
     return Response.json({ ok: true }, { headers: cors });
