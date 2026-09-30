@@ -153,3 +153,21 @@ p{line-height:1.65}
 @media(max-width:1050px){.matchday-topgrid{grid-template-columns:1fr 1fr}.premium-editorial{grid-template-columns:1fr}.premium-story-stack{padding-top:0}}
 @media(max-width:850px){.premium-metrics{grid-template-columns:1fr 1fr}.premium-metrics>div:nth-child(2){border-right:0}.matchday-hero__grid,.matchday-newsgrid{grid-template-columns:1fr}.matchday-hero__mark{justify-self:start;max-width:300px}}
 @media(max-width:680px){.premium-hero{min-height:610px}.premium-hero__inner{padding-top:80px;padding-bottom:55px}.premium-hero h1{font-size:clamp(3.2rem,17vw,5.5rem)}.premium-metrics{grid-template-columns:1fr 1fr}.premium-metrics>div{padding:24px}.premium-metrics strong{font-size:2.1rem}.premium-content{padding-top:55px}.matchday-topgrid{grid-template-columns:1fr}.matchday-hero{padding:50px 0 55px}.matchday-dashboard{margin-top:-18px}.matchday-panel{padding:20px}}
+
+
+/* Phase 2 – Mannschaften & Medien */
+.roster-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.player-card{display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:rgb(255 255 255 / .025)}
+.player-card__photo,.player-card__placeholder{width:58px;height:58px;border-radius:50%;flex:0 0 58px}
+.player-card__photo{object-fit:cover}
+.player-card__placeholder{display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:900;letter-spacing:.04em}
+.gallery-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.gallery-item{margin:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:rgb(255 255 255 / .025)}
+.gallery-item img{width:100%;aspect-ratio:4/3;object-fit:cover}
+.gallery-item figcaption{padding:8px 10px;min-height:36px}
+.admin-thumb{width:48px;height:48px;border-radius:50%;object-fit:cover;display:block}
+.admin-thumb--empty{display:grid;place-items:center;background:#ecefee;color:#77827e}
+.roster-admin-table td{vertical-align:middle}
+.gallery-admin-preview{width:100%;aspect-ratio:16/8;object-fit:cover;border-radius:10px;margin-bottom:12px}
+.data-table{color:#14201d}
+@media(max-width:760px){.roster-grid,.gallery-grid{grid-template-columns:1fr}.roster-admin-table .actions{min-width:220px}}
