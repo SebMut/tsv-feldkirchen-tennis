@@ -9,6 +9,8 @@ Redirect 301 /spielplaene/ /termine/
 Redirect 301 /kalender-downloaden/ /termine/#abos
 Redirect 301 /unterstuetzer/ /sponsoren/
 Redirect 301 /ueber-uns/ /funktionaere/
+Redirect 301 /impressum/ https://tsvfeldkirchen.de/impressum
+Redirect 301 /datenschutz/ https://tsvfeldkirchen.de/datenschutz-dsgvo
 
 # Alte redaktionelle Beiträge
 Redirect 301 /schnuppertag/ /aktuelles/
