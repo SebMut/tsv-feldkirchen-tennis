@@ -65,10 +65,13 @@ import MainLayout from '../../layouts/MainLayout.astro';
               <h2>Kader</h2>
               <div class="field"><label>Mannschaft / Saison</label><select id="players-team-season"></select></div>
               <form id="player-form" class="form-grid">
+                <input id="player-edit-id" type="hidden" />
                 <div class="field"><label>Anzeigename</label><input id="player-display-name" required /></div>
                 <div class="field"><label>Foto</label><input id="player-photo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
                 <div class="field"><label><input id="player-captain" type="checkbox" /> Mannschaftsführung</label></div>
-                <div class="field"><button class="button" type="submit">Spieler hinzufügen</button></div>
+                <div class="field"><label><input id="player-public-visible" type="checkbox" checked /> öffentlich im Kader anzeigen</label></div>
+                <div class="field"><button id="player-submit" class="button" type="submit">Spieler hinzufügen</button></div>
+                <div class="field"><button id="player-cancel-edit" class="button ghost hidden" type="button">Bearbeiten abbrechen</button></div>
               </form>
               <div id="players-list" class="table-wrap"></div>
             </div>
@@ -131,6 +134,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field"><label>Mannschaft</label><select id="gallery-team" required></select></div>
                 <div class="field"><label>Titel</label><input id="gallery-title" required /></div>
                 <div class="field full"><label>Bilder</label><input id="gallery-files" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple required /></div>
+                <div class="field"><label><input id="gallery-published" type="checkbox" checked /> Galerie sofort veröffentlichen</label></div>
                 <div class="field"><button class="button" type="submit">Galerie anlegen & hochladen</button></div>
               </form>
               <div id="galleries-list" class="grid two"></div>
