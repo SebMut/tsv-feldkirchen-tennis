@@ -62,26 +62,45 @@ Deno.serve(async (req: Request) => {
   const action = String(body.action ?? "");
 
   if (action === "list") {
-    const [{ data: profiles, error }, authResult] = await Promise.all([
-      admin
-        .from("profiles")
-        .select("id,display_name,email,global_role,created_at,team_memberships(id,team_id,role,active,teams(name,slug))")
-        .order("display_name"),
+    const [{ data: profiles, error: profileError }, { data: memberships, error: membershipError }, { data: teams, error: teamsError }, authResult] = await Promise.all([
+      admin.from("profiles").select("id,display_name,email,global_role,created_at").order("display_name"),
+      admin.from("team_memberships").select("id,user_id,team_id,role,active"),
+      admin.from("teams").select("id,name,slug"),
       admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     ]);
-    if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
+
+    if (profileError) return Response.json({ error: profileError.message }, { status: 500, headers: cors });
+    if (membershipError) return Response.json({ error: membershipError.message }, { status: 500, headers: cors });
+    if (teamsError) return Response.json({ error: teamsError.message }, { status: 500, headers: cors });
     if (authResult.error) return Response.json({ error: authResult.error.message }, { status: 500, headers: cors });
 
-    const authMap = new Map(authResult.data.users.map((user) => [user.id, user]));
+    const authMap = new Map((authResult.data?.users ?? []).map((user) => [user.id, user]));
+    const teamMap = new Map((teams ?? []).map((team) => [team.id, team]));
+    const membershipMap = new Map<string, Array<Record<string, unknown>>>();
+
+    for (const membership of memberships ?? []) {
+      const list = membershipMap.get(membership.user_id) ?? [];
+      list.push({
+        id: membership.id,
+        team_id: membership.team_id,
+        role: membership.role,
+        active: membership.active,
+        teams: teamMap.get(membership.team_id) ?? null,
+      });
+      membershipMap.set(membership.user_id, list);
+    }
+
     const users = (profiles ?? []).map((profile) => {
       const authUser = authMap.get(profile.id);
       return {
         ...profile,
+        team_memberships: membershipMap.get(profile.id) ?? [],
         last_sign_in_at: authUser?.last_sign_in_at ?? null,
         email_confirmed_at: authUser?.email_confirmed_at ?? null,
         invited_at: authUser?.invited_at ?? null,
       };
     });
+
     return Response.json({ users }, { headers: cors });
   }
 
