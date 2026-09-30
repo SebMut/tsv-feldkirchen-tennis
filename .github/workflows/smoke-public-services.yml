@@ -1,0 +1,22 @@
+name: Smoke Public Services
+
+on:
+  push:
+    branches:
+      - feature/astro-supabase-foundation
+    paths:
+      - scripts/smoke-public-services.mjs
+      - .github/workflows/smoke-public-services.yml
+      - supabase/functions/calendar-feed/**
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Test public services
+        run: node scripts/smoke-public-services.mjs
