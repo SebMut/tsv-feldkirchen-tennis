@@ -122,7 +122,7 @@ function scoreFor(match: Row, liveStates: Row[]) {
   return liveStates.find((state) => state.match_id === match.id);
 }
 
-function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveStates: Row[] = []) {
+function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveStates: Row[] = [], matchesWithGallery = new Set<string>()) {
   const { team } = matchContext(match, reference);
   const state = scoreFor(match, liveStates);
   const status = state?.status ?? 'scheduled';
@@ -141,7 +141,7 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
       <div class="actions">
         ${status === 'live' ? '<span class="status-pill live">LIVE</span>' : status === 'finished' ? '<span class="status-pill">Beendet</span>' : ''}
         ${status !== 'scheduled' ? `<span class="score">${clubScore} : ${opponentScore}</span>` : ''}
-        <a class="button ghost" href="${detailUrl}">Spiel öffnen</a>
+        <a class="button ghost" href="${detailUrl}">${matchesWithGallery.has(match.id) ? 'Spiel & Bilder' : 'Spiel öffnen'}</a>
         ${status === 'live' ? `<a class="button" href="/live/?match=${encodeURIComponent(match.id)}">Liveticker</a>` : ''}
       </div>
     </div>`;
@@ -410,19 +410,28 @@ export async function loadTeamDetail(slug: string) {
     }
   }
 
+  const matchGalleryIds = new Set(
+    (galleries ?? []).filter((gallery: Row) => gallery.match_id).map((gallery: Row) => gallery.match_id)
+  );
   const matchTarget = document.querySelector<HTMLElement>('#team-matches');
-  if (matchTarget) matchTarget.innerHTML = matches?.length ? matches.map((m: Row) => matchRow(m, reference, liveStates)).join('') : '<p class="muted">Noch keine Spiele eingetragen.</p>';
+  if (matchTarget) matchTarget.innerHTML = matches?.length
+    ? matches.map((m: Row) => matchRow(m, reference, liveStates, matchGalleryIds)).join('')
+    : '<p class="muted">Noch keine Spiele eingetragen.</p>';
 
   const newsTarget = document.querySelector<HTMLElement>('#team-news');
   if (newsTarget) newsTarget.innerHTML = news?.length ? news.map((n: Row) => `<div class="news-row"><div><strong>${escapeHtml(n.title)}</strong><p class="muted">${escapeHtml(n.excerpt || '')}</p></div></div>`).join('') : '<p class="muted">Noch keine Mannschaftsberichte.</p>';
 
   const galleryTarget = document.querySelector<HTMLElement>('#team-gallery');
-  if (galleryTarget && galleries?.length) {
-    const galleryIds = galleries.map((g: Row) => g.id);
+  const generalGalleries = (galleries ?? []).filter((gallery: Row) => !gallery.match_id);
+  if (galleryTarget && generalGalleries.length) {
+    const galleryIds = generalGalleries.map((g: Row) => g.id);
     const items = (await supabase.from('gallery_items').select('*').in('gallery_id', galleryIds).order('sort_order')).data ?? [];
     galleryTarget.classList.add('gallery-grid');
     galleryTarget.innerHTML = items.slice(0, 12).map((item: Row) => `<figure class="gallery-item"><img src="${escapeHtml(mediaUrl(item.storage_path))}" alt="${escapeHtml(item.alt_text || team.name)}" loading="lazy" /><figcaption class="muted">${escapeHtml(item.caption || '')}</figcaption></figure>`).join('');
-  } else if (galleryTarget) galleryTarget.innerHTML = '<p class="muted">Noch keine Bilder veröffentlicht.</p>';
+  } else if (galleryTarget) {
+    galleryTarget.classList.remove('gallery-grid');
+    galleryTarget.innerHTML = '<p class="muted">Noch keine allgemeinen Mannschaftsbilder veröffentlicht. Bilder einzelner Punktspiele findest du direkt beim jeweiligen Spiel.</p>';
+  }
 
   await renderSponsorPlacements('#team-sponsors', ['team'], { teamId: team.id });
 }
