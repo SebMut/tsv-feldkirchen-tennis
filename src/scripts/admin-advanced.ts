@@ -449,6 +449,7 @@ export async function loadAdvancedUsers(base: BaseState) {
         }).join('')}</div>`}</div>
       <div class="actions" style="margin-top:12px">
         <button class="button" data-save-user>Rechte speichern</button>
+        ${user.last_sign_in_at ? '' : '<button class="button secondary" data-send-access>Zugangs-Mail erneut senden</button>'}
         ${isSelf ? '' : '<button class="button danger" data-delete-user>Zugang löschen</button>'}
       </div>
     </article>`;
@@ -471,6 +472,16 @@ export async function loadAdvancedUsers(base: BaseState) {
 
       reportStatus('Benutzerrechte gespeichert.', 'success');
       loadAdvancedUsers(base);
+    });
+
+    card.querySelector<HTMLButtonElement>('[data-send-access]')?.addEventListener('click', async () => {
+      const userId = card.dataset.userCard!;
+      const redirectTo = `${location.origin}${import.meta.env.BASE_URL}admin/`;
+      const result = await supabase.functions.invoke('admin-users', {
+        body: { action: 'send_access_mail', user_id: userId, redirect_to: redirectTo },
+      });
+      if (result.error || result.data?.error) return reportStatus(result.data?.error || result.error?.message || 'Zugangs-Mail konnte nicht gesendet werden.', 'error');
+      reportStatus('Zugangs-Mail wurde erneut gesendet.', 'success');
     });
 
     card.querySelector<HTMLButtonElement>('[data-delete-user]')?.addEventListener('click', async () => {
