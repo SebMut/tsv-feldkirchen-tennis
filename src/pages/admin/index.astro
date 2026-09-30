@@ -13,22 +13,13 @@ import MainLayout from '../../layouts/MainLayout.astro';
         <div class="field"><label for="login-password">Passwort</label><input id="login-password" name="password" type="password" autocomplete="current-password" required /></div>
         <div class="field full"><button class="button" type="submit">Anmelden</button></div>
       </form>
-      <details>
-        <summary>Ersteinrichtung des SuperAdmins</summary>
-        <p class="muted">Nur für das erste Benutzerkonto des neuen Systems. Nach der ersten erfolgreichen Aktivierung ist diese Funktion gesperrt.</p>
-        <form id="signup-form" class="form-grid">
-          <div class="field"><label for="signup-name">Name</label><input id="signup-name" name="display_name" required /></div>
-          <div class="field"><label for="signup-email">E-Mail</label><input id="signup-email" name="email" type="email" required /></div>
-          <div class="field"><label for="signup-password">Passwort</label><input id="signup-password" name="password" type="password" minlength="10" required /></div>
-          <div class="field"><button class="button secondary" type="submit">Erstkonto anlegen</button></div>
-        </form>
-      </details>
+      <p class="muted">Neue Mannschaftsnutzer werden ausschließlich durch den SuperAdmin eingeladen.</p>
     </section>
 
     <section id="admin-app" class="hidden">
       <div class="page-head">
         <div><p class="eyebrow">Mein TSV</p><h1 id="admin-title">Administration</h1><p id="admin-userline" class="muted"></p></div>
-        <div class="actions"><button id="bootstrap-button" class="button secondary hidden" type="button">SuperAdmin aktivieren</button><button id="logout-button" class="button ghost" type="button">Abmelden</button></div>
+        <div class="actions"><button id="logout-button" class="button ghost" type="button">Abmelden</button></div>
       </div>
       <div id="admin-status" class="notice hidden" aria-live="polite"></div>
 
@@ -248,7 +239,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <div class="card">
               <h2>Mein Konto</h2>
               <form id="password-form" class="form-grid">
-                <div class="field"><label>Neues Passwort</label><input id="new-password" type="password" minlength="10" required /></div>
+                <div class="field"><label>Neues Passwort</label><input id="new-password" type="password" minlength="12" required /></div>
                 <div class="field"><button class="button" type="submit">Passwort setzen</button></div>
               </form>
             </div>
