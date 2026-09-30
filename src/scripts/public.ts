@@ -164,8 +164,14 @@ export async function loadHome() {
   const settingsTarget = new Map((settings ?? []).map((row: Row) => [row.key, row.value]));
   const teamCount = document.querySelector<HTMLElement>('#home-team-count');
   const courtCount = document.querySelector<HTMLElement>('#home-court-count');
-  if (teamCount && settingsTarget.has('team_count')) teamCount.textContent = `${settingsTarget.get('team_count')} Mannschaften`;
-  if (courtCount && settingsTarget.has('court_count')) courtCount.textContent = `${settingsTarget.get('court_count')} Sandplätze`;
+  if (teamCount && settingsTarget.has('team_count')) {
+    const value = String(settingsTarget.get('team_count'));
+    teamCount.textContent = teamCount.dataset.countOnly === 'true' ? value : `${value} Mannschaften`;
+  }
+  if (courtCount && settingsTarget.has('court_count')) {
+    const value = String(settingsTarget.get('court_count'));
+    courtCount.textContent = courtCount.dataset.countOnly === 'true' ? value : `${value} Sandplätze`;
+  }
 
   if (facility) {
     const current = facilityRows?.[0];
