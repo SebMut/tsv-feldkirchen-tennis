@@ -8,7 +8,7 @@ Status: **abgeschlossen**
 Siehe `docs/phase-1-content-audit.md`.
 
 ## Phase 2 – Mannschaften und Medien
-Status: **technisch abgeschlossen / Browserabnahme offen**
+Status: **abgeschlossen**
 
 - Übergangsbilder für alle Mannschaften eingerichtet
 - Mannschaftsfoto-Upload vorhanden
@@ -19,7 +19,7 @@ Status: **technisch abgeschlossen / Browserabnahme offen**
 - Galerien inkl. Entwurf/Veröffentlichen/Löschen
 - Bildoptimierung auf WebP
 
-Noch offen: Browser-Abnahme durchführen und reale Mannschaftsfotos/Kaderdaten nach und nach durch den Verein einpflegen. Die technische Umsetzung ist abgeschlossen.
+Reale Mannschaftsfotos, Kaderdaten und Spielerbilder werden künftig redaktionell über **Mein TSV** gepflegt und blockieren den weiteren Projektfortschritt nicht.
 
 ## Phase 3 – Admin und Rechte
 - realen Mannschafts-Nutzer einladen
