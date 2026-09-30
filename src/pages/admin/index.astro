@@ -23,6 +23,25 @@ import MainLayout from '../../layouts/MainLayout.astro';
       <p class="muted">Neue Mannschaftsnutzer werden ausschließlich durch den SuperAdmin eingeladen.</p>
     </section>
 
+    <section id="password-setup-box" class="card hidden">
+      <p class="eyebrow">Mein TSV</p>
+      <h1>Passwort festlegen</h1>
+      <p class="muted">Bevor du den geschützten Bereich verwenden kannst, lege bitte dein persönliches Passwort fest.</p>
+      <div id="password-setup-status" class="notice hidden" aria-live="polite"></div>
+      <form id="password-setup-form" class="form-grid">
+        <div class="field">
+          <label for="setup-password">Neues Passwort</label>
+          <input id="setup-password" type="password" minlength="12" autocomplete="new-password" required />
+          <p class="muted">Mindestens 12 Zeichen. Verwende ein Passwort, das du nicht bei anderen Diensten nutzt.</p>
+        </div>
+        <div class="field">
+          <label for="setup-password-confirm">Passwort wiederholen</label>
+          <input id="setup-password-confirm" type="password" minlength="12" autocomplete="new-password" required />
+        </div>
+        <div class="field full"><button class="button" type="submit">Passwort speichern und weiter</button></div>
+      </form>
+    </section>
+
     <section id="admin-app" class="hidden">
       <div class="page-head">
         <div><p class="eyebrow">Mein TSV</p><h1 id="admin-title">Administration</h1><p id="admin-userline" class="muted"></p></div>
