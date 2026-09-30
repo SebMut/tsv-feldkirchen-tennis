@@ -131,16 +131,18 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
   const clubScore = match.is_home ? home : away;
   const opponentScore = match.is_home ? away : home;
   const homeAway = match.is_home ? 'Heim' : 'Auswärts';
+  const detailUrl = `/spiel/?match=${encodeURIComponent(match.id)}`;
   return `
     <div class="match-row">
-      <div>
+      <a class="match-row__main" href="${detailUrl}">
         <strong>${escapeHtml(team?.name ?? 'TSV Feldkirchen')} · ${escapeHtml(homeAway)}</strong>
         <div class="match-meta">${escapeHtml(formatDateTime(match.starts_at))} · gegen ${escapeHtml(match.opponent)}</div>
-      </div>
+      </a>
       <div class="actions">
         ${status === 'live' ? '<span class="status-pill live">LIVE</span>' : status === 'finished' ? '<span class="status-pill">Beendet</span>' : ''}
         ${status !== 'scheduled' ? `<span class="score">${clubScore} : ${opponentScore}</span>` : ''}
-        <a class="button ghost" href="/live/?match=${encodeURIComponent(match.id)}">${status === 'live' ? 'Liveticker' : 'Details'}</a>
+        <a class="button ghost" href="${detailUrl}">Spiel öffnen</a>
+        ${status === 'live' ? `<a class="button" href="/live/?match=${encodeURIComponent(match.id)}">Liveticker</a>` : ''}
       </div>
     </div>`;
 }
@@ -334,6 +336,80 @@ export async function loadTeamDetail(slug: string) {
     : '<p class="muted">Der öffentliche Kader wird noch gepflegt.</p>';
 
   const liveStates = matches?.length ? (await supabase.from('match_live_state').select('*').in('match_id', matches.map((m: Row) => m.id))).data ?? [] : [];
+
+  const nextMatchTarget = document.querySelector<HTMLElement>('#team-next-match');
+  if (nextMatchTarget) {
+    const now = Date.now();
+    const liveMatch = (matches ?? []).find((match: Row) =>
+      liveStates.find((state: Row) => state.match_id === match.id)?.status === 'live'
+    );
+    const upcomingMatch = (matches ?? [])
+      .filter((match: Row) => match.is_published !== false && new Date(match.starts_at).getTime() > now)
+      .sort((a: Row, b: Row) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())[0];
+    const featuredMatch = liveMatch ?? upcomingMatch;
+
+    if (featuredMatch) {
+      const state = liveStates.find((row: Row) => row.match_id === featuredMatch.id);
+      const isLive = state?.status === 'live';
+      const start = new Date(featuredMatch.starts_at);
+      const dateLabel = new Intl.DateTimeFormat('de-DE', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+      }).format(start);
+      const timeLabel = new Intl.DateTimeFormat('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(start);
+      const daysAway = Math.max(1, Math.ceil((start.getTime() - now) / 86400000));
+      const countdown = isLive
+        ? 'Jetzt live'
+        : daysAway === 1
+          ? 'Morgen'
+          : daysAway <= 7
+            ? `In ${daysAway} Tagen`
+            : 'Nächstes Punktspiel';
+      const leftTeam = featuredMatch.is_home ? team.name : featuredMatch.opponent;
+      const rightTeam = featuredMatch.is_home ? featuredMatch.opponent : team.name;
+      const venue = featuredMatch.venue_name || (featuredMatch.is_home ? 'TSV Feldkirchen' : 'Auswärts');
+      const detailUrl = `/spiel/?match=${encodeURIComponent(featuredMatch.id)}`;
+
+      nextMatchTarget.classList.remove('hidden');
+      nextMatchTarget.innerHTML = `
+        <article class="next-match-card ${isLive ? 'next-match-card--live' : ''}">
+          <div class="next-match-card__top">
+            <div>
+              <span class="next-match-card__badge">${isLive ? '● LIVE' : escapeHtml(countdown)}</span>
+              <p class="eyebrow">${featuredMatch.is_home ? 'Heimspiel' : 'Auswärtsspiel'}</p>
+            </div>
+            <div class="next-match-card__date">
+              <strong>${escapeHtml(dateLabel)}</strong>
+              <span>${escapeHtml(timeLabel)} Uhr</span>
+            </div>
+          </div>
+          <a class="next-match-card__teams" href="${detailUrl}">
+            <div class="${featuredMatch.is_home ? 'is-tsv' : ''}"><span>${escapeHtml(leftTeam)}</span></div>
+            <strong>VS</strong>
+            <div class="${!featuredMatch.is_home ? 'is-tsv' : ''}"><span>${escapeHtml(rightTeam)}</span></div>
+          </a>
+          <div class="next-match-card__bottom">
+            <div>
+              <span class="match-meta">Ort</span>
+              <strong>${escapeHtml(venue)}</strong>
+              ${featuredMatch.venue_address ? `<span class="match-meta">${escapeHtml(featuredMatch.venue_address)}</span>` : ''}
+            </div>
+            <div class="actions">
+              <a class="button secondary" href="${detailUrl}">Spiel öffnen</a>
+              ${isLive ? `<a class="button" href="/live/?match=${encodeURIComponent(featuredMatch.id)}">Liveticker</a>` : ''}
+            </div>
+          </div>
+        </article>`;
+    } else {
+      nextMatchTarget.classList.add('hidden');
+      nextMatchTarget.innerHTML = '';
+    }
+  }
+
   const matchTarget = document.querySelector<HTMLElement>('#team-matches');
   if (matchTarget) matchTarget.innerHTML = matches?.length ? matches.map((m: Row) => matchRow(m, reference, liveStates)).join('') : '<p class="muted">Noch keine Spiele eingetragen.</p>';
 
@@ -349,6 +425,88 @@ export async function loadTeamDetail(slug: string) {
   } else if (galleryTarget) galleryTarget.innerHTML = '<p class="muted">Noch keine Bilder veröffentlicht.</p>';
 
   await renderSponsorPlacements('#team-sponsors', ['team'], { teamId: team.id });
+}
+
+export async function loadMatchDetail(matchId: string | null) {
+  const root = document.querySelector<HTMLElement>('#match-detail-root');
+  const head = document.querySelector<HTMLElement>('#match-detail-head');
+  const scoreTarget = document.querySelector<HTMLElement>('#match-detail-score');
+  const galleryTarget = document.querySelector<HTMLElement>('#match-detail-gallery');
+  if (!root || !head || !scoreTarget || !galleryTarget) return;
+
+  if (!matchId) {
+    head.innerHTML = '<div class="card"><h1>Kein Spiel ausgewählt</h1><p><a href="/termine/">Zum Spielplan</a></p></div>';
+    return;
+  }
+
+  const reference = await refs();
+  const [{ data: match }, { data: liveState }, { data: galleries }] = await Promise.all([
+    supabase.from('matches').select('*').eq('id', matchId).eq('is_published', true).maybeSingle(),
+    supabase.from('match_live_state').select('*').eq('match_id', matchId).maybeSingle(),
+    supabase.from('galleries').select('*').eq('match_id', matchId).eq('published', true).order('created_at', { ascending: false }),
+  ]);
+
+  if (!match) {
+    head.innerHTML = '<div class="card"><h1>Spiel nicht gefunden</h1></div>';
+    return;
+  }
+
+  const { team, ts, season } = matchContext(match, reference);
+  const clubName = team?.name ?? 'TSV Feldkirchen';
+  const leftTeam = match.is_home ? clubName : match.opponent;
+  const rightTeam = match.is_home ? match.opponent : clubName;
+  const status = liveState?.status ?? 'scheduled';
+  const clubScore = match.is_home ? liveState?.home_score ?? 0 : liveState?.away_score ?? 0;
+  const opponentScore = match.is_home ? liveState?.away_score ?? 0 : liveState?.home_score ?? 0;
+  const detailDate = formatDateTime(match.starts_at);
+  const location = match.venue_name || (match.is_home ? 'TSV Feldkirchen' : 'Auswärts');
+
+  head.innerHTML = `
+    <div class="match-detail-hero">
+      <div>
+        <p class="eyebrow">${escapeHtml([season?.name, ts?.league].filter(Boolean).join(' · ') || 'Punktspiel')}</p>
+        <h1>${escapeHtml(leftTeam)} <span>vs.</span> ${escapeHtml(rightTeam)}</h1>
+        <p class="hero__lead">${escapeHtml(detailDate)} · ${escapeHtml(location)}</p>
+        <div class="actions">
+          <a class="button secondary" href="/mannschaften/${escapeHtml(team?.slug || '')}/">Zur Mannschaft</a>
+          ${status === 'live' ? `<a class="button" href="/live/?match=${encodeURIComponent(match.id)}">Liveticker öffnen</a>` : ''}
+          ${match.external_url ? `<a class="button ghost" href="${escapeHtml(match.external_url)}" target="_blank" rel="noreferrer">BTV / Details ↗</a>` : ''}
+        </div>
+      </div>
+    </div>`;
+
+  scoreTarget.innerHTML = status !== 'scheduled'
+    ? `<div class="match-detail-score"><span class="status-pill ${status === 'live' ? 'live' : ''}">${status === 'live' ? 'LIVE' : 'Beendet'}</span><strong>${clubScore} : ${opponentScore}</strong><span>aus Sicht des TSV</span></div>`
+    : '<div class="match-detail-score"><span class="status-pill">Geplant</span><strong>– : –</strong><span>Spiel noch nicht begonnen</span></div>';
+
+  if (galleries?.length) {
+    const galleryIds = galleries.map((gallery: Row) => gallery.id);
+    const { data: items } = await supabase
+      .from('gallery_items')
+      .select('*')
+      .in('gallery_id', galleryIds)
+      .order('sort_order');
+
+    const galleryMap = new Map(galleries.map((gallery: Row) => [gallery.id, gallery]));
+    galleryTarget.innerHTML = `
+      <div class="page-head">
+        <div><p class="eyebrow">Spieltag in Bildern</p><h2>${galleries.length === 1 ? escapeHtml(galleries[0].title) : 'Galerien zum Punktspiel'}</h2></div>
+        <span class="status-pill">${(items ?? []).length} Bilder</span>
+      </div>
+      <div class="gallery-grid">
+        ${(items ?? []).map((item: Row) => {
+          const gallery = galleryMap.get(item.gallery_id);
+          return `<figure class="gallery-item">
+            <img src="${escapeHtml(mediaUrl(item.storage_path))}" alt="${escapeHtml(item.alt_text || gallery?.title || clubName)}" loading="lazy" />
+            <figcaption class="muted">${escapeHtml(item.caption || gallery?.title || '')}</figcaption>
+          </figure>`;
+        }).join('')}
+      </div>`;
+  } else {
+    galleryTarget.innerHTML = '<div class="empty-gallery"><p class="eyebrow">Spieltag in Bildern</p><h2>Noch keine Galerie</h2><p class="muted">Sobald Bilder zu diesem Punktspiel veröffentlicht wurden, erscheinen sie hier.</p></div>';
+  }
+
+  await renderSponsorPlacements('#match-detail-sponsor', ['match'], { teamId: team?.id, matchId });
 }
 
 export async function loadCalendar() {
