@@ -26,6 +26,80 @@ function byId(rows: Row[]) {
   return new Map(rows.map((row) => [row.id, row]));
 }
 
+
+async function renderSponsorPlacements(
+  selector: string,
+  placements: string[],
+  context: { teamId?: string; matchId?: string } = {},
+) {
+  const target = document.querySelector<HTMLElement>(selector);
+  if (!target) return;
+
+  const { data: rows, error } = await supabase
+    .from('sponsor_placements')
+    .select('*')
+    .eq('active', true)
+    .in('placement', placements);
+
+  if (error || !rows?.length) {
+    target.classList.add('hidden');
+    target.innerHTML = '';
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const activeRows = rows.filter((row: Row) => {
+    if (row.starts_on && row.starts_on > today) return false;
+    if (row.ends_on && row.ends_on < today) return false;
+
+    if (row.placement === 'team') return !!context.teamId && row.team_id === context.teamId;
+    if (row.placement === 'match') return !!context.matchId && row.match_id === context.matchId;
+    if (row.placement === 'live' && row.match_id) return row.match_id === context.matchId;
+    if (row.team_id && context.teamId) return row.team_id === context.teamId;
+    return !row.team_id && !row.match_id;
+  });
+
+  if (!activeRows.length) {
+    target.classList.add('hidden');
+    target.innerHTML = '';
+    return;
+  }
+
+  const ids = [...new Set(activeRows.map((row: Row) => row.sponsor_id))];
+  const { data: sponsors } = await supabase
+    .from('sponsors')
+    .select('*')
+    .in('id', ids)
+    .eq('active', true)
+    .order('sort_order');
+
+  if (!sponsors?.length) {
+    target.classList.add('hidden');
+    target.innerHTML = '';
+    return;
+  }
+
+  const label = placements.includes('live') || placements.includes('match')
+    ? 'Sponsor des Spieltags'
+    : placements.includes('team')
+      ? 'Mannschaftspartner'
+      : 'Unsere Partner';
+
+  target.classList.remove('hidden');
+  target.innerHTML = `
+    <div class="card">
+      <p class="eyebrow">${escapeHtml(label)}</p>
+      <div class="sponsor-strip">
+        ${sponsors.map((sponsor: Row) => `
+          <a class="sponsor-item" href="${escapeHtml(sponsor.url || '#')}" ${sponsor.url ? 'target="_blank" rel="noreferrer"' : 'aria-disabled="true"'}>
+            ${sponsor.logo_path ? `<img src="${escapeHtml(mediaUrl(sponsor.logo_path))}" alt="Logo ${escapeHtml(sponsor.name)}" loading="lazy" />` : ''}
+            <strong>${escapeHtml(sponsor.name)}</strong>
+          </a>
+        `).join('')}
+      </div>
+    </div>`;
+}
+
 function matchContext(match: Row, reference: Awaited<ReturnType<typeof refs>>) {
   const ts = reference.teamSeasons.find((row: Row) => row.id === match.team_season_id);
   const team = reference.teams.find((row: Row) => row.id === ts?.team_id);
@@ -77,13 +151,21 @@ export async function loadHome() {
     { data: liveStates },
     { data: todayMatches },
     { data: news },
+    { data: settings },
   ] = await Promise.all([
     supabase.from('facility_status').select('*').limit(1),
     supabase.from('courts').select('*').eq('active', true).order('sort_order'),
     supabase.from('match_live_state').select('*').eq('status', 'live'),
     supabase.from('matches').select('*').gte('starts_at', start.toISOString()).lt('starts_at', end.toISOString()).order('starts_at'),
     supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(4),
+    supabase.from('site_settings').select('key,value').in('key', ['team_count', 'court_count']),
   ]);
+
+  const settingsTarget = new Map((settings ?? []).map((row: Row) => [row.key, row.value]));
+  const teamCount = document.querySelector<HTMLElement>('#home-team-count');
+  const courtCount = document.querySelector<HTMLElement>('#home-court-count');
+  if (teamCount && settingsTarget.has('team_count')) teamCount.textContent = `${settingsTarget.get('team_count')} Mannschaften`;
+  if (courtCount && settingsTarget.has('court_count')) courtCount.textContent = `${settingsTarget.get('court_count')} Sandplätze`;
 
   if (facility) {
     const current = facilityRows?.[0];
@@ -129,6 +211,7 @@ export async function loadHome() {
       : '<p class="muted">Noch keine aktuellen Beiträge.</p>';
   }
 
+  await renderSponsorPlacements('#home-sponsors', ['home']);
   window.setTimeout(loadHome, 30000);
 }
 
@@ -232,6 +315,8 @@ export async function loadTeamDetail(slug: string) {
     const items = (await supabase.from('gallery_items').select('*').in('gallery_id', galleryIds).order('sort_order')).data ?? [];
     galleryTarget.innerHTML = items.slice(0, 12).map((item: Row) => `<figure><img src="${escapeHtml(mediaUrl(item.storage_path))}" alt="${escapeHtml(item.alt_text || team.name)}" loading="lazy" /><figcaption class="muted">${escapeHtml(item.caption || '')}</figcaption></figure>`).join('');
   } else if (galleryTarget) galleryTarget.innerHTML = '<p class="muted">Noch keine Bilder veröffentlicht.</p>';
+
+  await renderSponsorPlacements('#team-sponsors', ['team'], { teamId: team.id });
 }
 
 export async function loadCalendar() {
@@ -385,6 +470,7 @@ export async function loadLiveTicker(matchId: string | null) {
   };
 
   await refresh();
+  await renderSponsorPlacements('#live-sponsor', ['live', 'match'], { matchId });
 
   // Public visitors receive row changes through RLS-protected Postgres Changes.
   // Signed-in users additionally use the private Broadcast channel created by the DB triggers.
