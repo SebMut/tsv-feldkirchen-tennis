@@ -2,55 +2,72 @@
 import MainLayout from '../layouts/MainLayout.astro';
 import { COURTBOOKING_URL } from '../lib/supabase';
 ---
-<MainLayout title="TSV Feldkirchen Tennis" description="Tennis beim TSV Feldkirchen: Mannschaften, Spieltage, Liveticker, Termine und Platzbuchung.">
-  <div class="container stack" id="home">
-    <section class="hero">
+<MainLayout
+  title="TSV Feldkirchen Tennis"
+  description="Tennis beim TSV Feldkirchen: Mannschaften, Spieltage, Liveticker, Termine und Platzbuchung."
+  mainClass="main--flush"
+>
+  <section class="premium-hero">
+    <div class="container premium-hero__inner">
+      <p class="eyebrow">Tennis TSV Feldkirchen</p>
+      <h1>Tennis.<br />Teams.<br /><span>Gemeinschaft.</span></h1>
+      <p class="premium-hero__lead">Sportlich ambitioniert, familiär im Club und digital am Spieltag. Alles rund um Mannschaften, Termine und Vereinsleben an einem Ort.</p>
+      <div class="actions">
+        <a class="button button--hot" href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Platz buchen</a>
+        <a class="button button--outline" href="/mitglied-werden/">Mitglied werden</a>
+        <a class="button button--outline" href="/spieltag/">Zum Spieltag</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="premium-metrics" aria-label="Vereinskennzahlen">
+    <div><strong id="home-court-count">8</strong><span>Sandplätze</span></div>
+    <div><strong>329</strong><span>Mitglieder</span></div>
+    <div><strong id="home-team-count">20</strong><span>Mannschaften</span></div>
+    <div><strong>LIVE</strong><span>digitaler Spieltag</span></div>
+  </section>
+
+  <div class="container premium-content" id="home">
+    <section id="live-center" class="card live-center hidden premium-live" aria-live="polite"></section>
+
+    <section class="premium-editorial">
       <div>
-        <p class="eyebrow">Tennis TSV Feldkirchen</p>
-        <h1>Verein. Mannschaften. Spieltag.</h1>
-        <p class="hero__lead">Tennis für alle Alters- und Spielklassen – mit 8 Sandplätzen, 20 Mannschaften und einem neuen digitalen Spieltagszentrum.</p>
-        <div class="actions">
-          <a class="button" href={COURTBOOKING_URL} target="_blank" rel="noreferrer">🎾 Platz buchen</a>
-          <a class="button secondary" href="/termine/">Spielplan & Termine</a>
-        </div>
+        <p class="eyebrow">Club Journal</p>
+        <h2>Was gerade zählt.</h2>
+        <article id="facility-card" class="premium-feature" aria-live="polite">
+          <div class="premium-feature__content">
+            <p class="eyebrow">Anlagenstatus</p>
+            <h2>Wird geladen …</h2>
+          </div>
+        </article>
       </div>
-      <aside class="card hero__stats">
-        <div><strong id="home-team-count">20 Mannschaften</strong><span>Herren, Damen und Jugend</span></div>
-        <div><strong id="home-court-count">8 Sandplätze</strong><span>Olympiastrasse 1, Feldkirchen</span></div>
-        <div><strong>Live am Spieltag</strong><span>Tickermeldungen ohne Seitenreload</span></div>
-      </aside>
+
+      <div class="premium-story-stack">
+        <article class="premium-story">
+          <p class="eyebrow">Spieltag</p>
+          <h3>Heute beim TSV</h3>
+          <div id="today-matches" class="match-list"><p class="muted">Spiele werden geladen …</p></div>
+          <p><a class="text-link" href="/spieltag/">Spieltagszentrale öffnen →</a></p>
+        </article>
+
+        <article class="premium-story">
+          <p class="eyebrow">Aktuelles</p>
+          <h3>News aus dem Verein</h3>
+          <div id="home-news" class="news-list"><p class="muted">News werden geladen …</p></div>
+          <p><a class="text-link" href="/aktuelles/">Alle Nachrichten →</a></p>
+        </article>
+
+        <article class="premium-story premium-story--links">
+          <p class="eyebrow">Schnellzugriff</p>
+          <a href="/mannschaften/">Mannschaften & Ligen →</a>
+          <a href="/termine/">Kalender & Abos →</a>
+          <a href="/training/">Training →</a>
+          <a href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Courtbooking →</a>
+        </article>
+      </div>
     </section>
 
-    <section id="facility-card" class="card" aria-live="polite">
-      <p class="eyebrow">Anlagenstatus</p>
-      <h2>Wird geladen …</h2>
-    </section>
-
-    <section id="live-center" class="card live-center hidden" aria-live="polite"></section>
     <section id="home-sponsors" class="hidden" aria-label="Sponsoren"></section>
-
-    <section class="grid two">
-      <article class="card">
-        <p class="eyebrow">Heute beim TSV</p>
-        <h2>Spieltagsmodus</h2>
-        <div id="today-matches" class="match-list"><p class="muted">Spiele werden geladen …</p></div>
-      </article>
-      <article class="card">
-        <p class="eyebrow">Aktuelles</p>
-        <h2>Neuigkeiten</h2>
-        <div id="home-news" class="news-list"><p class="muted">News werden geladen …</p></div>
-        <p><a href="/aktuelles/">Alle Nachrichten →</a></p>
-      </article>
-    </section>
-
-    <section class="card">
-      <p class="eyebrow">Schnellzugriff</p>
-      <div class="grid">
-        <div><h3>Mannschaften</h3><p class="muted">Kader, Ligen, Spielpläne und Saisonarchiv.</p><a href="/mannschaften/">Teams ansehen →</a></div>
-        <div><h3>Kalender abonnieren</h3><p class="muted">Alle Punktspiele und Veranstaltungen direkt im eigenen Kalender.</p><a href="/termine/#abos">Kalender-Abos →</a></div>
-        <div><h3>Mitglied werden</h3><p class="muted">Beiträge, Kontakt und Einstieg in die Tennisabteilung.</p><a href="/mitglied-werden/">Mehr erfahren →</a></div>
-      </div>
-    </section>
   </div>
 </MainLayout>
 <script>
