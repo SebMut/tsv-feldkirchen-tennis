@@ -948,6 +948,45 @@ async function startApp(user: any) {
 
 export async function initAdmin() {
   const authStatus = $('#auth-status');
+  const setupStatus = $('#password-setup-status');
+  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const queryParams = new URLSearchParams(location.search);
+  const initialAuthFlow = hashParams.get('type') || queryParams.get('type') || '';
+  const requiresPasswordSetup = initialAuthFlow === 'invite' || initialAuthFlow === 'recovery';
+
+  const showPasswordSetup = (user: any) => {
+    state.user = user;
+    $('#auth-box')?.classList.add('hidden');
+    $('#admin-app')?.classList.add('hidden');
+    $('#password-setup-box')?.classList.remove('hidden');
+    $<HTMLInputElement>('#setup-password')?.focus();
+  };
+
+  $<HTMLFormElement>('#password-setup-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const password = $<HTMLInputElement>('#setup-password')?.value || '';
+    const confirmPassword = $<HTMLInputElement>('#setup-password-confirm')?.value || '';
+
+    if (password.length < 12) {
+      setupStatus?.classList.remove('hidden');
+      return setStatus(setupStatus, 'Das Passwort muss mindestens 12 Zeichen lang sein.', 'error');
+    }
+    if (password !== confirmPassword) {
+      setupStatus?.classList.remove('hidden');
+      return setStatus(setupStatus, 'Die beiden Passwörter stimmen nicht überein.', 'error');
+    }
+
+    setupStatus?.classList.remove('hidden');
+    setStatus(setupStatus, 'Passwort wird gespeichert …');
+    const { data, error } = await supabase.auth.updateUser({ password });
+    if (error || !data.user) return setStatus(setupStatus, error?.message || 'Passwort konnte nicht gespeichert werden.', 'error');
+
+    history.replaceState({}, document.title, `${location.origin}${import.meta.env.BASE_URL}admin/`);
+    ($<HTMLFormElement>('#password-setup-form'))?.reset();
+    $('#password-setup-box')?.classList.add('hidden');
+    setStatus(setupStatus, 'Passwort gespeichert.', 'success');
+    await startApp(data.user);
+  });
 
   $<HTMLFormElement>('#login-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -974,6 +1013,15 @@ export async function initAdmin() {
 
   $('#logout-button')?.addEventListener('click', async () => { await supabase.auth.signOut(); location.reload(); });
 
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY' && session?.user) {
+      showPasswordSetup(session.user);
+    }
+  });
+
   const { data } = await supabase.auth.getSession();
-  if (data.session?.user) await startApp(data.session.user);
+  if (data.session?.user) {
+    if (requiresPasswordSetup) showPasswordSetup(data.session.user);
+    else await startApp(data.session.user);
+  }
 }
