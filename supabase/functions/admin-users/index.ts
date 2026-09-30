@@ -9,6 +9,22 @@ const cors = {
 const allowedRoles = new Set(["user", "super_admin"]);
 const allowedTeamRoles = new Set(["manager", "editor", "ticker"]);
 
+function allowedRedirect(value: unknown) {
+  if (typeof value !== "string") return undefined;
+  try {
+    const url = new URL(value);
+    const allowed =
+      (url.origin === "https://www.tennis-tsvfeldkirchen.de") ||
+      (url.origin === "https://tennis-tsvfeldkirchen.de") ||
+      (url.origin === "https://neu.tennis-tsvfeldkirchen.de") ||
+      (url.origin === "https://sebmut.github.io" && url.pathname.startsWith("/tsv-feldkirchen-tennis/")) ||
+      (url.origin === "http://localhost:4321");
+    return allowed ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: cors });
@@ -46,12 +62,27 @@ Deno.serve(async (req: Request) => {
   const action = String(body.action ?? "");
 
   if (action === "list") {
-    const { data, error } = await admin
-      .from("profiles")
-      .select("id,display_name,email,global_role,created_at,team_memberships(id,team_id,role,active,teams(name,slug))")
-      .order("display_name");
+    const [{ data: profiles, error }, authResult] = await Promise.all([
+      admin
+        .from("profiles")
+        .select("id,display_name,email,global_role,created_at,team_memberships(id,team_id,role,active,teams(name,slug))")
+        .order("display_name"),
+      admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    ]);
     if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
-    return Response.json({ users: data ?? [] }, { headers: cors });
+    if (authResult.error) return Response.json({ error: authResult.error.message }, { status: 500, headers: cors });
+
+    const authMap = new Map(authResult.data.users.map((user) => [user.id, user]));
+    const users = (profiles ?? []).map((profile) => {
+      const authUser = authMap.get(profile.id);
+      return {
+        ...profile,
+        last_sign_in_at: authUser?.last_sign_in_at ?? null,
+        email_confirmed_at: authUser?.email_confirmed_at ?? null,
+        invited_at: authUser?.invited_at ?? null,
+      };
+    });
+    return Response.json({ users }, { headers: cors });
   }
 
   if (action === "invite") {
@@ -59,8 +90,8 @@ Deno.serve(async (req: Request) => {
     const displayName = String(body.display_name ?? "").trim();
     const globalRole = allowedRoles.has(String(body.global_role)) ? String(body.global_role) : "user";
     const teamRole = allowedTeamRoles.has(String(body.team_role)) ? String(body.team_role) : "editor";
-    const teamIds = Array.isArray(body.team_ids) ? body.team_ids.map(String) : [];
-    const redirectTo = typeof body.redirect_to === "string" ? body.redirect_to : undefined;
+    const teamIds = Array.isArray(body.team_ids) ? [...new Set(body.team_ids.map(String).filter(Boolean))] : [];
+    const redirectTo = allowedRedirect(body.redirect_to);
 
     if (!email || !email.includes("@")) {
       return Response.json({ error: "Bitte eine gültige E-Mail-Adresse angeben." }, { status: 400, headers: cors });
@@ -68,14 +99,7 @@ Deno.serve(async (req: Request) => {
 
     const options: { data?: Record<string, unknown>; redirectTo?: string } = {};
     if (displayName) options.data = { display_name: displayName };
-    if (
-      redirectTo &&
-      (
-        redirectTo.startsWith("https://www.tennis-tsvfeldkirchen.de/") ||
-        redirectTo.startsWith("https://neu.tennis-tsvfeldkirchen.de/") ||
-        redirectTo.startsWith("http://localhost:4321/")
-      )
-    ) options.redirectTo = redirectTo;
+    if (redirectTo) options.redirectTo = redirectTo;
 
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, options);
     if (inviteError || !invited.user) {
@@ -90,7 +114,7 @@ Deno.serve(async (req: Request) => {
     });
     if (profileError) return Response.json({ error: profileError.message }, { status: 500, headers: cors });
 
-    if (teamIds.length) {
+    if (teamIds.length && globalRole !== "super_admin") {
       const rows = teamIds.map((teamId) => ({
         user_id: invited.user!.id,
         team_id: teamId,
@@ -108,8 +132,14 @@ Deno.serve(async (req: Request) => {
     const userId = String(body.user_id ?? "");
     if (!userId) return Response.json({ error: "user_id fehlt." }, { status: 400, headers: cors });
 
-    let memberships: Array<{ team_id: string; role: string }> = [];
+    const { data: target } = await admin.from("profiles").select("global_role").eq("id", userId).maybeSingle();
+    if (target?.global_role === "super_admin") {
+      const { error } = await admin.from("team_memberships").delete().eq("user_id", userId);
+      if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
+      return Response.json({ ok: true }, { headers: cors });
+    }
 
+    let memberships: Array<{ team_id: string; role: string }> = [];
     if (Array.isArray(body.memberships)) {
       memberships = body.memberships
         .map((item) => {
@@ -121,17 +151,14 @@ Deno.serve(async (req: Request) => {
           return { team_id: teamId, role };
         })
         .filter((item): item is { team_id: string; role: string } => item !== null);
-    } else {
-      const teamRole = allowedTeamRoles.has(String(body.team_role)) ? String(body.team_role) : "editor";
-      const teamIds = Array.isArray(body.team_ids) ? body.team_ids.map(String) : [];
-      memberships = teamIds.map((teamId) => ({ team_id: teamId, role: teamRole }));
     }
 
+    const unique = new Map(memberships.map((membership) => [membership.team_id, membership]));
     const { error: deleteError } = await admin.from("team_memberships").delete().eq("user_id", userId);
     if (deleteError) return Response.json({ error: deleteError.message }, { status: 500, headers: cors });
 
-    if (memberships.length) {
-      const rows = memberships.map((membership) => ({
+    if (unique.size) {
+      const rows = [...unique.values()].map((membership) => ({
         user_id: userId,
         team_id: membership.team_id,
         role: membership.role,
@@ -172,6 +199,34 @@ Deno.serve(async (req: Request) => {
     }
 
     const { error } = await admin.from("profiles").update({ global_role: globalRole }).eq("id", userId);
+    if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
+
+    if (globalRole === "super_admin") {
+      await admin.from("team_memberships").delete().eq("user_id", userId);
+    }
+    return Response.json({ ok: true }, { headers: cors });
+  }
+
+  if (action === "delete") {
+    const userId = String(body.user_id ?? "");
+    if (!userId) return Response.json({ error: "user_id fehlt." }, { status: 400, headers: cors });
+    if (userId === userData.user.id) {
+      return Response.json({ error: "Du kannst deinen eigenen SuperAdmin-Zugang hier nicht löschen." }, { status: 409, headers: cors });
+    }
+
+    const { data: target, error: targetError } = await admin.from("profiles").select("global_role").eq("id", userId).maybeSingle();
+    if (targetError || !target) {
+      return Response.json({ error: targetError?.message ?? "Benutzer nicht gefunden." }, { status: 404, headers: cors });
+    }
+    if (target.global_role === "super_admin") {
+      const { count, error: countError } = await admin.from("profiles").select("id", { head: true, count: "exact" }).eq("global_role", "super_admin");
+      if (countError) return Response.json({ error: countError.message }, { status: 500, headers: cors });
+      if ((count ?? 0) <= 1) {
+        return Response.json({ error: "Der letzte SuperAdmin kann nicht gelöscht werden." }, { status: 409, headers: cors });
+      }
+    }
+
+    const { error } = await admin.auth.admin.deleteUser(userId);
     if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
     return Response.json({ ok: true }, { headers: cors });
   }
