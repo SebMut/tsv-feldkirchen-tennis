@@ -899,7 +899,17 @@ export async function initAdmin() {
     await startApp(data.user);
   });
 
-
+  $<HTMLFormElement>('#password-reset-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = $<HTMLInputElement>('#reset-email')?.value.trim() || '';
+    if (!email) return;
+    const redirectTo = `${location.origin}${import.meta.env.BASE_URL}admin/`;
+    setStatus(authStatus, 'E-Mail wird vorbereitet …');
+    authStatus?.classList.remove('hidden');
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) return setStatus(authStatus, error.message, 'error');
+    setStatus(authStatus, 'Wenn die Adresse bekannt ist, wurde ein Link zum Zurücksetzen gesendet.', 'success');
+  });
 
   $('#logout-button')?.addEventListener('click', async () => { await supabase.auth.signOut(); location.reload(); });
 
