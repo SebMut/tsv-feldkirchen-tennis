@@ -1,18 +1,24 @@
 ---
 import { COURTBOOKING_URL } from '../lib/supabase';
+
+interface Props {
+  variant?: 'dark' | 'light';
+}
+const { variant = 'dark' } = Astro.props;
 ---
-<header class="site-header">
+<header class:list={['site-header', { 'site-header--light': variant === 'light' }]}>
   <div class="container site-header__inner">
     <a class="brand" href="/" aria-label="TSV Feldkirchen Tennis Startseite">
       <span class="brand__mark" aria-hidden="true">TSV</span>
       <span><strong>TSV Feldkirchen</strong><small>Tennis</small></span>
     </a>
     <nav class="desktop-nav" aria-label="Hauptnavigation">
-      <a href="/aktuelles/">Aktuelles</a>
-      <a href="/termine/">Termine</a>
-      <a href="/mannschaften/">Mannschaften</a>
+      <a href="/aktuelles/">News</a>
+      <a href="/mannschaften/">Teams</a>
       <a href="/training/">Training</a>
-      <a href="/mitglied-werden/">Mitglied werden</a>
+      <a href="/termine/">Kalender</a>
+      <a href="/spieltag/">Spieltag</a>
+      <a href="/mitglied-werden/">Club</a>
       <a class="nav-booking" href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Platz buchen ↗</a>
       <a href="/admin/">Login</a>
     </nav>
@@ -20,9 +26,10 @@ import { COURTBOOKING_URL } from '../lib/supabase';
       <summary aria-label="Menü öffnen">Menü</summary>
       <div>
         <a href="/aktuelles/">Aktuelles</a>
-        <a href="/termine/">Termine</a>
         <a href="/mannschaften/">Mannschaften</a>
         <a href="/training/">Training</a>
+        <a href="/termine/">Kalender</a>
+        <a href="/spieltag/">Spieltag</a>
         <a href="/mitglied-werden/">Mitglied werden</a>
         <a href="/sponsoren/">Sponsoren</a>
         <a href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Platz buchen ↗</a>
