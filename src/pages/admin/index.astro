@@ -132,6 +132,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
               <h2>Bildergalerie</h2>
               <form id="gallery-form" class="form-grid">
                 <div class="field"><label>Mannschaft</label><select id="gallery-team" required></select></div>
+                <div class="field"><label>Punktspiel optional</label><select id="gallery-match"><option value="">Keine Spielzuordnung</option></select></div>
+                <div class="field full"><p class="muted">Wird ein Punktspiel gewählt, erscheint die Galerie direkt auf der Detailseite dieses Spiels.</p></div>
                 <div class="field"><label>Titel</label><input id="gallery-title" required /></div>
                 <div class="field full"><label>Bilder</label><input id="gallery-files" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple required /></div>
                 <div class="field"><label><input id="gallery-published" type="checkbox" checked /> Galerie sofort veröffentlichen</label></div>
