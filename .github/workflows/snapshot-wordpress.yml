@@ -29,7 +29,7 @@ jobs:
 
       - name: Commit snapshot
         run: |
-          if git diff --quiet -- migration/wordpress-export; then
+          if [ -z "$(git status --porcelain -- migration/wordpress-export)" ]; then
             echo "No snapshot changes."
             exit 0
           fi
