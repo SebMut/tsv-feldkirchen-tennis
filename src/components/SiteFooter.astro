@@ -1,5 +1,5 @@
 ---
-import { COURTBOOKING_URL } from '../lib/supabase';
+import { COURTBOOKING_URL, mediaUrl } from '../lib/supabase';
 
 const IMPRESSUM_URL = 'https://tsvfeldkirchen.de/impressum';
 const PRIVACY_URL = 'https://tsvfeldkirchen.de/datenschutz-dsgvo';
@@ -7,10 +7,11 @@ const STATUTES_URL = 'https://tsvfeldkirchen.de/satzung';
 ---
 <footer class="site-footer">
   <div class="container footer-grid">
-    <div>
-      <strong>TSV Feldkirchen Tennis</strong>
+    <div class="footer-brand">
+      <img class="footer-logo" src={mediaUrl('branding/tennis-logo.png')} alt="TSV Feldkirchen Tennis" />
+      <div><strong>TSV Feldkirchen Tennis</strong>
       <p>Olympiastrasse 1 · 85622 Feldkirchen</p>
-      <p><a href="mailto:tennis@tsvfeldkirchen.de">tennis@tsvfeldkirchen.de</a> · <a href="tel:+49899036460">+49 (0) 89 903 64 60</a></p>
+      <p><a href="mailto:tennis@tsvfeldkirchen.de">tennis@tsvfeldkirchen.de</a> · <a href="tel:+49899036460">+49 (0) 89 903 64 60</a></p></div>
     </div>
     <div class="footer-links">
       <a href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Courtbooking ↗</a>
