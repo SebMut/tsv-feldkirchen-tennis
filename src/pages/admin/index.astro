@@ -26,12 +26,12 @@ import MainLayout from '../../layouts/MainLayout.astro';
       <div class="admin-shell">
         <nav class="card admin-nav" aria-label="Administration">
           <button data-panel="dashboard" class="active">Übersicht</button>
-          <button data-panel="teams">Mannschaft</button>
-          <button data-panel="players">Kader</button>
-          <button data-panel="matches">Spiele & Liveticker</button>
-          <button data-panel="news">News</button>
-          <button data-panel="events">Termine</button>
-          <button data-panel="galleries">Bilder</button>
+          <button data-panel="teams" data-editor-only>Mannschaft</button>
+          <button data-panel="players" data-editor-only>Kader</button>
+          <button data-panel="matches" data-ticker-only>Spiele & Liveticker</button>
+          <button data-panel="news" data-editor-only>News</button>
+          <button data-panel="events" data-editor-only>Termine</button>
+          <button data-panel="galleries" data-editor-only>Bilder</button>
           <button data-panel="seasons" data-super-only>Saisons</button>
           <button data-panel="facility" data-super-only>Anlage</button>
           <button data-panel="content" data-super-only>Website-Inhalte</button>
@@ -83,7 +83,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           </section>
 
           <section id="panel-matches" class="admin-panel">
-            <div class="card">
+            <div class="card" id="match-create-card">
               <h2>Spiel anlegen</h2>
               <form id="match-form" class="form-grid">
                 <div class="field"><label>Mannschaft / Saison</label><select id="match-team-season" required></select></div>
@@ -234,6 +234,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <section id="panel-users" class="admin-panel">
             <div class="card">
               <h2>Benutzer einladen</h2>
+              <p class="muted"><strong>Manager/Editor:</strong> Mannschaftsdaten und Liveticker. <strong>Nur Liveticker:</strong> ausschließlich vorhandene Spiele live begleiten. Ein Benutzer kann mehreren Mannschaften mit unterschiedlichen Rollen zugeordnet werden.</p>
               <form id="invite-form" class="form-grid">
                 <div class="field"><label>Name</label><input id="invite-name" required /></div>
                 <div class="field"><label>E-Mail</label><input id="invite-email" type="email" required /></div>
