@@ -26,6 +26,7 @@ RewriteRule ^(herren|damen|junioren-18|knaben-15|maedchen-15|bambini-12|kleinfel
 
 # Alte Mannschaftskalender werden auf die neuen Supabase-ICS-Feeds umgeleitet
 RewriteRule ^mannschaft-kalender/alle-mannschaften-2026\.ics$ https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/calendar-feed?type=matches [R=301,L,NE]
+RewriteRule ^mannschaft-kalender/u9\.ics$ https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/calendar-feed?type=matches&team=kleinfeld-u9 [R=301,L,NE]
 RewriteRule ^mannschaft-kalender/([^/]+)\.ics$ https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/calendar-feed?type=matches&team=$1 [R=301,L,NE]
 
 Options -Indexes
