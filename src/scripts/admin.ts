@@ -554,12 +554,6 @@ function renderSelectors() {
   fillTeamForm();
 }
 
-async function bootstrapAdmin() {
-  const { data, error } = await supabase.functions.invoke('bootstrap-admin', { body: { display_name: state.profile?.display_name || '' } });
-  if (error || data?.error) return status(data?.error || error?.message || 'Aktivierung fehlgeschlagen.', 'error');
-  status('SuperAdmin wurde aktiviert. Oberfläche wird neu geladen.', 'success');
-  window.setTimeout(() => location.reload(), 700);
-}
 
 function bindForms() {
   $<HTMLFormElement>('#team-form')?.addEventListener('submit', saveTeam);
@@ -602,7 +596,6 @@ async function startApp(user: any) {
   if (line) line.textContent = `${state.profile?.display_name || user.email} · ${state.isSuper ? 'SuperAdmin' : 'Mannschafts-Nutzer'}`;
   $('[data-super-only]')?.classList.toggle('hidden', !state.isSuper);
   document.querySelectorAll<HTMLElement>('[data-super-only]').forEach((el) => el.classList.toggle('hidden', !state.isSuper));
-  $('#bootstrap-button')?.classList.toggle('hidden', state.isSuper);
 
   renderSelectors();
   bindNav();
@@ -626,24 +619,9 @@ export async function initAdmin() {
     await startApp(data.user);
   });
 
-  $<HTMLFormElement>('#signup-form')?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const email = $<HTMLInputElement>('#signup-email')?.value.trim() || '';
-    const password = $<HTMLInputElement>('#signup-password')?.value || '';
-    const displayName = $<HTMLInputElement>('#signup-name')?.value.trim() || '';
-    authStatus?.classList.remove('hidden');
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName } } });
-    if (error) return setStatus(authStatus, error.message, 'error');
-    if (data.session && data.user) {
-      await startApp(data.user);
-      await bootstrapAdmin();
-    } else {
-      setStatus(authStatus, 'Konto angelegt. Bitte E-Mail bestätigen und anschließend anmelden. Danach „SuperAdmin aktivieren“ verwenden.', 'success');
-    }
-  });
+
 
   $('#logout-button')?.addEventListener('click', async () => { await supabase.auth.signOut(); location.reload(); });
-  $('#bootstrap-button')?.addEventListener('click', bootstrapAdmin);
 
   const { data } = await supabase.auth.getSession();
   if (data.session?.user) await startApp(data.session.user);
