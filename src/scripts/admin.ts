@@ -166,6 +166,8 @@ async function saveTeam(event: Event) {
   const teamId = $<HTMLSelectElement>('#team-select')?.value;
   if (!teamId) return;
   const ts = currentTeamSeason(teamId);
+  const existingTeam = state.teams.find((row) => row.id === teamId);
+  const oldImagePath = existingTeam?.image_path || null;
   const teamUpdate = {
     name: $<HTMLInputElement>('#team-name')?.value.trim(),
     short_name: $<HTMLInputElement>('#team-short-name')?.value.trim() || null,
@@ -191,6 +193,10 @@ async function saveTeam(event: Event) {
     if (uploadError) return status(uploadError.message, 'error');
     const { error: imageError } = await supabase.from('teams').update({ image_path: path }).eq('id', teamId);
     if (imageError) return status(imageError.message, 'error');
+
+    if (oldImagePath && oldImagePath !== path && oldImagePath.startsWith(`teams/${teamId}/team/`)) {
+      await supabase.storage.from('media').remove([oldImagePath]);
+    }
   }
 
   await loadCore();
@@ -325,8 +331,11 @@ async function savePlayer(event: Event) {
   if (!tsId || !ts || !displayName) return;
 
   let playerId = editId;
+  let oldPhotoPath: string | null = null;
 
   if (editId) {
+    const existingPlayer = (await supabase.from('players').select('photo_path').eq('id', editId).maybeSingle()).data;
+    oldPhotoPath = existingPlayer?.photo_path || null;
     const { error } = await supabase.from('players').update({
       display_name: displayName,
       active: true,
@@ -353,7 +362,7 @@ async function savePlayer(event: Event) {
   if (editId) {
     const { error: linkError } = await supabase.from('team_players').update({
       is_captain: $<HTMLInputElement>('#player-captain')?.checked ?? false,
-      public_visible: $<HTMLInputElement>('#player-public-visible')?.checked ?? true,
+      public_visible: $<HTMLInputElement>('#player-public-visible')?.checked ?? false,
     }).eq('team_season_id', tsId).eq('player_id', playerId);
     if (linkError) return status(linkError.message, 'error');
   }
@@ -366,6 +375,10 @@ async function savePlayer(event: Event) {
     if (uploadError) return status(uploadError.message, 'error');
     const { error: photoError } = await supabase.from('players').update({ photo_path: path }).eq('id', playerId);
     if (photoError) return status(photoError.message, 'error');
+
+    if (oldPhotoPath && oldPhotoPath !== path && oldPhotoPath.includes(`/players/${playerId}/`)) {
+      await supabase.storage.from('media').remove([oldPhotoPath]);
+    }
   }
 
   resetPlayerForm();
