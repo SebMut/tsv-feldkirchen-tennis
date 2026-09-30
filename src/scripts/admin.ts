@@ -63,6 +63,22 @@ function renderTeamSeasonOptions(selector: string) {
   el.innerHTML = allowedTeamSeasons().map((ts) => `<option value="${ts.id}">${escapeHtml(teamSeasonLabel(ts))}</option>`).join('');
 }
 
+function renderGalleryMatchOptions() {
+  const teamId = $<HTMLSelectElement>('#gallery-team')?.value;
+  const el = $<HTMLSelectElement>('#gallery-match');
+  if (!el) return;
+  const rows = state.matches
+    .filter((match) => {
+      const ts = state.teamSeasons.find((row) => row.id === match.team_season_id);
+      return !!teamId && ts?.team_id === teamId;
+    })
+    .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
+
+  el.innerHTML = '<option value="">Keine Spielzuordnung</option>' + rows.map((match) =>
+    `<option value="${match.id}">${escapeHtml(formatDateTime(match.starts_at))} · ${escapeHtml(match.opponent)} · ${match.is_home ? 'Heim' : 'Auswärts'}</option>`
+  ).join('');
+}
+
 async function loadCore() {
   const [{ data: teams }, { data: seasons }, { data: teamSeasons }, { data: memberships }] = await Promise.all([
     supabase.from('teams').select('*').order('sort_order'),
@@ -326,6 +342,7 @@ async function refreshMatches() {
   if (!ids.length) return;
   const { data } = await supabase.from('matches').select('*').in('team_season_id', ids).order('starts_at', { ascending: false });
   state.matches = data ?? [];
+  renderGalleryMatchOptions();
   const liveStates = state.matches.length ? (await supabase.from('match_live_state').select('*').in('match_id', state.matches.map((m) => m.id))).data ?? [] : [];
   const liveMap = new Map(liveStates.map((x) => [x.match_id, x]));
   const target = $('#matches-admin-list');
@@ -512,10 +529,12 @@ async function refreshGalleries() {
     const preview = galleryItems[0]?.storage_path
       ? `<img class="gallery-admin-preview" src="${escapeHtml(mediaUrl(galleryItems[0].storage_path))}" alt="" />`
       : '';
+    const match = g.match_id ? state.matches.find((row) => row.id === g.match_id) : null;
     return `<article class="card flat" data-gallery-card="${g.id}">
       ${preview}
       <p class="eyebrow">${escapeHtml(state.teams.find((t) => t.id === g.team_id)?.name || '')}</p>
       <h3>${escapeHtml(g.title)}</h3>
+      ${match ? `<p><strong>Punktspiel:</strong> ${escapeHtml(formatDateTime(match.starts_at))} · gegen ${escapeHtml(match.opponent)}</p>` : '<p class="muted">Allgemeine Mannschaftsgalerie</p>'}
       <p class="muted">${galleryItems.length} Bild${galleryItems.length === 1 ? '' : 'er'} · ${g.published ? 'Öffentlich' : 'Entwurf'}</p>
       <div class="actions">
         <button class="button ghost" data-toggle-gallery="${g.id}">${g.published ? 'Als Entwurf' : 'Veröffentlichen'}</button>
@@ -557,12 +576,14 @@ async function addGallery(event: Event) {
   event.preventDefault();
   const teamId = $<HTMLSelectElement>('#gallery-team')?.value;
   const title = $<HTMLInputElement>('#gallery-title')?.value.trim();
+  const matchId = $<HTMLSelectElement>('#gallery-match')?.value || null;
   const files = Array.from($<HTMLInputElement>('#gallery-files')?.files ?? []);
   if (!teamId || !title || !files.length) return;
 
   const { data: gallery, error } = await supabase.from('galleries').insert({
     title,
     team_id: teamId,
+    match_id: matchId,
     published: $<HTMLInputElement>('#gallery-published')?.checked ?? true,
     created_by: state.user.id,
   }).select().single();
@@ -720,6 +741,7 @@ function renderSelectors() {
   renderTeamOptions('#news-team', state.isSuper);
   renderTeamOptions('#event-team', state.isSuper);
   renderTeamOptions('#gallery-team');
+  renderGalleryMatchOptions();
   renderTeamSeasonOptions('#players-team-season');
   renderTeamSeasonOptions('#match-team-season');
 
@@ -740,6 +762,7 @@ function bindForms() {
   $<HTMLFormElement>('#news-form')?.addEventListener('submit', addNews);
   $<HTMLFormElement>('#event-form')?.addEventListener('submit', addEvent);
   $<HTMLFormElement>('#gallery-form')?.addEventListener('submit', addGallery);
+  $<HTMLSelectElement>('#gallery-team')?.addEventListener('change', renderGalleryMatchOptions);
   $<HTMLFormElement>('#facility-form')?.addEventListener('submit', saveFacility);
   $<HTMLSelectElement>('#page-select')?.addEventListener('change', fillPage);
   $<HTMLFormElement>('#page-form')?.addEventListener('submit', savePage);
