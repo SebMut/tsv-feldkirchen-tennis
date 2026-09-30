@@ -22,9 +22,20 @@ Status: **abgeschlossen**
 Reale Mannschaftsfotos, Kaderdaten und Spielerbilder werden künftig redaktionell über **Mein TSV** gepflegt und blockieren den weiteren Projektfortschritt nicht.
 
 ## Phase 3 – Admin und Rechte
-- realen Mannschafts-Nutzer einladen
-- Rechte je Mannschaft testen
-- Mehrfachzuordnung zu Teams testen
+Status: **technisch abgeschlossen / Praxistest offen**
+
+- SuperAdmin vorhanden
+- sichere serverseitige Einladungen
+- Benutzerstatus und letzte Anmeldung
+- mehrere Mannschaften pro Nutzer
+- Rolle je Mannschaft
+- Editor/Manager vs. Nur-Liveticker in der Oberfläche getrennt
+- RLS bleibt die verbindliche Berechtigungsebene
+- Passwort-Reset
+- Benutzerzugänge löschbar
+- letzter SuperAdmin geschützt
+
+Noch offen: einen echten zweiten Benutzer einladen und die Testmatrix aus `docs/phase-3-auth-roles.md` praktisch abnehmen.
 
 ## Phase 4 – Spieltag und Liveticker
 - Testspiel durchführen
