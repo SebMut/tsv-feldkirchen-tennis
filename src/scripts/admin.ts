@@ -815,7 +815,8 @@ async function inviteUser(event: Event) {
     redirect_to: `${location.origin}${import.meta.env.BASE_URL}admin/`,
   };
   const { data, error } = await supabase.functions.invoke('admin-users', { body: payload });
-  if (error || data?.error) return status(data?.error || error?.message || 'Einladung fehlgeschlagen.', 'error');
+  if (error) return status('Die Benutzerverwaltung ist momentan nicht erreichbar. Bitte erneut versuchen.', 'error');
+  if (data?.ok === false || data?.error) return status(data?.error || 'Einladung fehlgeschlagen.', 'error');
 
   ($<HTMLFormElement>('#invite-form'))?.reset();
   renderInviteTeamCards();
