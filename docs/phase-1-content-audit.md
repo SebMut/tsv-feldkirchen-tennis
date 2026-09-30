@@ -37,13 +37,18 @@ Damit vermeiden wir doppelte Pflege und doppelte Inhalte.
 
 ## Medien
 
-Die **inhaltliche Bestandsaufnahme** der alten Seite ist abgeschlossen.
-Der eigentliche Transfer und die Zuordnung von Mannschaftsfotos, Spielerbildern,
-Sponsorlogos und weiteren Medien erfolgt gesammelt in **Phase 2 – Mannschaften und Medien**.
+Die für Phase 1 relevanten öffentlichen Medien liegen bereits in Supabase Storage:
 
-Das Schnuppertag-Bild ist bereits als bestehende Quelle am News-Beitrag hinterlegt.
-Vor Abschaltung von WordPress werden alle benötigten Medien physisch in Supabase Storage
-übernommen, damit keine Abhängigkeit von `wp-content` bleibt.
+- Tennis-Logo
+- 4 News-/Veranstaltungsbilder
+- 9 Sponsorlogos
+- 3 vorhandene Mannschafts-Kategoriebilder (Herren, Damen, Jugend)
+
+Die veröffentlichten News verweisen auf die Dateien im Storage und sind damit nicht mehr
+von WordPress-`wp-content` abhängig.
+
+**Phase 2** übernimmt anschließend die mannschaftsbezogenen Medien:
+konkrete Mannschaftsfotos, Spielerbilder und spätere Galerien.
 
 ## Phase-1-Abnahmekriterien
 
