@@ -825,11 +825,16 @@ async function inviteUser(event: Event) {
 
 function renderInviteTeamCards() {
   const invite = $('#invite-teams');
-  const section = $('#invite-team-section');
-  if (!invite || !section || !state.isSuper) return;
+  const section = $<HTMLElement>('#invite-team-section');
+  const superInfo = $<HTMLElement>('#invite-superadmin-info');
+  if (!invite || !section || !superInfo || !state.isSuper) return;
 
   const isSuperAdmin = $<HTMLSelectElement>('#invite-global-role')?.value === 'super_admin';
-  section.classList.toggle('hidden', isSuperAdmin);
+
+  section.hidden = isSuperAdmin;
+  superInfo.hidden = !isSuperAdmin;
+  section.setAttribute('aria-hidden', isSuperAdmin ? 'true' : 'false');
+  superInfo.setAttribute('aria-hidden', isSuperAdmin ? 'false' : 'true');
 
   if (isSuperAdmin) {
     invite.innerHTML = '';
