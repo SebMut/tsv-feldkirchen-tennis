@@ -15,6 +15,7 @@ const { slug } = Astro.params;
 <MainLayout title="Mannschaft | TSV Feldkirchen Tennis">
   <div class="container stack" data-team-slug={slug}>
     <div id="team-header"><p class="muted">Mannschaft wird geladen …</p></div>
+    <section id="team-next-match" class="hidden" aria-live="polite"></section>
     <section class="grid two">
       <article class="card"><p class="eyebrow">Kader</p><div id="team-roster"></div></article>
       <article class="card"><p class="eyebrow">Saison</p><div id="team-season"></div><div class="field"><label for="team-season-select">Saison wählen</label><select id="team-season-select"></select></div></article>
