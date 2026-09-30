@@ -1,5 +1,5 @@
 ---
-import { COURTBOOKING_URL } from '../lib/supabase';
+import { COURTBOOKING_URL, mediaUrl } from '../lib/supabase';
 
 interface Props {
   variant?: 'dark' | 'light';
@@ -9,7 +9,7 @@ const { variant = 'dark' } = Astro.props;
 <header class:list={['site-header', { 'site-header--light': variant === 'light' }]}>
   <div class="container site-header__inner">
     <a class="brand" href="/" aria-label="TSV Feldkirchen Tennis Startseite">
-      <span class="brand__mark" aria-hidden="true">TSV</span>
+      <img class="brand__logo" src={mediaUrl('branding/tennis-logo.png')} alt="TSV Feldkirchen Tennis" />
       <span><strong>TSV Feldkirchen</strong><small>Tennis</small></span>
     </a>
     <nav class="desktop-nav" aria-label="Hauptnavigation">
