@@ -305,9 +305,13 @@ export async function loadTeamDetail(slug: string) {
 
   if (!current) return;
 
-  const [{ data: links }, { data: matches }, { data: news }, { data: galleries }] = await Promise.all([
+  const teamSeasonIds = teamSeasons.map((row: Row) => row.id);
+  const [{ data: links }, { data: matches }, { data: allTeamMatches }, { data: news }, { data: galleries }] = await Promise.all([
     supabase.from('team_players').select('*').eq('team_season_id', current.id).eq('public_visible', true).order('sort_order'),
     supabase.from('matches').select('*').eq('team_season_id', current.id).order('starts_at'),
+    teamSeasonIds.length
+      ? supabase.from('matches').select('*').in('team_season_id', teamSeasonIds).eq('is_published', true).order('starts_at')
+      : Promise.resolve({ data: [] }),
     supabase.from('news').select('*').eq('team_id', team.id).eq('status', 'published').order('published_at', { ascending: false }),
     supabase.from('galleries').select('*').eq('team_id', team.id).eq('published', true).order('created_at', { ascending: false }),
   ]);
@@ -335,15 +339,18 @@ export async function loadTeamDetail(slug: string) {
     </div>`
     : '<p class="muted">Der öffentliche Kader wird noch gepflegt.</p>';
 
-  const liveStates = matches?.length ? (await supabase.from('match_live_state').select('*').in('match_id', matches.map((m: Row) => m.id))).data ?? [] : [];
+  const allMatchesForTeam = allTeamMatches ?? matches ?? [];
+  const liveStates = allMatchesForTeam.length
+    ? (await supabase.from('match_live_state').select('*').in('match_id', allMatchesForTeam.map((m: Row) => m.id))).data ?? []
+    : [];
 
   const nextMatchTarget = document.querySelector<HTMLElement>('#team-next-match');
   if (nextMatchTarget) {
     const now = Date.now();
-    const liveMatch = (matches ?? []).find((match: Row) =>
+    const liveMatch = allMatchesForTeam.find((match: Row) =>
       liveStates.find((state: Row) => state.match_id === match.id)?.status === 'live'
     );
-    const upcomingMatch = (matches ?? [])
+    const upcomingMatch = allMatchesForTeam
       .filter((match: Row) => match.is_published !== false && new Date(match.starts_at).getTime() > now)
       .sort((a: Row, b: Row) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())[0];
     const featuredMatch = liveMatch ?? upcomingMatch;
