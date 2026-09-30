@@ -54,7 +54,12 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field"><label>Liga</label><input id="team-league" /></div>
                 <div class="field"><label>Gruppe</label><input id="team-group" /></div>
                 <div class="field full"><label>BTV-Link</label><input id="team-btv-url" type="url" /></div>
-                <div class="field"><label>Mannschaftsbild</label><input id="team-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
+                <div class="field full">
+                  <label>Aktuelles Mannschaftsbild</label>
+                  <div id="team-image-preview" class="team-image-preview"></div>
+                </div>
+                <div class="field"><label>Neues Mannschaftsbild</label><input id="team-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
+                <div class="field"><button id="team-image-reset" class="button ghost" type="button">Auf Standardbild zurücksetzen</button></div>
                 <div class="field"><button class="button" type="submit">Mannschaft speichern</button></div>
               </form>
             </div>
