@@ -246,6 +246,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field"><label>Name</label><input id="invite-name" required /></div>
                 <div class="field"><label>E-Mail</label><input id="invite-email" type="email" required /></div>
                 <div class="field"><label>Globale Rolle</label><select id="invite-global-role"><option value="user">Mannschafts-Nutzer</option><option value="super_admin">SuperAdmin</option></select></div>
+                <div class="field full superadmin-role-info" id="invite-superadmin-info" hidden>
+                  <strong>SuperAdmin – Vollzugriff auf die Plattform</strong>
+                  <p>Diese Rolle kann alle Mannschaften und Saisons verwalten, Kader und Bilder pflegen, Spiele und Liveticker bearbeiten, News und Termine verwalten, Website-Inhalte und Einstellungen ändern sowie weitere Benutzer und deren Rechte administrieren.</p>
+                  <p class="muted">Eine zusätzliche Mannschaftszuordnung ist deshalb nicht erforderlich.</p>
+                </div>
                 <div class="field full" id="invite-team-section">
                   <label>Mannschaften und Rollen</label>
                   <p class="muted">Initial ist keine Mannschaft ausgewählt. Für jede gewählte Mannschaft kann eine eigene Rolle vergeben werden.</p>
