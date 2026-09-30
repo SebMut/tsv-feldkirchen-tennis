@@ -15,7 +15,19 @@ const {
   canonicalPath = Astro.url.pathname,
   noindex = false,
 } = Astro.props;
-const canonical = new URL(canonicalPath, Astro.site ?? 'https://www.tennis-tsvfeldkirchen.de').toString();
+
+const base = import.meta.env.BASE_URL;
+const basePrefix = base === '/' ? '' : base.replace(/\/$/, '');
+const canonicalPathWithoutPreviewBase =
+  basePrefix && canonicalPath.startsWith(`${basePrefix}/`)
+    ? canonicalPath.slice(basePrefix.length)
+    : canonicalPath;
+const canonical = new URL(
+  canonicalPathWithoutPreviewBase,
+  Astro.site ?? 'https://www.tennis-tsvfeldkirchen.de',
+).toString();
+const previewMode = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
+const shouldNoindex = noindex || previewMode;
 ---
 <!doctype html>
 <html lang="de">
@@ -25,7 +37,7 @@ const canonical = new URL(canonicalPath, Astro.site ?? 'https://www.tennis-tsvfe
     <meta name="description" content={description} />
     <meta name="theme-color" content="#103c34" />
     <link rel="canonical" href={canonical} />
-    {noindex && <meta name="robots" content="noindex,nofollow" />}
+    {shouldNoindex && <meta name="robots" content="noindex,nofollow" />}
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -37,5 +49,24 @@ const canonical = new URL(canonicalPath, Astro.site ?? 'https://www.tennis-tsvfe
     <SiteHeader />
     <main><slot /></main>
     <SiteFooter />
+    <script is:inline define:vars={{ basePrefix }}>
+      (() => {
+        if (!basePrefix) return;
+
+        const rewriteLinks = (root = document) => {
+          root.querySelectorAll('a[href^="/"]').forEach((link) => {
+            const href = link.getAttribute('href');
+            if (!href || href.startsWith('//') || href.startsWith(basePrefix + '/')) return;
+            link.setAttribute('href', basePrefix + href);
+          });
+        };
+
+        rewriteLinks();
+        new MutationObserver(() => rewriteLinks()).observe(document.body, {
+          childList: true,
+          subtree: true,
+        });
+      })();
+    </script>
   </body>
 </html>
