@@ -1,13 +1,13 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 
-const slugs = [
-  'herren','herren-ii','herren-iii','herren-40','herren-40-ii','herren-50','herren-50-ii',
-  'damen','damen-30','damen-40','damen-50',
-  'junioren-18','junioren-18-ii','knaben-15','knaben-15-ii','maedchen-15',
-  'bambini-12','bambini-12-ii','bambini-12-iii','kleinfeld-u9'
-];
 export function getStaticPaths() {
+  const slugs = [
+    'herren','herren-ii','herren-iii','herren-40','herren-40-ii','herren-50','herren-50-ii',
+    'damen','damen-30','damen-40','damen-50',
+    'junioren-18','junioren-18-ii','knaben-15','knaben-15-ii','maedchen-15',
+    'bambini-12','bambini-12-ii','bambini-12-iii','kleinfeld-u9'
+  ];
   return slugs.map((slug) => ({ params: { slug } }));
 }
 const { slug } = Astro.params;
