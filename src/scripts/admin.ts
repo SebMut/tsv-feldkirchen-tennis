@@ -236,6 +236,7 @@ async function refreshPlayers() {
     .from('team_players')
     .select('*')
     .eq('team_season_id', tsId)
+    .order('is_captain', { ascending: false })
     .order('sort_order');
 
   const ids = (links ?? []).map((x) => x.player_id);
