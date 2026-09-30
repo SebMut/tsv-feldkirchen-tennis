@@ -41,8 +41,10 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <button data-panel="news">News</button>
           <button data-panel="events">Termine</button>
           <button data-panel="galleries">Bilder</button>
+          <button data-panel="seasons" data-super-only>Saisons</button>
           <button data-panel="facility" data-super-only>Anlage</button>
           <button data-panel="content" data-super-only>Website-Inhalte</button>
+          <button data-panel="settings" data-super-only>Einstellungen</button>
           <button data-panel="users" data-super-only>Benutzer</button>
           <button data-panel="account">Mein Konto</button>
         </nav>
@@ -107,6 +109,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field full"><label>Kurztext</label><textarea id="news-excerpt"></textarea></div>
                 <div class="field full"><label>Text</label><textarea id="news-body" required></textarea></div>
                 <div class="field"><label>Status</label><select id="news-status"><option value="published">Veröffentlicht</option><option value="draft">Entwurf</option></select></div>
+                <div class="field"><label>Beitragsbild</label><input id="news-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
                 <div class="field"><button class="button" type="submit">Beitrag speichern</button></div>
               </form>
               <div id="news-admin-list" class="table-wrap"></div>
@@ -143,6 +146,27 @@ import MainLayout from '../../layouts/MainLayout.astro';
             </div>
           </section>
 
+          <section id="panel-seasons" class="admin-panel">
+            <div class="grid two">
+              <div class="card">
+                <h2>Saison anlegen</h2>
+                <form id="season-form" class="form-grid">
+                  <div class="field"><label>Jahr</label><input id="season-year" type="number" min="2020" max="2100" required /></div>
+                  <div class="field"><label>Name</label><input id="season-name" placeholder="Saison 2027" required /></div>
+                  <div class="field"><label>Beginn</label><input id="season-start" type="date" /></div>
+                  <div class="field"><label>Ende</label><input id="season-end" type="date" /></div>
+                  <div class="field"><label><input id="season-current" type="checkbox" /> als aktuelle Saison setzen</label></div>
+                  <div class="field"><label><input id="season-clone" type="checkbox" checked /> Mannschaften der letzten Saison übernehmen</label></div>
+                  <div class="field full"><button class="button" type="submit">Saison anlegen</button></div>
+                </form>
+              </div>
+              <div class="card">
+                <h2>Saisonverwaltung</h2>
+                <div id="seasons-list" class="stack"></div>
+              </div>
+            </div>
+          </section>
+
           <section id="panel-facility" class="admin-panel">
             <div class="card">
               <h2>Anlagenstatus</h2>
@@ -168,8 +192,40 @@ import MainLayout from '../../layouts/MainLayout.astro';
               </form>
             </div>
             <div class="grid two">
-              <div class="card"><h2>Sponsor anlegen</h2><form id="sponsor-form" class="form-grid"><div class="field full"><label>Name</label><input id="sponsor-name" required /></div><div class="field full"><label>Website</label><input id="sponsor-url" type="url" /></div><div class="field full"><label>Beschreibung</label><textarea id="sponsor-description"></textarea></div><div class="field"><button class="button" type="submit">Sponsor speichern</button></div></form></div>
+              <div class="card"><h2>Sponsor anlegen</h2><form id="sponsor-form" class="form-grid"><div class="field full"><label>Name</label><input id="sponsor-name" required /></div><div class="field full"><label>Website</label><input id="sponsor-url" type="url" /></div><div class="field full"><label>Beschreibung</label><textarea id="sponsor-description"></textarea></div><div class="field full"><label>Logo</label><input id="sponsor-logo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div><div class="field"><button class="button" type="submit">Sponsor speichern</button></div></form></div>
               <div class="card"><h2>Funktionär anlegen</h2><form id="official-form" class="form-grid"><div class="field full"><label>Name</label><input id="official-name" required /></div><div class="field"><label>Funktion</label><input id="official-title" required /></div><div class="field"><label>E-Mail</label><input id="official-email" type="email" /></div><div class="field"><label>Telefon</label><input id="official-phone" /></div><div class="field"><button class="button" type="submit">Funktionär speichern</button></div></form></div>
+            </div>
+            <div class="card">
+              <h2>Sponsor-Platzierungen</h2>
+              <form id="placement-form" class="form-grid">
+                <div class="field"><label>Sponsor</label><select id="placement-sponsor" required></select></div>
+                <div class="field"><label>Platzierung</label><select id="placement-type"><option value="home">Startseite</option><option value="live">Liveticker</option><option value="team">Mannschaft</option><option value="match">Spieltag</option><option value="sponsors">Sponsoren-Seite</option></select></div>
+                <div class="field"><label>Mannschaft optional</label><select id="placement-team"></select></div>
+                <div class="field"><label>Spiel optional</label><select id="placement-match"><option value="">Kein bestimmtes Spiel</option></select></div>
+                <div class="field"><label>Von</label><input id="placement-start" type="date" /></div>
+                <div class="field"><label>Bis</label><input id="placement-end" type="date" /></div>
+                <div class="field full"><button class="button" type="submit">Platzierung speichern</button></div>
+              </form>
+              <div id="placements-list" class="table-wrap"></div>
+            </div>
+          </section>
+
+          <section id="panel-settings" class="admin-panel">
+            <div class="card">
+              <h2>Website-Einstellungen</h2>
+              <form id="settings-form" class="form-grid">
+                <div class="field"><label>Vereinsname</label><input id="setting-club-name" /></div>
+                <div class="field"><label>E-Mail</label><input id="setting-email" type="email" /></div>
+                <div class="field"><label>Telefon</label><input id="setting-phone" /></div>
+                <div class="field"><label>Mitglieder</label><input id="setting-member-count" type="number" min="0" /></div>
+                <div class="field"><label>Mannschaften</label><input id="setting-team-count" type="number" min="0" /></div>
+                <div class="field"><label>Plätze</label><input id="setting-court-count" type="number" min="0" /></div>
+                <div class="field full"><label>Courtbooking-URL</label><input id="setting-courtbooking-url" type="url" /></div>
+                <div class="field full"><label>Tennisschule-URL</label><input id="setting-tennis-school-url" type="url" /></div>
+                <div class="field full"><label>Adresse (JSON)</label><textarea id="setting-address" placeholder='{"street":"Olympiastrasse 1","postal_code":"85622","city":"Feldkirchen","country":"Deutschland"}'></textarea></div>
+                <div class="field full"><label>Social-Links (JSON)</label><textarea id="setting-social-links" placeholder='{"instagram":"https://..."}'></textarea></div>
+                <div class="field"><button class="button" type="submit">Einstellungen speichern</button></div>
+              </form>
             </div>
           </section>
 
