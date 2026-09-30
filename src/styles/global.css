@@ -3,15 +3,15 @@
   --green-950:#0d1b18;
   --green-900:#103c34;
   --green-800:#174b40;
-  --green-700:#c7e934;
+  --green-700:#e30613;
   --green-100:#213d36;
   --sand:#0d1b18;
   --surface:#142824;
   --text:#edf1e9;
   --muted:#aebdb8;
   --line:#ffffff18;
-  --accent:#c7e934;
-  --live:#ef4e40;
+  --accent:#e30613;
+  --live:#e30613;
   --warning:#f0b85b;
   --success:#4cc38a;
   --radius:10px;
@@ -28,21 +28,20 @@ button{cursor:pointer}
 .container{width:min(1180px,calc(100% - 32px));margin-inline:auto}
 .site-header{background:#0d1b18f2;color:#fff;position:sticky;top:0;z-index:50;border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}
 .site-header--light{background:#fff;color:#16201d;border-bottom:1px solid #d8ddd8;backdrop-filter:none}
-.site-header--light .brand__mark{background:#173d36;color:#fff}
 .site-header--light .brand small{color:#60706a}
 .site-header--light .desktop-nav a{color:#16201d}
 .site-header--light .nav-booking{background:#ef4e40;color:#fff!important}
 .site-header__inner{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:22px}
 .brand{display:flex;gap:11px;align-items:center;text-decoration:none}
-.brand__mark{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#fff;color:var(--green-950);font-weight:950;letter-spacing:-.06em}
-.brand span:last-child{display:grid;line-height:1.05}.brand small{color:#bcd2cc;margin-top:4px}
+.brand__logo{width:58px;height:58px;object-fit:contain;flex:0 0 auto}.site-header--light .brand__logo{filter:none}
+.brand span:last-child{display:grid;line-height:1.05}.brand strong{color:#fff}.brand small{color:#f29aa1;margin-top:4px}.site-header--light .brand strong{color:#16201d}
 .desktop-nav{display:flex;align-items:center;gap:17px;font-size:.93rem}
 .desktop-nav a{text-decoration:none;color:#e8f1ee;font-weight:760;text-transform:uppercase;font-size:.78rem;letter-spacing:.06em}.desktop-nav a:hover{color:var(--accent)}
 .nav-booking{background:var(--live);color:#fff!important;border-radius:4px;padding:10px 14px}
 .mobile-nav{display:none;position:relative}.mobile-nav summary{list-style:none;border:1px solid #ffffff55;padding:8px 12px;border-radius:10px;font-weight:750}.mobile-nav summary::-webkit-details-marker{display:none}.mobile-nav>div{position:absolute;right:0;top:48px;background:#fff;color:var(--text);width:min(290px,80vw);padding:10px;border-radius:14px;box-shadow:var(--shadow);display:grid}.mobile-nav a{padding:12px;text-decoration:none;border-radius:8px}.mobile-nav a:hover{background:var(--green-100)}
 main{min-height:70vh;padding:36px 0 74px}
-.site-footer{background:#092a25;color:#dce9e5;padding:42px 0}
-.footer-grid{display:flex;justify-content:space-between;gap:30px}.site-footer p{margin:.45rem 0;color:#b8cec8}.footer-links{display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:flex-end;gap:14px}.footer-links a{color:#fff}
+.site-footer{background:#101010;color:#f3f3f3;padding:42px 0;border-top:3px solid var(--accent)}
+.footer-grid{display:flex;justify-content:space-between;gap:30px}.footer-brand{display:flex;align-items:flex-start;gap:16px}.footer-logo{width:72px;height:72px;object-fit:contain}.site-footer p{margin:.45rem 0;color:#d4d4d4}.footer-links{display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:flex-end;gap:14px}.footer-links a{color:#fff}
 h1,h2,h3{line-height:1.08;margin-top:0}
 h1{font-size:clamp(2.25rem,6vw,4.7rem);letter-spacing:-.045em}
 h2{font-size:clamp(1.55rem,3vw,2.45rem);letter-spacing:-.025em}
@@ -94,10 +93,10 @@ p{line-height:1.65}
 /* Concept 03 – Modern Premium */
 .main--flush{padding:0}
 .premium-hero{min-height:680px;display:flex;align-items:flex-end;position:relative;overflow:hidden;background:
-  radial-gradient(circle at 78% 24%,rgb(199 233 52 / .14),transparent 25%),
+  radial-gradient(circle at 78% 24%,rgb(227 6 19 / .16),transparent 25%),
   radial-gradient(circle at 22% 18%,rgb(255 255 255 / .08),transparent 24%),
   linear-gradient(0deg,#0d1b18 0%,#0f211d 52%,#17362f 100%)}
-.premium-hero:after{content:"";position:absolute;inset:auto -8vw -25vw auto;width:62vw;height:62vw;border:1px solid rgb(199 233 52 / .16);border-radius:50%;box-shadow:0 0 0 5vw rgb(199 233 52 / .025),0 0 0 10vw rgb(199 233 52 / .018)}
+.premium-hero:after{content:"";position:absolute;inset:auto -8vw -25vw auto;width:62vw;height:62vw;border:1px solid rgb(227 6 19 / .18);border-radius:50%;box-shadow:0 0 0 5vw rgb(227 6 19 / .035),0 0 0 10vw rgb(227 6 19 / .02)}
 .premium-hero__inner{position:relative;z-index:2;padding-top:110px;padding-bottom:70px}
 .premium-hero .eyebrow{color:var(--accent)}
 .premium-hero h1{font-size:clamp(4rem,9vw,7.5rem);line-height:.88;margin:18px 0 26px;letter-spacing:-.055em;max-width:1050px}
@@ -111,7 +110,7 @@ p{line-height:1.65}
 .premium-editorial>div>h2{font-size:clamp(2.8rem,5vw,4rem);margin-bottom:30px}
 .premium-feature{min-height:520px;position:relative;overflow:hidden;border-radius:8px;padding:30px;border:1px solid var(--line);background:
   linear-gradient(180deg,transparent 20%,#0d1b18ee 100%),
-  radial-gradient(circle at 70% 25%,rgb(199 233 52 / .18),transparent 26%),
+  radial-gradient(circle at 70% 25%,rgb(227 6 19 / .18),transparent 26%),
   linear-gradient(135deg,#1b453b,#10211e)}
 .premium-feature:before{content:"";position:absolute;inset:12% 8% auto auto;width:230px;height:230px;border:12px solid rgb(255 255 255 / .06);border-radius:50%}
 .premium-feature__content,.premium-feature>p,.premium-feature>.page-head{position:relative;z-index:2}
@@ -126,17 +125,17 @@ p{line-height:1.65}
 .premium-live{margin-bottom:30px;border-left-color:var(--live);background:#251d1b}
 
 /* Concept 05 – Matchday Dashboard */
-.matchday-page{--surface:#fff;--text:#16201d;--muted:#60706a;--line:#dde2dd;--green-100:#eef6d3;--green-700:#355200;color:var(--text);background:#eef1ed;min-height:70vh}
+.matchday-page{--surface:#fff;--text:#16201d;--muted:#60706a;--line:#dde2dd;--green-100:#fde9eb;--green-700:#b0000d;color:var(--text);background:#eef1ed;min-height:70vh}
 .matchday-page .muted{color:var(--muted)}
 .matchday-page .button.ghost{color:#173d36;border-color:#ccd5d0;background:#fff}
 .matchday-page .match-row,.matchday-page .news-row,.matchday-page .timeline-row{border-color:#e5e9e6}
-.matchday-page .status-pill{background:#eef6d3;color:#355200}.matchday-page .status-pill.live{background:#ffe2df;color:#9d2018}
+.matchday-page .status-pill{background:#fde9eb;color:#b0000d}.matchday-page .status-pill.live{background:#ffe2df;color:#9d2018}
 .matchday-hero{background:#173d36;color:#fff;padding:72px 0 58px}.matchday-hero--compact{padding:55px 0 78px}
 .matchday-hero__grid{display:grid;grid-template-columns:1.1fr .9fr;gap:44px;align-items:center}
-.matchday-hero h1{font-size:clamp(3rem,6vw,5rem);margin:12px 0 18px;line-height:.98}.matchday-hero h1 span{color:#d9ec3d}
+.matchday-hero h1{font-size:clamp(3rem,6vw,5rem);margin:12px 0 18px;line-height:.98}.matchday-hero h1 span{color:#ff4a55}
 .matchday-hero p{font-size:1.15rem;color:#dce8e4;max-width:680px}
-.matchday-badge{display:inline-flex;padding:6px 10px;border-radius:999px;background:#eef6d3;color:#355200;font-size:.72rem;font-weight:950;letter-spacing:.08em}
-.matchday-hero__mark{justify-self:end;width:min(360px,100%);aspect-ratio:1.35;display:grid;place-items:center;align-content:center;border-radius:24px;border:1px solid #ffffff2c;background:linear-gradient(135deg,#ffffff10,#00000015);box-shadow:inset 0 0 0 1px #0001}.matchday-hero__mark span{font-size:clamp(3.5rem,8vw,6rem);font-weight:950;line-height:.8}.matchday-hero__mark strong{margin-top:12px;letter-spacing:.28em;color:#d9ec3d}
+.matchday-badge{display:inline-flex;padding:6px 10px;border-radius:999px;background:#fde9eb;color:#b0000d;font-size:.72rem;font-weight:950;letter-spacing:.08em}
+.matchday-hero__mark{justify-self:end;width:min(360px,100%);aspect-ratio:1.35;display:grid;place-items:center;align-content:center;border-radius:24px;border:1px solid #ffffff2c;background:linear-gradient(135deg,#ffffff10,#00000015);box-shadow:inset 0 0 0 1px #0001}.matchday-hero__mark span{font-size:clamp(3.5rem,8vw,6rem);font-weight:950;line-height:.8}.matchday-hero__mark strong{margin-top:12px;letter-spacing:.28em;color:#ff4a55}
 .matchday-dashboard{position:relative;margin-top:-28px;padding-bottom:72px}
 .matchday-topgrid{display:grid;grid-template-columns:1.35fr .8fr .72fr .72fr;gap:18px}
 .matchday-panel{background:#fff;border:1px solid #dde2dd;border-radius:18px;padding:24px;box-shadow:0 10px 30px #1221;color:#16201d}
@@ -144,10 +143,10 @@ p{line-height:1.65}
 .matchday-kicker{margin:0 0 6px;text-transform:uppercase;letter-spacing:.1em;font-size:.72rem;font-weight:950;color:#60706a}
 .matchday-metric{font-size:2.8rem;font-weight:950;line-height:1;color:#173d36}.matchday-sub{font-size:.84rem;color:#60706a}
 .matchday-action{display:inline-flex;align-items:center;justify-content:center;background:#173d36;color:#fff!important;text-decoration:none;padding:13px 16px;border-radius:10px;text-align:center;font-weight:900;margin-top:12px;border:0}
-.matchday-action--red{background:#ef4e40}
+.matchday-action--red{background:#e30613}
 .matchday-newsgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
 .matchday-linklist{display:grid;gap:10px}.matchday-linklist a{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid #e6ebe8;text-decoration:none;font-weight:800}.matchday-linklist a:after{content:"→";color:#60706a}
-.matchday-live-center{margin-bottom:18px;border-left:6px solid #ef4e40}
+.matchday-live-center{margin-bottom:18px;border-left:6px solid #e30613}
 .matchday-live-panel{max-width:920px;margin:-38px auto 0;position:relative}.matchday-live-panel .score{font-size:clamp(3.5rem,9vw,7rem);color:#173d36}
 .matchday-page .sponsor-item{border-color:#dde2dd;color:#16201d}
 
