@@ -17,7 +17,34 @@ async function calendar(params, expected) {
 }
 
 await calendar({ type: 'matches' }, 124);
-await calendar({ type: 'matches', team: 'herren' }, 7);
+await calendar({ type: 'events' }, 3);
+
+const teamFeeds = {
+  'bambini-12': 6,
+  'bambini-12-ii': 5,
+  'bambini-12-iii': 5,
+  damen: 7,
+  'damen-30': 4,
+  'damen-40': 7,
+  'damen-50': 7,
+  herren: 7,
+  'herren-40': 7,
+  'herren-40-ii': 7,
+  'herren-50': 6,
+  'herren-50-ii': 6,
+  'herren-ii': 7,
+  'herren-iii': 7,
+  'junioren-18': 7,
+  'junioren-18-ii': 7,
+  'kleinfeld-u9': 5,
+  'knaben-15': 6,
+  'knaben-15-ii': 6,
+  'maedchen-15': 5,
+};
+
+for (const [team, expected] of Object.entries(teamFeeds)) {
+  await calendar({ type: 'matches', team }, expected);
+}
 
 const courtbooking = await fetch('https://tsvfeldkirchen.courtbooking.de/', {
   redirect: 'manual',
