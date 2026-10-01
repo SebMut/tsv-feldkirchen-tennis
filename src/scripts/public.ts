@@ -648,41 +648,156 @@ export async function loadOfficials() {
 export async function loadLiveTicker(matchId: string | null) {
   const head = document.querySelector<HTMLElement>('#live-match-head');
   const score = document.querySelector<HTMLElement>('#live-score');
+  const encountersTarget = document.querySelector<HTMLElement>('#live-encounters');
   const timeline = document.querySelector<HTMLElement>('#live-timeline');
-  if (!head || !score || !timeline) return;
+  if (!head || !score || !encountersTarget || !timeline) return;
+
   if (!matchId) {
     head.innerHTML = '<div class="card"><h1>Kein Spiel ausgewählt</h1><p><a href="/termine/">Zum Spielplan</a></p></div>';
     return;
   }
 
   const reference = await refs();
+  const tsvLogo = mediaUrl('branding/tennis-logo.png');
+
+  const tsvTeamBlock = (label: string) => `
+    <div class="live-team live-team--tsv">
+      <img src="${escapeHtml(tsvLogo)}" alt="TSV Feldkirchen Tennis" />
+      <div><span>${escapeHtml(label)}</span><strong>TSV Feldkirchen</strong></div>
+    </div>`;
+
+  const opponentTeamBlock = (label: string, opponent: string) => `
+    <div class="live-team live-team--opponent">
+      <span class="live-opponent-mark">G</span>
+      <div><span>${escapeHtml(label)}</span><strong>${escapeHtml(opponent)}</strong></div>
+    </div>`;
+
+  const renderEncounterSide = (match: Row, encounter: Row, tsv: boolean) => {
+    if (tsv) {
+      const names = [encounter.tsv_player_1_name, encounter.tsv_player_2_name].filter(Boolean);
+      return `
+        <div class="live-encounter-side live-encounter-side--tsv">
+          <img src="${escapeHtml(tsvLogo)}" alt="" />
+          <div>
+            <span>TSV Feldkirchen</span>
+            <strong>${escapeHtml(names.join(' / ') || 'Aufstellung folgt')}</strong>
+          </div>
+        </div>`;
+    }
+
+    const slots = [encounter.opponent_slot_1, encounter.opponent_slot_2]
+      .filter((value) => value != null)
+      .map((value) => `Gegner ${value}`);
+    const fallback = encounter.discipline === 'singles'
+      ? `Gegner ${encounter.position}`
+      : 'Doppelaufstellung folgt';
+
+    return `
+      <div class="live-encounter-side live-encounter-side--opponent">
+        <span class="live-opponent-mark">G</span>
+        <div>
+          <span>${escapeHtml(match.opponent)}</span>
+          <strong>${escapeHtml(slots.join(' / ') || fallback)}</strong>
+        </div>
+      </div>`;
+  };
+
+  const renderEncounter = (match: Row, encounter: Row) => {
+    const tsvSide = renderEncounterSide(match, encounter, true);
+    const opponentSide = renderEncounterSide(match, encounter, false);
+    const statusLabel = encounter.status === 'live' ? 'LIVE' : encounter.status === 'finished' ? 'Beendet' : 'Geplant';
+
+    return `
+      <article class="live-encounter-row ${encounter.status === 'live' ? 'is-live' : ''}">
+        <div class="live-encounter-row__head">
+          <strong>${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position}</strong>
+          <span class="status-pill ${encounter.status === 'live' ? 'live' : ''}">${statusLabel}</span>
+        </div>
+        <div class="live-encounter-matchup">
+          ${match.is_home ? tsvSide : opponentSide}
+          <div class="live-encounter-result">
+            <span>Ergebnis</span>
+            <strong>${escapeHtml(encounter.result_text || '–')}</strong>
+          </div>
+          ${match.is_home ? opponentSide : tsvSide}
+        </div>
+      </article>`;
+  };
 
   const refresh = async () => {
-    const [{ data: match }, { data: state }, { data: entries }] = await Promise.all([
+    const [{ data: match }, { data: state }, { data: entries }, { data: encounters }] = await Promise.all([
       supabase.from('matches').select('*').eq('id', matchId).maybeSingle(),
       supabase.from('match_live_state').select('*').eq('match_id', matchId).maybeSingle(),
       supabase.from('live_ticker_entries').select('*').eq('match_id', matchId).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('match_encounters').select('*').eq('match_id', matchId).order('sort_order').order('position'),
     ]);
+
     if (!match) {
       head.innerHTML = '<div class="card"><h1>Spiel nicht gefunden</h1></div>';
       return;
     }
+
     const { team } = matchContext(match, reference);
-    head.innerHTML = `<p class="eyebrow">Liveticker</p><h1>${escapeHtml(team?.name ?? 'TSV Feldkirchen')} – ${escapeHtml(match.opponent)}</h1><p class="muted">${escapeHtml(formatDateTime(match.starts_at))} · ${match.is_home ? 'Heimspiel' : 'Auswärtsspiel'}</p>`;
-    const clubScore = match.is_home ? state?.home_score ?? 0 : state?.away_score ?? 0;
-    const opponentScore = match.is_home ? state?.away_score ?? 0 : state?.home_score ?? 0;
-    score.innerHTML = `<div class="live-badge"><span class="live-dot"></span>${state?.status === 'live' ? 'LIVE' : state?.status === 'finished' ? 'BEENDET' : 'SPIEL'}</div><h2 class="score">${clubScore} : ${opponentScore}</h2>`;
-    timeline.innerHTML = entries?.length ? entries.map((entry: Row) => `<div class="timeline-row"><div><strong>${escapeHtml(entry.message)}</strong><div class="match-meta">${escapeHtml(formatDateTime(entry.created_at))}</div></div>${entry.home_score != null && entry.away_score != null ? `<span class="score">${entry.home_score} : ${entry.away_score}</span>` : ''}</div>`).join('') : '<p class="muted">Noch keine Tickermeldungen.</p>';
+    const clubName = team?.name ?? 'TSV Feldkirchen';
+    const leftName = match.is_home ? clubName : match.opponent;
+    const rightName = match.is_home ? match.opponent : clubName;
+
+    head.innerHTML = `
+      <p class="eyebrow">Liveticker</p>
+      <h1>${escapeHtml(leftName)} <span>vs.</span> ${escapeHtml(rightName)}</h1>
+      <p class="muted">${escapeHtml(formatDateTime(match.starts_at))} · ${match.is_home ? 'Heimspiel' : 'Auswärtsspiel'}</p>`;
+
+    const homeScore = state?.home_score ?? 0;
+    const awayScore = state?.away_score ?? 0;
+    const homeBlock = match.is_home
+      ? tsvTeamBlock('Heim')
+      : opponentTeamBlock('Heim', match.opponent);
+    const awayBlock = match.is_home
+      ? opponentTeamBlock('Auswärts', match.opponent)
+      : tsvTeamBlock('Auswärts');
+
+    score.innerHTML = `
+      <div class="live-score-status">
+        <div class="live-badge"><span class="live-dot"></span>${state?.status === 'live' ? 'LIVE' : state?.status === 'finished' ? 'BEENDET' : 'SPIELTAG'}</div>
+      </div>
+      <div class="live-scoreboard">
+        ${homeBlock}
+        <div class="live-scoreboard__score"><strong>${homeScore} : ${awayScore}</strong></div>
+        ${awayBlock}
+      </div>`;
+
+    const rows = encounters ?? [];
+    const singles = rows.filter((row: Row) => row.discipline === 'singles');
+    const doubles = rows.filter((row: Row) => row.discipline === 'doubles');
+
+    encountersTarget.innerHTML = rows.length
+      ? `
+        <section class="live-encounter-group">
+          <div class="live-encounter-group__title"><p class="matchday-kicker">Begegnungen</p><h2>Einzel</h2></div>
+          <div class="live-encounter-list">${singles.map((row: Row) => renderEncounter(match, row)).join('')}</div>
+        </section>
+        <section class="live-encounter-group">
+          <div class="live-encounter-group__title"><p class="matchday-kicker">Begegnungen</p><h2>Doppel</h2></div>
+          <div class="live-encounter-list">${doubles.map((row: Row) => renderEncounter(match, row)).join('')}</div>
+        </section>`
+      : '<div class="live-encounter-empty"><strong>Die Aufstellung wird noch vorbereitet.</strong><p class="muted">Sobald Einzel und Doppel eingetragen sind, erscheinen sie hier.</p></div>';
+
+    timeline.innerHTML = entries?.length
+      ? entries.map((entry: Row) => `
+          <div class="timeline-row">
+            <div><strong>${escapeHtml(entry.message)}</strong><div class="match-meta">${escapeHtml(formatDateTime(entry.created_at))}</div></div>
+            ${entry.home_score != null && entry.away_score != null ? `<span class="score">${entry.home_score} : ${entry.away_score}</span>` : ''}
+          </div>`).join('')
+      : '<p class="muted">Noch keine Tickermeldungen.</p>';
   };
 
   await refresh();
   await renderSponsorPlacements('#live-sponsor', ['live', 'match'], { matchId });
 
-  // Public visitors receive row changes through RLS-protected Postgres Changes.
-  // Signed-in users additionally use the private Broadcast channel created by the DB triggers.
   const publicChannel = supabase
     .channel(`public-match:${matchId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'match_live_state', filter: `match_id=eq.${matchId}` }, refresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_encounters', filter: `match_id=eq.${matchId}` }, refresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'live_ticker_entries', filter: `match_id=eq.${matchId}` }, refresh)
     .subscribe();
 
