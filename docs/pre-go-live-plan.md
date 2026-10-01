@@ -22,7 +22,7 @@ Status: **abgeschlossen**
 Reale Mannschaftsfotos, Kaderdaten und Spielerbilder werden künftig redaktionell über **Mein TSV** gepflegt und blockieren den weiteren Projektfortschritt nicht.
 
 ## Phase 3 – Admin und Rechte
-Status: **technisch abgeschlossen / Praxistest offen**
+Status: **abgeschlossen**
 
 - SuperAdmin vorhanden
 - sichere serverseitige Einladungen
@@ -35,9 +35,14 @@ Status: **technisch abgeschlossen / Praxistest offen**
 - Benutzerzugänge löschbar
 - letzter SuperAdmin geschützt
 
-Noch offen: einen echten zweiten Benutzer einladen und die Testmatrix aus `docs/phase-3-auth-roles.md` praktisch abnehmen.
+Die praktische Abnahme mit Einladung, Passwort-Setup, Rollen und Login/Logout ist abgeschlossen.
 
 ## Phase 4 – Spieltag und Liveticker
+Status: **in Arbeit**
+
+- einfacher rollenbasierter Einstieg in „Mein TSV“
+- direkter Schnellstart zum laufenden bzw. nächsten Liveticker
+- mobile Schnellaktionen je Mannschaft
 - Testspiel durchführen
 - zwei Browser / Endgeräte
 - Smartphone-Abnahme
