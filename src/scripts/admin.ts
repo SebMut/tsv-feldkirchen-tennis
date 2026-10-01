@@ -1011,8 +1011,6 @@ export async function initAdmin() {
     setStatus(authStatus, 'Wenn die Adresse bekannt ist, wurde ein Link zum Zurücksetzen gesendet.', 'success');
   });
 
-  $('#logout-button')?.addEventListener('click', async () => { await supabase.auth.signOut(); location.reload(); });
-
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY' && session?.user) {
       showPasswordSetup(session.user);
