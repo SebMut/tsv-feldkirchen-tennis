@@ -1,0 +1,1 @@
+import{i as e}from"./public.BUpAnMXp.js";var t=document.querySelector(`[data-managed-page]`);t?.dataset.managedPage&&e(t.dataset.managedPage);

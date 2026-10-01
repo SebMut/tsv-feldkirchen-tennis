@@ -1,0 +1,1 @@
+import{r as e}from"./public.BUpAnMXp.js";var t=new URLSearchParams(location.search).get(`match`);e(t);

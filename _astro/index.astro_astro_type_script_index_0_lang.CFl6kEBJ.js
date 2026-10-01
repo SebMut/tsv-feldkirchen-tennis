@@ -1,0 +1,1 @@
+import{n as e}from"./public.BUpAnMXp.js";e();
