@@ -130,7 +130,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field"><label>Beginn</label><input id="match-start" type="datetime-local" required /></div>
                 <div class="field"><label>Ende</label><input id="match-end" type="datetime-local" /></div>
                 <div class="field"><label><input id="match-home" type="checkbox" checked /> Heimspiel</label></div>
-                <div class="field"><label>BTV / externer Link</label><input id="match-url" type="url" /></div>
+                <div class="field"><label>Spieltag-Format</label><select id="match-lineup-format"><option value="6_3" selected>6 Einzel + 3 Doppel</option><option value="4_2">4 Einzel + 2 Doppel</option></select></div>
+                <div class="field full"><label>BTV / externer Link</label><input id="match-url" type="url" /></div>
                 <div class="field full"><button class="button" type="submit">Spiel speichern</button></div>
               </form>
             </div>
