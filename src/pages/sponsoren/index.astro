@@ -1,0 +1,10 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+<MainLayout title="Sponsoren | TSV Feldkirchen Tennis">
+  <div class="container stack"><p class="eyebrow">Partner</p><h1>Sponsoren & Unterstützer</h1><div id="sponsors-grid" class="team-grid"></div></div>
+</MainLayout>
+<script>
+  import { loadSponsors } from '../../scripts/public';
+  loadSponsors();
+</script>

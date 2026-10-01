@@ -1,0 +1,16 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+<MainLayout title="Mannschaften | TSV Feldkirchen Tennis" description="Mannschaften des TSV Feldkirchen Tennis mit Liga, Kader, Spielplan und Saisonarchiv.">
+  <div class="container stack">
+    <div class="page-head">
+      <div><p class="eyebrow">Sport</p><h1>Mannschaften</h1></div>
+      <div class="filters"><select id="teams-category" aria-label="Kategorie"><option value="">Alle Kategorien</option></select><select id="teams-season" aria-label="Saison"></select></div>
+    </div>
+    <div id="teams-grid" class="team-grid"><p class="muted">Mannschaften werden geladen …</p></div>
+  </div>
+</MainLayout>
+<script>
+  import { loadTeams } from '../../scripts/public';
+  loadTeams();
+</script>

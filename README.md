@@ -1,21 +1,42 @@
-# TSV Feldkirchen Tennis – Homepage-Entwürfe
+# TSV Feldkirchen Tennis
 
-Fünf unterschiedliche Designkonzepte für die neue Website der Tennisabteilung des TSV Feldkirchen.
+Neue Website und Vereinsplattform der Tennisabteilung des TSV Feldkirchen.
 
-## Vorschläge
+## Ziel-Stack
 
-1. Sportlich & dynamisch
-2. Club & Community
-3. Modern Premium
-4. Jung & familiär
-5. Matchday Dashboard
+- Astro 7
+- TypeScript
+- Supabase (Postgres, Auth, Storage, Realtime)
+- United Domains als statischer Webspace
+- Courtbooking weiterhin für Platzreservierungen
 
-Die Startseite `index.html` dient als Auswahlseite für alle fünf Entwürfe.
+## Entwicklung
 
-## Bilder
+Voraussetzung: Node.js 22.12.0 oder neuer.
 
-Die Bilder werden in dieser frühen Entwurfsphase **nur über externe URLs eingebunden** und nicht im Repository gespeichert. Das TSV-Tennis-Logo und der Schnuppertag-Flyer werden von der bestehenden Vereinswebsite geladen; weitere Tennisbilder dienen ausschließlich als visuelle Platzhalter für die Konzeptphase. Vor einer öffentlichen Live-Schaltung sollten die Beispielbilder durch eigene oder entsprechend lizenzierte Vereinsfotos ersetzt werden.
+```bash
+npm install
+npm run dev
+```
 
-## GitHub Pages
+## Build
 
-Das Projekt ist als statische HTML-Seite aufgebaut und kann direkt über GitHub Pages aus dem Root des `main`-Branches veröffentlicht werden.
+```bash
+npm run build
+```
+
+Das Ergebnis liegt in `dist/` und wird später auf den United-Domains-Webspace übertragen.
+
+## Nächste Schritte
+
+1. neues Supabase-Projekt
+2. Datenmodell + RLS
+3. Auth und Mannschaftsrechte
+4. Mannschaften, Spiele und Liveticker
+5. WordPress-Migration
+
+
+## Designentscheidung
+
+- Öffentliche Website: Konzept **03 – Modern Premium**
+- Spieltagszentrale und Liveticker: Konzept **05 – Matchday Dashboard**

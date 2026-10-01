@@ -1,0 +1,76 @@
+---
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  canonicalPath?: string;
+  noindex?: boolean;
+  headerVariant?: 'dark' | 'light';
+  mainClass?: string;
+}
+const {
+  title,
+  description = 'Tennisabteilung TSV Feldkirchen: Mannschaften, Spieltage, Termine und Vereinsleben.',
+  canonicalPath = Astro.url.pathname,
+  noindex = false,
+  headerVariant = 'light',
+  mainClass = '',
+} = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+const basePrefix = base === '/' ? '' : base.replace(/\/$/, '');
+const canonicalPathWithoutPreviewBase =
+  basePrefix && canonicalPath.startsWith(`${basePrefix}/`)
+    ? canonicalPath.slice(basePrefix.length)
+    : canonicalPath;
+const canonical = new URL(
+  canonicalPathWithoutPreviewBase,
+  Astro.site ?? 'https://www.tennis-tsvfeldkirchen.de',
+).toString();
+const previewMode = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
+const shouldNoindex = noindex || previewMode;
+---
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0d1b18" />
+    <link rel="canonical" href={canonical} />
+    {shouldNoindex && <meta name="robots" content="noindex,nofollow" />}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content="TSV Feldkirchen Tennis" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <SiteHeader variant={headerVariant} />
+    <main class={mainClass}><slot /></main>
+    <SiteFooter />
+    <script is:inline define:vars={{ basePrefix }}>
+      (() => {
+        if (!basePrefix) return;
+
+        const rewriteLinks = (root = document) => {
+          root.querySelectorAll('a[href^="/"]').forEach((link) => {
+            const href = link.getAttribute('href');
+            if (!href || href.startsWith('//') || href.startsWith(basePrefix + '/')) return;
+            link.setAttribute('href', basePrefix + href);
+          });
+        };
+
+        rewriteLinks();
+        new MutationObserver(() => rewriteLinks()).observe(document.body, {
+          childList: true,
+          subtree: true,
+        });
+      })();
+    </script>
+  </body>
+</html>

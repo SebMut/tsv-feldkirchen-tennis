@@ -1,0 +1,24 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+<MainLayout title="Termine & Spielplan | TSV Feldkirchen Tennis" description="Punktspiele und Veranstaltungen der Tennisabteilung TSV Feldkirchen.">
+  <div class="container stack">
+    <div class="page-head"><div><p class="eyebrow">Kalender</p><h1>Termine & Spielplan</h1></div></div>
+    <div class="filters">
+      <select id="calendar-kind"><option value="all">Spiele & Veranstaltungen</option><option value="matches">Nur Punktspiele</option><option value="events">Nur Veranstaltungen</option></select>
+      <select id="calendar-team"><option value="">Alle Mannschaften</option></select>
+      <select id="calendar-category"><option value="">Alle Kategorien</option></select>
+    </div>
+    <section class="card"><div id="calendar-list" class="match-list"><p class="muted">Termine werden geladen …</p></div></section>
+    <section class="card" id="abos">
+      <p class="eyebrow">Kalender abonnieren</p>
+      <h2>Immer aktuell</h2>
+      <p class="muted">ICS-Feeds können in Apple Kalender, Outlook und vielen anderen Kalender-Apps abonniert werden.</p>
+      <div id="calendar-subscriptions" class="actions"></div>
+    </section>
+  </div>
+</MainLayout>
+<script>
+  import { loadCalendar } from '../../scripts/public';
+  loadCalendar();
+</script>

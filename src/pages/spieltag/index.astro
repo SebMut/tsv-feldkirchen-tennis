@@ -1,0 +1,84 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import { COURTBOOKING_URL } from '../../lib/supabase';
+---
+<MainLayout
+  title="Spieltag | TSV Feldkirchen Tennis"
+  description="Die Spieltagszentrale des TSV Feldkirchen Tennis mit Live-Tickern, heutigen Begegnungen und Anlagenstatus."
+  headerVariant="light"
+  mainClass="main--flush"
+>
+  <div class="matchday-page" id="home">
+    <section class="matchday-hero">
+      <div class="container matchday-hero__grid">
+        <div>
+          <span class="matchday-badge">VEREINSZENTRALE</span>
+          <h1>Alles Wichtige.<br /><span>Auf einen Blick.</span></h1>
+          <p>Live-Ticker, heutige Begegnungen, Anlagenstatus und direkter Zugang zur Platzbuchung – optimiert für den Spieltag.</p>
+        </div>
+        <div class="matchday-hero__mark" aria-hidden="true">
+          <span>TSV</span>
+          <strong>TENNIS</strong>
+        </div>
+      </div>
+    </section>
+
+    <div class="container matchday-dashboard">
+      <section id="live-center" class="matchday-panel matchday-live-center hidden" aria-live="polite"></section>
+
+      <div class="matchday-topgrid">
+        <section class="matchday-panel">
+          <p class="matchday-kicker">Heute</p>
+          <h2>Begegnungen</h2>
+          <div id="today-matches" class="match-list"><p class="muted">Spiele werden geladen …</p></div>
+          <a class="matchday-action" href="/termine/">Gesamten Kalender öffnen</a>
+        </section>
+
+        <section id="facility-card" class="matchday-panel" aria-live="polite">
+          <p class="matchday-kicker">Anlage</p>
+          <h2>Wird geladen …</h2>
+        </section>
+
+        <section class="matchday-panel">
+          <p class="matchday-kicker">Plätze</p>
+          <div class="matchday-metric" id="home-court-count" data-count-only="true">8</div>
+          <p class="matchday-sub">Sandplätze auf der Anlage</p>
+          <a class="matchday-action matchday-action--red" href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Jetzt buchen</a>
+        </section>
+
+        <section class="matchday-panel">
+          <p class="matchday-kicker">Verein</p>
+          <div class="matchday-metric" id="home-team-count" data-count-only="true">20</div>
+          <p class="matchday-sub">Mannschaften · Herren, Damen & Jugend</p>
+          <a class="matchday-action" href="/mannschaften/">Teams ansehen</a>
+        </section>
+      </div>
+
+      <div class="matchday-newsgrid">
+        <section class="matchday-panel">
+          <p class="matchday-kicker">Aktuell im Verein</p>
+          <h2>Neuigkeiten</h2>
+          <div id="home-news" class="news-list"><p class="muted">News werden geladen …</p></div>
+          <a class="matchday-action" href="/aktuelles/">Alle News</a>
+        </section>
+
+        <section class="matchday-panel">
+          <p class="matchday-kicker">Direktzugriff</p>
+          <h2>Am Spieltag wichtig</h2>
+          <div class="matchday-linklist">
+            <a href="/mannschaften/">Mannschaften & Kader</a>
+            <a href="/termine/">Termine & Kalender-Abos</a>
+            <a href="/training/">Training</a>
+            <a href="/mitglied-werden/">Mitglied werden</a>
+          </div>
+        </section>
+      </div>
+
+      <section id="home-sponsors" class="hidden" aria-label="Sponsoren"></section>
+    </div>
+  </div>
+</MainLayout>
+<script>
+  import { loadHome } from '../../scripts/public';
+  loadHome();
+</script>

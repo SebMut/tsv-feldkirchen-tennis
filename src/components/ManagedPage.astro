@@ -1,0 +1,16 @@
+---
+interface Props { slug: string; fallbackTitle: string; }
+const { slug, fallbackTitle } = Astro.props;
+---
+<section class="container content-page" data-managed-page={slug}>
+  <p class="eyebrow">TSV Feldkirchen Tennis</p>
+  <h1 id="managed-title">{fallbackTitle}</h1>
+  <div id="managed-page-content" class="card rich-text" aria-live="polite">
+    <p class="muted">Inhalt wird geladen …</p>
+  </div>
+</section>
+<script>
+  import { loadManagedPage } from '../scripts/public';
+  const section = document.querySelector<HTMLElement>('[data-managed-page]');
+  if (section?.dataset.managedPage) loadManagedPage(section.dataset.managedPage);
+</script>

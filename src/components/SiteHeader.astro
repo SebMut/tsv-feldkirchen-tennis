@@ -1,0 +1,68 @@
+---
+import { COURTBOOKING_URL, mediaUrl } from '../lib/supabase';
+
+interface Props {
+  variant?: 'dark' | 'light';
+}
+const { variant = 'dark' } = Astro.props;
+---
+<header class:list={['site-header', { 'site-header--light': variant === 'light' }]}>
+  <div class="container site-header__inner">
+    <a class="brand" href="/" aria-label="TSV Feldkirchen Tennis Startseite">
+      <img class="brand__logo" src={mediaUrl('branding/tennis-logo.png')} alt="TSV Feldkirchen Tennis" />
+      <span><strong>TSV Feldkirchen</strong><small>Tennis</small></span>
+    </a>
+    <nav class="desktop-nav" aria-label="Hauptnavigation">
+      <a href="/aktuelles/">News</a>
+      <a href="/mannschaften/">Teams</a>
+      <a href="/training/">Training</a>
+      <a href="/termine/">Kalender</a>
+      <a href="/spieltag/">Spieltag</a>
+      <a href="/mitglied-werden/">Club</a>
+      <a class="nav-booking" href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Platz buchen ↗</a>
+      <a href="/admin/" data-auth-link>Login</a>
+    </nav>
+    <details class="mobile-nav">
+      <summary aria-label="Menü öffnen">Menü</summary>
+      <div>
+        <a href="/aktuelles/">Aktuelles</a>
+        <a href="/mannschaften/">Mannschaften</a>
+        <a href="/training/">Training</a>
+        <a href="/termine/">Kalender</a>
+        <a href="/spieltag/">Spieltag</a>
+        <a href="/mitglied-werden/">Mitglied werden</a>
+        <a href="/sponsoren/">Sponsoren</a>
+        <a href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Platz buchen ↗</a>
+        <a href="/admin/" data-auth-link>Login</a>
+      </div>
+    </details>
+  </div>
+</header>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  const authLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-auth-link]'));
+
+  function updateAuthLinks(signedIn: boolean) {
+    authLinks.forEach((link) => {
+      link.textContent = signedIn ? 'Logout' : 'Login';
+      link.href = signedIn ? '#' : `${import.meta.env.BASE_URL}admin/`;
+      link.onclick = signedIn
+        ? async (event) => {
+            event.preventDefault();
+            await supabase.auth.signOut();
+            window.location.href = import.meta.env.BASE_URL || '/';
+          }
+        : null;
+    });
+  }
+
+  supabase.auth.getSession().then(({ data }) => {
+    updateAuthLinks(!!data.session);
+  });
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    updateAuthLinks(!!session);
+  });
+</script>
