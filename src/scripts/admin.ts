@@ -550,45 +550,345 @@ async function savePlayer(event: Event) {
 
 async function refreshMatches() {
   const ids = allowedTeamSeasons('tick').map((ts) => ts.id);
-  if (!ids.length) return;
-  const { data } = await supabase.from('matches').select('*').in('team_season_id', ids).order('starts_at', { ascending: false });
-  state.matches = data ?? [];
-  renderGalleryMatchOptions();
-  const liveStates = state.matches.length ? (await supabase.from('match_live_state').select('*').in('match_id', state.matches.map((m) => m.id))).data ?? [] : [];
-  const liveMap = new Map(liveStates.map((x) => [x.match_id, x]));
   const target = $('#matches-admin-list');
   if (!target) return;
+
+  if (!ids.length) {
+    target.innerHTML = '<p class="muted">Noch keine Mannschaft zugeordnet.</p>';
+    return;
+  }
+
+  const { data } = await supabase
+    .from('matches')
+    .select('*')
+    .in('team_season_id', ids)
+    .order('starts_at', { ascending: false });
+
+  state.matches = data ?? [];
+  renderGalleryMatchOptions();
+
+  const matchIds = state.matches.map((match) => match.id);
+  const [{ data: liveStates }, { data: encounters }, { data: rosterLinks }] = await Promise.all([
+    matchIds.length
+      ? supabase.from('match_live_state').select('*').in('match_id', matchIds)
+      : Promise.resolve({ data: [] }),
+    matchIds.length
+      ? supabase.from('match_encounters').select('*').in('match_id', matchIds).order('sort_order').order('position')
+      : Promise.resolve({ data: [] }),
+    supabase.from('team_players').select('*').in('team_season_id', ids).order('sort_order'),
+  ]);
+
+  const playerIds = [...new Set((rosterLinks ?? []).map((row) => row.player_id))];
+  const { data: players } = playerIds.length
+    ? await supabase.from('players').select('id,display_name,active').in('id', playerIds)
+    : { data: [] as Row[] };
+
+  const playerMap = new Map((players ?? []).map((player) => [player.id, player]));
+  const liveMap = new Map((liveStates ?? []).map((row) => [row.match_id, row]));
+  const encounterMap = new Map<string, Row[]>();
+
+  (encounters ?? []).forEach((row) => {
+    const list = encounterMap.get(row.match_id) ?? [];
+    list.push(row);
+    encounterMap.set(row.match_id, list);
+  });
+
+  const now = Date.now();
+  state.matches.sort((a, b) => {
+    const aLive = liveMap.get(a.id)?.status === 'live';
+    const bLive = liveMap.get(b.id)?.status === 'live';
+    if (aLive !== bLive) return aLive ? -1 : 1;
+
+    const at = new Date(a.starts_at).getTime();
+    const bt = new Date(b.starts_at).getTime();
+    const aFuture = at >= now;
+    const bFuture = bt >= now;
+    if (aFuture !== bFuture) return aFuture ? -1 : 1;
+    return aFuture ? at - bt : bt - at;
+  });
+
+  const playerOptions = (match: Row, selectedId?: string | null) => {
+    const rows = (rosterLinks ?? [])
+      .filter((link) => link.team_season_id === match.team_season_id)
+      .map((link) => playerMap.get(link.player_id))
+      .filter((player): player is Row => !!player && player.active !== false);
+
+    return '<option value="">TSV-Spieler wählen</option>' + rows.map((player) =>
+      `<option value="${player.id}" ${player.id === selectedId ? 'selected' : ''}>${escapeHtml(player.display_name)}</option>`
+    ).join('');
+  };
+
+  const opponentOptions = (match: Row, selected?: number | null) => {
+    const max = match.lineup_format === '4_2' ? 4 : 6;
+    return '<option value="">Gegner wählen</option>' + Array.from({ length: max }, (_, index) => index + 1)
+      .map((slot) => `<option value="${slot}" ${slot === Number(selected) ? 'selected' : ''}>Gegner ${slot}</option>`)
+      .join('');
+  };
+
+  const renderTsvSide = (match: Row, encounter: Row) => `
+    <div class="encounter-side encounter-side--tsv">
+      <img src="${escapeHtml(mediaUrl('branding/tennis-logo.png'))}" alt="TSV Feldkirchen Tennis" />
+      <div class="encounter-side__fields">
+        <strong>TSV Feldkirchen</strong>
+        <select data-enc-player1>${playerOptions(match, encounter.tsv_player_1_id)}</select>
+        ${encounter.discipline === 'doubles'
+          ? `<select data-enc-player2>${playerOptions(match, encounter.tsv_player_2_id)}</select>`
+          : ''}
+      </div>
+    </div>`;
+
+  const renderOpponentSide = (match: Row, encounter: Row) => {
+    const first = encounter.opponent_slot_1 || (encounter.discipline === 'singles' ? encounter.position : null);
+    return `
+      <div class="encounter-side encounter-side--opponent">
+        <span class="encounter-opponent-mark">G</span>
+        <div class="encounter-side__fields">
+          <strong>${escapeHtml(match.opponent)}</strong>
+          ${encounter.discipline === 'singles'
+            ? `<span class="encounter-opponent-label">Gegner ${first || encounter.position}</span>`
+            : `<select data-enc-opponent1>${opponentOptions(match, first)}</select>
+               <select data-enc-opponent2>${opponentOptions(match, encounter.opponent_slot_2)}</select>`}
+        </div>
+      </div>`;
+  };
+
+  const renderEncounter = (match: Row, encounter: Row) => {
+    const tsvSide = renderTsvSide(match, encounter);
+    const opponentSide = renderOpponentSide(match, encounter);
+    const statusLabel = encounter.status === 'live' ? 'LIVE' : encounter.status === 'finished' ? 'Beendet' : 'Geplant';
+
+    return `
+      <article class="encounter-card ${encounter.status === 'live' ? 'is-live' : ''}" data-encounter-id="${encounter.id}">
+        <div class="encounter-card__head">
+          <strong>${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position}</strong>
+          <span class="status-pill ${encounter.status === 'live' ? 'live' : ''}">${statusLabel}</span>
+        </div>
+
+        <div class="encounter-sides">
+          ${match.is_home ? tsvSide : opponentSide}
+          <span class="encounter-vs">VS</span>
+          ${match.is_home ? opponentSide : tsvSide}
+        </div>
+
+        <div class="encounter-result-row">
+          <label>Ergebnis
+            <input data-enc-result value="${escapeHtml(encounter.result_text || '')}" placeholder="z. B. 6:3 4:6 10:8" />
+          </label>
+          <div class="encounter-actions">
+            ${encounter.status !== 'live' && encounter.status !== 'finished' ? '<button class="button secondary" type="button" data-enc-start>Starten</button>' : ''}
+            <button class="button" type="button" data-enc-winner="tsv">TSV gewinnt</button>
+            <button class="button ghost" type="button" data-enc-winner="opponent">Gegner gewinnt</button>
+            ${encounter.status !== 'scheduled' || encounter.winner || encounter.result_text ? '<button class="button ghost" type="button" data-enc-reset>Zurücksetzen</button>' : ''}
+          </div>
+        </div>
+      </article>`;
+  };
+
   target.innerHTML = state.matches.map((match) => {
-    const ts = state.teamSeasons.find((x) => x.id === match.team_season_id);
-    const team = state.teams.find((x) => x.id === ts?.team_id);
+    const ts = state.teamSeasons.find((row) => row.id === match.team_season_id);
+    const team = state.teams.find((row) => row.id === ts?.team_id);
     const live: any = liveMap.get(match.id) || { status: 'scheduled', home_score: 0, away_score: 0 };
-    return `<article class="card flat" data-match-card="${match.id}">
-      <div class="page-head"><div><p class="eyebrow">${escapeHtml(team?.name || '')}</p><h3>${escapeHtml(match.opponent)}</h3><p class="muted">${escapeHtml(formatDateTime(match.starts_at))} · ${match.is_home ? 'Heim' : 'Auswärts'}</p></div><span class="status-pill ${live.status === 'live' ? 'live' : ''}">${escapeHtml(live.status)}</span></div>
-      <div class="score-control"><button data-score="home" data-delta="-1">−</button><strong>${live.home_score}</strong><button data-score="home" data-delta="1">+</button><span>:</span><button data-score="away" data-delta="-1">−</button><strong>${live.away_score}</strong><button data-score="away" data-delta="1">+</button></div>
-      <div class="actions" style="margin-top:12px"><button class="button secondary" data-live-action="start">Live starten</button><button class="button ghost" data-live-action="finish">Beenden</button><a class="button ghost" href="/live/?match=${match.id}" target="_blank">Ticker öffnen ↗</a></div>
-      <div class="field" style="margin-top:12px"><label>Tickermeldung</label><textarea data-ticker-message placeholder="z. B. Doppel 1 gewinnt den ersten Satz."></textarea><button class="button" data-publish-ticker>Veröffentlichen</button></div>
+    const rows = encounterMap.get(match.id) ?? [];
+    const singles = rows.filter((row) => row.discipline === 'singles');
+    const doubles = rows.filter((row) => row.discipline === 'doubles');
+    const clubScore = match.is_home ? live.home_score : live.away_score;
+    const opponentScore = match.is_home ? live.away_score : live.home_score;
+    const format = match.lineup_format === '4_2' ? '4_2' : '6_3';
+
+    return `<article class="card flat match-admin-card" data-match-card="${match.id}">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">${escapeHtml(team?.name || '')}</p>
+          <h3>${escapeHtml(match.opponent)}</h3>
+          <p class="muted">${escapeHtml(formatDateTime(match.starts_at))} · ${match.is_home ? 'Heimspiel' : 'Auswärtsspiel'} · ${format === '4_2' ? '4 Einzel + 2 Doppel' : '6 Einzel + 3 Doppel'}</p>
+        </div>
+        <div class="match-admin-score">
+          <span class="status-pill ${live.status === 'live' ? 'live' : ''}">${live.status === 'live' ? 'LIVE' : live.status === 'finished' ? 'Beendet' : 'Geplant'}</span>
+          <strong>TSV ${clubScore} : ${opponentScore}</strong>
+        </div>
+      </div>
+
+      <div class="actions match-admin-main-actions">
+        <button class="button secondary" data-live-action="start" type="button">Spieltag live starten</button>
+        <button class="button ghost" data-live-action="finish" type="button">Spieltag beenden</button>
+        <a class="button ghost" href="/live/?match=${match.id}" target="_blank">Öffentlichen Ticker öffnen ↗</a>
+      </div>
+
+      ${rows.length ? `
+        <section class="encounter-editor">
+          <div class="encounter-editor__title">
+            <div><p class="eyebrow">Begegnungen</p><h4>Einzel & Doppel</h4></div>
+            <details>
+              <summary>Format ändern</summary>
+              <div class="encounter-format-controls">
+                <select data-match-format>
+                  <option value="6_3" ${format === '6_3' ? 'selected' : ''}>6 Einzel + 3 Doppel</option>
+                  <option value="4_2" ${format === '4_2' ? 'selected' : ''}>4 Einzel + 2 Doppel</option>
+                </select>
+                <button class="button ghost" type="button" data-configure-match>Neu aufbauen</button>
+              </div>
+            </details>
+          </div>
+          <div class="encounter-section"><h4>Einzel</h4>${singles.map((row) => renderEncounter(match, row)).join('')}</div>
+          <div class="encounter-section"><h4>Doppel</h4>${doubles.map((row) => renderEncounter(match, row)).join('')}</div>
+        </section>
+      ` : `
+        <div class="encounter-setup">
+          <div><strong>Begegnungen vorbereiten</strong><p class="muted">Lege mit einem Klick alle Einzel und Doppel für diesen Spieltag an.</p></div>
+          <select data-match-format>
+            <option value="6_3" ${format === '6_3' ? 'selected' : ''}>6 Einzel + 3 Doppel</option>
+            <option value="4_2" ${format === '4_2' ? 'selected' : ''}>4 Einzel + 2 Doppel</option>
+          </select>
+          <button class="button button--hot" type="button" data-configure-match>Begegnungen anlegen</button>
+        </div>
+      `}
+
+      <div class="field match-ticker-message">
+        <label>Allgemeine Tickermeldung</label>
+        <textarea data-ticker-message placeholder="z. B. Nach den Einzeln steht es 4:2 für den TSV."></textarea>
+        <button class="button" data-publish-ticker type="button">Meldung veröffentlichen</button>
+      </div>
     </article>`;
   }).join('') || '<p class="muted">Noch keine Spiele.</p>';
 
+  const updateEncounter = async (encounterId: string, patch: Row) => {
+    const { error } = await supabase
+      .from('match_encounters')
+      .update({ ...patch, updated_by: state.user.id, updated_at: new Date().toISOString() })
+      .eq('id', encounterId);
+    if (error) status(error.message, 'error');
+    return !error;
+  };
+
   target.querySelectorAll<HTMLElement>('[data-match-card]').forEach((card) => {
     const matchId = card.dataset.matchCard!;
+    const match = state.matches.find((row) => row.id === matchId);
     const live: any = liveMap.get(matchId) || { match_id: matchId, status: 'scheduled', home_score: 0, away_score: 0 };
-    card.querySelectorAll<HTMLButtonElement>('[data-score]').forEach((button) => button.addEventListener('click', async () => {
-      const side = button.dataset.score as 'home' | 'away';
-      const delta = Number(button.dataset.delta || 0);
-      const patch: Row = { updated_by: state.user.id };
-      patch[side === 'home' ? 'home_score' : 'away_score'] = Math.max(0, Number(live[side === 'home' ? 'home_score' : 'away_score'] || 0) + delta);
-      const { error } = await supabase.from('match_live_state').update(patch).eq('match_id', matchId);
-      if (error) status(error.message, 'error'); else refreshMatches();
-    }));
+
+    card.querySelector<HTMLButtonElement>('[data-configure-match]')?.addEventListener('click', async () => {
+      const selected = card.querySelector<HTMLSelectElement>('[data-match-format]')?.value || '6_3';
+      const existing = encounterMap.get(matchId) ?? [];
+      if (existing.length && !confirm('Das Begegnungsformat neu aufbauen? Die bisherige Aufstellung und Ergebnisse dieses Spiels werden dabei zurückgesetzt.')) return;
+      const { error } = await supabase.rpc('configure_match_encounters', {
+        target_match: matchId,
+        target_format: selected,
+      });
+      if (error) return status(error.message, 'error');
+      status(selected === '4_2' ? '4 Einzel und 2 Doppel angelegt.' : '6 Einzel und 3 Doppel angelegt.', 'success');
+      refreshMatches();
+    });
+
     card.querySelectorAll<HTMLButtonElement>('[data-live-action]').forEach((button) => button.addEventListener('click', async () => {
       const action = button.dataset.liveAction;
       const patch = action === 'start'
-        ? { status: 'live', started_at: new Date().toISOString(), finished_at: null, updated_by: state.user.id }
+        ? { status: 'live', started_at: live.started_at || new Date().toISOString(), finished_at: null, updated_by: state.user.id }
         : { status: 'finished', finished_at: new Date().toISOString(), updated_by: state.user.id };
       const { error } = await supabase.from('match_live_state').update(patch).eq('match_id', matchId);
-      if (error) status(error.message, 'error'); else { status(action === 'start' ? 'Liveticker gestartet.' : 'Spiel beendet.', 'success'); refreshMatches(); }
+      if (error) status(error.message, 'error');
+      else {
+        status(action === 'start' ? 'Spieltag ist jetzt live.' : 'Spieltag beendet.', 'success');
+        refreshMatches();
+      }
     }));
+
+    card.querySelectorAll<HTMLElement>('[data-encounter-id]').forEach((encounterCard) => {
+      const encounterId = encounterCard.dataset.encounterId!;
+      const encounter = (encounterMap.get(matchId) ?? []).find((row) => row.id === encounterId);
+      if (!encounter || !match) return;
+
+      const ensureMatchLive = async () => {
+        if (live.status === 'live') return true;
+        const { error } = await supabase.from('match_live_state').update({
+          status: 'live',
+          started_at: live.started_at || new Date().toISOString(),
+          finished_at: null,
+          updated_by: state.user.id,
+        }).eq('match_id', matchId);
+        if (error) {
+          status(error.message, 'error');
+          return false;
+        }
+        return true;
+      };
+
+      encounterCard.querySelector<HTMLSelectElement>('[data-enc-player1]')?.addEventListener('change', async (event) => {
+        const select = event.currentTarget as HTMLSelectElement;
+        const player = playerMap.get(select.value);
+        if (await updateEncounter(encounterId, {
+          tsv_player_1_id: select.value || null,
+          tsv_player_1_name: player?.display_name || null,
+        })) status('Aufstellung gespeichert.', 'success');
+      });
+
+      encounterCard.querySelector<HTMLSelectElement>('[data-enc-player2]')?.addEventListener('change', async (event) => {
+        const select = event.currentTarget as HTMLSelectElement;
+        const player = playerMap.get(select.value);
+        if (await updateEncounter(encounterId, {
+          tsv_player_2_id: select.value || null,
+          tsv_player_2_name: player?.display_name || null,
+        })) status('Aufstellung gespeichert.', 'success');
+      });
+
+      encounterCard.querySelector<HTMLSelectElement>('[data-enc-opponent1]')?.addEventListener('change', async (event) => {
+        const value = Number((event.currentTarget as HTMLSelectElement).value) || null;
+        if (await updateEncounter(encounterId, { opponent_slot_1: value })) status('Gegner gespeichert.', 'success');
+      });
+
+      encounterCard.querySelector<HTMLSelectElement>('[data-enc-opponent2]')?.addEventListener('change', async (event) => {
+        const value = Number((event.currentTarget as HTMLSelectElement).value) || null;
+        if (await updateEncounter(encounterId, { opponent_slot_2: value })) status('Gegner gespeichert.', 'success');
+      });
+
+      encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.addEventListener('change', async (event) => {
+        const resultText = (event.currentTarget as HTMLInputElement).value.trim() || null;
+        if (await updateEncounter(encounterId, { result_text: resultText })) status('Ergebnis gespeichert.', 'success');
+      });
+
+      encounterCard.querySelector<HTMLButtonElement>('[data-enc-start]')?.addEventListener('click', async () => {
+        if (!(await ensureMatchLive())) return;
+        if (await updateEncounter(encounterId, {
+          status: 'live',
+          started_at: encounter.started_at || new Date().toISOString(),
+          finished_at: null,
+          winner: null,
+        })) {
+          status(`${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position} läuft jetzt.`, 'success');
+          refreshMatches();
+        }
+      });
+
+      encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-winner]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          if (!(await ensureMatchLive())) return;
+          const winner = button.dataset.encWinner;
+          const resultText = encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.value.trim() || null;
+          if (await updateEncounter(encounterId, {
+            status: 'finished',
+            winner,
+            result_text: resultText,
+            finished_at: new Date().toISOString(),
+          })) {
+            status(winner === 'tsv' ? 'Punkt für TSV Feldkirchen gespeichert.' : 'Punkt für den Gegner gespeichert.', 'success');
+            refreshMatches();
+          }
+        });
+      });
+
+      encounterCard.querySelector<HTMLButtonElement>('[data-enc-reset]')?.addEventListener('click', async () => {
+        if (!confirm('Diese einzelne Begegnung zurücksetzen?')) return;
+        if (await updateEncounter(encounterId, {
+          status: 'scheduled',
+          winner: null,
+          result_text: null,
+          started_at: null,
+          finished_at: null,
+        })) {
+          status('Begegnung zurückgesetzt.', 'success');
+          refreshMatches();
+        }
+      });
+    });
+
     card.querySelector<HTMLButtonElement>('[data-publish-ticker]')?.addEventListener('click', async () => {
       const message = card.querySelector<HTMLTextAreaElement>('[data-ticker-message]')?.value.trim();
       if (!message) return;
@@ -601,18 +901,20 @@ async function refreshMatches() {
         home_score: current?.home_score ?? null,
         away_score: current?.away_score ?? null,
       });
-      if (error) status(error.message, 'error'); else {
-        const area = card.querySelector<HTMLTextAreaElement>('[data-ticker-message]'); if (area) area.value = '';
+      if (error) status(error.message, 'error');
+      else {
+        const area = card.querySelector<HTMLTextAreaElement>('[data-ticker-message]');
+        if (area) area.value = '';
         status('Tickermeldung veröffentlicht.', 'success');
       }
     });
   });
 
   const newsMatch = $<HTMLSelectElement>('#news-match');
-  if (newsMatch) newsMatch.innerHTML = '<option value="">Kein Spiel</option>' + state.matches.map((m) => {
-    const ts = state.teamSeasons.find((x) => x.id === m.team_season_id);
-    const team = state.teams.find((x) => x.id === ts?.team_id);
-    return `<option value="${m.id}">${escapeHtml(team?.name || '')} – ${escapeHtml(m.opponent)} – ${escapeHtml(formatDateTime(m.starts_at))}</option>`;
+  if (newsMatch) newsMatch.innerHTML = '<option value="">Kein Spiel</option>' + state.matches.map((match) => {
+    const ts = state.teamSeasons.find((row) => row.id === match.team_season_id);
+    const team = state.teams.find((row) => row.id === ts?.team_id);
+    return `<option value="${match.id}">${escapeHtml(team?.name || '')} – ${escapeHtml(match.opponent)} – ${escapeHtml(formatDateTime(match.starts_at))}</option>`;
   }).join('');
 }
 
@@ -626,6 +928,7 @@ async function addMatch(event: Event) {
     starts_at: start ? new Date(start).toISOString() : null,
     ends_at: end ? new Date(end).toISOString() : null,
     is_home: $<HTMLInputElement>('#match-home')?.checked ?? true,
+    lineup_format: $<HTMLSelectElement>('#match-lineup-format')?.value || '6_3',
     external_url: $<HTMLInputElement>('#match-url')?.value.trim() || null,
     is_published: true,
   });
