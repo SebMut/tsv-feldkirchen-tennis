@@ -40,9 +40,13 @@ Die praktische Abnahme mit Einladung, Passwort-Setup, Rollen und Login/Logout is
 ## Phase 4 – Spieltag und Liveticker
 Status: **in Arbeit**
 
-- einfacher rollenbasierter Einstieg in „Mein TSV“
-- direkter Schnellstart zum laufenden bzw. nächsten Liveticker
-- mobile Schnellaktionen je Mannschaft
+- einfacher rollenbasierter Einstieg in „Mein TSV“ ✅
+- direkter Schnellstart zum laufenden bzw. nächsten Liveticker ✅
+- mobile Schnellaktionen je Mannschaft ✅
+- Spieltag-Format 6 Einzel + 3 Doppel bzw. 4 Einzel + 2 Doppel ✅
+- einzelne Begegnungen mit TSV-Spielern und Gegner-Platzhaltern ✅
+- automatische Gesamtwertung aus Einzel-/Doppelergebnissen ✅
+- öffentliche Live-Ansicht mit TSV-Logo, Heim/Auswärts und Einzel/Doppel ✅
 - Testspiel durchführen
 - zwei Browser / Endgeräte
 - Smartphone-Abnahme
