@@ -67,7 +67,20 @@ import MainLayout from '../../layouts/MainLayout.astro';
         </nav>
 
         <div class="stack">
-          <section id="panel-dashboard" class="admin-panel active"><div class="card"><h2>Meine Mannschaften</h2><div id="dashboard-teams" class="grid two"></div></div></section>
+          <section id="panel-dashboard" class="admin-panel active">
+            <div id="dashboard-quickstart" class="card dashboard-quickstart">
+              <p class="eyebrow">Schnellstart</p>
+              <h2>Was möchtest du machen?</h2>
+              <p class="muted">Am Spieltag kommst du von hier mit einem Klick zum passenden Liveticker.</p>
+              <div id="dashboard-live-action"></div>
+            </div>
+            <div class="card">
+              <div class="page-head">
+                <div><p class="eyebrow">Mein TSV</p><h2>Meine Mannschaften</h2></div>
+              </div>
+              <div id="dashboard-teams" class="dashboard-team-grid"></div>
+            </div>
+          </section>
 
           <section id="panel-teams" class="admin-panel">
             <div class="card">
