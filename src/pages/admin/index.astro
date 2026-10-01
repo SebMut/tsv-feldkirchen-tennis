@@ -37,6 +37,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
         <div class="field">
           <label for="setup-password-confirm">Passwort wiederholen</label>
           <input id="setup-password-confirm" type="password" minlength="12" autocomplete="new-password" required />
+          <p class="muted form-helper-spacer" aria-hidden="true">Mindestens 12 Zeichen. Verwende ein Passwort, das du nicht bei anderen Diensten nutzt.</p>
         </div>
         <div class="field full"><button class="button" type="submit">Passwort speichern und weiter</button></div>
       </form>
