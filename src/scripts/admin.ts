@@ -143,24 +143,161 @@ function bindNav() {
 
 async function refreshDashboard() {
   const target = $('#dashboard-teams');
-  if (!target) return;
-  target.innerHTML = allowedTeams('tick').map((team) => {
+  const liveTarget = $('#dashboard-live-action');
+  if (!target || !liveTarget) return;
+
+  const teams = allowedTeams('tick');
+  if (!teams.length) {
+    liveTarget.innerHTML = '<div class="dashboard-empty"><strong>Noch keine Mannschaft zugeordnet.</strong><p class="muted">Bitte wende dich an einen SuperAdmin.</p></div>';
+    target.innerHTML = '<p class="muted">Noch keine Mannschaft zugeordnet.</p>';
+    return;
+  }
+
+  const teamSeasonIds = allowedTeamSeasons('tick').map((ts) => ts.id);
+  const now = new Date();
+  const recentStart = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+
+  const [{ data: matchRows }, { data: liveRows }] = await Promise.all([
+    teamSeasonIds.length
+      ? supabase.from('matches').select('*').in('team_season_id', teamSeasonIds).gte('starts_at', recentStart.toISOString()).order('starts_at').limit(80)
+      : Promise.resolve({ data: [] }),
+    supabase.from('match_live_state').select('*').eq('status', 'live'),
+  ]);
+
+  const matches = matchRows ?? [];
+  const liveMap = new Map((liveRows ?? []).map((row) => [row.match_id, row]));
+  const teamForMatch = (match: Row) => {
+    const ts = state.teamSeasons.find((row) => row.id === match.team_season_id);
+    return state.teams.find((row) => row.id === ts?.team_id);
+  };
+
+  const relevantMatches = matches.filter((match) => {
+    const team = teamForMatch(match);
+    return !!team && teams.some((allowed) => allowed.id === team.id);
+  });
+
+  const featured = relevantMatches.find((match) => liveMap.has(match.id))
+    ?? relevantMatches.find((match) => new Date(match.starts_at).getTime() >= now.getTime())
+    ?? null;
+
+  if (featured) {
+    const team = teamForMatch(featured);
+    const live = liveMap.get(featured.id);
+    const isLive = !!live;
+    const when = formatDateTime(featured.starts_at);
+    liveTarget.innerHTML = `
+      <article class="dashboard-live-card ${isLive ? 'is-live' : ''}">
+        <div>
+          <span class="dashboard-live-badge">${isLive ? '● LIVE' : 'NÄCHSTES SPIEL'}</span>
+          <h3>${escapeHtml(team?.name || 'Mannschaft')} · gegen ${escapeHtml(featured.opponent)}</h3>
+          <p>${escapeHtml(when)} · ${featured.is_home ? 'Heimspiel' : 'Auswärtsspiel'}</p>
+        </div>
+        <button class="button button--hot dashboard-live-button" type="button" data-dashboard-match="${featured.id}">
+          ${isLive ? 'Liveticker jetzt öffnen' : 'Liveticker vorbereiten'}
+        </button>
+      </article>`;
+  } else {
+    liveTarget.innerHTML = `
+      <div class="dashboard-empty">
+        <strong>Aktuell steht kein bevorstehendes Spiel an.</strong>
+        <p class="muted">Sobald ein Spiel eingetragen ist, erscheint hier automatisch der direkte Liveticker-Einstieg.</p>
+      </div>`;
+  }
+
+  target.innerHTML = teams.map((team) => {
     const ts = currentTeamSeason(team.id);
     const membership = ownMemberships().find((m) => m.team_id === team.id);
     const editable = canEditTeamId(team.id);
-    const roleLabel = state.isSuper ? 'SuperAdmin' : membership?.role === 'ticker' ? 'Nur Liveticker' : membership?.role === 'manager' ? 'Manager' : 'Editor';
-    return `<article class="card flat"><p class="eyebrow">${escapeHtml(ts?.league || 'Mannschaft')}</p><h3>${escapeHtml(team.name)}</h3><p class="muted">${escapeHtml(ts?.group_name || '')}</p><p><span class="status-pill">${escapeHtml(roleLabel)}</span></p><button class="button secondary" data-open-team="${team.id}" data-editable="${editable ? '1' : '0'}">${editable ? 'Mannschaft bearbeiten' : 'Zum Liveticker'}</button></article>`;
-  }).join('') || '<p class="muted">Noch keine Mannschaft zugeordnet.</p>';
-  target.querySelectorAll<HTMLButtonElement>('[data-open-team]').forEach((button) => button.addEventListener('click', () => {
-    if (button.dataset.editable === '1') {
-      const select = $<HTMLSelectElement>('#team-select');
-      if (select) select.value = button.dataset.openTeam || '';
-      fillTeamForm();
-      showPanel('teams');
-    } else {
-      showPanel('matches');
-    }
-  }));
+    const roleLabel = state.isSuper
+      ? 'SuperAdmin'
+      : membership?.role === 'ticker'
+        ? 'Nur Liveticker'
+        : membership?.role === 'manager'
+          ? 'Manager'
+          : 'Editor';
+
+    const teamMatches = relevantMatches.filter((match) => teamForMatch(match)?.id === team.id);
+    const next = teamMatches.find((match) => liveMap.has(match.id))
+      ?? teamMatches.find((match) => new Date(match.starts_at).getTime() >= now.getTime())
+      ?? null;
+    const nextLive = next ? liveMap.get(next.id) : null;
+
+    return `
+      <article class="dashboard-team-card">
+        <div class="dashboard-team-card__head">
+          <div>
+            <p class="eyebrow">${escapeHtml(ts?.league || 'Mannschaft')}</p>
+            <h3>${escapeHtml(team.name)}</h3>
+            <p class="muted">${escapeHtml(ts?.group_name || '')}</p>
+          </div>
+          <span class="status-pill">${escapeHtml(roleLabel)}</span>
+        </div>
+
+        ${next ? `
+          <div class="dashboard-next-match">
+            <span>${nextLive ? '● LIVE' : 'Nächstes Spiel'}</span>
+            <strong>gegen ${escapeHtml(next.opponent)}</strong>
+            <small>${escapeHtml(formatDateTime(next.starts_at))} · ${next.is_home ? 'Heim' : 'Auswärts'}</small>
+          </div>
+        ` : '<p class="muted">Kein kommendes Spiel eingetragen.</p>'}
+
+        <div class="dashboard-actions">
+          ${next ? `<button class="button button--hot" type="button" data-dashboard-match="${next.id}">${nextLive ? 'Liveticker öffnen' : 'Zum Liveticker'}</button>` : '<button class="button secondary" type="button" data-dashboard-panel="matches">Spiele öffnen</button>'}
+          ${editable ? `
+            <button class="button secondary" type="button" data-dashboard-team="${team.id}" data-dashboard-panel="teams">Mannschaft pflegen</button>
+            <button class="button ghost" type="button" data-dashboard-team="${team.id}" data-dashboard-panel="players">Kader</button>
+            <button class="button ghost" type="button" data-dashboard-team="${team.id}" data-dashboard-panel="galleries">Bilder</button>
+          ` : ''}
+        </div>
+      </article>`;
+  }).join('');
+
+  const openMatch = (matchId: string) => {
+    showPanel('matches');
+    window.setTimeout(() => {
+      const card = document.querySelector<HTMLElement>(`[data-match-card="${matchId}"]`);
+      if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      card.classList.add('match-card--focus');
+      window.setTimeout(() => card.classList.remove('match-card--focus'), 2200);
+    }, 80);
+  };
+
+  document.querySelectorAll<HTMLButtonElement>('[data-dashboard-match]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const matchId = button.dataset.dashboardMatch;
+      if (matchId) openMatch(matchId);
+    });
+  });
+
+  target.querySelectorAll<HTMLButtonElement>('[data-dashboard-panel]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const panel = button.dataset.dashboardPanel;
+      const teamId = button.dataset.dashboardTeam;
+      if (!panel) return;
+
+      if (teamId && panel === 'teams') {
+        const select = $<HTMLSelectElement>('#team-select');
+        if (select) select.value = teamId;
+        fillTeamForm();
+      }
+
+      if (teamId && panel === 'players') {
+        const ts = currentTeamSeason(teamId);
+        const select = $<HTMLSelectElement>('#players-team-season');
+        if (select && ts) select.value = ts.id;
+        refreshPlayers();
+      }
+
+      if (teamId && panel === 'galleries') {
+        const select = $<HTMLSelectElement>('#gallery-team');
+        if (select) select.value = teamId;
+        renderGalleryMatchOptions();
+      }
+
+      showPanel(panel);
+    });
+  });
 }
 
 function fillTeamForm() {
