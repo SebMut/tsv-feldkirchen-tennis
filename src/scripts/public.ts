@@ -135,7 +135,7 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
   return `
     <div class="match-row">
       <a class="match-row__main" href="${detailUrl}">
-        <strong>${escapeHtml(team?.name ?? 'TSV Feldkirchen')} · ${escapeHtml(homeAway)}</strong>
+        <span class="match-row__teamline"><img class="match-row__tsv-logo" src="${escapeHtml(mediaUrl('branding/tennis-logo.png'))}" alt="" /><strong>${escapeHtml(team?.name ?? 'TSV Feldkirchen')} · ${escapeHtml(homeAway)}</strong></span>
         <div class="match-meta">${escapeHtml(formatDateTime(match.starts_at))} · gegen ${escapeHtml(match.opponent)}</div>
       </a>
       <div class="actions">
@@ -447,8 +447,9 @@ export async function loadMatchDetail(matchId: string | null) {
   const root = document.querySelector<HTMLElement>('#match-detail-root');
   const head = document.querySelector<HTMLElement>('#match-detail-head');
   const scoreTarget = document.querySelector<HTMLElement>('#match-detail-score');
+  const encounterTarget = document.querySelector<HTMLElement>('#match-detail-encounters');
   const galleryTarget = document.querySelector<HTMLElement>('#match-detail-gallery');
-  if (!root || !head || !scoreTarget || !galleryTarget) return;
+  if (!root || !head || !scoreTarget || !encounterTarget || !galleryTarget) return;
 
   if (!matchId) {
     head.innerHTML = '<div class="card"><h1>Kein Spiel ausgewählt</h1><p><a href="/termine/">Zum Spielplan</a></p></div>';
@@ -456,9 +457,10 @@ export async function loadMatchDetail(matchId: string | null) {
   }
 
   const reference = await refs();
-  const [{ data: match }, { data: liveState }, { data: galleries }] = await Promise.all([
+  const [{ data: match }, { data: liveState }, { data: encounters }, { data: galleries }] = await Promise.all([
     supabase.from('matches').select('*').eq('id', matchId).eq('is_published', true).maybeSingle(),
     supabase.from('match_live_state').select('*').eq('match_id', matchId).maybeSingle(),
+    supabase.from('match_encounters').select('*').eq('match_id', matchId).order('sort_order').order('position'),
     supabase.from('galleries').select('*').eq('match_id', matchId).eq('published', true).order('created_at', { ascending: false }),
   ]);
 
@@ -481,7 +483,7 @@ export async function loadMatchDetail(matchId: string | null) {
     <div class="match-detail-hero">
       <div>
         <p class="eyebrow">${escapeHtml([season?.name, ts?.league].filter(Boolean).join(' · ') || 'Punktspiel')}</p>
-        <h1>${escapeHtml(leftTeam)} <span>vs.</span> ${escapeHtml(rightTeam)}</h1>
+        <div class="match-detail-titleline"><img src="${escapeHtml(mediaUrl('branding/tennis-logo.png'))}" alt="TSV Feldkirchen Tennis" /><h1>${escapeHtml(leftTeam)} <span>vs.</span> ${escapeHtml(rightTeam)}</h1></div>
         <p class="hero__lead">${escapeHtml(detailDate)} · ${escapeHtml(location)}</p>
         <div class="actions">
           <a class="button secondary" href="/mannschaften/${escapeHtml(team?.slug || '')}/">Zur Mannschaft</a>
@@ -494,6 +496,48 @@ export async function loadMatchDetail(matchId: string | null) {
   scoreTarget.innerHTML = status !== 'scheduled'
     ? `<div class="match-detail-score"><span class="status-pill ${status === 'live' ? 'live' : ''}">${status === 'live' ? 'LIVE' : 'Beendet'}</span><strong>${clubScore} : ${opponentScore}</strong><span>aus Sicht des TSV</span></div>`
     : '<div class="match-detail-score"><span class="status-pill">Geplant</span><strong>– : –</strong><span>Spiel noch nicht begonnen</span></div>';
+
+  const encounterRows = encounters ?? [];
+  const renderDetailEncounter = (encounter: Row) => {
+    const tsvNames = [encounter.tsv_player_1_name, encounter.tsv_player_2_name].filter(Boolean).join(' / ') || 'Aufstellung folgt';
+    const opponentSlots = [encounter.opponent_slot_1, encounter.opponent_slot_2]
+      .filter((value) => value != null)
+      .map((value) => `Gegner ${value}`)
+      .join(' / ') || (encounter.discipline === 'singles' ? `Gegner ${encounter.position}` : 'Doppelaufstellung folgt');
+
+    const tsvSide = `
+      <div class="match-detail-encounter-side is-tsv">
+        <img src="${escapeHtml(mediaUrl('branding/tennis-logo.png'))}" alt="" />
+        <div><span>TSV Feldkirchen</span><strong>${escapeHtml(tsvNames)}</strong></div>
+      </div>`;
+    const opponentSide = `
+      <div class="match-detail-encounter-side">
+        <span class="live-opponent-mark">G</span>
+        <div><span>${escapeHtml(match.opponent)}</span><strong>${escapeHtml(opponentSlots)}</strong></div>
+      </div>`;
+
+    return `
+      <article class="match-detail-encounter ${encounter.status === 'live' ? 'is-live' : ''}">
+        <div class="match-detail-encounter__head">
+          <strong>${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position}</strong>
+          <span class="status-pill ${encounter.status === 'live' ? 'live' : ''}">${encounter.status === 'live' ? 'LIVE' : encounter.status === 'finished' ? 'Beendet' : 'Geplant'}</span>
+        </div>
+        <div class="match-detail-encounter__matchup">
+          ${match.is_home ? tsvSide : opponentSide}
+          <div class="match-detail-encounter__result"><span>Ergebnis</span><strong>${escapeHtml(encounter.result_text || '–')}</strong></div>
+          ${match.is_home ? opponentSide : tsvSide}
+        </div>
+      </article>`;
+  };
+
+  encounterTarget.innerHTML = encounterRows.length
+    ? `
+      <div class="page-head"><div><p class="eyebrow">Spieltag</p><h2>Einzel & Doppel</h2></div><span class="status-pill">${match.lineup_format === '4_2' ? '4 + 2' : '6 + 3'}</span></div>
+      <div class="match-detail-encounter-groups">
+        <section><h3>Einzel</h3><div class="match-detail-encounter-list">${encounterRows.filter((row: Row) => row.discipline === 'singles').map(renderDetailEncounter).join('')}</div></section>
+        <section><h3>Doppel</h3><div class="match-detail-encounter-list">${encounterRows.filter((row: Row) => row.discipline === 'doubles').map(renderDetailEncounter).join('')}</div></section>
+      </div>`
+    : '<div class="empty-gallery"><p class="eyebrow">Spieltag</p><h2>Aufstellung folgt</h2><p class="muted">Einzel und Doppel werden vor dem Spieltag eingetragen.</p></div>';
 
   if (galleries?.length) {
     const galleryIds = galleries.map((gallery: Row) => gallery.id);
