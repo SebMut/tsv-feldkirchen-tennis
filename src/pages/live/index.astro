@@ -18,7 +18,13 @@ import MainLayout from '../../layouts/MainLayout.astro';
     <div class="container matchday-dashboard">
       <section class="matchday-panel matchday-live-panel">
         <div id="live-score"></div>
-        <div id="live-timeline" class="timeline"></div>
+        <div id="live-encounters" class="live-encounters"></div>
+        <div class="live-timeline-section">
+          <div class="page-head">
+            <div><p class="matchday-kicker">Liveticker</p><h2>Meldungen</h2></div>
+          </div>
+          <div id="live-timeline" class="timeline"></div>
+        </div>
       </section>
       <section id="live-sponsor" class="hidden" aria-label="Sponsor des Spieltags"></section>
       <p><a class="matchday-action" href="/spieltag/">← Zur Spieltagszentrale</a></p>
