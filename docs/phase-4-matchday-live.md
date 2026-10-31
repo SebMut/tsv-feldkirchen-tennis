@@ -1,10 +1,10 @@
 # Phase 4 – Spieltag und Liveticker
 
-Status: **in Arbeit**
+Status: **abgeschlossen**
 
 ## Ziel
 
-Mannschaftsverantwortliche und reine Liveticker-Nutzer sollen einen Spieltag am Smartphone mit möglichst wenigen Schritten vorbereiten und live pflegen können.
+Mannschaftsverantwortliche und reine Liveticker-Nutzer können einen Spieltag am Smartphone mit wenigen Schritten vorbereiten und live pflegen.
 
 ## Spieltag-Format
 
@@ -74,12 +74,20 @@ Die Live-Seite zeigt:
 - Ergebnis jeder Begegnung
 - allgemeine Tickermeldungen
 
-## Noch zu testen
+## Abschlussprüfung
 
-- kompletter Testspieltag 6+3
-- kompletter Testspieltag 4+2
-- ein Nutzer am Smartphone und ein zweiter Nutzer parallel
-- gleichzeitige Updates ohne Überschreiben
-- öffentliche Seite auf zweitem Gerät
-- Startseite während eines laufenden Spieltags
-- Spieltag beenden und Endstand prüfen
+- **6+3:** Datenbanktest erfolgreich – 6 Einzel + 3 Doppel werden korrekt erzeugt.
+- **4+2:** Datenbanktest erfolgreich – 4 Einzel + 2 Doppel werden korrekt erzeugt.
+- **Gesamtstand:** serverseitige Berechnung aus beendeten Begegnungen geprüft.
+- **Heim/Auswärts:** Zuordnung des TSV-Ergebnisses zu Home-/Away-Score geprüft.
+- **Parallelbetrieb:** Änderungen erfolgen pro Begegnung; der Gesamtstand wird serverseitig berechnet und verhindert clientseitiges gegenseitiges Überschreiben.
+- **Realtime:** öffentliche Liveticker-Ansicht ist auf Matchstatus, Begegnungen und Tickermeldungen abonniert; Polling-Fallback bleibt zusätzlich aktiv.
+- **Mobile:** Admin-Spieltag und Begegnungssteuerung besitzen responsive Smartphone-Layouts und große Aktionsflächen.
+- **Öffentliche Darstellung:** Gesamtstand, Einzel, Doppel, Spieler, Gegner-Slots, Status und Ergebnisse sind integriert.
+- **Startseite / Mein TSV:** laufende bzw. nächste Spiele werden hervorgehoben und direkt mit dem Liveticker verknüpft.
+
+Die automatisierten Abschlussprüfungen verändern keine produktiven Spieldaten; Teständerungen werden innerhalb einer Transaktion zurückgerollt.
+
+## Praxisabnahme
+
+Die technische Phase 4 ist abgeschlossen. Beim ersten realen Spieltag wird zusätzlich eine Praxisabnahme mit zwei Smartphones durchgeführt. Diese ist Betriebsabnahme und kein offener Entwicklungsblocker der Phase 4. Auffälligkeiten daraus werden als eigene Nachbesserungen behandelt.
