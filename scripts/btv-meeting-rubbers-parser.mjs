@@ -52,7 +52,10 @@ export function parseOfficialMeetingText(text,{expectedHomePoints,expectedAwayPo
     const {position,homeRaw,awayRaw}=m.groups;
     const homeName=playerName(homeRaw),awayName=playerName(awayRaw);
     const scores=sets([m.groups.set1,m.groups.set2,m.groups.set3].filter(Boolean).join(' '));
-    const winner=winnerOf(scores);
+    const explicitWalkoverHome=/\(w\.o\.\)/i.test(homeRaw);
+    const explicitWalkoverAway=/\(w\.o\.\)/i.test(awayRaw);
+    const explicitWalkover=(explicitWalkoverHome!==explicitWalkoverAway) && !winnerOf(scores);
+    const winner=winnerOf(scores)||(explicitWalkover?(explicitWalkoverHome?'away':'home'):null);
     if(!homeName||!awayName||!winner||position==='0'){
       if(!homeName)errors.push('SINGLE_HOME_NAME_INVALID');
       if(!awayName)errors.push('SINGLE_AWAY_NAME_INVALID');
@@ -67,7 +70,7 @@ export function parseOfficialMeetingText(text,{expectedHomePoints,expectedAwayPo
       awayNameStart:idx.awayRaw[0],setStart:idx.set1[0]};
     singles.push({discipline:'single',position:pos,
       home_participants:[{name:homeName}],away_participants:[{name:awayName}],
-      set_results:scores,winner_side:winner,special_status:null,
+      set_results:scores,winner_side:winner,special_status:explicitWalkover?'walkover':null,
       result_text:scores.map(s=>s.home+':'+s.away).join(' '),
       source_section:'BTV MeetingReportFOP Einzel',verification_status:'verified'});
   }
