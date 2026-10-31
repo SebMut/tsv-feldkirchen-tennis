@@ -275,36 +275,60 @@ export async function loadHome() {
 }
 
 export async function loadTeams() {
-  const target = document.querySelector<HTMLElement>('#teams-grid');
-  const seasonSelect = document.querySelector<HTMLSelectElement>('#teams-season');
-  const categorySelect = document.querySelector<HTMLSelectElement>('#teams-category');
+  const target = document.querySelector('#teams-grid');
+  const seasonSelect = document.querySelector('#teams-season');
+  const categorySelect = document.querySelector('#teams-category');
   if (!target || !seasonSelect || !categorySelect) return;
-
   const reference = await refs();
-  const current = reference.seasons.find((s: Row) => s.is_current) ?? reference.seasons[0];
-
-  seasonSelect.innerHTML = reference.seasons.map((s: Row) => `<option value="${s.id}" ${s.id === current?.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('');
-  categorySelect.innerHTML += reference.categories.map((c: Row) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-
+  if (!reference.seasons.length || !reference.teams.length) {
+    target.innerHTML = '<p class="muted">Mannschaften sind momentan nicht abrufbar. Bitte später erneut versuchen.</p>';
+    return;
+  }
+  const current = reference.seasons.find(s => s.is_current) ?? reference.seasons[0];
+  seasonSelect.innerHTML = reference.seasons.map(s => `<option value="${s.id}" ${s.id === current?.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('');
+  categorySelect.innerHTML = '<option value="">Alle Kategorien</option>' + reference.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  const seasonIds = reference.teamSeasons.filter(ts => ts.is_published).map(ts => ts.id);
+  const matchResult = seasonIds.length
+    ? await supabase.from('matches').select('*').eq('is_published', true).in('team_season_id', seasonIds).order('starts_at')
+    : { data: [], error: null };
+  const matches = matchResult.data ?? [];
+  const stateResult = matches.length
+    ? await supabase.from('match_live_state').select('*').in('match_id', matches.map(m => m.id))
+    : { data: [], error: null };
+  const states = new Map((stateResult.data ?? []).map(s => [s.match_id, s]));
   const render = () => {
-    const seasonId = seasonSelect.value;
-    const categoryId = categorySelect.value;
+    const seasonId = seasonSelect.value, categoryId = categorySelect.value;
     const rows = reference.teamSeasons
-      .filter((ts: Row) => ts.season_id === seasonId && ts.is_published)
-      .map((ts: Row) => ({ ts, team: reference.teams.find((t: Row) => t.id === ts.team_id) }))
-      .filter((x: any) => x.team && (!categoryId || x.team.category_id === categoryId))
-      .sort((a: any, b: any) => (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0));
-
-    target.innerHTML = rows.length ? rows.map(({ ts, team }: any) => `
-      <article class="card team-card">
-        <img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="${escapeHtml(team.name)}" loading="lazy" />
-        <div><p class="eyebrow">${escapeHtml(ts.league || 'Mannschaft')}</p><h3>${escapeHtml(team.name)}</h3></div>
-        <p class="muted">${escapeHtml([ts.league, ts.group_name].filter(Boolean).join(' · '))}</p>
-        <div class="actions"><a class="button" href="/mannschaften/${escapeHtml(team.slug)}/">Mannschaft öffnen</a>${ts.btv_url ? `<a class="button ghost" href="${escapeHtml(ts.btv_url)}" target="_blank" rel="noreferrer">BTV ↗</a>` : ''}</div>
-      </article>
-    `).join('') : '<p class="muted">Für diese Auswahl sind keine Mannschaften hinterlegt.</p>';
+      .filter(ts => ts.season_id === seasonId && ts.is_published)
+      .map(ts => ({ ts, team: reference.teams.find(t => t.id === ts.team_id) }))
+      .filter(x => x.team && (!categoryId || x.team.category_id === categoryId))
+      .sort((a, b) => (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0));
+    const now = Date.now();
+    target.innerHTML = rows.length ? rows.map(({ ts, team }) => {
+      const teamMatches = matches.filter(m => m.team_season_id === ts.id);
+      const liveMatch = teamMatches.find(m => states.get(m.id)?.status === 'live');
+      const next = teamMatches.find(m => new Date(m.starts_at).getTime() >= now && states.get(m.id)?.status !== 'finished');
+      const featured = liveMatch || next;
+      const currentState = featured ? states.get(featured.id) : null;
+      const isLive = currentState?.status === 'live';
+      const clubScore = featured ? (featured.is_home ? currentState?.home_score : currentState?.away_score) : null;
+      const otherScore = featured ? (featured.is_home ? currentState?.away_score : currentState?.home_score) : null;
+      return `
+        <article class="card team-card team-overview-card">
+          <img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" />
+          <div><p class="eyebrow">${escapeHtml(reference.seasons.find(s => s.id === ts.season_id)?.name || 'Saison')}</p><h3>${escapeHtml(team.name)}</h3></div>
+          <p class="muted">${escapeHtml([ts.league, ts.group_name].filter(Boolean).join(' · '))}</p>
+          ${featured ? `
+            <div class="team-overview-next ${isLive ? 'is-live' : ''}">
+              <span class="status-pill ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'Nächstes Spiel'}</span>
+              <strong>gegen ${escapeHtml(featured.opponent)}</strong>
+              <small>${escapeHtml(formatDateTime(featured.starts_at))} · ${featured.is_home ? 'Heim' : 'Auswärts'}${isLive ? ` · ${clubScore ?? 0} : ${otherScore ?? 0}` : ''}</small>
+              ${isLive ? `<a href="/live/?match=${encodeURIComponent(featured.id)}">Zum Liveticker</a>` : ''}
+            </div>` : '<p class="muted">Derzeit kein nächstes Punktspiel eingetragen.</p>'}
+          <div class="actions"><a class="button" href="/mannschaften/${escapeHtml(team.slug)}/">Mannschaft öffnen</a>${ts.btv_url ? `<a class="button ghost" href="${escapeHtml(ts.btv_url)}" target="_blank" rel="noreferrer">BTV ↗</a>` : ''}</div>
+        </article>`;
+    }).join('') : '<p class="muted">Für diese Auswahl sind keine Mannschaften hinterlegt.</p>';
   };
-
   seasonSelect.addEventListener('change', render);
   categorySelect.addEventListener('change', render);
   render();
@@ -348,7 +372,7 @@ export async function loadTeamDetail(slug: string) {
   const teamSeasonIds = teamSeasons.map((row: Row) => row.id);
   const [{ data: links }, { data: matches }, { data: allTeamMatches }, { data: news }, { data: galleries }] = await Promise.all([
     supabase.from('team_players').select('*').eq('team_season_id', current.id).eq('public_visible', true).order('is_captain', { ascending: false }).order('sort_order'),
-    supabase.from('matches').select('*').eq('team_season_id', current.id).order('starts_at'),
+    supabase.from('matches').select('*').eq('team_season_id', current.id).eq('is_published', true).order('starts_at'),
     teamSeasonIds.length
       ? supabase.from('matches').select('*').in('team_season_id', teamSeasonIds).eq('is_published', true).order('starts_at')
       : Promise.resolve({ data: [] }),
@@ -435,9 +459,9 @@ export async function loadTeamDetail(slug: string) {
             </div>
           </div>
           <a class="next-match-card__teams" href="${detailUrl}">
-            <div class="${featuredMatch.is_home ? 'is-tsv' : ''}"><span>${escapeHtml(leftTeam)}</span></div>
+            <div class="${featuredMatch.is_home ? 'is-tsv' : ''}">${featuredMatch.is_home ? `<img class="next-match-tsv-logo" src="${escapeHtml(mediaUrl('branding/tennis-logo.png'))}" alt="TSV Feldkirchen Tennis" />` : ''}<span>${escapeHtml(leftTeam)}</span></div>
             <strong>VS</strong>
-            <div class="${!featuredMatch.is_home ? 'is-tsv' : ''}"><span>${escapeHtml(rightTeam)}</span></div>
+            <div class="${!featuredMatch.is_home ? 'is-tsv' : ''}">${!featuredMatch.is_home ? `<img class="next-match-tsv-logo" src="${escapeHtml(mediaUrl('branding/tennis-logo.png'))}" alt="TSV Feldkirchen Tennis" />` : ''}<span>${escapeHtml(rightTeam)}</span></div>
           </a>
           <div class="next-match-card__bottom">
             <div>
@@ -461,9 +485,17 @@ export async function loadTeamDetail(slug: string) {
     (galleries ?? []).filter((gallery: Row) => gallery.match_id).map((gallery: Row) => gallery.match_id)
   );
   const matchTarget = document.querySelector<HTMLElement>('#team-matches');
-  if (matchTarget) matchTarget.innerHTML = matches?.length
-    ? matches.map((m: Row) => matchRow(m, reference, liveStates, matchGalleryIds)).join('')
-    : '<p class="muted">Noch keine Spiele eingetragen.</p>';
+  if (matchTarget) {
+    const now = Date.now();
+    const liveMatches = (matches ?? []).filter((m: Row) => liveStates.find((s: Row) => s.match_id === m.id)?.status === 'live');
+    const futureMatches = (matches ?? []).filter((m: Row) => new Date(m.starts_at).getTime() >= now && !liveMatches.includes(m));
+    const playedMatches = (matches ?? []).filter((m: Row) => new Date(m.starts_at).getTime() < now && !liveMatches.includes(m)).reverse();
+    const group = (title: string, items: Row[]) => items.length
+      ? `<section class="team-match-group"><h3>${escapeHtml(title)} <small>(${items.length})</small></h3><div class="match-list">${items.map((m: Row) => matchRow(m, reference, liveStates, matchGalleryIds)).join('')}</div></section>`
+      : '';
+    matchTarget.innerHTML = group('Jetzt LIVE', liveMatches) + group('Kommende Spiele', futureMatches) + group('Vergangene Ergebnisse', playedMatches)
+      || '<p class="muted">Noch keine Spiele eingetragen.</p>';
+  }
 
   const newsTarget = document.querySelector<HTMLElement>('#team-news');
   if (newsTarget) newsTarget.innerHTML = news?.length ? news.map((n: Row) => `<div class="news-row"><div><strong>${escapeHtml(n.title)}</strong><p class="muted">${escapeHtml(n.excerpt || '')}</p></div></div>`).join('') : '<p class="muted">Noch keine Mannschaftsberichte.</p>';
