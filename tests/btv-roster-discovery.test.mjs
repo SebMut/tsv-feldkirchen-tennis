@@ -14,7 +14,7 @@ test('probe accepts only the BTV and nuLiga HTTPS hosts', () => {
 });
 
 test('probe confirms TSV club and club number before navigating to Downloads', () => {
-  assert.match(code, /TSV\\s\+Feldkirchen/);
+  assert.match(code, /const CLUB =/);
   assert.match(code, /01012/);
   assert.match(code, /confirmClub\(context\)/);
   assert.match(code, /TSV_SCOPE_NOT_CONFIRMED/);
@@ -26,7 +26,7 @@ test('read-only operation does not download data or record secrets', () => {
   assert.match(code, /BTV_ROSTER_TRANSFER=NONE/);
   assert.doesNotMatch(code, /(?:screenshot|storageState|saveAs|writeFile|createClient)\s*\(/i);
   assert.doesNotMatch(code, /console\.(?:log|warn|error)\([^)]*(?:USERNAME|PASSWORD|text|body)/);
-  assert.match(code, /if \(href && \/\\.pdf/);
+  assert.match(code, /UNEXPECTED_PDF_LINK/);
 });
 
 test('user-controlled Secrets can run only on trusted main, never on pull requests', () => {
