@@ -1,3 +1,5 @@
+> **Hinweis:** Dieses Dokument enthält die ursprüngliche Migrationsphasen-Zählung. Für den aktuellen Website-Rebuild (Phase 1–7) gilt `docs/pre-go-live-plan.md`; die hier dokumentierten einzelnen fachlichen Prüfpunkte bleiben relevant.
+
 # Migrations- und Abnahmestatus
 
 Produktive Domain: **noch nicht umstellen**.
