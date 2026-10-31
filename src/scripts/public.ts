@@ -969,7 +969,7 @@ export async function loadCalendar() {
   const startToday = dateKey(new Date());
   let selectedDay = startToday;
   let [viewYear, viewMonth] = selectedDay.split('-').map(Number);
-  let reference: Awaited<ReturnType<typeof refs>> = { seasons: [], categories: [], teams: [], teamSeasons: [] };
+  let reference: Awaited<ReturnType<typeof refs>> = { seasons: [], categories: [], teams: [], teamSeasons: [], btvLinks: [] };
   let matches: Row[] = [];
   let events: Row[] = [];
   let liveStates: Row[] = [];
