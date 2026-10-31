@@ -49,6 +49,7 @@ Die produktive Domain wird erst nach Abnahme der Testversion umgestellt.
 - Die Preview wird mit `noindex,nofollow` gebaut und hat eigenes `robots.txt` mit `Disallow: /`.
 - `src/pages/sitemap.xml.ts` generiert im Produktionsbuild eine echte Sitemap-Datei.
 - Zwei öffentlich aufrufbare Match-RPCs wurden für `anon` gesperrt; `authenticated` bleibt mit interner Berechtigungsprüfung zulässig.
+- **Sicherheitsnachtrag:** 23/23 Tabellen mit RLS; alle unnötigen anonymen SQL-Schreib-/TRUNCATE-/TRIGGER-/REFERENCES-Rechte wurden über eine dokumentierte Migration entzogen. Auch `authenticated` darf kein TRUNCATE ausführen. Für neue Tabellen diese Rechte erneut überprüfen.
 - Produktionsdeployment: ausschließlich manuell aus `main`, mit `final_approval`-Eingabe und Repository-Variable `TSV_GO_LIVE_APPROVED=true`, außerdem `environment: production`.
 - Die zu konfigurierenden Environment-Reviewer und Secrets müssen vor Go-live manuell durch berechtigte Repository-Administratoren geprüft werden.
 - `.htaccess` wird beim späteren autorisierten Deployment explizit mit hochgeladen; der Workflow löscht keine vorherigen WordPress-Dateien.
