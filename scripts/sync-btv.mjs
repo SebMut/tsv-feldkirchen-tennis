@@ -57,6 +57,10 @@ try {
     .in('team_season_id', ids), 'Existing matches');
   const keyed = new Map(existing.filter(row => row.btv_source_key)
     .map(row => [row.btv_source_key, row]));
+  const byId = new Map(existing.map(row => [row.id, row]));
+  const previousSnapshots = await get(db.from('btv_fixture_snapshots')
+    .select('source_key,first_seen_at,match_id').eq('season_year', year), 'Previous BTV snapshots');
+  const previousByKey = new Map(previousSnapshots.map(row => [row.source_key, row]));
   const byIdentity = new Map();
   const countPerSeason = new Map();
   for (const row of existing) {
@@ -80,8 +84,12 @@ try {
     const matchKey = identity(season.id, fixture.isHome, fixture.opponent);
     const same = byIdentity.get(matchKey) || [];
     const specific = keyed.get(fixture.sourceKey);
+    const previous = previousByKey.get(fixture.sourceKey);
+    const linked = previous?.match_id ? byId.get(previous.match_id) : null;
     let matched = null;
-    if (specific && specific.team_season_id === season.id) matched = specific;
+    if (sourceIdentities.get(matchKey) === 1 && specific?.team_season_id === season.id) matched = specific;
+    else if (sourceIdentities.get(matchKey) === 1 && linked?.team_season_id === season.id
+      && identity(linked.team_season_id,linked.is_home,linked.opponent) === matchKey) matched = linked;
     else if (same.length === 1 && sourceIdentities.get(matchKey) === 1) matched = same[0];
     else if (same.length > 1 || sourceIdentities.get(matchKey) > 1) {
       unresolved.push(fixture.slug + ': ' + fixture.opponent + ' (mehrdeutig)');
@@ -113,6 +121,7 @@ try {
       team_season_id: season.id, match_id: matched?.id || null,
       opponent: fixture.opponent, is_home: fixture.isHome,
       starts_at: fixture.startsAt, source_url: schedule.sourceUrl,
+      first_seen_at: previous?.first_seen_at || new Date().toISOString(),
       last_seen_at: new Date().toISOString(),
     });
   }
