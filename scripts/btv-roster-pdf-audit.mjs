@@ -237,22 +237,6 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   console.log('BTV_LAYOUT_NUMBER_PREFIX_LINES=' + lines.filter(line => /^\s*\d+[.)]?\s+\p{L}/u.test(line)).length);
   console.log('BTV_LAYOUT_LK_LINES=' + lines.filter(line => /\bLK\s*\d/i.test(line)).length);
 
-  const headings = new Set();');
-    const pattern = new RegExp('(^|[^\\\\p{L}])' + escaped.replace(/ /g, '\\\\s+') + '(?![\\\\p{L}0-9])', 'iu');
-    const hits = lines.filter(line => pattern.test(line));
-    if (!hits.length) continue;
-    const first = hits[0];
-    const redacted = first.slice(0, 90)
-      .replace(/\\p{L}/gu, 'X').replace(/[0-9]/g, '9')
-      .replace(/[^X9\\s()|:;.,\\/\\-]/g, '?').replace(/\\s+/g, ' ').trim();
-    const code = className.toLocaleUpperCase('de-DE').replace(/[^A-Z0-9]/g, '_');
-    console.log('BTV_LAYOUT_' + code + '_LINES=' + hits.length);
-    console.log('BTV_LAYOUT_' + code + '_SHAPE=' + redacted);
-  }
-  console.log('BTV_LAYOUT_LINE_COUNT=' + lines.length);
-  console.log('BTV_LAYOUT_NUMBER_PREFIX_LINES=' + lines.filter(line => /^\\s*\\d+[.)]?\\s+\\p{L}/u.test(line)).length);
-  console.log('BTV_LAYOUT_LK_LINES=' + lines.filter(line => /\\bLK\\s*\\d/i.test(line)).length);
-
   const headings = new Set();
   for (const line of text.split(/\r?\n/)) {
     const clean = line.replace(/\s+/g, ' ').trim();
