@@ -589,9 +589,10 @@ body{background:var(--sand);color:var(--text)}
 .team-match-group{margin-bottom:26px}
 .team-match-group>h3{margin-bottom:10px}
 .team-match-group h3 small{font-size:.7em;font-weight:600;color:var(--muted)}
-.team-standings-table{min-width:560px}
+.team-standings-table{min-width:840px}
 .team-standings-table tr.is-tsv td{background:#e7f2ed;font-weight:700}
 .team-standings-table .status-pill{margin-left:8px;padding:3px 7px;font-size:.68rem}
+.team-standings-table th:nth-child(n+3),.team-standings-table .team-standings-number{text-align:center;white-space:nowrap}
 .next-match-tsv-logo{width:40px;height:40px;object-fit:contain;margin-right:9px;flex:0 0 40px}
 .next-match-card__teams>div{display:flex;justify-content:center;align-items:center;gap:8px;min-width:0}
 .calendar-time-group h2{font-size:1.3rem;margin-bottom:12px}

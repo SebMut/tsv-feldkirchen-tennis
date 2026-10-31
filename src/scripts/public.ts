@@ -615,16 +615,23 @@ export async function loadTeamDetail(slug: string) {
     const standings = standingsResult.data ?? [];
     const sourceUrl = standings[0]?.source_url;
     const syncedAt = standings[0]?.synced_at;
+    const standingValues = (value: unknown) => {
+      const parts = typeof value === 'string' ? value.trim().split(/\s+/).slice(0, 5) : [];
+      return parts.length === 5 ? parts : ['–', '–', '–', '–', '–'];
+    };
     standingsTarget.innerHTML = standings.length ? `
       <div class="table-wrap">
         <table class="data-table team-standings-table">
-          <thead><tr><th scope="col">Rang</th><th scope="col">Mannschaft</th><th scope="col">BTV-Bilanz</th></tr></thead>
-          <tbody>${standings.map((row: Row) => `
+          <thead><tr><th scope="col">Rang</th><th scope="col">Mannschaft</th><th scope="col">Begegnungen</th><th scope="col">Punkte</th><th scope="col">Matches</th><th scope="col">Sätze</th><th scope="col">Spiele</th></tr></thead>
+          <tbody>${standings.map((row: Row) => {
+            const values = standingValues(row.standing_text);
+            return `
             <tr class="${row.club_code === '01012' ? 'is-tsv' : ''}">
               <td><strong>${row.rank}</strong></td>
               <td>${escapeHtml(row.team_name)}${row.club_code === '01012' ? ' <span class="status-pill">TSV</span>' : ''}</td>
-              <td>${escapeHtml(row.standing_text)}</td>
-            </tr>`).join('')}</tbody>
+              ${values.map(value => `<td class="team-standings-number">${escapeHtml(value)}</td>`).join('')}
+            </tr>`;
+          }).join('')}</tbody>
         </table>
       </div>
       <p class="match-meta">Amtlicher BTV-Stand${syncedAt ? ` · aktualisiert ${escapeHtml(formatDateTime(syncedAt))}` : ''}${sourceUrl ? ` · <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Quelle ↗</a>` : ''}</p>`
