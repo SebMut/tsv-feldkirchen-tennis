@@ -7,7 +7,7 @@
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { canonicalAgeClass, isYouthClass } from './btv-roster-age-classes.mjs';
+import { ageClassFromPdfHeading, isYouthClass } from './btv-roster-age-classes.mjs';
 
 const ENTRY = 'https://www.btv.de/de/mein-verein/vereins-cockpit.html';
 const LOGIN_HOST = 'tende-id.liga.nu';
@@ -220,8 +220,8 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   const headings = new Set();
   for (const line of text.split(/\r?\n/)) {
     const clean = line.replace(/\s+/g, ' ').trim();
-    if (clean.length > 35) continue;
-    const canonical = canonicalAgeClass(clean);
+    if (clean.length > 110) continue;
+    const canonical = ageClassFromPdfHeading(clean);
     if (canonical) headings.add(canonical);
   }
   const youth = [...headings].filter(isYouthClass).length;
