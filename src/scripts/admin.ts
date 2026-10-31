@@ -263,6 +263,16 @@ async function refreshDashboard() {
         await refreshMatches();
       }
     }
+    const gameSelect = $<HTMLSelectElement>('#matches-admin-game');
+    if (gameSelect && gameSelect.value !== matchId) {
+      if (!Array.from(gameSelect.options).some((option) => option.value === matchId)) {
+        const filter = $<HTMLSelectElement>('#matches-admin-filter');
+        if (filter) filter.value = 'all';
+        await refreshMatches();
+      }
+      gameSelect.value = matchId;
+      await refreshMatches();
+    }
     window.setTimeout(() => {
       const card = document.querySelector<HTMLElement>(`[data-match-card="${matchId}"]`);
       if (!card) return;
@@ -631,7 +641,10 @@ async function savePlayer(event: Event) {
   refreshPlayers();
 }
 
+let openMobileEncounterId: string | null = null;
+
 async function refreshMatches() {
+  const mobileLayout = window.matchMedia('(max-width: 760px)').matches;
   const ids = allowedTeamSeasons('tick').map((ts) => ts.id);
   const target = $('#matches-admin-list');
   if (!target) return;
@@ -714,13 +727,13 @@ async function refreshMatches() {
       <div class="encounter-side__fields">
         <strong>TSV Feldkirchen</strong>
         <select data-enc-player1 aria-label="TSV-Spieler 1 aus Kader wählen">${playerOptions(match, encounter.tsv_player_1_id)}</select>
-        <input data-enc-name1 type="text" maxlength="120" autocomplete="off"
+        <input data-enc-name1 type="text" maxlength="120" autocomplete="off" autocapitalize="words" enterkeyhint="done"
           aria-label="TSV-Spieler 1 – Name direkt eingeben"
           value="${escapeHtml(encounter.tsv_player_1_name || playerMap.get(encounter.tsv_player_1_id)?.display_name || '')}"
           placeholder="Oder Namen direkt eingeben" />
         ${encounter.discipline === 'doubles'
           ? `<select data-enc-player2 aria-label="TSV-Spieler 2 aus Kader wählen">${playerOptions(match, encounter.tsv_player_2_id)}</select>
-             <input data-enc-name2 type="text" maxlength="120" autocomplete="off"
+             <input data-enc-name2 type="text" maxlength="120" autocomplete="off" autocapitalize="words" enterkeyhint="done"
                aria-label="TSV-Spieler 2 – Name direkt eingeben"
                value="${escapeHtml(encounter.tsv_player_2_name || playerMap.get(encounter.tsv_player_2_id)?.display_name || '')}"
                placeholder="Oder Namen direkt eingeben" />`
@@ -748,14 +761,20 @@ async function refreshMatches() {
     const opponentSide = renderOpponentSide(match, encounter);
     const statusLabel = encounter.status === 'live' ? 'LIVE' : encounter.status === 'finished' ? 'Beendet' : 'Geplant';
 
+    const isOpen = !mobileLayout || openMobileEncounterId === encounter.id
+      || (!openMobileEncounterId && encounter.id === (encounters ?? []).find((row) => row.status === 'live')?.id);
+    const playerLabel = [encounter.tsv_player_1_name, encounter.tsv_player_2_name].filter(Boolean).join(' / ');
     return `
-      <article class="encounter-card ${encounter.status === 'live' ? 'is-live' : ''}" data-encounter-id="${encounter.id}">
-        <div class="encounter-card__head">
-          <strong>${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position}</strong>
+      <details class="encounter-card ${encounter.status === 'live' ? 'is-live' : ''}" data-encounter-id="${encounter.id}" ${isOpen ? 'open' : ''}>
+        <summary class="encounter-card__head">
+          <span class="encounter-card__heading">
+            <strong>${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position}</strong>
+            <small>${escapeHtml(playerLabel || 'TSV-Spieler eintragen')}${encounter.result_text ? ' · ' + escapeHtml(encounter.result_text) : ''}</small>
+          </span>
           <span class="status-pill ${encounter.status === 'live' ? 'live' : ''}">${statusLabel}</span>
-        </div>
-
-        <p class="muted">TSV-Spieler aus dem Kader wählen oder direkt mit Namen eintragen. Die Namen erscheinen im öffentlichen Liveticker.</p>
+        </summary>
+        <div class="encounter-card__body">
+        <p class="muted">TSV-Spieler aus dem Kader wählen oder direkt mit Namen eintragen. Namen sind im öffentlichen Liveticker sichtbar.</p>
         <div class="encounter-sides">
           ${match.is_home ? tsvSide : opponentSide}
           <span class="encounter-vs">VS</span>
@@ -773,7 +792,9 @@ async function refreshMatches() {
             ${encounter.status !== 'scheduled' || encounter.winner || encounter.result_text ? '<button class="button ghost" type="button" data-enc-reset>Zurücksetzen</button>' : ''}
           </div>
         </div>
-      </article>`;
+        <p data-enc-feedback class="encounter-feedback" role="status" aria-live="polite"></p>
+        </div>
+      </details>`;
   };
 
   const filter = $<HTMLSelectElement>('#matches-admin-filter')?.value || 'focus';
@@ -784,10 +805,31 @@ async function refreshMatches() {
     // Include recent games so a delayed ticker update is still easy to find.
     return matchStatus === 'live' || (matchStatus !== 'finished' && new Date(match.starts_at).getTime() >= now - 7 * 86400000);
   });
+  const gameSelect = $<HTMLSelectElement>('#matches-admin-game');
+  const priorChoice = gameSelect?.dataset.initialized === 'true'
+    ? gameSelect.value : mobileLayout ? 'auto' : 'all';
+  if (gameSelect) {
+    gameSelect.innerHTML = '<option value="auto">Laufendes oder nächstes Spiel</option>' +
+      '<option value="all">Alle angezeigten Spiele</option>' + visibleMatches.map((match) => {
+        const ts = state.teamSeasons.find((row) => row.id === match.team_season_id);
+        const team = state.teams.find((row) => row.id === ts?.team_id);
+        return `<option value="${match.id}">${escapeHtml(team?.name || 'TSV')} · ${escapeHtml(match.opponent)} · ${escapeHtml(formatDateTime(match.starts_at))}</option>`;
+      }).join('');
+    gameSelect.value = priorChoice && [...gameSelect.options].some((option) => option.value === priorChoice)
+      ? priorChoice : 'auto';
+    gameSelect.dataset.initialized = 'true';
+  }
+  const selectedGame = gameSelect?.value || 'all';
+  const autoMatch = visibleMatches.find((match) => liveMap.get(match.id)?.status === 'live')
+    ?? visibleMatches.find((match) => new Date(match.starts_at).getTime() >= now)
+    ?? visibleMatches[0];
+  const displayMatches = selectedGame === 'all' ? visibleMatches
+    : selectedGame === 'auto' ? (autoMatch ? [autoMatch] : [])
+    : visibleMatches.filter((match) => match.id === selectedGame);
   const summary = $('#matches-filter-summary');
-  if (summary) summary.textContent = `${visibleMatches.length} von ${state.matches.length} Spielen angezeigt. Ältere Spiele findest du unter „Alle Spiele“.`;
+  if (summary) summary.textContent = `${displayMatches.length} von ${visibleMatches.length} passenden Spielen geöffnet. Über „Spieltag auswählen“ kannst du wechseln.`;
 
-  target.innerHTML = visibleMatches.map((match) => {
+  target.innerHTML = displayMatches.map((match) => {
     const ts = state.teamSeasons.find((row) => row.id === match.team_season_id);
     const team = state.teams.find((row) => row.id === ts?.team_id);
     const live: any = liveMap.get(match.id) || { status: 'scheduled', home_score: 0, away_score: 0 };
@@ -837,9 +879,9 @@ async function refreshMatches() {
         <p>Spielstand TSV ${clubScore} : ${opponentScore} · Änderungen über die Begegnungskacheln speichern; einzelne Ergebnisse lassen sich mit „Zurücksetzen“ korrigieren.</p>
       </div>
       <div class="actions match-admin-main-actions">
-        <button class="button secondary" data-live-action="start" type="button">Spieltag live starten</button>
-        <button class="button ghost" data-live-action="finish" type="button">Spieltag beenden</button>
-        <a class="button ghost" href="/live/?match=${match.id}" target="_blank">Öffentlichen Ticker öffnen ↗</a>
+        <button class="button secondary" data-live-action="start" type="button" ${live.status === 'live' ? 'disabled' : ''}>Spieltag live starten</button>
+        <button class="button ghost" data-live-action="finish" type="button" ${live.status === 'finished' ? 'disabled' : ''}>Spieltag beenden</button>
+        <a class="button ghost" href="/live/?match=${match.id}" target="_blank" rel="noopener noreferrer">Öffentlichen Ticker öffnen ↗</a>
       </div>
 
       ${rows.length ? `
@@ -921,14 +963,19 @@ async function refreshMatches() {
 
     card.querySelectorAll<HTMLButtonElement>('[data-live-action]').forEach((button) => button.addEventListener('click', async () => {
       const action = button.dataset.liveAction;
+      if (button.disabled) return;
+      if (action === 'finish' && !window.confirm('Den ganzen Spieltag wirklich beenden?')) return;
+      button.disabled = true;
       const patch = action === 'start'
         ? { status: 'live', started_at: live.started_at || new Date().toISOString(), finished_at: null, updated_by: state.user.id }
         : { status: 'finished', finished_at: new Date().toISOString(), updated_by: state.user.id };
       const { error } = await supabase.from('match_live_state').update(patch).eq('match_id', matchId);
-      if (error) status(error.message, 'error');
-      else {
+      if (error) {
+        status(error.message, 'error');
+        button.disabled = false;
+      } else {
         status(action === 'start' ? 'Spieltag ist jetzt live.' : 'Spieltag beendet.', 'success');
-        refreshMatches();
+        await refreshMatches();
       }
     }));
 
@@ -936,6 +983,28 @@ async function refreshMatches() {
       const encounterId = encounterCard.dataset.encounterId!;
       const encounter = (encounterMap.get(matchId) ?? []).find((row) => row.id === encounterId);
       if (!encounter || !match) return;
+
+      if (encounterCard instanceof HTMLDetailsElement) {
+        encounterCard.addEventListener('toggle', () => {
+          if (!mobileLayout || !encounterCard.isConnected) return;
+          if (encounterCard.open) {
+            openMobileEncounterId = encounterId;
+            card.querySelectorAll<HTMLDetailsElement>('details.encounter-card').forEach((other) => {
+              if (other !== encounterCard) other.open = false;
+            });
+          } else if (openMobileEncounterId === encounterId) {
+            openMobileEncounterId = null;
+          }
+        });
+      }
+      const localFeedback = (message: string, tone: 'success' | 'error' = 'success') => {
+        const feedback = encounterCard.querySelector<HTMLElement>('[data-enc-feedback]');
+        if (feedback) {
+          feedback.textContent = message;
+          feedback.dataset.tone = tone;
+        }
+        status(message, tone);
+      };
 
       const ensureMatchLive = async () => {
         if (live.status === 'live') return true;
@@ -991,7 +1060,7 @@ async function refreshMatches() {
           if (await updateEncounter(encounterId, patch)) {
             const select = encounterCard.querySelector<HTMLSelectElement>(`[data-enc-player${position}]`);
             if (select) select.value = '';
-            status(name ? 'TSV-Spieler gespeichert.' : 'Spielername entfernt.', 'success');
+            localFeedback(name ? 'TSV-Spieler gespeichert.' : 'Spielername entfernt.');
           }
         });
       }
@@ -1008,7 +1077,7 @@ async function refreshMatches() {
 
       encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.addEventListener('change', async (event) => {
         const resultText = (event.currentTarget as HTMLInputElement).value.trim() || null;
-        if (await updateEncounter(encounterId, { result_text: resultText })) status('Ergebnis gespeichert.', 'success');
+        if (await updateEncounter(encounterId, { result_text: resultText })) localFeedback('Ergebnis gespeichert.');
       });
 
       encounterCard.querySelector<HTMLButtonElement>('[data-enc-start]')?.addEventListener('click', async () => {
@@ -1019,14 +1088,17 @@ async function refreshMatches() {
           finished_at: null,
           winner: null,
         })) {
-          status(`${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position} läuft jetzt.`, 'success');
-          refreshMatches();
+          openMobileEncounterId = encounterId;
+          localFeedback(`${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position} läuft jetzt.`);
+          await refreshMatches();
         }
       });
 
       encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-winner]').forEach((button) => {
         button.addEventListener('click', async () => {
-          if (!(await ensureMatchLive())) return;
+          if (button.disabled) return;
+          button.disabled = true;
+          if (!(await ensureMatchLive())) { button.disabled = false; return; }
           const winner = button.dataset.encWinner;
           const resultText = encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.value.trim() || null;
           if (await updateEncounter(encounterId, {
@@ -1035,9 +1107,10 @@ async function refreshMatches() {
             result_text: resultText,
             finished_at: new Date().toISOString(),
           })) {
-            status(winner === 'tsv' ? 'Punkt für TSV Feldkirchen gespeichert.' : 'Punkt für den Gegner gespeichert.', 'success');
-            refreshMatches();
-          }
+            openMobileEncounterId = encounterId;
+            localFeedback(winner === 'tsv' ? 'Punkt für TSV Feldkirchen gespeichert.' : 'Punkt für den Gegner gespeichert.');
+            await refreshMatches();
+          } else button.disabled = false;
         });
       });
 
@@ -1616,6 +1689,7 @@ function bindForms() {
   $<HTMLButtonElement>('#player-cancel-edit')?.addEventListener('click', resetPlayerForm);
   $<HTMLFormElement>('#match-form')?.addEventListener('submit', addMatch);
   $<HTMLSelectElement>('#matches-admin-filter')?.addEventListener('change', () => { void refreshMatches(); });
+  $<HTMLSelectElement>('#matches-admin-game')?.addEventListener('change', () => { void refreshMatches(); });
   $<HTMLFormElement>('#news-form')?.addEventListener('submit', addNews);
   $<HTMLFormElement>('#event-form')?.addEventListener('submit', addEvent);
   $('#news-cancel-edit')?.addEventListener('click', () => {
