@@ -1,9 +1,10 @@
 import { supabase } from '../lib/supabase';
 import { setStatus } from '../lib/ui';
-import { officialBtvGroupUrl } from '../lib/btv-group-url';
+import { officialBtvTeamDestination } from '../lib/btv-group-url';
 
 type Entry = {
   match_id: string;
+  team_season_id: string;
   starts_at: string;
   is_home: boolean;
   opponent: string;
@@ -38,6 +39,7 @@ const localTime = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', 
 let fixtures: Entry[] = [];
 let manual = new Map<string, Manual>();
 let withdrawalFlags = new Map<string, WithdrawalFlag>();
+let verifiedBtv = new Map<string, string>();
 let selected: Entry | null = null;
 let initialized = false;
 
@@ -115,15 +117,15 @@ function renderList() {
     const item = document.createElement('div');
     item.className = 'manual-result-item-wrap';
     item.append(button);
-    const officialUrl = officialBtvGroupUrl(m.btv_url);
-    if (officialUrl) {
+    const btv = officialBtvTeamDestination(verifiedBtv.get(m.team_season_id) === m.btv_url ? m.btv_url : null);
+    if (btv.href) {
       const link = document.createElement('a');
-      link.href = officialUrl;
+      link.href = btv.href;
       link.className = 'text-link';
-      link.textContent = 'BTV-Tabelle ' + m.team_name + ' ↗';
+      link.textContent = (btv.isDirect ? 'BTV-Tabelle ' : 'BTV-Vereinsübersicht ') + m.team_name + ' ↗';
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.setAttribute('aria-label', 'BTV-Tabelle und Spielplan ' + m.team_name + ' öffnen');
+      link.setAttribute('aria-label', (btv.isDirect ? 'BTV-Tabelle und Spielplan ' : 'BTV-Vereinsübersicht für ') + m.team_name + ' öffnen');
       item.append(link);
     } else {
       const missing = document.createElement('span');
@@ -174,9 +176,10 @@ function selectMatch(id: string) {
 
   const link = byId<HTMLAnchorElement>('manual-result-official-link');
   if (link) {
-    const href = officialBtvGroupUrl(selected.btv_url);
-    link.classList.toggle('hidden', !href);
-    if (href) link.href = href; else link.removeAttribute('href');
+    const btv = officialBtvTeamDestination(verifiedBtv.get(selected.team_season_id) === selected.btv_url ? selected.btv_url : null);
+    link.href = btv.href;
+    link.classList.remove('hidden');
+    link.textContent = btv.isDirect ? 'Offiziellen BTV-Spielplan öffnen ↗' : 'BTV-Vereinsübersicht öffnen (Gruppenlink ungeprüft) ↗';
   }
   if (isOfficial(selected)) showStatus('Ein offizielles BTV-Ergebnis ist bereits hinterlegt. Manuelle Änderungen sind für dieses Spiel gesperrt.', 'info');
   renderList();
@@ -184,9 +187,9 @@ function selectMatch(id: string) {
 
 async function loadMatches() {
   showStatus('Begegnungen werden geladen …');
-  const [matchRes, manualRes, flagsRes] = await Promise.all([
+  const [matchRes, manualRes, flagsRes, verifiedRes] = await Promise.all([
     supabase.from('manual_editable_matches')
-      .select('match_id,starts_at,is_home,opponent,btv_result_text,team_name,season_code,season_name,btv_url,tennis_de_portrait_url')
+      .select('match_id,team_season_id,starts_at,is_home,opponent,btv_result_text,team_name,season_code,season_name,btv_url,tennis_de_portrait_url')
       .order('starts_at', { ascending: true }).limit(1000),
     supabase.from('manual_match_results')
       .select('match_id,result_status,home_points,away_points,source_type,source_url,notes,review_status')
@@ -194,6 +197,8 @@ async function loadMatches() {
     supabase.from('match_withdrawal_flags')
       .select('match_id,affected_side,source_kind,verification_status,evidence_url')
       .limit(1000),
+    supabase.from('verified_team_btv_links')
+      .select('team_season_id,btv_url').limit(1000),
   ]);
   if (matchRes.error) throw matchRes.error;
   if (manualRes.error) throw manualRes.error;
@@ -201,6 +206,8 @@ async function loadMatches() {
   fixtures = (matchRes.data || []) as Entry[];
   manual = new Map(((manualRes.data || []) as Manual[]).map(m => [m.match_id, m]));
   withdrawalFlags = new Map(((flagsRes.data || []) as WithdrawalFlag[]).map(m => [m.match_id, m]));
+  // On a failed verification lookup, never present an unverified legacy ID as official.
+  verifiedBtv = new Map((verifiedRes.data || []).map(m => [m.team_season_id, m.btv_url]));
   const seasons = new Map(fixtures.map(m => [m.season_code, m.season_name]));
   const seasonSelect = byId<HTMLSelectElement>('manual-results-season');
   if (seasonSelect) {
