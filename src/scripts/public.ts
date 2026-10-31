@@ -207,15 +207,16 @@ export async function loadHome() {
     }
     if (facility) {
       const current = facilityResult.data?.[0];
+      const outdated = !!current?.updated_at && Date.now() - new Date(current.updated_at).getTime() > 14 * 86400000;
       const hasError = !!(facilityResult.error || courtsResult.error);
-      const label = hasError ? 'Anlagenstatus nicht verfügbar' : !current ? 'Status nicht gemeldet'
+      const label = outdated ? 'Status nicht aktuell' : hasError ? 'Anlagenstatus nicht verfügbar' : !current ? 'Status nicht gemeldet'
         : current.status === 'closed' ? 'Plätze gesperrt' : current.status === 'limited' ? 'Teilweise geöffnet'
         : current.status === 'open' ? 'Plätze geöffnet' : 'Status derzeit unklar';
-      const description = hasError ? 'Bitte prüfe die aktuelle Platzverfügbarkeit in Courtbooking.'
+      const description = outdated ? 'Die letzte Meldung ist älter als 14 Tage. Bitte die Verfügbarkeit direkt bei Courtbooking prüfen.' : hasError ? 'Bitte prüfe die aktuelle Platzverfügbarkeit in Courtbooking.'
         : current?.message || (!current ? 'Für heute liegt noch keine Statusmeldung vor.' : 'Aktuelle Meldung zur Tennisanlage.');
-      const state = !hasError && current?.status === 'closed' ? 'Gesperrt'
-        : !hasError && current?.status === 'open' ? 'Geöffnet'
-        : !hasError && current?.status === 'limited' ? 'Eingeschränkt' : 'Unbekannt';
+      const state = !hasError && !outdated && current?.status === 'closed' ? 'Gesperrt'
+        : !hasError && !outdated && current?.status === 'open' ? 'Geöffnet'
+        : !hasError && !outdated && current?.status === 'limited' ? 'Eingeschränkt' : 'Unbekannt';
       const closed = (courtsResult.data ?? []).filter(c => c.status !== 'open');
       facility.innerHTML = `
         <p class="eyebrow">Anlagenstatus</p>
@@ -224,6 +225,7 @@ export async function loadHome() {
           <span class="status-pill ${state === 'Gesperrt' ? 'closed' : ''}">${escapeHtml(state)}</span>
         </div>
         ${!hasError && closed.length ? `<p class="muted">${closed.map(c => `${escapeHtml(c.name)}: ${escapeHtml(c.status_message || c.status)}`).join(' · ')}</p>` : ''}
+        ${current?.updated_at ? `<p class="match-meta">Zuletzt gemeldet: ${escapeHtml(formatDateTime(current.updated_at))}</p>` : ''}
         <a class="text-link" href="${escapeHtml(COURTBOOKING_URL)}" target="_blank" rel="noreferrer">Platzverfügbarkeit prüfen ↗</a>`;
     }
     const liveStates = activeResult.data ?? [];
