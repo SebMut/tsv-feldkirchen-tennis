@@ -1,6 +1,7 @@
 import { mediaUrl, supabase } from '../lib/supabase';
 import { optimizeImage } from '../lib/images';
 import { initAdvancedAdmin, loadAdvancedUsers } from './admin-advanced';
+import { initPhase8Admin } from './phase8';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
 
 type Row = Record<string, any>;
@@ -1516,6 +1517,7 @@ async function startApp(user: any) {
   await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshEvents(), refreshGalleries()]);
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
   await initAdvancedAdmin(state);
+  await initPhase8Admin(state);
 }
 
 export async function initAdmin() {
