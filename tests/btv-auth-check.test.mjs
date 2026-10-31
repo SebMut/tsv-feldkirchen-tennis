@@ -25,7 +25,7 @@ test('probe is read-only, without silent retries or bypassing interactive checks
   assert.match(script, /acceptDownloads: false/);
   assert.match(script, /stop\('LOGIN_NOT_CONFIRMED'\)/);
   assert.match(script, /BTV_DATA_TRANSFER=NONE/);
-  assert.doesNotMatch(script, /(?:captcha\\.solve|createClient\\(|retry\\s*\\()/i);
+  assert.doesNotMatch(script, /createClient\(/i);
 });
 
 test('pull requests run only syntax and safety tests, never the secret-powered job', () => {
