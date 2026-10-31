@@ -902,3 +902,13 @@ body{background:var(--sand);color:var(--text)}
   .encounter-card__head{align-items:flex-start}
   .encounter-card__head .status-pill{flex-shrink:0}
 }
+
+/* Phase 4: unsaved mobile matchday edits are visible before navigation. */
+.match-draft-warning{border-radius:10px;border:1px solid #ddb063;background:#fff6e4;color:#6c4210;font-size:.9rem;font-weight:750;padding:11px 13px;margin:0 0 12px}
+@media(max-width:375px){
+  .match-admin-card{padding:12px}
+  .encounter-sides{min-width:0}
+  .encounter-side__fields{min-width:0}
+  .encounter-card__heading{overflow-wrap:anywhere}
+  .match-ticker-selectors select{max-width:100%}
+}
