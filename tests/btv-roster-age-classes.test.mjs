@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import {
   AGE_CLASSES, YOUTH_CLASSES, YOUTH_TEAM_SLUGS, SUMMER_2026_TEAM_SLUGS,
   WINTER_2026_27_TEAM_SLUGS, canonicalAgeClass, rosterTeams,
-  isYouthClass, normalizeRosterNames, planPrivateRosterImport,
+  isYouthClass, normalizeRosterNames, planPrivateRosterImport, ageClassFromPdfHeading,
 } from '../scripts/btv-roster-age-classes.mjs';
 
 test('all 20 TSV summer teams including 9 youth teams are mapped exactly once', () => {
@@ -54,6 +54,18 @@ test('youth import plans are private and require every mapped club team', () => 
     seasonCode: 'sommer-2026', ageClass: 'Bambini 12',
     names: ['Spieler Muster'], existingTeams: ['bambini-12'],
   }), /TEAM_SEASON_MAPPING_INCOMPLETE/);
+});
+test('PDF league header detection accepts only known age classes', () => {
+  assert.equal(ageClassFromPdfHeading('Herren II | Südliga 2'), 'Herren');
+  assert.equal(ageClassFromPdfHeading('Damen (4er) | Südliga 5'), 'Damen');
+  assert.equal(ageClassFromPdfHeading('Herren 50 II (4er) | Südliga 4'), 'Herren 50');
+  assert.equal(ageClassFromPdfHeading('Bambini 12 III (4er) | Südliga'), 'Bambini 12');
+  assert.equal(ageClassFromPdfHeading('Knaben 15 II | Südliga'), 'Knaben 15');
+  assert.equal(ageClassFromPdfHeading('Junioren 18 | Südliga'), 'Junioren 18');
+  assert.equal(ageClassFromPdfHeading('Mädchen 15 | Südliga'), 'Mädchen 15');
+  assert.equal(ageClassFromPdfHeading('Kleinfeld U9 | Südliga'), 'Kleinfeld U9');
+  assert.equal(ageClassFromPdfHeading('MF: Beispiel Person'), null);
+  assert.equal(ageClassFromPdfHeading('Nicht TSV 16 | Südliga'), null);
 });
 test('protected PDF audit never uploads minors data to GitHub', () => {
   const js = readFileSync(new URL('../scripts/btv-roster-pdf-audit.mjs', import.meta.url), 'utf8');
