@@ -19,3 +19,12 @@ for (const url of urls) {
  }catch(e){console.log('REQUEST STOPPED',String(e).slice(0,260));}
  finally {clearTimeout(timeout);}
 }
+
+const embedUrl='https://btv-prod.burdadigitalsystems.de/btvteams/?clubnr=01012';
+try {
+ const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);
+ let response;try{response=await fetch(embedUrl,{signal:controller.signal,redirect:'follow',headers:{Accept:'text/html'}});}finally{clearTimeout(timeout);}
+ const content=await response.text();
+ const scripts=[...content.matchAll(/<script[^>]*src=["']([^"']+)["']/g)].map(m=>m[1]);
+ console.log('BTV_TEAMS_EMBED',JSON.stringify({status:response.status,final_url:response.url,type:response.headers.get('content-type'),length:content.length,has_winter:/Winter\s*2026|2026\/27/i.test(content),script_urls:scripts.slice(0,12),has_api:/api\//i.test(content)}));
+}catch(e){console.log('BTV_TEAMS_EMBED_UNAVAILABLE',String(e).slice(0,200));}
