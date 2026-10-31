@@ -147,6 +147,23 @@ export async function fetchClubGroupReport(seasonCode){
     // coverage gap, not evidence that there were no withdrawals.
     const rawWithdrawalMarkers=(full.match(/zurückgezogen(?:\s*\/\s*gesperrt)?\s+am/gi)||[]).length;
     const groupsSeen=groupNumbersFromColumns(columns);
+    if(rawWithdrawalMarkers>entries.length) {
+      // Public team names only: diagnose source layout without ranking errors.
+      const plain=full.split(/\r?\n/);
+      const contexts=[];
+      for(let i=0;i<plain.length;i++){
+        if(!/zurückgezogen(?:\s*\/\s*gesperrt)?\s+am/i.test(plain[i]))continue;
+        contexts.push(plain.slice(Math.max(0,i-1),Math.min(plain.length,i+3))
+          .map(l=>l.trim().slice(0,230)).join(' | '));
+      }
+      const cropped=columns.map((t,index)=>({
+        index,
+        headings:groupNumbersFromColumns([t]),
+        lines:t.split(/\r?\n/).filter(l=>/zurückgezogen|\bGr\./i.test(l)).slice(0,15)
+          .map(l=>l.trim().slice(0,140))
+      })).filter(x=>x.lines.length);
+      console.log('BTV_CLUB_WITHDRAWAL_UNPARSED='+JSON.stringify({contexts:contexts.slice(0,10),cropped}));
+    }
     return {url,entries,pages,groupsSeen,rawWithdrawalMarkers,
       sourceKind:'club_group_report'};
   }finally{rmSync(dir,{recursive:true,force:true});}
