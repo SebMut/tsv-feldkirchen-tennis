@@ -1,6 +1,6 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
-import { COURTBOOKING_URL } from '../../lib/supabase';
+import { COURTBOOKING_URL, mediaUrl } from '../../lib/supabase';
 ---
 <MainLayout
   title="Spieltag | TSV Feldkirchen Tennis"
@@ -17,8 +17,7 @@ import { COURTBOOKING_URL } from '../../lib/supabase';
           <p>Live-Ticker, heutige Begegnungen, Anlagenstatus und direkter Zugang zur Platzbuchung – optimiert für den Spieltag.</p>
         </div>
         <div class="matchday-hero__mark" aria-hidden="true">
-          <span>TSV</span>
-          <strong>TENNIS</strong>
+          <img src={mediaUrl("branding/tennis-logo.png")} alt="TSV Feldkirchen Tennis" width="116" height="116" />
         </div>
       </div>
     </section>
@@ -30,13 +29,13 @@ import { COURTBOOKING_URL } from '../../lib/supabase';
         <section class="matchday-panel">
           <p class="matchday-kicker">Heute</p>
           <h2>Begegnungen</h2>
-          <div id="today-matches" class="match-list"><p class="muted">Spiele werden geladen …</p></div>
+          <div id="today-matches" class="match-list"><p class="muted">Aktuelle Spiele werden ermittelt …</p></div>
           <a class="matchday-action" href="/termine/">Gesamten Kalender öffnen</a>
         </section>
 
         <section id="facility-card" class="matchday-panel" aria-live="polite">
           <p class="matchday-kicker">Anlage</p>
-          <h2>Wird geladen …</h2>
+          <h2>Status wird ermittelt</h2><p class="muted">Für die Platzverfügbarkeit bitte Courtbooking prüfen.</p>
         </section>
 
         <section class="matchday-panel">
@@ -54,6 +53,18 @@ import { COURTBOOKING_URL } from '../../lib/supabase';
         </section>
       </div>
 
+      <div class="matchday-fixture-grid">
+        <section class="matchday-panel">
+          <p class="matchday-kicker">Demnächst</p>
+          <h2>Die nächsten Punktspiele</h2>
+          <div id="upcoming-matches" class="match-list"><p class="muted">Weitere Spiele werden geladen …</p></div>
+        </section>
+        <section class="matchday-panel">
+          <p class="matchday-kicker">Ergebnisse</p>
+          <h2>Zuletzt gespielt</h2>
+          <div id="recent-matches" class="match-list"><p class="muted">Ergebnisse werden geladen …</p></div>
+        </section>
+      </div>
       <div class="matchday-newsgrid">
         <section class="matchday-panel">
           <p class="matchday-kicker">Aktuell im Verein</p>
