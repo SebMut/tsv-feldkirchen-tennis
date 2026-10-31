@@ -60,6 +60,18 @@ export function parseClubReportColumn(text){
   return entries;
 }
 
+export function groupNumbersFromColumns(columns){
+  const groupNumbers=new Set();
+  for(const col of columns){
+    for(const line of String(col).split(/\r?\n/)){
+      const heading=line.trim().match(/\bGr\.\s*0*(\d{1,4})(?:\s+SU)?\s*$/);
+      if(heading && /^(?:Herren|Damen|Junior|Knaben|Mädchen|Bambini|Dunlop|Mixed|Freizeit)/i.test(line.trim()))
+        groupNumbers.add(Number(heading[1]));
+    }
+  }
+  return [...groupNumbers];
+}
+
 export function parseClubGroupReport(columns,{seasonCode,club='TSV Feldkirchen'}){
   if(!Array.isArray(columns)||!columns.length||columns.length>100)
     throw Error('BTV_GROUP_REPORT_INVALID_COLUMNS');
@@ -130,6 +142,6 @@ export async function fetchClubGroupReport(seasonCode){
       }
     }
     const entries=parseClubGroupReport(columns,{seasonCode});
-    return {url,entries,pages,sourceKind:'club_group_report'};
+    return {url,entries,pages,groupsSeen:groupNumbersFromColumns(columns),sourceKind:'club_group_report'};
   }finally{rmSync(dir,{recursive:true,force:true});}
 }
