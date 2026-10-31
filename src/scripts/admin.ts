@@ -2,6 +2,7 @@ import { mediaUrl, supabase } from '../lib/supabase';
 import { optimizeImage } from '../lib/images';
 import { initAdvancedAdmin, loadAdvancedUsers } from './admin-advanced';
 import { initPhase8Admin } from './phase8';
+import { initManualResultsPanel } from './manual-results-admin';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
 
 type Row = Record<string, any>;
@@ -132,6 +133,7 @@ async function ensureProfile(user: any) {
 }
 
 function showPanel(name: string) {
+  if (name === 'manual-results' && !state.isSuper) return;
   document.querySelectorAll<HTMLElement>('.admin-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `panel-${name}`));
   document.querySelectorAll<HTMLButtonElement>('.admin-nav button').forEach((button) => button.classList.toggle('active', button.dataset.panel === name));
 }
@@ -1866,6 +1868,10 @@ async function startApp(user: any) {
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
   await initAdvancedAdmin(state);
   await initPhase8Admin(state);
+  if (state.isSuper) {
+    initManualResultsPanel();
+    if (new URLSearchParams(location.search).get('panel') === 'manual-results') showPanel('manual-results');
+  }
 }
 
 export async function initAdmin() {
