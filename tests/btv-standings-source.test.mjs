@@ -54,6 +54,7 @@ test('official small club report supplies complete summer group tables',()=>{
   assert.equal(url.searchParams.get('season'),'18105');
   assert.equal(url.searchParams.has('etag'),false);
   assert.equal(url.searchParams.has('utm_source'),false);
+  assert.equal(parseClubStandingsColumns([columns[0]],{seasonCode:'sommer-2026'}).size,1);
 });
 
 test('scheduled result importer includes winter instead of summer-only filter',()=>{
