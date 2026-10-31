@@ -538,6 +538,7 @@ export async function loadTeamDetail(slug: string) {
   watchPublicContent('#team-roster');
   watchPublicContent('#team-matches');
   watchPublicContent('#team-season');
+  watchPublicContent('#team-standings');
   const root = document.querySelector<HTMLElement>('[data-team-slug]');
   if (!root) return;
   const reference = await refs();
@@ -598,7 +599,7 @@ export async function loadTeamDetail(slug: string) {
   if (!current) return;
 
   const teamSeasonIds = teamSeasons.map((row: Row) => row.id);
-  const [{ data: links }, { data: matches }, { data: allTeamMatches }, { data: news }, { data: galleries }] = await Promise.all([
+  const [{ data: links }, { data: matches }, { data: allTeamMatches }, { data: news }, { data: galleries }, standingsResult] = await Promise.all([
     supabase.from('team_players').select('*').eq('team_season_id', current.id).eq('public_visible', true).order('is_captain', { ascending: false }).order('sort_order'),
     supabase.from('matches').select('*').eq('team_season_id', current.id).eq('is_published', true).order('starts_at'),
     teamSeasonIds.length
@@ -606,7 +607,29 @@ export async function loadTeamDetail(slug: string) {
       : Promise.resolve({ data: [] }),
     supabase.from('news').select('*').eq('team_id', team.id).eq('status', 'published').order('published_at', { ascending: false }),
     supabase.from('galleries').select('*').eq('team_id', team.id).eq('published', true).order('created_at', { ascending: false }),
+    supabase.from('team_standings').select('rank,team_name,club_code,standing_text,source_url,synced_at').eq('team_season_id', current.id).order('rank'),
   ]);
+
+  const standingsTarget = document.querySelector<HTMLElement>('#team-standings');
+  if (standingsTarget) {
+    const standings = standingsResult.data ?? [];
+    const sourceUrl = standings[0]?.source_url;
+    const syncedAt = standings[0]?.synced_at;
+    standingsTarget.innerHTML = standings.length ? `
+      <div class="table-wrap">
+        <table class="data-table team-standings-table">
+          <thead><tr><th scope="col">Rang</th><th scope="col">Mannschaft</th><th scope="col">BTV-Bilanz</th></tr></thead>
+          <tbody>${standings.map((row: Row) => `
+            <tr class="${row.club_code === '01012' ? 'is-tsv' : ''}">
+              <td><strong>${row.rank}</strong></td>
+              <td>${escapeHtml(row.team_name)}${row.club_code === '01012' ? ' <span class="status-pill">TSV</span>' : ''}</td>
+              <td>${escapeHtml(row.standing_text)}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <p class="match-meta">Amtlicher BTV-Stand${syncedAt ? ` · aktualisiert ${escapeHtml(formatDateTime(syncedAt))}` : ''}${sourceUrl ? ` · <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Quelle ↗</a>` : ''}</p>`
+      : `<p class="muted">Für diese Saison ist die amtliche Tabelle beim BTV derzeit nicht abrufbar.</p><p><a class="text-link" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">BTV-Gruppe direkt öffnen ↗</a></p>`;
+  }
 
   const playerIds = (links ?? []).map((row: Row) => row.player_id);
   const players = playerIds.length ? (await supabase.from('players').select('*').in('id', playerIds)).data ?? [] : [];
