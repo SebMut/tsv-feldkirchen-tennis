@@ -41,7 +41,10 @@ jobs:
 
       - name: Block crawling of the preview
         run: |
-          printf 'User-agent: *\\nDisallow: /\\n' > dist/robots.txt
+          echo 'User-agent: *' > dist/robots.txt
+          echo 'Disallow: /' >> dist/robots.txt
+          grep -Fxq 'User-agent: *' dist/robots.txt
+          grep -Fxq 'Disallow: /' dist/robots.txt
 
       - name: Disable Jekyll processing
         run: touch dist/.nojekyll
