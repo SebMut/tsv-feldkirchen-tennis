@@ -1,5 +1,9 @@
 name: BTV verified summer and winter final results import
 on:
+  # Recheck current official team results every six hours, also when no code changes.
+  schedule:
+    - cron: '23 1,7,13,19 * * *'
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -34,7 +38,7 @@ jobs:
           node --test tests/btv-results-private-import.test.mjs
 
   import:
-    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -51,5 +55,6 @@ jobs:
       - name: Read only verified final scores and update matching TSV fixtures
         env:
           BTV_RESULTS_WRITE_ENABLED: 'true'
+          BTV_RESULTS_ONLY_SOMMER_2026: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
           BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
         run: node scripts/btv-results-import.mjs --apply
