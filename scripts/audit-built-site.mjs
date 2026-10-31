@@ -7,7 +7,7 @@ const preview = process.env.PUBLIC_PREVIEW_MODE === 'true';
 const basePath = (process.env.PREVIEW_BASE || '/').replace(/\/$/, '');
 const required = [
   '/', '/aktuelles/', '/mannschaften/', '/termine/', '/spieltag/', '/training/',
-  '/mitglied-werden/', '/sponsoren/', '/funktionaere/', '/kontakt/', '/admin/', '/spiel/', '/live/'
+  '/mitglied-werden/', '/sponsoren/', '/funktionaere/', '/kontakt/', '/admin/', '/verwaltung/ergebnisse/', '/spiel/', '/live/'
 ];
 const errors = [];
 
@@ -35,7 +35,7 @@ for (const file of htmlFiles) {
   if (preview && !/<meta\s+name="robots"\s+content="noindex,nofollow"/.test(html)) {
     errors.push(name + ': Preview darf nicht indexierbar sein');
   }
-  const protectedPage = name === 'admin/index.html' || name === 'impressum/index.html' || name === 'datenschutz/index.html';
+  const protectedPage = name === 'admin/index.html' || name === 'verwaltung/ergebnisse/index.html' || name === 'impressum/index.html' || name === 'datenschutz/index.html';
   if (protectedPage && !/<meta\s+name="robots"\s+content="noindex,nofollow"/.test(html)) {
     errors.push(name + ': geschützte/Brückenseite muss noindex sein');
   }
