@@ -49,6 +49,16 @@ try{
    console.log('BTV_REPORT_'+index+'_DOWNLOAD=SUCCESS');
    console.log('BTV_REPORT_'+index+'_PAGES='+pages);
    console.log('BTV_REPORT_'+index+'_LINE_COUNT='+validLines.length);
+   if(index===0 || index===2) {
+     // Format probes only: remove EVERY letter and digit, including player names,
+     // birth years, player IDs and individual set scores.
+     const nonempty=content.split(/\r?\n/u).filter(x=>x.trim());
+     for (const [lineNo,line] of nonempty.slice(0,32).entries()) {
+       const masked=line.slice(0,150).replace(/\p{L}/gu,'X').replace(/[0-9]/g,'9')
+         .replace(/[^X9\s,.:;()\[\]\/\-|]/g,'?').replace(/\s+/g,' ').trim();
+       console.log('BTV_REPORT_LAYOUT_'+index+'_'+lineNo+'='+masked);
+     }
+   }
    console.log('BTV_REPORT_'+index+'_HAS_EINZEL='+(matches.length?'YES':'NO'));
    console.log('BTV_REPORT_'+index+'_HAS_DOPPEL='+(doubles.length?'YES':'NO'));
    console.log('BTV_REPORT_'+index+'_HAS_SET_RESULTS='+(/\bSatz\b/i.test(content)?'YES':'NO'));
