@@ -1,6 +1,6 @@
 import { calendarFeedUrl, mediaUrl, supabase, COURTBOOKING_URL } from '../lib/supabase';
 import { escapeHtml, formatDateTime } from '../lib/ui';
-import { officialBtvGroupUrl } from '../lib/btv-group-url';
+import { officialBtvTeamDestination } from '../lib/btv-group-url';
 
 type Row = Record<string, any>;
 
@@ -19,7 +19,7 @@ function initials(name = '') {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || 'TSV';
 }
 
-let refsCache: Promise<{ seasons: Row[]; categories: Row[]; teams: Row[]; teamSeasons: Row[] }> | null = null;
+let refsCache: Promise<{ seasons: Row[]; categories: Row[]; teams: Row[]; teamSeasons: Row[]; btvLinks: Row[] }> | null = null;
 let refsCachedAt = 0;
 
 async function refs() {
@@ -30,17 +30,19 @@ async function refs() {
 }
 
 async function fetchRefs() {
-  const [{ data: seasons }, { data: categories }, { data: teams }, { data: teamSeasons }] = await Promise.all([
+  const [{ data: seasons }, { data: categories }, { data: teams }, { data: teamSeasons }, { data: btvLinks }] = await Promise.all([
     supabase.from('seasons').select('*').order('year', { ascending: false }),
     supabase.from('team_categories').select('*').order('sort_order'),
     supabase.from('teams').select('*').eq('active', true).order('sort_order'),
     supabase.from('team_seasons').select('*'),
+    supabase.from('verified_team_btv_links').select('team_season_id,btv_url'),
   ]);
   return {
     seasons: seasons ?? [],
     categories: categories ?? [],
     teams: teams ?? [],
     teamSeasons: teamSeasons ?? [],
+    btvLinks: btvLinks ?? [],
   };
 }
 
@@ -372,6 +374,7 @@ export async function loadTeams() {
   if (!target || !nav || !categoryTarget || !info || !heading) return;
 
   const reference = await refs();
+  const verifiedBtv = new Map<string, string>(reference.btvLinks.map((link: Row) => [link.team_season_id, link.btv_url]));
   if (!reference.seasons.length || !reference.teams.length) {
     target.innerHTML = '<div class="teams-empty" role="status"><h3>Mannschaften derzeit nicht verfügbar</h3><p>Bitte versuche es später erneut.</p></div>';
     info.textContent = 'Der Spielplan konnte nicht geladen werden.';
@@ -484,16 +487,16 @@ export async function loadTeams() {
       const clubScore = featured ? (featured.is_home ? currentState?.home_score : currentState?.away_score) : null;
       const otherScore = featured ? (featured.is_home ? currentState?.away_score : currentState?.home_score) : null;
       const detailUrl = `/mannschaften/${encodeURIComponent(team.slug)}/?season=${encodeURIComponent(activeCode)}`;
+      const btvTarget = officialBtvTeamDestination(verifiedBtv.get(ts.id));
       return `
         <article class="card team-card team-overview-card">
           <img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" />
           <div>
             <p class="eyebrow">${escapeHtml(title)}</p>
             <h3><a href="${detailUrl}" class="text-link">${escapeHtml(team.name)}</a></h3>
-            ${officialBtvGroupUrl(ts.btv_url)
-              ? `<a class="text-link" href="${escapeHtml(officialBtvGroupUrl(ts.btv_url)!)}" target="_blank" rel="noopener noreferrer"
-                   aria-label="BTV-Tabelle und Spielplan ${escapeHtml(team.name)} – ${escapeHtml(activeCode)} öffnen">BTV Tabelle / Spielplan ↗</a>`
-              : `<span class="muted" aria-label="BTV-Gruppenlink noch nicht verfügbar">BTV-Gruppenlink noch nicht verfügbar</span>`}
+            <a class="text-link" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer"
+               aria-label="${btvTarget.isDirect ? 'BTV-Tabelle und Spielplan' : 'BTV-Vereinsübersicht'} ${escapeHtml(team.name)} – ${escapeHtml(activeCode)} öffnen">${btvTarget.isDirect ? 'BTV Tabelle / Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>
+            ${!btvTarget.isDirect ? '<small class="muted">Direkter Gruppenlink noch nicht bestätigt</small>' : ''}
           </div>
           <p class="muted">${escapeHtml([ts.league, ts.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p>
           ${featured ? `
@@ -505,7 +508,7 @@ export async function loadTeams() {
               ${matchRouteButton(featured)}
               ${isLive ? `<a href="/live/?match=${encodeURIComponent(featured.id)}">Zum Liveticker</a>` : ''}
             </div>` : '<p class="muted">Derzeit kein nächstes Punktspiel eingetragen.</p>'}
-          <div class="actions"><a class="button" href="${detailUrl}">Mannschaft öffnen</a>${ts.btv_url && /^https:\/\//.test(ts.btv_url) ? `<a class="button ghost" href="${escapeHtml(ts.btv_url)}" target="_blank" rel="noopener noreferrer">BTV ↗</a>` : ''}${officialTennisDePortraitUrl(ts) ? `<a class="button ghost" href="${escapeHtml(officialTennisDePortraitUrl(ts)!)}" target="_blank" rel="noopener noreferrer">tennis.de Portrait ↗</a>` : ''}</div>
+          <div class="actions"><a class="button" href="${detailUrl}">Mannschaft öffnen</a><a class="button ghost" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Gruppe ↗' : 'BTV Verein ↗'}</a>${officialTennisDePortraitUrl(ts) ? `<a class="button ghost" href="${escapeHtml(officialTennisDePortraitUrl(ts)!)}" target="_blank" rel="noopener noreferrer">tennis.de Portrait ↗</a>` : ''}</div>
         </article>`;
     }).join('');
   };
@@ -538,6 +541,7 @@ export async function loadTeamDetail(slug: string) {
   const root = document.querySelector<HTMLElement>('[data-team-slug]');
   if (!root) return;
   const reference = await refs();
+  const verifiedBtv = new Map<string, string>(reference.btvLinks.map((link: Row) => [link.team_season_id, link.btv_url]));
   const team = reference.teams.find((t: Row) => t.slug === slug);
   if (!team) {
     root.innerHTML = '<div class="card"><h1>Mannschaft nicht gefunden</h1></div>';
@@ -576,10 +580,11 @@ export async function loadTeamDetail(slug: string) {
   }
 
   const tennisDePortraitUrl = officialTennisDePortraitUrl(current);
+  const btvTarget = officialBtvTeamDestination(verifiedBtv.get(current?.id));
   const head = document.querySelector<HTMLElement>('#team-header');
   if (head) head.innerHTML = `
     <section class="hero">
-      <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current?.btv_url ? `<a class="button" href="${escapeHtml(current.btv_url)}" target="_blank" rel="noreferrer">BTV Spielplan ↗</a>` : ''}${tennisDePortraitUrl ? `<a class="button ghost" href="${escapeHtml(tennisDePortraitUrl)}" target="_blank" rel="noopener noreferrer">tennis.de Mannschaftsportrait ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarFeedUrl({team: slug}))}">Kalender abonnieren</a></div></div>
+      <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${tennisDePortraitUrl ? `<a class="button ghost" href="${escapeHtml(tennisDePortraitUrl)}" target="_blank" rel="noopener noreferrer">tennis.de Mannschaftsportrait ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarFeedUrl({team: slug}))}">Kalender abonnieren</a></div></div>
       <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" /></div>
     </section>
   `;
@@ -659,7 +664,7 @@ export async function loadTeamDetail(slug: string) {
       <div><strong>${finished.length}</strong><span>Ergebnisse</span></div>
       </div><p class="muted">Offiziell bestätigte BTV-Ergebnisse und abgeschlossene TSV-Liveticker: ${won} Siege · ${drawn} Unentschieden · ${lost} Niederlagen.
       ${finished.length < seasonMatches.length ? 'Spiele ohne veröffentlichten Endstand werden nicht als 0:0 gewertet.' : ''}</p>
-      ${current?.btv_url ? `<p><a href="${escapeHtml(current.btv_url)}" class="text-link" target="_blank" rel="noreferrer">Offiziellen BTV-Spielplan und Tabellenstand ansehen ↗</a></p>` : ''}`;
+      ${current ? `<p><a href="${escapeHtml(btvTarget.href)}" class="text-link" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'Offiziellen BTV-Spielplan und Tabellenstand ansehen ↗' : 'BTV-Vereinsübersicht öffnen (Gruppenlink prüfen) ↗'}</a></p>` : ''}`;
   }
 
   const nextMatchTarget = document.querySelector<HTMLElement>('#team-next-match');
