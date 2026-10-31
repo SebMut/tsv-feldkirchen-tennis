@@ -718,87 +718,215 @@ export async function loadMatchDetail(matchId: string | null) {
 }
 
 export async function loadCalendar() {
-  watchPublicContent('#calendar-list');
-  watchPublicContent('#calendar-subscriptions');
   const list = document.querySelector<HTMLElement>('#calendar-list');
+  const grid = document.querySelector<HTMLElement>('#calendar-month-grid');
+  const monthTitle = document.querySelector<HTMLElement>('#calendar-month-title');
+  const dayHeading = document.querySelector<HTMLElement>('#calendar-day-heading');
+  const dayCount = document.querySelector<HTMLElement>('#calendar-day-count');
+  const dayList = document.querySelector<HTMLElement>('#calendar-day-list');
+  const nextList = document.querySelector<HTMLElement>('#calendar-next-list');
+  const statusTarget = document.querySelector<HTMLElement>('#calendar-data-status');
   const teamSelect = document.querySelector<HTMLSelectElement>('#calendar-team');
   const categorySelect = document.querySelector<HTMLSelectElement>('#calendar-category');
   const kindSelect = document.querySelector<HTMLSelectElement>('#calendar-kind');
   const rangeSelect = document.querySelector<HTMLSelectElement>('#calendar-range');
   const subscriptions = document.querySelector<HTMLElement>('#calendar-subscriptions');
-  if (!list || !teamSelect || !categorySelect || !kindSelect || !subscriptions) return;
+  if (!list || !grid || !monthTitle || !dayHeading || !dayCount || !dayList || !nextList || !teamSelect || !categorySelect || !kindSelect || !subscriptions || !statusTarget) return;
 
-  const reference = await refs();
-  teamSelect.innerHTML += reference.teams.map((t: Row) => `<option value="${t.id}" data-slug="${escapeHtml(t.slug)}">${escapeHtml(t.name)}</option>`).join('');
-  categorySelect.innerHTML += reference.categories.map((c: Row) => `<option value="${c.id}" data-slug="${escapeHtml(c.slug)}">${escapeHtml(c.name)}</option>`).join('');
+  const zone = 'Europe/Berlin';
+  const dayParts = new Intl.DateTimeFormat('en-GB', { timeZone: zone, day: '2-digit', month: '2-digit', year: 'numeric' });
+  const monthFormatter = new Intl.DateTimeFormat('de-DE', { timeZone: 'UTC', month: 'long', year: 'numeric' });
+  const fullDayFormatter = new Intl.DateTimeFormat('de-DE', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const shortFormatter = new Intl.DateTimeFormat('de-DE', { timeZone: 'UTC', day: 'numeric', month: 'short' });
+  const dateKey = (value: string | Date) => {
+    const parts = dayParts.formatToParts(new Date(value));
+    const get = (type: string) => parts.find(part => part.type === type)?.value || '';
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  };
+  const dateAt = (key: string) => {
+    const [year, month, day] = key.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 12));
+  };
+  const isoAt = (date: Date) => date.toISOString().slice(0, 10);
+  const startToday = dateKey(new Date());
+  let selectedDay = startToday;
+  let [viewYear, viewMonth] = selectedDay.split('-').map(Number);
+  let reference: Awaited<ReturnType<typeof refs>> = { seasons: [], categories: [], teams: [], teamSeasons: [] };
+  let matches: Row[] = [];
+  let events: Row[] = [];
+  let liveStates: Row[] = [];
+  let ready = false;
+  let fetchError = false;
 
-  const [{ data: matches }, { data: events }] = await Promise.all([
-    supabase.from('matches').select('*').eq('is_published', true).order('starts_at'),
-    supabase.from('events').select('*').eq('status', 'published').order('starts_at'),
-  ]);
-  const liveStates = matches?.length ? (await supabase.from('match_live_state').select('*').in('match_id', matches.map((m: Row) => m.id))).data ?? [] : [];
-
-  const render = () => {
-    const teamId = teamSelect.value;
-    const categoryId = categorySelect.value;
-    const kind = kindSelect.value;
-
-    const matchRows = (matches ?? []).filter((m: Row) => {
+  const filteredEntries = () => {
+    const teamId = teamSelect.value, categoryId = categorySelect.value, kind = kindSelect.value;
+    const matchesFiltered = (kind === 'events' ? [] : matches).filter(m => {
       const { team } = matchContext(m, reference);
       return (!teamId || team?.id === teamId) && (!categoryId || team?.category_id === categoryId);
-    }).map((m: Row) => ({ at: m.starts_at, html: matchRow(m, reference, liveStates) }));
-
-    const eventRows = (events ?? []).filter((e: Row) => {
+    }).map(m => {
+      const { team } = matchContext(m, reference);
+      return {
+        at: m.starts_at, key: dateKey(m.starts_at), kind: 'match',
+        title: `${team?.name || 'TSV Feldkirchen'} gegen ${m.opponent}`,
+        href: `/spiel/?match=${encodeURIComponent(m.id)}`,
+        html: matchRow(m, reference, liveStates),
+      };
+    });
+    const eventsFiltered = (kind === 'matches' ? [] : events).filter(e => {
       if (teamId && e.team_id !== teamId) return false;
-      if (categoryId && e.team_id) {
-        const team = reference.teams.find((t: Row) => t.id === e.team_id);
-        if (team?.category_id !== categoryId) return false;
-      } else if (categoryId && !e.team_id) return false;
+      if (categoryId) {
+        const team = reference.teams.find(t => t.id === e.team_id);
+        if (!team || team.category_id !== categoryId) return false;
+      }
       return true;
-    }).map((e: Row) => ({
-      at: e.starts_at,
-      html: `<div class="match-row"><div><strong>${escapeHtml(e.title)}</strong><div class="match-meta">${escapeHtml(formatDateTime(e.starts_at))} · ${escapeHtml(e.location_name || 'TSV Feldkirchen')}</div></div><span class="status-pill">Veranstaltung</span></div>`,
+    }).map(e => ({
+      at: e.starts_at, key: dateKey(e.starts_at), kind: 'event',
+      title: e.title,
+      href: '',
+      html: `<div class="calendar-event-detail">
+        <div><span class="calendar-event-type">Veranstaltung</span><strong>${escapeHtml(e.title)}</strong>
+          <div class="match-meta">${e.all_day ? 'Ganztägig' : escapeHtml(formatDateTime(e.starts_at))} · ${escapeHtml(e.location_name || 'TSV Feldkirchen')}</div>
+          ${e.description ? `<p class="muted">${escapeHtml(e.description)}</p>` : ''}
+        </div></div>`,
     }));
-
     const range = rangeSelect?.value || 'all';
-    const today = new Date();
-    const beginning = new Date(today.getFullYear(), 0, 1).getTime();
-    const nextYear = new Date(today.getFullYear() + 1, 0, 1).getTime();
-    const combined = [
-      ...(kind !== 'events' ? matchRows : []),
-      ...(kind !== 'matches' ? eventRows : []),
-    ].filter((item) => {
-      const time = new Date(item.at).getTime();
-      if (range === 'upcoming') return time >= Date.now();
-      if (range === 'year') return time >= beginning && time < nextYear;
-      if (range === 'recent') return time >= Date.now() - 90 * 86400000 && time <= Date.now();
+    const current = new Date();
+    const currentKey = dateKey(current);
+    const year = Number(currentKey.slice(0, 4));
+    const firstYear = `${year}-01-01`, nextYear = `${year + 1}-01-01`;
+    const last90 = dateKey(new Date(current.getTime() - 90 * 86400000));
+    return [...matchesFiltered, ...eventsFiltered].filter(item => {
+      if (range === 'upcoming') return item.key >= currentKey;
+      if (range === 'year') return item.key >= firstYear && item.key < nextYear;
+      if (range === 'recent') return item.key >= last90 && item.key <= currentKey;
       return true;
     }).sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-
-    const now = Date.now();
-    const upcoming = combined.filter((entry) => new Date(entry.at).getTime() >= now);
-    const previous = combined.filter((entry) => new Date(entry.at).getTime() < now).reverse();
-    list.innerHTML = combined.length
-      ? `<section class="calendar-time-group"><h2>Bevorstehende Termine (${upcoming.length})</h2>${upcoming.length ? upcoming.map((entry) => entry.html).join('') : '<p class="muted">Keine bevorstehenden Termine.</p>'}</section>
-         ${previous.length ? `<details class="calendar-past"><summary>Vergangene Termine (${previous.length}) anzeigen</summary>${previous.map((entry) => entry.html).join('')}</details>` : ''}`
-      : '<p class="muted">Keine Termine für diese Auswahl.</p>';
-
-    const params: Record<string, string> = {};
-    if (kind !== 'all') params.type = kind;
-    const teamOption = teamSelect.selectedOptions[0];
-    const categoryOption = categorySelect.selectedOptions[0];
-    if (teamId && teamOption?.dataset.slug) params.team = teamOption.dataset.slug;
-    else if (categoryId && categoryOption?.dataset.slug) params.category = categoryOption.dataset.slug;
-
-    subscriptions.innerHTML = `
-      <a class="button" href="${escapeHtml(calendarFeedUrl(params))}">${rangeSelect?.value && rangeSelect.value !== 'all' ? 'Mannschaft/Art als ICS (alle Zeiträume)' : 'Auswahl als ICS'}</a>
-      <a class="button secondary" href="${escapeHtml(calendarFeedUrl({type:'matches'}))}">Alle Punktspiele</a>
-      <a class="button secondary" href="${escapeHtml(calendarFeedUrl({type:'events'}))}">Veranstaltungen</a>
-    `;
   };
 
-  [teamSelect, categorySelect, kindSelect, rangeSelect].filter((el): el is HTMLSelectElement => !!el).forEach((el) => el.addEventListener('change', render));
+  const render = () => {
+    const entries = filteredEntries();
+    const todayKey = dateKey(new Date());
+    monthTitle.textContent = monthFormatter.format(new Date(Date.UTC(viewYear, viewMonth - 1, 1, 12)));
+    const firstWeekday = (new Date(Date.UTC(viewYear, viewMonth - 1, 1)).getUTCDay() + 6) % 7;
+    const daysInMonth = new Date(Date.UTC(viewYear, viewMonth, 0)).getUTCDate();
+    const cellCount = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
+    const monthStart = Date.UTC(viewYear, viewMonth - 1, 1);
+    const indexed = new Map<string, { match: number; event: number }>();
+    entries.forEach(item => {
+      const old = indexed.get(item.key) || { match: 0, event: 0 };
+      old[item.kind] += 1;
+      indexed.set(item.key, old);
+    });
+    const cells: string[] = [];
+    for (let index = 0; index < cellCount; index++) {
+      const cellDate = new Date(monthStart + (index - firstWeekday) * 86400000);
+      const key = isoAt(cellDate);
+      const counts = indexed.get(key) || { match: 0, event: 0 };
+      const count = counts.match + counts.event;
+      const outside = cellDate.getUTCMonth() !== viewMonth - 1;
+      const today = key === todayKey, selected = key === selectedDay;
+      const fullLabel = fullDayFormatter.format(cellDate);
+      cells.push(`<button type="button" class="calendar-day${outside ? ' calendar-day--outside' : ''}${today ? ' calendar-day--today' : ''}${selected ? ' calendar-day--selected' : ''}${count ? ' calendar-day--busy' : ''}" data-calendar-day="${key}" aria-label="${escapeHtml(fullLabel)}${today ? ', heute' : ''}${count ? `, ${count} Termine` : ', keine Termine'}" aria-pressed="${selected ? 'true' : 'false'}" ${today ? 'aria-current="date"' : ''}>
+        <span class="calendar-day__number">${cellDate.getUTCDate()}</span>
+        <span class="calendar-day__dots" aria-hidden="true">${counts.match ? '<i class="calendar-dot calendar-dot--match"></i>' : ''}${counts.event ? '<i class="calendar-dot calendar-dot--event"></i>' : ''}</span>
+        ${count ? `<small class="calendar-day__count">${count} ${count === 1 ? 'Termin' : 'Termine'}</small>` : ''}
+      </button>`);
+    }
+    grid.innerHTML = cells.join('');
+    const chosen = entries.filter(entry => entry.key === selectedDay);
+    dayHeading.textContent = `${selectedDay === todayKey ? 'Heute · ' : ''}${fullDayFormatter.format(dateAt(selectedDay))}`;
+    dayCount.textContent = !ready ? 'Termine werden geladen …' : fetchError ? 'Einige Termine sind momentan nicht abrufbar.' : chosen.length ? `${chosen.length} ${chosen.length === 1 ? 'Termin' : 'Termine'} an diesem Tag` : 'Keine Termine für diesen Tag';
+    dayList.innerHTML = !ready ? '<p class="muted">Die Termine werden ermittelt …</p>'
+      : chosen.length ? chosen.map(item => item.html).join('')
+      : `<div class="calendar-agenda-empty"><span aria-hidden="true">✦</span><strong>Hier ist noch nichts geplant.</strong><p class="muted">Wähle einen markierten Tag im Kalender oder entdecke die nächsten Termine.</p></div>`;
+    const coming = entries.filter(item => item.key >= todayKey).slice(0, 4);
+    nextList.innerHTML = !ready ? '<p class="muted">Nächste Termine werden geladen …</p>'
+      : coming.length ? coming.map(item => {
+          const day = shortFormatter.format(dateAt(item.key));
+          return `<div class="calendar-next-item"><span class="calendar-next-date">${escapeHtml(day)}</span><div>${item.href ? `<a href="${escapeHtml(item.href)}">${escapeHtml(item.title)}</a>` : `<strong>${escapeHtml(item.title)}</strong>`}<small>${item.kind === 'match' ? 'Punktspiel' : 'Vereinstermin'}</small></div></div>`;
+        }).join('')
+      : '<p class="muted">Derzeit keine weiteren Termine angekündigt.</p>';
+
+    if (ready) {
+      const upcoming = entries.filter(item => item.key >= todayKey);
+      const previous = entries.filter(item => item.key < todayKey).reverse();
+      list.innerHTML = entries.length
+        ? `<section class="calendar-time-group"><h3>Kommende Termine (${upcoming.length})</h3>${upcoming.length ? upcoming.map(item => item.html).join('') : '<p class="muted">Keine weiteren Termine angekündigt.</p>'}</section>
+        ${previous.length ? `<details class="calendar-past"><summary>Vergangene Termine (${previous.length}) anzeigen</summary>${previous.map(item => item.html).join('')}</details>` : ''}`
+        : '<p class="muted">Für diese Auswahl sind keine Termine eingetragen.</p>';
+    }
+    const params: Record<string, string> = {};
+    if (kindSelect.value !== 'all') params.type = kindSelect.value;
+    const teamOption = teamSelect.selectedOptions[0];
+    const categoryOption = categorySelect.selectedOptions[0];
+    if (teamSelect.value && teamOption?.dataset.slug) params.team = teamOption.dataset.slug;
+    else if (categorySelect.value && categoryOption?.dataset.slug) params.category = categoryOption.dataset.slug;
+    subscriptions.innerHTML = `<a class="button" href="${escapeHtml(calendarFeedUrl(params))}">Auswahl abonnieren</a>
+      <a class="button secondary" href="${escapeHtml(calendarFeedUrl({ type: 'matches' }))}">Alle Punktspiele</a>
+      <a class="button secondary" href="${escapeHtml(calendarFeedUrl({ type: 'events' }))}">Vereinstermine</a>`;
+  };
+
+  const chooseDay = (key: string, focus = false) => {
+    selectedDay = key;
+    [viewYear, viewMonth] = key.split('-').map(Number);
+    render();
+    if (focus) grid.querySelector(`[data-calendar-day="${key}"]`)?.focus();
+  };
+  const moveMonth = (amount: number) => {
+    const target = new Date(Date.UTC(viewYear, viewMonth - 1 + amount, 1, 12));
+    chooseDay(isoAt(target));
+  };
+  document.querySelector('#calendar-prev')?.addEventListener('click', () => moveMonth(-1));
+  document.querySelector('#calendar-next')?.addEventListener('click', () => moveMonth(1));
+  document.querySelector('#calendar-today')?.addEventListener('click', () => chooseDay(dateKey(new Date()), true));
+  grid.addEventListener('click', event => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>('button[data-calendar-day]');
+    if (button?.dataset.calendarDay) chooseDay(button.dataset.calendarDay);
+  });
+  grid.addEventListener('keydown', event => {
+    const target = event.target;
+    if (!(target instanceof HTMLButtonElement) || !target.dataset.calendarDay) return;
+    const arrows: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+    const offset = arrows[event.key];
+    if (offset === undefined) return;
+    event.preventDefault();
+    const key = isoAt(new Date(dateAt(target.dataset.calendarDay).getTime() + offset * 86400000));
+    chooseDay(key, true);
+  });
+  [teamSelect, categorySelect, kindSelect, rangeSelect].filter(Boolean).forEach(el => el.addEventListener('change', render));
+
   render();
+  try {
+    reference = await refs();
+    teamSelect.innerHTML += reference.teams.map(t => `<option value="${t.id}" data-slug="${escapeHtml(t.slug)}">${escapeHtml(t.name)}</option>`).join('');
+    categorySelect.innerHTML += reference.categories.map(c => `<option value="${c.id}" data-slug="${escapeHtml(c.slug)}">${escapeHtml(c.name)}</option>`).join('');
+    const [matchResponse, eventResponse] = await Promise.all([
+      supabase.from('matches').select('*').eq('is_published', true).order('starts_at'),
+      supabase.from('events').select('*').eq('status', 'published').order('starts_at'),
+    ]);
+    matches = matchResponse.data ?? [];
+    events = eventResponse.data ?? [];
+    fetchError = !!(matchResponse.error || eventResponse.error);
+    if (matches.length) {
+      const liveResponse = await supabase.from('match_live_state').select('*').in('match_id', matches.map(m => m.id));
+      liveStates = liveResponse.data ?? [];
+    }
+  } catch (error) {
+    fetchError = true;
+    console.warn('Kalenderdaten konnten nicht vollständig geladen werden:', error);
+  } finally {
+    ready = true;
+    if (fetchError) {
+      statusTarget.classList.remove('hidden');
+      statusTarget.textContent = 'Ein Teil der Termine ist momentan nicht erreichbar. Der Kalender bleibt bedienbar; die angezeigten Termine können unvollständig sein.';
+    } else {
+      statusTarget.classList.add('hidden');
+      statusTarget.textContent = '';
+    }
+    render();
+  }
 }
 
 export async function loadNews() {
