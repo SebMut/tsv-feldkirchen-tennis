@@ -237,6 +237,19 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   console.log('BTV_LAYOUT_NUMBER_PREFIX_LINES=' + lines.filter(line => /^\s*\d+[.)]?\s+\p{L}/u.test(line)).length);
   console.log('BTV_LAYOUT_LK_LINES=' + lines.filter(line => /\bLK\s*\d/i.test(line)).length);
 
+  // Structure-only samples: every alphabetic character and number is replaced.
+  // Do not print any raw PDF lines, player names, birth years or document links.
+  const numbered = lines.filter(line => /^\s*\d{1,3}[.)]?\s+\p{L}/u.test(line));
+  console.log('BTV_LAYOUT_NUMBERED_ROWS=' + numbered.length);
+  for (const [i, line] of numbered.slice(0, 7).entries()) {
+    const masked = line.slice(0, 110).replace(/\p{L}/gu, 'X')
+      .replace(/\d/g, '9').replace(/[^X9\s()|:;.,\/-]/g, '?')
+      .replace(/\s+/g, ' ').trim();
+    console.log('BTV_LAYOUT_NUMBERED_ROW_' + (i + 1) + '=' + masked);
+  }
+  const headingRx = /^\s*(?:Junioren\s+18|Knaben\s+15|Mädchen\s+15|Bambini\s+12|Kleinfeld\s+U9|Herren(?:\s+(?:40|50))?|Damen(?:\s+(?:30|40|50))?)(?:\s+\(\d+er\))?\s*\|/iu;
+  console.log('BTV_LAYOUT_TABLE_HEADINGS=' + lines.filter(line => headingRx.test(line)).length);
+
   const headings = new Set();
   for (const line of text.split(/\r?\n/)) {
     const clean = line.replace(/\s+/g, ' ').trim();
