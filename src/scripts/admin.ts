@@ -641,6 +641,44 @@ async function savePlayer(event: Event) {
   refreshPlayers();
 }
 
+// Keep only unsaved browser edits in memory; never upload drafts to GitHub.
+const pendingMatchDrafts = new Map<string, string>();
+const matchDraftKey = (matchId: string, encounterId: string, field: string) => [matchId, encounterId, field].join(':');
+const trackedMatchFields = ['data-enc-result', 'data-enc-name1', 'data-enc-name2',
+  'data-ticker-message', 'data-match-venue-name', 'data-match-venue-address'];
+function clearMatchDraft(matchId: string, encounterId: string, field: string) {
+  pendingMatchDrafts.delete(matchDraftKey(matchId, encounterId, field));
+  const warning = document.querySelector<HTMLElement>(`[data-match-card="${matchId}"] [data-draft-warning]`);
+  if (warning) warning.classList.toggle('hidden',
+    ![...pendingMatchDrafts.keys()].some((key) => key.startsWith(matchId + ':')));
+}
+function trackMatchDrafts(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>('[data-match-card]').forEach((matchCard) => {
+    const matchId = matchCard.dataset.matchCard!;
+    const warning = matchCard.querySelector<HTMLElement>('[data-draft-warning]');
+    const refreshWarning = () => {
+      const hasDraft = [...pendingMatchDrafts.keys()].some((key) => key.startsWith(matchId + ':'));
+      if (warning) warning.classList.toggle('hidden', !hasDraft);
+    };
+    matchCard.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(trackedMatchFields.map(
+      (field) => `[${field}]`).join(',')).forEach((input) => {
+      const field = trackedMatchFields.find((name) => input.hasAttribute(name))!;
+      const encounterId = input.closest<HTMLElement>('[data-encounter-id]')?.dataset.encounterId || 'match';
+      const key = matchDraftKey(matchId, encounterId, field);
+      if (pendingMatchDrafts.has(key)) input.value = pendingMatchDrafts.get(key)!;
+      input.addEventListener('input', () => {
+        pendingMatchDrafts.set(key, input.value);
+        refreshWarning();
+      });
+    });
+    refreshWarning();
+  });
+}
+window.addEventListener('beforeunload', (event) => {
+  if (!pendingMatchDrafts.size) return;
+  event.preventDefault();
+});
+
 let openMobileEncounterId: string | null = null;
 
 async function refreshMatches() {
@@ -845,6 +883,7 @@ async function refreshMatches() {
     const pct = Math.round((finished / expected) * 100);
 
     return `<article class="card flat match-admin-card" data-match-card="${match.id}">
+      <p class="match-draft-warning hidden" data-draft-warning role="status">Noch nicht gespeicherte Eingaben vorhanden – bitte Eingabefeld verlassen, bevor du die Seite schließt.</p>
       <div class="page-head">
         <div>
           <p class="eyebrow">${escapeHtml(team?.name || '')}</p>
@@ -921,6 +960,7 @@ async function refreshMatches() {
       </div>
     </article>`;
   }).join('') || '<p class="muted">In dieser Auswahl sind keine Spiele vorhanden. Wähle bei Bedarf „Alle Spiele“.</p>';
+  trackMatchDrafts(target);
 
   const updateEncounter = async (encounterId: string, patch: Row) => {
     const { error } = await supabase
@@ -970,6 +1010,8 @@ async function refreshMatches() {
         .update({ venue_name: venueName || null, venue_address: venueAddress || null })
         .eq('id', matchId).eq('team_season_id', match.team_season_id);
       if (error) return status('Spielort konnte nicht gespeichert werden: ' + error.message, 'error');
+      clearMatchDraft(matchId, 'match', 'data-match-venue-name');
+      clearMatchDraft(matchId, 'match', 'data-match-venue-address');
       status('Der tatsächliche Spielort wurde gespeichert. Heim- oder Auswärtsspiel bleibt unverändert.', 'success');
       refreshMatches();
     });
@@ -1056,6 +1098,7 @@ async function refreshMatches() {
         })) {
           const nameInput = encounterCard.querySelector<HTMLInputElement>('[data-enc-name1]');
           if (nameInput) nameInput.value = player?.display_name || '';
+          clearMatchDraft(matchId, encounterId, 'data-enc-name1');
           localFeedback('Aufstellung gespeichert.');
         }
       });
@@ -1069,6 +1112,7 @@ async function refreshMatches() {
         })) {
           const nameInput = encounterCard.querySelector<HTMLInputElement>('[data-enc-name2]');
           if (nameInput) nameInput.value = player?.display_name || '';
+          clearMatchDraft(matchId, encounterId, 'data-enc-name2');
           localFeedback('Aufstellung gespeichert.');
         }
       });
@@ -1086,6 +1130,7 @@ async function refreshMatches() {
           if (await updateEncounter(encounterId, patch)) {
             const select = encounterCard.querySelector<HTMLSelectElement>(`[data-enc-player${position}]`);
             if (select) select.value = '';
+            clearMatchDraft(matchId, encounterId, `data-enc-name${position}`);
             localFeedback(name ? 'TSV-Spieler gespeichert.' : 'Spielername entfernt.');
           }
         });
@@ -1103,7 +1148,10 @@ async function refreshMatches() {
 
       encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.addEventListener('change', async (event) => {
         const resultText = (event.currentTarget as HTMLInputElement).value.trim() || null;
-        if (await updateEncounter(encounterId, { result_text: resultText })) localFeedback('Ergebnis gespeichert.');
+        if (await updateEncounter(encounterId, { result_text: resultText })) {
+          clearMatchDraft(matchId, encounterId, 'data-enc-result');
+          localFeedback('Ergebnis gespeichert.');
+        }
       });
 
       const startButton = encounterCard.querySelector<HTMLButtonElement>('[data-enc-start]');
@@ -1139,6 +1187,7 @@ async function refreshMatches() {
             result_text: resultText,
             finished_at: new Date().toISOString(),
           })) {
+            clearMatchDraft(matchId, encounterId, 'data-enc-result');
             await refreshChangedEncounter(encounterId,
               winner === 'tsv' ? 'Punkt für TSV Feldkirchen gespeichert.' : 'Punkt für den Gegner gespeichert.');
           } else button.disabled = false;
@@ -1182,6 +1231,7 @@ async function refreshMatches() {
         if (error) status(error.message, 'error');
         else {
           if (area) area.value = '';
+          clearMatchDraft(matchId, 'match', 'data-ticker-message');
           status('Tickermeldung veröffentlicht.', 'success');
           const feedback = card.querySelector<HTMLElement>('[data-ticker-feedback]');
           if (feedback) feedback.textContent = 'Tickermeldung veröffentlicht.';
