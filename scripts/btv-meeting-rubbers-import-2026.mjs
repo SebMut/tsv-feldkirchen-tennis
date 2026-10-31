@@ -1,5 +1,5 @@
 // Import only individually verified official BTV MeetingReportFOP Einzel/Doppel
-// to RLS-protected tables for TSV Feldkirchen Sommer 2026.
+// to RLS-protected tables for the explicitly selected existing season.
 // No player names, source text or personal IDs in workflow logs or artifacts.
 // Failure is per report; an unreachable PDF must not stop others.
 import {createClient} from '@supabase/supabase-js';
@@ -11,6 +11,9 @@ import {tmpdir} from 'node:os';
 import {parseOfficialMeetingText} from './btv-meeting-rubbers-parser.mjs';
 
 const PROJECT_URL='https://eaurnufdochjapfzqwvm.supabase.co';
+const seasonCode=process.env.BTV_SEASON_CODE||'sommer-2026';
+if(!/^(?:sommer|winter)-20\d{2}(?:-20\d{2})?$/.test(seasonCode))throw Error('SEASON_CODE_INVALID');
+const seasonYears=[...seasonCode.matchAll(/20\d{2}/g)].map(x=>x[0]);
 const apply=process.argv.includes('--apply');
 if(apply&&(process.env.GITHUB_REF!=='refs/heads/main'||
   process.env.BTV_MEETING_RUBBERS_WRITE_ENABLED!=='true'))
@@ -23,8 +26,8 @@ const query=async(p,label)=>{
  if(error)throw Error(label+'_DB_ERROR');
  return data||[];
 };
-const [season]=await query(db.from('seasons').select('id,code').eq('code','sommer-2026').limit(1),'SEASON');
-if(!season)throw Error('SUMMER_2026_MISSING');
+const [season]=await query(db.from('seasons').select('id,code').eq('code',seasonCode).limit(1),'SEASON');
+if(!season)throw Error('SELECTED_SEASON_MISSING');
 const reports=await query(db.from('official_meeting_reports')
  .select('id,match_id,source_meeting_id,report_url,home_match_points,away_match_points,verification_status,source_sha256')
  .eq('season_id',season.id).order('source_meeting_id').limit(200),'REPORTS');
@@ -51,7 +54,7 @@ try{
    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),22000);
    let response;
    try{response=await fetch(doc.toString(),{signal:ctrl.signal,headers:{Accept:'application/pdf',
-     'User-Agent':'TSV-Feldkirchen-Tennis-2026-SourcedRubbersImporter/1.0'}});}
+     'User-Agent':'TSV-Feldkirchen-Tennis-SourcedRubbersImporter/2.0'}});}
    finally{clearTimeout(timer)}
    if(response.status===403||response.status===429){
      console.log('BTV_OFFICIAL_RUBBERS_ACCESS_BLOCKED='+response.status);
@@ -72,7 +75,7 @@ try{
      encoding:'utf8',timeout:14000,maxBuffer:2000000
    });
    const title=text.split(/\r?\n/).slice(0,8).find(x=>/\(01012\)/.test(x) && x.includes(' : '));
-   if(!title||!/\b2026\b/.test(text.slice(0,180))||
+   if(!title||!seasonYears.some(year=>new RegExp(`\\b${year}\\b`).test(text.slice(0,220)))||
       !title.includes(m.opponent)||!/\bTSV Feldkirchen(?:\s+(?:II|III))?\s+\(01012\)/.test(title))
      throw Error('WRONG_TEAM_SEASON_OR_OPPONENT');
    const clubs=title.match(/^\s*(.+?\(\d{5}\))\s*:\s*(.+?\(\d{5}\))\s+\d{1,2}\s*:\s*\d{1,2}\s*$/);
@@ -123,6 +126,6 @@ try{
   await new Promise(resolve=>setTimeout(resolve,600));
  }
 }finally{rmSync(folder,{force:true,recursive:true})}
-console.log('BTV_RUBBER_AUDIT='+JSON.stringify({season:'sommer-2026',sourceMeetings:reports.length,
+console.log('BTV_RUBBER_AUDIT='+JSON.stringify({season:seasonCode,sourceMeetings:reports.length,
  verified,stored,skipped,unavailable,conflicts,mode:apply?'apply':'dry-run'}));
 console.log('BTV_RUBBER_PERSONAL_DATA_LOGGED=NO');

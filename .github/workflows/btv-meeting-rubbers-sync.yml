@@ -1,4 +1,4 @@
-name: Sync verified 2026 BTV Einzel and Doppel
+name: Daily sync of verified BTV meetings and rubbers
 on:
   pull_request:
     paths:
@@ -20,13 +20,18 @@ on:
       - tests/btv-meeting-rubbers-parser.test.mjs
       - .github/workflows/btv-meeting-rubbers-sync.yml
   workflow_dispatch:
-  # Three times each week as requested; missing source IDs remain listed as gaps.
+    inputs:
+      season_code:
+        description: Existing Supabase season code (for example sommer-2026)
+        required: false
+        type: string
+  # Daily source revalidation: discover meetings first, then refresh every official rubber.
   schedule:
-    - cron: '17 3 * * 1,3,5'
+    - cron: '17 3 * * *'
 permissions:
   contents: read
 concurrency:
-  group: tsv-2026-official-rubbers-import
+  group: tsv-official-meetings-and-rubbers-import
   cancel-in-progress: false
 jobs:
   test:
@@ -67,10 +72,12 @@ jobs:
           BTV_LOGIN_USERNAME: ${{ secrets.BTV_LOGIN_USERNAME }}
           BTV_LOGIN_PASSWORD: ${{ secrets.BTV_LOGIN_PASSWORD }}
           BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+          BTV_SEASON_CODE: ${{ inputs.season_code || vars.BTV_ACTIVE_SEASON_CODE || 'sommer-2026' }}
         run: node scripts/btv-meeting-discovery.mjs --apply
-      - name: Import only source-verified 2026 single and double results privately
+      - name: Import source-verified single and double results privately
         env:
           GITHUB_REF: ${{ github.ref }}
           BTV_MEETING_RUBBERS_WRITE_ENABLED: 'true'
           BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+          BTV_SEASON_CODE: ${{ inputs.season_code || vars.BTV_ACTIVE_SEASON_CODE || 'sommer-2026' }}
         run: node scripts/btv-meeting-rubbers-import-2026.mjs --apply
