@@ -74,3 +74,16 @@ Status: **alle acht Module technisch eingebaut, praktische Abnahme ausstehend**.
 Vollständiger Projektbericht: `docs/phase-8-vereinskomfort.md`.
 
 **Phase 8 ist keine Produktivfreigabe. Die Domain bleibt unangetastet.**
+
+
+## Automatischer BTV-Spielplanabgleich – 6 Stunden
+
+- [x] Offizieller öffentlicher BTV-Vereinsspielplan **TSV Feldkirchen (01012)** geprüft: 2026 insgesamt **120 Spiele der 20 Mannschaften** in einer PDF (eine Abfrage je Lauf).
+- [x] Cron `17 */6 * * *` für vier Prüfungen pro Tag vorbereitet; Lesetest im Entwicklungsbranch erfolgreich.
+- [x] BTV-Terminsnapshots, Datenbank-Änderungshistorie und automatische Veröffentlichung von eindeutig geprüften Spielverlegungen auf der News-Seite implementiert.
+- [x] Automatisierte News-Dublettenvermeidung und Schutz für manuell bearbeitete sowie live/abgeschlossene Spiele per **zurückgerolltem Datenbanktest** geprüft.
+- [x] SuperAdmin-Kontrollseite „BTV-Spielplan“ mit Status und Konflikthinweisen ergänzt.
+- [ ] Aktives periodisches Ausführen muss **gesondert freigegeben** werden: GitHub-Actions-Cron läuft nur auf dem Standardbranch, zurzeit existiert der Workflow ausschließlich im Feature-Branch. `BTV_IMPORT_ENABLED` bleibt deaktiviert; produktives Website-Deployment weiterhin gesperrt.
+- [ ] BTV-Saison-ID und Mannschafts-Saisonzuordnungen **2027** vor der neuen Saison verifizieren.
+
+Dokumentation: `docs/btv-6h-spielverlegungen.md`.
