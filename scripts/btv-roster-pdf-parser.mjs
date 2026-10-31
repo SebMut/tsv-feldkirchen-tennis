@@ -11,6 +11,10 @@ export function parseBtvRosterPdfText(text) {
   let activeClass = null;
   let numberedRows = 0;
   let malformedRows = 0;
+  let invalidFormat = 0;
+  let invalidRank = 0;
+  let invalidName = 0;
+  let rankResets = 0;
   let unrecognizedHeaders = 0;
   let unassignedRows = 0;
   let rankLast = 0;
@@ -41,12 +45,20 @@ export function parseBtvRosterPdfText(text) {
     const row = /^(\d{1,3})[.)]?\s+([^,]{2,70}),\s*(.{2,70})$/u.exec(firstColumn);
     if (!row) {
       malformedRows++;
+      invalidFormat++;
       continue;
     }
     const rank = Number(row[1]);
-    if (!Number.isInteger(rank) || rank < 1 || rank > 400
-      || (rankLast && rank < rankLast)) {
+    if (!Number.isInteger(rank) || rank < 1 || rank > 400) {
       malformedRows++;
+      invalidRank++;
+      continue;
+    }
+    if (rankLast && rank < rankLast) {
+      // A reset may indicate a missing team heading. Do not silently
+      // assign this row to the previously parsed age class.
+      malformedRows++;
+      rankResets++;
       continue;
     }
     rankLast = rank;
@@ -56,6 +68,7 @@ export function parseBtvRosterPdfText(text) {
       classRows.get(activeClass).push(validName);
     } catch {
       malformedRows++;
+      invalidName++;
     }
   }
   const parsedRows = [...classRows.values()].reduce((sum, names) => sum + names.length, 0);
@@ -71,6 +84,10 @@ export function parseBtvRosterPdfText(text) {
       numberedRows,
       parsedRows,
       malformedRows,
+      invalidFormat,
+      invalidRank,
+      invalidName,
+      rankResets,
       unassignedRows,
       unrecognizedHeaders,
       classCount: knownClasses.filter(label => headings.get(label) > 0).length,
