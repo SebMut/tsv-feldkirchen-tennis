@@ -43,6 +43,9 @@ function teamHome(m: Entry) { return m.is_home ? 'TSV Feldkirchen ' + m.team_nam
 function teamAway(m: Entry) { return m.is_home ? m.opponent : 'TSV Feldkirchen ' + m.team_name; }
 function matchLabel(m: Entry) { return teamHome(m) + ' – ' + teamAway(m); }
 function isOfficial(m: Entry) { return !!m.btv_result_text?.trim(); }
+// Ein bestätigter manueller Nachtrag zählt für die Aufgabenliste als bereits erfasst,
+// bleibt aber bis zum offiziellen Quellenabgleich ausdrücklich ungeprüft.
+function isNotYetRecorded(m: Entry) { return !isOfficial(m) && !manual.has(m.match_id); }
 function option(value: string, title: string): HTMLOptionElement {
   const element = document.createElement('option');
   element.value = value;
@@ -60,9 +63,15 @@ function renderList() {
 
   const rows = fixtures.filter(m =>
     m.season_code === season &&
-    (!openOnly || !isOfficial(m)) &&
+    (!openOnly || isNotYetRecorded(m)) &&
     (!search || matchLabel(m).toLocaleLowerCase('de-DE').includes(search))
   );
+  // Form nicht für ein Spiel offen lassen, das im aktiven Filter nicht mehr sichtbar ist.
+  if (selected && !rows.some(m => m.match_id === selected?.match_id)) {
+    selected = null;
+    byId<HTMLFormElement>('manual-result-form')?.classList.add('hidden');
+    byId<HTMLElement>('manual-results-empty')?.classList.remove('hidden');
+  }
   const count = byId<HTMLElement>('manual-results-count');
   if (count) count.textContent = String(rows.length);
 
@@ -213,8 +222,9 @@ async function saveMatch(event: SubmitEvent) {
       .single();
     if (error) throw error;
     if (data) manual.set(selected.match_id, data as Manual);
-    showStatus('Nachtrag gespeichert (manuell, amtliche Prüfung ausstehend).', 'success');
+    const recordedMatch = matchLabel(selected);
     renderList();
+    showStatus('Nachtrag für ' + recordedMatch + ' gespeichert. Bei aktivierter Auswahl „Nur noch nicht erfasste Spiele“ ist die Begegnung jetzt ausgeblendet. Unter „Alle Begegnungen“ bleibt sie bearbeitbar. Amtliche Prüfung ausstehend.', 'success');
   } catch (e) {
     showStatus('Nachtrag konnte nicht gespeichert werden: ' + (e instanceof Error ? e.message : 'Zugriff verweigert'), 'error');
   } finally {
