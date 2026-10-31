@@ -7,6 +7,7 @@
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { parseBtvRosterPdfText } from './btv-roster-pdf-parser.mjs';
 
 const ENTRY = 'https://www.btv.de/de/mein-verein/vereins-cockpit.html';
 const LOGIN_HOST = 'tende-id.liga.nu';
@@ -242,6 +243,18 @@ async function inspectVerifiedWinterPdf(context, downloadsPage) {
   console.log('BTV_WINTER_NMM_PAGES=' + numberOfPages);
   console.log('BTV_WINTER_NMM_NUMBERED_ROWS=' + lines.filter(line =>
     /^\s*\d{1,3}[.)]?\s+\p{L}/u.test(line)).length);
+  const parsed = parseBtvRosterPdfText(text);
+  const d = parsed.diagnostics;
+  // Only counts, never player names or raw rows.
+  console.log('BTV_WINTER_PARSED_HEADINGS=' + d.headingCount);
+  console.log('BTV_WINTER_PARSED_CLASSES=' + d.classCount);
+  console.log('BTV_WINTER_PARSED_ROWS=' + d.parsedRows);
+  console.log('BTV_WINTER_BAD_FORMAT=' + d.invalidFormat);
+  console.log('BTV_WINTER_BAD_NAMES=' + d.invalidName);
+  console.log('BTV_WINTER_UNASSIGNED=' + d.unassignedRows);
+  console.log('BTV_WINTER_UNKNOWN_HEADINGS=' + d.unrecognizedHeaders);
+  console.log('BTV_WINTER_HERREN_NAMES=' + d.classCounts['Herren']);
+  console.log('BTV_WINTER_HERREN_50_NAMES=' + d.classCounts['Herren 50']);
   console.log('BTV_WINTER_NMM_DATA_TRANSFER=NONE');
 }
 
