@@ -47,11 +47,19 @@ test('verified snapshot accepts only the ten confirmed squad sections and 173 ro
     'Bambini 12', 'Bambini 12 II', 'Bambini 12 III',
   ];
   const report = ['TSV Feldkirchen (01012), Sommer 2026'];
+  const letters = (value) => {
+    let n = value, out = '';
+    do {
+      out = String.fromCharCode(65 + n % 26) + out;
+      n = Math.floor(n / 26) - 1;
+    } while (n >= 0);
+    return out;
+  };
   groups.forEach((name, i) => {
     report.push(name + ' | Südligagruppe');
     const size = [49, 27, 27, 0, 23, 13, 12, 7, 7, 8][i];
     for (let n = 1; n <= size; n++) {
-      report.push(n + ' Muster, ' + (i === 9 && n === 8 ? 'Alpha7' : 'Alpha') + '  GER  12345678');
+      report.push(n + ' Muster' + letters(i + 1) + letters(n) + ', ' + (i === 9 && n === 8 ? 'Alpha7' : 'Alpha' + letters(n)) + '  GER  12345678');
     }
   });
   const parsed = assertVerifiedSummerSnapshot(parseBtvRosterPdfText(report.join('\n')));
