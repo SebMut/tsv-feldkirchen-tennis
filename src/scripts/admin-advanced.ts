@@ -191,9 +191,9 @@ async function saveSettings(event: Event, base: BaseState) {
 async function loadPlacements(base: BaseState) {
   if (!base.isSuper) return;
   const [{ data: sponsors }, { data: placements }, { data: matches }] = await Promise.all([
-    supabase.from('sponsors').select('*').eq('active', true).order('sort_order'),
+    supabase.from('sponsors').select('*').order('sort_order'),
     supabase.from('sponsor_placements').select('*').order('created_at', { ascending: false }),
-    supabase.from('matches').select('*').order('starts_at', { ascending: false }).limit(100),
+    supabase.from('matches').select('*').order('starts_at', { ascending: false }),
   ]);
 
   const sponsorSelect = $<HTMLSelectElement>('#placement-sponsor');
@@ -213,34 +213,60 @@ async function loadPlacements(base: BaseState) {
   const target = $('#placements-list');
   if (!target) return;
 
-  target.innerHTML = `<table class="data-table"><thead><tr><th>Sponsor</th><th>Platz</th><th>Zuordnung</th><th>Laufzeit</th><th></th></tr></thead><tbody>${(placements ?? []).map((p) => {
+  target.innerHTML = `<table class="data-table"><thead><tr><th>Sponsor</th><th>Platz</th><th>Zuordnung</th><th>Laufzeit</th><th>Status / Aktionen</th></tr></thead><tbody>${(placements ?? []).map((p) => {
     const match = matchMap.get(p.match_id) as Row | undefined;
     const assignment = p.team_id ? teamName(base, p.team_id) : match ? `${matchTeam(base, match)?.name || ''} – ${match.opponent}` : 'allgemein';
-    return `<tr><td>${escapeHtml((sponsorMap.get(p.sponsor_id) as Row | undefined)?.name || '')}</td><td>${escapeHtml(p.placement)}</td><td>${escapeHtml(assignment)}</td><td>${escapeHtml([p.starts_on, p.ends_on].filter(Boolean).join(' – ') || 'ohne Begrenzung')}</td><td><button class="button ghost" data-delete-placement="${p.id}">Löschen</button></td></tr>`;
+    return `<tr><td>${escapeHtml((sponsorMap.get(p.sponsor_id) as Row | undefined)?.name || '')}</td><td>${escapeHtml(p.placement)}</td><td>${escapeHtml(assignment)}</td><td>${escapeHtml([p.starts_on, p.ends_on].filter(Boolean).join(' – ') || 'ohne Begrenzung')}</td><td><span class="match-meta">${p.active ? 'Aktiv' : 'Inaktiv'}</span> <button class="button ghost" data-edit-placement="${p.id}">Bearbeiten</button><button class="button ghost" data-toggle-placement="${p.id}">${p.active ? 'Deaktivieren' : 'Aktivieren'}</button></td></tr>`;
   }).join('')}</tbody></table>`;
 
-  target.querySelectorAll<HTMLButtonElement>('[data-delete-placement]').forEach((button) => button.addEventListener('click', async () => {
-    if (!confirm('Sponsor-Platzierung löschen?')) return;
-    const { error } = await supabase.from('sponsor_placements').delete().eq('id', button.dataset.deletePlacement);
-    if (error) reportStatus(error.message, 'error'); else { reportStatus('Platzierung gelöscht.', 'success'); loadPlacements(base); }
+  target.querySelectorAll<HTMLButtonElement>('[data-edit-placement]').forEach((button) => button.addEventListener('click', () => {
+    const item = (placements ?? []).find((row) => row.id === button.dataset.editPlacement);
+    if (!item) return;
+    ($<HTMLInputElement>('#placement-edit-id')!).value = item.id;
+    ($<HTMLSelectElement>('#placement-sponsor')!).value = item.sponsor_id;
+    ($<HTMLSelectElement>('#placement-type')!).value = item.placement;
+    ($<HTMLSelectElement>('#placement-team')!).value = item.team_id || '';
+    ($<HTMLSelectElement>('#placement-match')!).value = item.match_id || '';
+    ($<HTMLInputElement>('#placement-start')!).value = item.starts_on || '';
+    ($<HTMLInputElement>('#placement-end')!).value = item.ends_on || '';
+    ($<HTMLInputElement>('#placement-active')!).checked = !!item.active;
+    $('#placement-cancel-edit')?.classList.remove('hidden');
+    $('#placement-form')?.scrollIntoView({ block: 'start' });
+    reportStatus('Platzierung zur Bearbeitung geladen.', 'info');
+  }));
+  target.querySelectorAll<HTMLButtonElement>('[data-toggle-placement]').forEach((button) => button.addEventListener('click', async () => {
+    const item = (placements ?? []).find((row) => row.id === button.dataset.togglePlacement);
+    if (!item) return;
+    const { error } = await supabase.from('sponsor_placements').update({ active: !item.active }).eq('id', item.id);
+    if (error) reportStatus(error.message, 'error');
+    else { reportStatus(item.active ? 'Platzierung deaktiviert.' : 'Platzierung aktiviert.', 'success'); await loadPlacements(base); }
   }));
 }
 
 async function savePlacement(event: Event, base: BaseState) {
   event.preventDefault();
-  const { error } = await supabase.from('sponsor_placements').insert({
+  const editId = $<HTMLInputElement>('#placement-edit-id')?.value || null;
+  const startsOn = $<HTMLInputElement>('#placement-start')?.value || null;
+  const endsOn = $<HTMLInputElement>('#placement-end')?.value || null;
+  if (startsOn && endsOn && endsOn < startsOn) return reportStatus('Das Ende darf nicht vor dem Beginn liegen.', 'error');
+  const patch = {
     sponsor_id: $<HTMLSelectElement>('#placement-sponsor')?.value,
     placement: $<HTMLSelectElement>('#placement-type')?.value,
     team_id: $<HTMLSelectElement>('#placement-team')?.value || null,
     match_id: $<HTMLSelectElement>('#placement-match')?.value || null,
-    starts_on: $<HTMLInputElement>('#placement-start')?.value || null,
-    ends_on: $<HTMLInputElement>('#placement-end')?.value || null,
-    active: true,
-  });
-  if (error) return reportStatus(error.message, 'error');
+    starts_on: startsOn,
+    ends_on: endsOn,
+    active: $<HTMLInputElement>('#placement-active')?.checked ?? true,
+  };
+  const result = editId
+    ? await supabase.from('sponsor_placements').update(patch).eq('id', editId).select('id').single()
+    : await supabase.from('sponsor_placements').insert(patch).select('id').single();
+  if (result.error || !result.data) return reportStatus(result.error?.message || 'Platzierung konnte nicht gespeichert werden.', 'error');
   ($<HTMLFormElement>('#placement-form'))?.reset();
-  reportStatus('Sponsor-Platzierung gespeichert.', 'success');
-  loadPlacements(base);
+  ($<HTMLInputElement>('#placement-edit-id')!).value = '';
+  $('#placement-cancel-edit')?.classList.add('hidden');
+  reportStatus(editId ? 'Sponsor-Platzierung aktualisiert.' : 'Sponsor-Platzierung erstellt.', 'success');
+  await loadPlacements(base);
 }
 
 function ensureMatchDialog() {
@@ -506,6 +532,11 @@ export async function initAdvancedAdmin(base: BaseState) {
   $<HTMLFormElement>('#season-form')?.addEventListener('submit', (event) => createSeason(event, base));
   $<HTMLFormElement>('#settings-form')?.addEventListener('submit', (event) => saveSettings(event, base));
   $<HTMLFormElement>('#placement-form')?.addEventListener('submit', (event) => savePlacement(event, base));
+  $('#placement-cancel-edit')?.addEventListener('click', () => {
+    ($<HTMLFormElement>('#placement-form'))?.reset();
+    ($<HTMLInputElement>('#placement-edit-id')!).value = '';
+    $('#placement-cancel-edit')?.classList.add('hidden');
+  });
   $<HTMLFormElement>('#sponsor-form')?.addEventListener('submit', () => window.setTimeout(() => loadPlacements(base), 800));
 
   await Promise.all([
