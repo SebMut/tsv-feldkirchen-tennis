@@ -8,7 +8,7 @@ import {createHash} from 'node:crypto';
 import {mkdtempSync,rmSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {parseOfficialMeetingText} from './btv-meeting-rubbers-parser.mjs';
+import {canonicalRubberSnapshot,parseOfficialMeetingText} from './btv-meeting-rubbers-parser.mjs';
 
 const PROJECT_URL='https://eaurnufdochjapfzqwvm.supabase.co';
 const seasonCode=process.env.BTV_SEASON_CODE||'sommer-2026';
@@ -29,7 +29,7 @@ const query=async(p,label)=>{
 const [season]=await query(db.from('seasons').select('id,code').eq('code',seasonCode).limit(1),'SEASON');
 if(!season)throw Error('SELECTED_SEASON_MISSING');
 const reports=await query(db.from('official_meeting_reports')
- .select('id,match_id,source_meeting_id,report_url,home_match_points,away_match_points,verification_status,source_sha256')
+ .select('id,match_id,source_meeting_id,report_url,home_match_points,away_match_points,verification_status,source_sha256,parser_version')
  .eq('season_id',season.id).order('source_meeting_id').limit(200),'REPORTS');
 const matches=await query(db.from('matches').select('id,opponent,is_home,starts_at,btv_result_text')
  .in('id',reports.map(r=>r.match_id).filter(Boolean)).limit(200),'MATCHES');
@@ -64,9 +64,6 @@ try{
    const bytes=Buffer.from(await response.arrayBuffer());
    if(bytes.length<1000||bytes.length>10000000||bytes.toString('ascii',0,4)!=='%PDF')
      throw Error('REPORT_PDF_INVALID');
-   const sha=createHash('sha256').update(bytes).digest('hex');
-   if(report.verification_status==='verified' && report.source_sha256 &&
-      report.source_sha256!==sha)throw Error('OFFICIAL_REPORT_CHANGED_REVIEW_REQUIRED');
    const file=join(folder,id+'.pdf');writeFileSync(file,bytes);
    const info=execFileSync('pdfinfo',[file],{encoding:'utf8',timeout:10000});
    const pages=Number(info.match(/^Pages:\s+(\d+)/m)?.[1]);
@@ -90,6 +87,22 @@ try{
    if(parsed.verification_status!=='verified'||parsed.errors.length)
      throw Error('RUBBER_REPORT_INCOMPLETE');
    const all=[...parsed.singles,...parsed.doubles];
+   // BTV regenerates byte-different PDFs with volatile metadata. Hash only the verified
+   // sporting content, and fail closed if the one-time v1 migration differs from stored rows.
+   const snapshot=canonicalRubberSnapshot(all);
+   const sha=createHash('sha256').update(JSON.stringify({title:title.trim(),snapshot})).digest('hex');
+   const {data:previousRows,error:previousError}=await db.from('official_report_rubbers')
+     .select('discipline,position,home_participants,away_participants,set_results,winner_side,special_status,result_text')
+     .eq('report_id',report.id).limit(30);
+   if(previousError)throw Error('RUBBER_READ_FAILED');
+   if(report.verification_status==='verified'){
+     if(report.parser_version==='btv-meeting-rubbers-v2'){
+       if(!report.source_sha256||report.source_sha256!==sha)
+         throw Error('OFFICIAL_REPORT_CHANGED_REVIEW_REQUIRED');
+     }else if(JSON.stringify(canonicalRubberSnapshot(previousRows))!==JSON.stringify(snapshot)){
+       throw Error('OFFICIAL_REPORT_CHANGED_REVIEW_REQUIRED');
+     }
+   }
    verified++;
    if(!apply){
      console.log('BTV_RUBBER_DRY_RUN='+JSON.stringify({meeting:id,singles:parsed.singles.length,
@@ -105,7 +118,7 @@ try{
      .select('id,discipline,position').eq('report_id',report.id).limit(30);
    if(countError||storedRows.length!==all.length)throw Error('RUBBER_COUNT_AFTER_WRITE_MISMATCH');
    const {error:headerError}=await db.from('official_meeting_reports')
-     .update({source_sha256:sha,parser_version:'btv-meeting-rubbers-2026-v1',
+     .update({source_sha256:sha,parser_version:'btv-meeting-rubbers-v2',
        home_team:clubs[1].replace(/\s*\(\d{5}\)$/,'').trim(),
        away_team:clubs[2].replace(/\s*\(\d{5}\)$/,'').trim(),
        verification_status:'verified',verified_at:new Date().toISOString()})
@@ -116,7 +129,7 @@ try{
      doubles:parsed.doubles.length,status:'verified'}));
   }catch(err){
    const reason=String(err?.message||err);
-   const safe=/^(?:REPORT_HTTP_\d{3}|MATCH_LINK_UNVERIFIED|UNVERIFIED_OFFICIAL_REPORT_URL|MATCH_SCORE_CONFLICT|REPORT_PDF_INVALID|OFFICIAL_REPORT_CHANGED_REVIEW_REQUIRED|REPORT_PAGES_INVALID|WRONG_TEAM_SEASON_OR_OPPONENT|HOME_AWAY_IDENTITY_CONFLICT|RUBBER_REPORT_INCOMPLETE|RUBBER_INSERT_FAILED|RUBBER_COUNT_AFTER_WRITE_MISMATCH|REPORT_VERIFICATION_UPDATE_FAILED)$/.test(reason)
+   const safe=/^(?:REPORT_HTTP_\d{3}|MATCH_LINK_UNVERIFIED|UNVERIFIED_OFFICIAL_REPORT_URL|MATCH_SCORE_CONFLICT|REPORT_PDF_INVALID|OFFICIAL_REPORT_CHANGED_REVIEW_REQUIRED|REPORT_PAGES_INVALID|WRONG_TEAM_SEASON_OR_OPPONENT|HOME_AWAY_IDENTITY_CONFLICT|RUBBER_REPORT_INCOMPLETE|RUBBER_READ_FAILED|RUBBER_INSERT_FAILED|RUBBER_COUNT_AFTER_WRITE_MISMATCH|REPORT_VERIFICATION_UPDATE_FAILED)$/.test(reason)
      ?reason:'SOURCE_OR_PARSE_UNAVAILABLE';
    console.log('BTV_RUBBER_PENDING='+JSON.stringify({meeting:id||null,reason:safe}));
    if(safe.includes('CONFLICT')||safe.includes('CHANGED'))conflicts++;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseOfficialMeetingText} from '../scripts/btv-meeting-rubbers-parser.mjs';
+import {canonicalRubberSnapshot,parseOfficialMeetingText} from '../scripts/btv-meeting-rubbers-parser.mjs';
 
 // Synthetic BTV PDF layout, no actual player names/IDs.
 function row(fields){
@@ -41,6 +41,14 @@ test('exact 4+2 report preserves each actual player and each actual set',()=>{
  assert.equal(x.doubles[0].away_participants.length,2);
  assert.deepEqual(x.singles[0].set_results,[{home:3,away:6},{home:3,away:6}]);
  assert.deepEqual(x.doubles[1].set_results,[{home:2,away:6},{home:3,away:6}]);
+});
+test('canonical snapshot ignores database metadata and JSON object key order',()=>{
+ const parsed=parseOfficialMeetingText(report(singles),{expectedHomePoints:4,expectedAwayPoints:2});
+ const original=[...parsed.singles,...parsed.doubles];
+ const stored=[...original].reverse().map(row=>({...row,id:'database-only',
+   home_participants:row.home_participants.map(x=>({name:x.name})),
+   set_results:row.set_results.map(x=>({away:x.away,home:x.home}))}));
+ assert.deepEqual(canonicalRubberSnapshot(stored),canonicalRubberSnapshot(original));
 });
 test('incomplete report stays partial rather than inventing missing doubles',()=>{
  const t=report(singles).split('\n');
