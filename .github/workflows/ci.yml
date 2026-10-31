@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -19,20 +19,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - name: Install dependencies
-        run: npm install
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci
       - name: Check and build
         run: npm run build
-      - name: Commit generated lockfile
-        if: github.event_name == 'push'
-        run: |
-          if ! git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
-            git commit -m "chore: add npm lockfile"
-            git push
-          fi
+      - name: Audit generated site, links and SEO
+        run: npm run audit:site
       - name: Upload preview artifact
         uses: actions/upload-artifact@v4
         with:
