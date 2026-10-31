@@ -85,11 +85,14 @@ import { COURTBOOKING_URL, mediaUrl } from '../../lib/supabase';
         </section>
       </div>
 
+      <section id="club-notices" class="phase8-notice-board hidden" aria-label="Aktuelle Vereinsmitteilungen"></section>
       <section id="home-sponsors" class="hidden" aria-label="Sponsoren"></section>
     </div>
   </div>
 </MainLayout>
 <script>
   import { loadHome } from '../../scripts/public';
+  import { loadClubNotices } from '../../scripts/phase8';
   loadHome();
+  loadClubNotices();
 </script>
