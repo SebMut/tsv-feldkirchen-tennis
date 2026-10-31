@@ -179,3 +179,31 @@ export async function initPhase8Admin(base: AdminState) {
   el<HTMLButtonElement>('audit-refresh')?.addEventListener('click', renderAudit);
   await Promise.all([renderNotices(), renderAudit()]);
 }
+
+
+type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+export function initInstallPrompt() {
+  const root = el<HTMLElement>('phase8-install');
+  if (!root) return;
+  const installed = window.matchMedia('(display-mode: standalone)').matches;
+  if (installed) { root.classList.add('hidden'); return; }
+  const button = root.querySelector<HTMLButtonElement>('[data-install-app]');
+  const text = root.querySelector<HTMLElement>('[data-install-hint]');
+  let request: InstallEvent | null = null;
+  if (button) button.hidden = true;
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    request = event as InstallEvent;
+    if (button) button.hidden = false;
+    if (text) text.textContent = 'Diese Website kann als App auf deinem Startbildschirm installiert werden.';
+  });
+  button?.addEventListener('click', async () => {
+    const current = request;
+    if (!current) return;
+    request = null;
+    await current.prompt();
+    const decision = await current.userChoice;
+    if (text) text.textContent = decision.outcome === 'accepted' ? 'Die Installation wurde gestartet.' : 'Du kannst die Website weiterhin normal nutzen.';
+    button.hidden = true;
+  });
+}
