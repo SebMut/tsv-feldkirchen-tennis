@@ -57,6 +57,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <button data-panel="matches" data-ticker-only>Spiele & Liveticker</button>
           <button data-panel="news" data-editor-only>News</button>
           <button data-panel="notices" data-super-only>Vereinsbrett</button>
+          <button data-panel="btv-import" data-super-only>BTV-Spielplan</button>
           <button data-panel="audit" data-super-only>Änderungsverlauf</button>
           <button data-panel="events" data-editor-only>Termine</button>
           <button data-panel="galleries" data-editor-only>Bilder</button>
@@ -82,6 +83,22 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div><p class="eyebrow">Mein TSV</p><h2>Meine Mannschaften</h2></div>
               </div>
               <div id="dashboard-teams" class="dashboard-team-grid"></div>
+            </div>
+          </section>
+
+          <section id="panel-btv-import" class="admin-panel">
+            <div class="card stack">
+              <p class="eyebrow">Offizieller BTV-Spielplan · TSV Feldkirchen (01012)</p>
+              <h2>Automatischer Terminabgleich</h2>
+              <p>Die geplante Prüfung läuft alle sechs Stunden. Der erste Abruf erzeugt ausschließlich eine Vergleichsbasis. Bei späteren bestätigten Verschiebungen wird – sofern der Spieltag nicht manuell überschrieben oder bereits live ist – der Kalendertermin aktualisiert und eine Meldung unter „Aktuelles“ veröffentlicht.</p>
+              <p class="muted">Die eigentliche Synchronisierung ist bis zur getrennten Aktivierung im GitHub-Standardbranch gesperrt. Diese Ansicht zeigt nur tatsächlich gespeicherte Läufe.</p>
+              <div class="actions">
+                <button class="button ghost" type="button" id="btv-sync-refresh">Status aktualisieren</button>
+                <a class="button ghost" href="https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?club=23391&amp;dokument=ScheduleReportFOP&amp;season=18105" target="_blank" rel="noopener noreferrer">BTV-Spielplan 2026 (PDF) öffnen</a>
+              </div>
+              <div id="btv-sync-status" aria-live="polite"><p class="muted">Importprotokoll wird geladen …</p></div>
+              <h3>Erkannte Terminänderungen</h3>
+              <div id="btv-sync-changes" aria-live="polite"></div>
             </div>
           </section>
 
