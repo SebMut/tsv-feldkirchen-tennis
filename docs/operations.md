@@ -41,3 +41,15 @@ Benötigte GitHub Secrets:
 - `SFTP_REMOTE_PATH`
 
 Die produktive Domain wird erst nach Abnahme der Testversion umgestellt.
+
+
+## Phase-7-Härtung und Go-live-Sperre (31.10.2026)
+
+- GitHub Actions Build verwendet `npm ci`, nur Lesezugriff und `npm run audit:site`.
+- Die Preview wird mit `noindex,nofollow` gebaut und hat eigenes `robots.txt` mit `Disallow: /`.
+- `src/pages/sitemap.xml.ts` generiert im Produktionsbuild eine echte Sitemap-Datei.
+- Zwei öffentlich aufrufbare Match-RPCs wurden für `anon` gesperrt; `authenticated` bleibt mit interner Berechtigungsprüfung zulässig.
+- Produktionsdeployment: ausschließlich manuell aus `main`, mit `final_approval`-Eingabe und Repository-Variable `TSV_GO_LIVE_APPROVED=true`, außerdem `environment: production`.
+- Die zu konfigurierenden Environment-Reviewer und Secrets müssen vor Go-live manuell durch berechtigte Repository-Administratoren geprüft werden.
+- `.htaccess` wird beim späteren autorisierten Deployment explizit mit hochgeladen; der Workflow löscht keine vorherigen WordPress-Dateien.
+- Siehe `docs/phase-7-go-live-readiness.md` und `docs/go-live-runbook.md`.
