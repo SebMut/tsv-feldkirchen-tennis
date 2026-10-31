@@ -87,3 +87,16 @@ Die drei verifizierten Mannschaftsporträts:
 - Herren 50: https://www.btv.de/de/spielbetrieb/teamportrait.html?teamid=3727895
 
 Der technisch zugängliche öffentliche BTV-Widget-Inhalt lieferte bislang keine überprüfbare **vollständige namentliche Mannschaftsmeldung**. Deshalb wurden keine zusätzlichen Namen erfunden oder importiert. Der vorhandene berechtigungsgeschützte Kader-Sammelimport in `Mein TSV → Kader` erlaubt den Import aus einem offiziellen BTV-Export pro Mannschaft/Saison; neue Namen bleiben zunächst intern (`public_visible=false`). Die vollständige Vereinsmeldung ist hierfür noch bereitzustellen oder die öffentliche vollständige Quelle zu verifizieren.
+
+
+## Tatsächliche Hallenstandorte statt pauschaler TSV-Heimadresse (31.10.2026)
+
+Die Datenbankmigration `supabase/migrations/20261031233000_winter_match_halls.sql` hinterlegt für **alle 15 Winter-Begegnungen** den Spielort aus der jeweiligen offiziellen BTV-Gruppen-PDF; für 12 Termine konnte eine konkrete Zieladresse anhand der jeweiligen Vereins- oder Hallen-Website geprüft werden. Drei BTV-Hallenangaben besitzen noch keine zweifelsfreie Straßenadresse (Tennishalle Riemerling [BTV kürzt den Namen ab], TS Jahn München und BC Attaching) und werden bewusst nur als Orts-/Namenssuche in Google Maps geöffnet; vor der Anfahrt ist dort das Ziel zu prüfen.
+
+Wichtig: `matches.is_home` bleibt **unabhängig** von `matches.venue_name` und `matches.venue_address`. Der TSV besitzt keine eigene Tennishalle in Feldkirchen, daher finden Winter-**Heimspiele** in externen Hallen statt, zum Beispiel TSV Haar und Sporttraum Kirchheim. Die tatsächliche Halle darf niemals aus dem Heimrecht abgeleitet werden.
+
+Die Spielort- und Routenanzeige ist auf Teamübersicht, Mannschaftsdetail, Spielansicht, Kalender, Startseite und Liveticker umgesetzt. Ist keine verifizierte Halle eingetragen, erscheint „Spielort noch nicht bekannt“ **ohne** irreführenden Routenbutton. Google Maps öffnet eine Routenplanung mit der konkreten Zieladresse, falls vorhanden, andernfalls eine Namenssuche (mit Prüfhinweis). Der Ausgangspunkt bleibt dem besuchenden Endgerät überlassen.
+
+Im Bereich `Mein TSV → Spiele & Liveticker` kann ein berechtigter Verantwortlicher den tatsächlichen Spielort und dessen Straße/Ort pro Spiel korrigieren, ohne dabei Heim/Auswärts, Liveticker oder Ergebnisse zu verändern. Auch beim manuellen Anlegen neuer Spiele sind Halle und Anschrift eigene Felder.
+
+**Sommer 2026:** Bereits gepflegte Spielorte bleiben unverändert. Wo bislang keine zuverlässige Adresse vorliegt, wird kein Feldkirchen-Standort vorgetäuscht. Vor der Veröffentlichung neuer Saisonspiele sollten die Hallen-/Anlagennamen weiterhin mit dem BTV abgeglichen werden.
