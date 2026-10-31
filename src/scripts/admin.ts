@@ -991,7 +991,13 @@ async function addNews(event: Event){
    const ts=state.teamSeasons.find(x=>x.id===match?.team_season_id);
    if(!match||ts?.team_id!==teamId)return status('Das Spiel gehört nicht zu dieser Mannschaft.','error');
  }
- const patch={title,body,excerpt:editorialInput('news-excerpt')?.value.trim()||null,team_id:teamId,match_id:matchId,status:publication,published_at:publication==='published'?new Date().toISOString():null};
+ let originalPublishDate: string | null = null;
+ if (editId && publication === 'published') {
+   const existing = await supabase.from('news').select('published_at').eq('id', editId).maybeSingle();
+   if (existing.error) return status(existing.error.message,'error');
+   originalPublishDate = existing.data?.published_at || null;
+ }
+ const patch={title,body,excerpt:editorialInput('news-excerpt')?.value.trim()||null,team_id:teamId,match_id:matchId,status:publication,published_at:publication==='published'?(originalPublishDate||new Date().toISOString()):null};
  const result=editId?await supabase.from('news').update(patch).eq('id',editId).select('id').single():await supabase.from('news').insert({...patch,slug:`${slugify(title)}-${Date.now().toString(36)}`,author_id:state.user.id}).select('id').single();
  if(result.error||!result.data)return status(result.error?.message||'Speichern fehlgeschlagen.','error');
  const photo=document.getElementById('news-image');
