@@ -59,6 +59,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <button data-panel="notices" data-super-only>Vereinsbrett</button>
           <button data-panel="btv-import" data-super-only>BTV-Spielplan</button>
           <button data-panel="manual-results" data-super-only class="hidden">Ergebnisse nachtragen</button>
+          <button data-panel="official-rubbers" data-super-only class="hidden">Einzel &amp; Doppel 2026</button>
           <button data-panel="audit" data-super-only>Änderungsverlauf</button>
           <button data-panel="events" data-editor-only>Termine</button>
           <button data-panel="galleries" data-editor-only>Bilder</button>
@@ -88,6 +89,27 @@ import MainLayout from '../../layouts/MainLayout.astro';
             </div>
           </section>
 
+
+          <section id="panel-official-rubbers" class="admin-panel" data-super-only>
+            <div class="card stack">
+              <p class="eyebrow">SuperAdmin · Amtliche Spielberichte</p>
+              <h2>Einzel &amp; Doppel · Sommer 2026</h2>
+              <p class="muted">Nur tatsächlich aus offiziellen BTV-Spielberichten geprüfte Aufstellungen, Sätze und Match-Tiebreaks. Die Daten sind ausschließlich nach Anmeldung für berechtigte Administratoren sichtbar. Fehlende Spielberichte werden ausdrücklich gekennzeichnet.</p>
+              <p id="btv-rubbers-summary" class="muted" aria-live="polite"></p>
+              <div id="btv-rubbers-feedback" class="notice" aria-live="polite"></div>
+              <div class="form-grid">
+                <div class="field"><label for="btv-rubbers-team">Mannschaft</label><select id="btv-rubbers-team"><option value="all">Alle Mannschaften</option></select></div>
+                <div class="field"><label for="btv-rubbers-search">Begegnung suchen</label><input id="btv-rubbers-search" type="search" placeholder="Gegner oder Mannschaft" /></div>
+                <div class="field full"><label><input id="btv-rubbers-missing" type="checkbox" /> Nur Begegnungen mit fehlendem Spielbericht</label></div>
+                <div class="field full"><button id="btv-rubbers-refresh" type="button" class="button secondary">Spielberichte aktualisieren</button></div>
+              </div>
+              <h3>Begegnungen (<span id="btv-rubbers-count">0</span>)</h3>
+              <div id="btv-rubbers-list" class="stack"></div>
+            </div>
+            <div class="card stack" id="btv-rubbers-detail">
+              <p class="muted">Wähle eine Begegnung.</p>
+            </div>
+          </section>
 
           <section id="panel-manual-results" class="admin-panel" data-super-only>
             <div class="card stack">
