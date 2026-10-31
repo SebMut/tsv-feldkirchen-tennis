@@ -1,0 +1,22 @@
+name: Validate official Sommer 2026 Einzel/Doppel importer
+on:
+  pull_request:
+    paths:
+      - scripts/btv-meeting-rubbers-parser.mjs
+      - scripts/btv-meeting-rubbers-pilot.mjs
+      - tests/btv-meeting-rubbers-parser.test.mjs
+      - .github/workflows/btv-meeting-rubbers-pilot.yml
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/btv-meeting-rubbers-parser.test.mjs
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - run: node scripts/btv-meeting-rubbers-pilot.mjs
