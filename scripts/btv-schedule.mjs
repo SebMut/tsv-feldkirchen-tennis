@@ -128,7 +128,7 @@ export async function getClubSchedule(year) {
   try {
     response=await fetch(url,{headers:{
       'Accept':'application/pdf',
-      'User-Agent':'TSV-Feldkirchen-Tennis-ScheduleSync/1.0 (club site, 1 request daily)',
+      'User-Agent':'TSV-Feldkirchen-Tennis-ScheduleSync/1.0 (club schedule, at most one request per six-hour check)',
     },signal:controller.signal});
   } finally {clearTimeout(timeout)}
   if(response.status===403||response.status===429) throw new Error('BTV rate-limited/blocked the request; no retry or bypass');
