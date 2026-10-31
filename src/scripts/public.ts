@@ -562,6 +562,7 @@ export async function loadTeamDetail(slug: string) {
 
 export async function loadMatchDetail(matchId: string | null) {
   watchPublicContent('#match-detail-head');
+  watchPublicContent('#match-detail-news');
   watchPublicContent('#match-detail-score');
   watchPublicContent('#match-detail-encounters');
   watchPublicContent('#match-detail-timeline');
@@ -571,6 +572,7 @@ export async function loadMatchDetail(matchId: string | null) {
   const scoreTarget = document.querySelector<HTMLElement>('#match-detail-score');
   const encounterTarget = document.querySelector<HTMLElement>('#match-detail-encounters');
   const galleryTarget = document.querySelector<HTMLElement>('#match-detail-gallery');
+  const reportTarget = document.querySelector<HTMLElement>('#match-detail-news');
   if (!root || !head || !scoreTarget || !encounterTarget || !galleryTarget) return;
 
   if (!matchId) {
@@ -688,6 +690,17 @@ export async function loadMatchDetail(matchId: string | null) {
     galleryTarget.innerHTML = '<div class="empty-gallery"><p class="eyebrow">Spieltag in Bildern</p><h2>Noch keine Galerie</h2><p class="muted">Sobald Bilder zu diesem Punktspiel veröffentlicht wurden, erscheinen sie hier.</p></div>';
   }
 
+  if (reportTarget) {
+    const { data: reports, error: reportError } = await supabase.from('news')
+      .select('id,title,excerpt,body,published_at').eq('match_id', matchId)
+      .eq('status', 'published').order('published_at', { ascending: false });
+    if (reportError) reportTarget.innerHTML = '<p class="muted">Spielberichte sind gerade nicht abrufbar.</p>';
+    else if (reports?.length) reportTarget.innerHTML = `<p class="eyebrow">Aus dem Vereinsleben</p><h2>Spielberichte</h2>${reports.map((article: Row) =>
+      `<article class="match-report"><h3>${escapeHtml(article.title)}</h3><p class="muted">${escapeHtml(article.excerpt || '')}</p>
+      <details><summary>Spielbericht lesen</summary><p class="report-body">${escapeHtml(article.body || '')}</p></details></article>`
+    ).join('')}`;
+    else reportTarget.innerHTML = '<p class="eyebrow">Spielberichte</p><p class="muted">Zu diesem Spiel wurde noch kein Bericht veröffentlicht.</p>';
+  }
   await renderSponsorPlacements('#match-detail-sponsor', ['match'], { teamId: team?.id, matchId });
   const timelineTarget = document.querySelector<HTMLElement>('#match-detail-timeline');
   if (timelineTarget) {
@@ -711,6 +724,7 @@ export async function loadCalendar() {
   const teamSelect = document.querySelector<HTMLSelectElement>('#calendar-team');
   const categorySelect = document.querySelector<HTMLSelectElement>('#calendar-category');
   const kindSelect = document.querySelector<HTMLSelectElement>('#calendar-kind');
+  const rangeSelect = document.querySelector<HTMLSelectElement>('#calendar-range');
   const subscriptions = document.querySelector<HTMLElement>('#calendar-subscriptions');
   if (!list || !teamSelect || !categorySelect || !kindSelect || !subscriptions) return;
 
@@ -746,10 +760,20 @@ export async function loadCalendar() {
       html: `<div class="match-row"><div><strong>${escapeHtml(e.title)}</strong><div class="match-meta">${escapeHtml(formatDateTime(e.starts_at))} · ${escapeHtml(e.location_name || 'TSV Feldkirchen')}</div></div><span class="status-pill">Veranstaltung</span></div>`,
     }));
 
+    const range = rangeSelect?.value || 'all';
+    const today = new Date();
+    const beginning = new Date(today.getFullYear(), 0, 1).getTime();
+    const nextYear = new Date(today.getFullYear() + 1, 0, 1).getTime();
     const combined = [
       ...(kind !== 'events' ? matchRows : []),
       ...(kind !== 'matches' ? eventRows : []),
-    ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+    ].filter((item) => {
+      const time = new Date(item.at).getTime();
+      if (range === 'upcoming') return time >= Date.now();
+      if (range === 'year') return time >= beginning && time < nextYear;
+      if (range === 'recent') return time >= Date.now() - 90 * 86400000 && time <= Date.now();
+      return true;
+    }).sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
     const now = Date.now();
     const upcoming = combined.filter((entry) => new Date(entry.at).getTime() >= now);
@@ -767,13 +791,13 @@ export async function loadCalendar() {
     else if (categoryId && categoryOption?.dataset.slug) params.category = categoryOption.dataset.slug;
 
     subscriptions.innerHTML = `
-      <a class="button" href="${escapeHtml(calendarFeedUrl(params))}">Auswahl als ICS</a>
+      <a class="button" href="${escapeHtml(calendarFeedUrl(params))}">${rangeSelect?.value && rangeSelect.value !== 'all' ? 'Mannschaft/Art als ICS (alle Zeiträume)' : 'Auswahl als ICS'}</a>
       <a class="button secondary" href="${escapeHtml(calendarFeedUrl({type:'matches'}))}">Alle Punktspiele</a>
       <a class="button secondary" href="${escapeHtml(calendarFeedUrl({type:'events'}))}">Veranstaltungen</a>
     `;
   };
 
-  [teamSelect, categorySelect, kindSelect].forEach((el) => el.addEventListener('change', render));
+  [teamSelect, categorySelect, kindSelect, rangeSelect].filter((el): el is HTMLSelectElement => !!el).forEach((el) => el.addEventListener('change', render));
   render();
 }
 
