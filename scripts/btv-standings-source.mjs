@@ -8,6 +8,10 @@ import {columnsFromLayoutText} from './btv-withdrawal-club-report.mjs';
 import {LEAGUE_SEASONS} from './btv-schedule.mjs';
 
 const validSeason=(code)=>/^sommer-20\d{2}$|^winter-20\d{2}-20\d{2}$/.test(String(code));
+export function parseStandingStats(raw){
+  const match=String(raw).trim().match(/^(\d{1,2})\s+(\d{1,3}:\d{1,3})\s+(\d{1,3}:\d{1,3})\s+(\d{1,3}:\d{1,3})\s+(\d{1,4}:\d{1,4})(?:\s|$)/);
+  return match?match.slice(1,6).join(' '):null;
+}
 
 export function parseBtvStandings(text,{seasonCode,groupName}){
   if(typeof text!=='string'||text.length<120||text.length>1000000)throw Error('STANDINGS_INVALID_TEXT');
@@ -27,8 +31,8 @@ export function parseBtvStandings(text,{seasonCode,groupName}){
     if(!match)continue;
     const rank=Number(match[1]);
     const teamName=match[2].replace(/^z\s+/i,'').trim();
-    const standingText=match[4].trim();
-    if(rank<1||rank>30||!teamName||teamName.length>100||!/\d/.test(standingText))continue;
+    const standingText=parseStandingStats(match[4]);
+    if(rank<1||rank>30||!teamName||teamName.length>100||!standingText)continue;
     if(rows.some(row=>row.rank===rank))throw Error('STANDINGS_DUPLICATE_RANK');
     rows.push({rank,teamName,clubCode:match[3],standingText});
   }
@@ -69,7 +73,7 @@ export function officialClubStandingsUrl(seasonCode){
 }
 
 export function parseClubStandingsColumns(columns,{seasonCode}){
-  if(!Array.isArray(columns)||columns.length<4||columns.length>100)throw Error('CLUB_STANDINGS_INVALID_COLUMNS');
+  if(!Array.isArray(columns)||columns.length<1||columns.length>100)throw Error('CLUB_STANDINGS_INVALID_COLUMNS');
   const groups=new Map();
   for(const column of columns){
     let group=null;
@@ -82,8 +86,9 @@ export function parseClubStandingsColumns(columns,{seasonCode}){
       }
       if(!group)continue;
       const row=line.match(/^(\d{1,2})\s+(.+?)\s+\((\d{5})\)\s+(.+)$/);
-      if(!row||!/\d/.test(row[4]))continue;
-      const parsed={rank:Number(row[1]),teamName:row[2].replace(/^z\s+/i,'').trim(),clubCode:row[3],standingText:row[4].trim()};
+      const standingText=row&&parseStandingStats(row[4]);
+      if(!row||!standingText)continue;
+      const parsed={rank:Number(row[1]),teamName:row[2].replace(/^z\s+/i,'').trim(),clubCode:row[3],standingText};
       if(parsed.rank<1||parsed.rank>30||parsed.teamName.length>100)continue;
       const list=groups.get(group)||[];
       if(!list.some(item=>item.rank===parsed.rank))list.push(parsed);
@@ -113,7 +118,10 @@ export async function readBtvClubStandings(seasonCode){
     const full=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8',timeout:22000,maxBuffer:3*1024*1024});
     const year=seasonCode.slice(7);
     if(!full.includes('Sommer '+year)||!full.includes('TSV Feldkirchen (01012)'))throw Error('BTV_CLUB_STANDINGS_IDENTITY_MISMATCH');
-    const columns=columnsFromLayoutText(full);
+    const detected=columnsFromLayoutText(full);
+    // ResultReportFOP&type=small is normally a sequential compact report;
+    // older BTV renderers may still place several groups beside each other.
+    const columns=detected.length?detected:[full];
     const groups=parseClubStandingsColumns(columns,{seasonCode});
     return {groups,sourceUrl,sourceHash:createHash('sha256').update(bytes).digest('hex')};
   }finally{rmSync(dir,{recursive:true,force:true});}
