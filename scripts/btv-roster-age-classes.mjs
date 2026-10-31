@@ -33,7 +33,7 @@ for (const canonical of Object.keys(AGE_CLASSES)) {
   AGE_ALIASES.set(classKey(canonical), canonical);
 }
 for (const [alias, canonical] of [
-  ['Junioren U18', 'Junioren 18'], ['Juniorinnen U18', 'Junioren 18'],
+  ['Junioren U18', 'Junioren 18'],
   ['Knaben U15', 'Knaben 15'], ['Mädchen U15', 'Mädchen 15'],
   ['Bambini U12', 'Bambini 12'], ['Kleinfeld 9', 'Kleinfeld U9'],
   ['Kleinfeld U9', 'Kleinfeld U9'],
