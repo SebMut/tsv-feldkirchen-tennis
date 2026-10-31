@@ -36,19 +36,32 @@ try {
  }));
  console.log('ARCHIVE_UI='+JSON.stringify(snapshot).slice(0,33000));
  console.log('ARCHIVE_REQUESTS='+JSON.stringify(requests).slice(0,6000));
- for(const name of ['Archiv','Bitte wählen...']){
-   const b=page.getByRole('button',{name,exact:true}).first();
-   if(await b.count()){
-     try{ await b.click({timeout:5000});await page.waitForTimeout(1100);
-       const menu=await page.evaluate(()=>({
-         text:(document.body?.innerText||'').slice(-11000),
-         options:[...document.querySelectorAll('[role=option],.z-popup,.z-listitem,.z-menuitem,.dropdown-menu')]
-           .filter(el=>el.getBoundingClientRect().width>0).slice(0,85)
-           .map(el=>({tag:el.tagName,text:el.textContent.trim().slice(0,160),html:el.outerHTML.slice(0,350)}))
-       }));
-       console.log('ARCHIVE_DROPDOWN='+JSON.stringify({name,menu}).slice(0,19000));
-     }catch(err){console.log('ARCHIVE_DROPDOWN_ERROR='+JSON.stringify({name,error:String(err.message).slice(0,130)}));}
-   }
+ const visible=await page.evaluate(()=>({
+  content:document.body.textContent?.slice(-2500),
+  state:[...document.querySelectorAll('button.z-button')].map(b=>({
+    text:b.textContent.trim(),visible:!!(b.offsetWidth||b.offsetHeight||b.getClientRects().length),
+    parent:b.parentElement?.outerHTML.slice(0,450),
+    style:getComputedStyle(b).display,
+    top:b.getBoundingClientRect().top
+  })),
+  cookie:document.querySelector('#CybotCookiebotDialog')?.getAttribute('style'),
+  overlay:document.querySelector('#CybotCookiebotDialog')?.className
+ }));
+ console.log('ARCHIVE_STATE='+JSON.stringify(visible).slice(0,10500));
+ const buttons=page.locator('button.z-button');
+ if(await buttons.count()>=3){
+  try{
+   await buttons.nth(2).evaluate(button=>button.click());
+   await page.waitForTimeout(1700);
+   const items=await page.evaluate(()=>({
+    text:document.body?.innerText?.slice(-6500),
+    visible:[...document.querySelectorAll('a,li,.z-listitem,.z-menuitem,.dropdown-menu')]
+     .filter(e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length))
+     .map(e=>({tag:e.tagName,text:e.textContent.trim().slice(0,110),html:e.outerHTML.slice(0,260)}))
+     .filter(e=>/20\d\d|Sommer|Winter|Archiv|Saison/i.test(e.text)).slice(0,80)
+   }));
+   console.log('ARCHIVE_FORCED_MENU='+JSON.stringify(items).slice(0,11000));
+  }catch(err){console.log('ARCHIVE_FORCED_ERROR='+String(err.message).slice(0,500))}
  }
  await page.close();
 }finally{await browser.close()}
