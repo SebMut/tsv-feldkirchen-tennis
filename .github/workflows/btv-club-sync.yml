@@ -1,0 +1,73 @@
+name: BTV club fixture sync
+
+# Schedule jobs only run from GitHub's DEFAULT branch. On this protected
+# development branch the parser can be tested without writing any data.
+on:
+  push:
+    branches:
+      - feature/astro-supabase-foundation
+    paths:
+      - scripts/btv-schedule.mjs
+      - scripts/sync-btv.mjs
+      - .github/workflows/btv-club-sync.yml
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'preview = validate BTV only; apply is blocked until separately enabled on main'
+        required: true
+        type: choice
+        options: [preview, apply]
+        default: preview
+      season_year:
+        description: 'Confirmed BTV season configuration (2026 currently)'
+        required: true
+        default: '2026'
+        type: string
+  schedule:
+    - cron: '17 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btv-club-fixtures
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'preview') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install PDF text extractor
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Read and verify public BTV club schedule (no database access)
+        env:
+          BTV_SEASON_YEAR: ${{ inputs.season_year || '2026' }}
+        run: node scripts/sync-btv.mjs
+
+  import:
+    # No write unless *all* checks hold. This job does not run on the
+    # feature branch and has no access to production website hosting.
+    if: ${{ (github.event_name == 'schedule' || inputs.mode == 'apply') && github.ref == 'refs/heads/main' && vars.BTV_IMPORT_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Install PDF text extractor
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: One guarded import of BTV public schedule to Supabase
+        env:
+          BTV_SEASON_YEAR: ${{ inputs.season_year || '2026' }}
+          BTV_IMPORT_ENABLED: ${{ vars.BTV_IMPORT_ENABLED }}
+          SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: node scripts/sync-btv.mjs --apply
