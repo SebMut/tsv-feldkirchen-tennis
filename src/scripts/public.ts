@@ -731,6 +731,10 @@ export async function loadCalendar() {
   const kindSelect = document.querySelector<HTMLSelectElement>('#calendar-kind');
   const rangeSelect = document.querySelector<HTMLSelectElement>('#calendar-range');
   const subscriptions = document.querySelector<HTMLElement>('#calendar-subscriptions');
+  const viewSelect = document.querySelector<HTMLSelectElement>('#calendar-view');
+  const favoriteSelect = document.querySelector<HTMLSelectElement>('#calendar-favorite');
+  const favoriteStatus = document.querySelector<HTMLElement>('#calendar-favorite-status');
+  const weekRange = document.querySelector<HTMLElement>('#calendar-week-range');
   if (!list || !grid || !monthTitle || !dayHeading || !dayCount || !dayList || !nextList || !teamSelect || !categorySelect || !kindSelect || !subscriptions || !statusTarget) return;
 
   const zone = 'Europe/Berlin';
@@ -757,6 +761,10 @@ export async function loadCalendar() {
   let liveStates: Row[] = [];
   let ready = false;
   let fetchError = false;
+  const favoriteKey = 'tsv-tennis-favorite-team';
+  let favoriteSlug = '';
+  try { favoriteSlug = localStorage.getItem(favoriteKey) || ''; } catch { /* Privatmodus ohne Speicherzugriff */ }
+  const weekdayMs = 86400000;
 
   type CalendarMarker = 'men' | 'women' | 'youth' | 'event' | 'other';
   const markerOrder: CalendarMarker[] = ['men', 'women', 'youth', 'event', 'other'];
@@ -784,6 +792,7 @@ export async function loadCalendar() {
     }).map(m => {
       const { team } = matchContext(m, reference);
       return {
+        id: m.id, endAt: m.ends_at || null, location: m.venue_name || '',
         at: m.starts_at, key: dateKey(m.starts_at), kind: 'match', marker: matchMarker(team),
         title: `${team?.name || 'TSV Feldkirchen'} gegen ${m.opponent}`,
         href: `/spiel/?match=${encodeURIComponent(m.id)}`,
@@ -798,6 +807,7 @@ export async function loadCalendar() {
       }
       return true;
     }).map(e => ({
+      id: e.id, endAt: e.ends_at || null, location: e.location_name || '',
       at: e.starts_at, key: dateKey(e.starts_at), kind: 'event', marker: 'event' as CalendarMarker,
       title: e.title,
       href: '',
@@ -824,11 +834,20 @@ export async function loadCalendar() {
   const render = () => {
     const entries = filteredEntries();
     const todayKey = dateKey(new Date());
-    monthTitle.textContent = monthFormatter.format(new Date(Date.UTC(viewYear, viewMonth - 1, 1, 12)));
-    const firstWeekday = (new Date(Date.UTC(viewYear, viewMonth - 1, 1)).getUTCDay() + 6) % 7;
+    const weekMode = viewSelect?.value === 'week';
+    const selectedDate = dateAt(selectedDay);
+    const selectedWeekday = (selectedDate.getUTCDay() + 6) % 7;
+    const monday = new Date(selectedDate.getTime() - selectedWeekday * weekdayMs);
+    const firstWeekday = weekMode ? 0 : (new Date(Date.UTC(viewYear, viewMonth - 1, 1)).getUTCDay() + 6) % 7;
     const daysInMonth = new Date(Date.UTC(viewYear, viewMonth, 0)).getUTCDate();
-    const cellCount = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
-    const monthStart = Date.UTC(viewYear, viewMonth - 1, 1);
+    const cellCount = weekMode ? 7 : Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
+    const monthStart = weekMode ? monday.getTime() : Date.UTC(viewYear, viewMonth - 1, 1);
+    monthTitle.textContent = weekMode ? 'Kalenderwoche' : monthFormatter.format(new Date(Date.UTC(viewYear, viewMonth - 1, 1, 12)));
+    if (weekRange) {
+      weekRange.classList.toggle('hidden', !weekMode);
+      const sunday = new Date(monday.getTime() + 6 * weekdayMs);
+      weekRange.textContent = weekMode ? `${shortFormatter.format(monday)} – ${shortFormatter.format(sunday)}` : '';
+    }
     const indexed = new Map<string, Record<CalendarMarker, number>>();
     entries.forEach(item => {
       const counts = indexed.get(item.key) || { men: 0, women: 0, youth: 0, event: 0, other: 0 };
@@ -841,7 +860,7 @@ export async function loadCalendar() {
       const key = isoAt(cellDate);
       const counts = indexed.get(key) || { men: 0, women: 0, youth: 0, event: 0, other: 0 };
       const count = markerOrder.reduce((total, marker) => total + counts[marker], 0);
-      const outside = cellDate.getUTCMonth() !== viewMonth - 1;
+      const outside = !weekMode && cellDate.getUTCMonth() !== viewMonth - 1;
       const today = key === todayKey, selected = key === selectedDay;
       const fullLabel = fullDayFormatter.format(cellDate);
       const categoryDescription = markerOrder.filter(marker => counts[marker] > 0)
@@ -860,7 +879,7 @@ export async function loadCalendar() {
     dayHeading.textContent = `${selectedDay === todayKey ? 'Heute · ' : ''}${fullDayFormatter.format(dateAt(selectedDay))}`;
     dayCount.textContent = !ready ? 'Termine werden geladen …' : fetchError ? 'Einige Termine sind momentan nicht abrufbar.' : chosen.length ? `${chosen.length} ${chosen.length === 1 ? 'Termin' : 'Termine'} an diesem Tag` : 'Keine Termine für diesen Tag';
     dayList.innerHTML = !ready ? '<p class="muted">Die Termine werden ermittelt …</p>'
-      : chosen.length ? chosen.map(item => `<div class="calendar-day-entry"><span class="calendar-entry-type calendar-entry-type--${item.marker}"><i class="calendar-dot calendar-dot--${item.marker}" aria-hidden="true"></i>${escapeHtml(markerLabels[item.marker])}</span>${item.html}</div>`).join('')
+      : chosen.length ? chosen.map((item, index) => `<div class="calendar-day-entry"><span class="calendar-entry-type calendar-entry-type--${item.marker}"><i class="calendar-dot calendar-dot--${item.marker}" aria-hidden="true"></i>${escapeHtml(markerLabels[item.marker])}</span>${item.html}<button type="button" class="button ghost" data-calendar-save="${index}">Diesen Termin zu meinem Kalender hinzufügen (.ics)</button></div>`).join('')
       : `<div class="calendar-agenda-empty"><span aria-hidden="true">✦</span><strong>Hier ist noch nichts geplant.</strong><p class="muted">Wähle einen markierten Tag im Kalender oder entdecke die nächsten Termine.</p></div>`;
     const coming = entries.filter(item => item.key >= todayKey).slice(0, 4);
     nextList.innerHTML = !ready ? '<p class="muted">Nächste Termine werden geladen …</p>'
@@ -896,9 +915,37 @@ export async function loadCalendar() {
     if (focus) grid.querySelector<HTMLButtonElement>(`[data-calendar-day="${key}"]`)?.focus();
   };
   const moveMonth = (amount: number) => {
-    const target = new Date(Date.UTC(viewYear, viewMonth - 1 + amount, 1, 12));
-    chooseDay(isoAt(target));
+    if (viewSelect?.value === 'week') {
+      chooseDay(isoAt(new Date(dateAt(selectedDay).getTime() + amount * 7 * weekdayMs)));
+    } else {
+      const target = new Date(Date.UTC(viewYear, viewMonth - 1 + amount, 1, 12));
+      chooseDay(isoAt(target));
+    }
   };
+  const icsEscape = (text: string) => text.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+  const icsStamp = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  dayList.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>('[data-calendar-save]');
+    if (!button) return;
+    const index = Number(button.dataset.calendarSave);
+    const item = filteredEntries().filter(entry => entry.key === selectedDay)[index];
+    if (!item) return;
+    const start = new Date(item.at);
+    const end = item.endAt ? new Date(item.endAt) : new Date(start.getTime() + 2 * 3600000);
+    const rows = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TSV Feldkirchen Tennis//DE',
+      'BEGIN:VEVENT', `UID:${item.id}@tsvfeldkirchen.de`, `DTSTAMP:${icsStamp(new Date())}`,
+      `DTSTART:${icsStamp(start)}`, `DTEND:${icsStamp(end)}`,
+      `SUMMARY:${icsEscape(item.title)}`, `LOCATION:${icsEscape(item.location)}`,
+      'END:VEVENT', 'END:VCALENDAR', '',
+    ];
+    const url = URL.createObjectURL(new Blob([rows.join('\r\n')], { type: 'text/calendar;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = 'tsv-termin.ics'; document.body.append(link); link.click(); link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+  });
   document.querySelector('#calendar-prev')?.addEventListener('click', () => moveMonth(-1));
   document.querySelector('#calendar-next')?.addEventListener('click', () => moveMonth(1));
   document.querySelector('#calendar-today')?.addEventListener('click', () => chooseDay(dateKey(new Date()), true));
@@ -918,7 +965,19 @@ export async function loadCalendar() {
     const key = isoAt(new Date(dateAt(target.dataset.calendarDay).getTime() + offset * 86400000));
     chooseDay(key, true);
   });
-  [teamSelect, categorySelect, kindSelect, rangeSelect].filter((el): el is HTMLSelectElement => !!el).forEach(el => el.addEventListener('change', render));
+  [teamSelect, categorySelect, kindSelect, rangeSelect, viewSelect].filter((el): el is HTMLSelectElement => !!el).forEach(el => el.addEventListener('change', render));
+  favoriteSelect?.addEventListener('change', () => {
+    const team = reference.teams.find(t => t.slug === favoriteSelect.value);
+    teamSelect.value = team?.id || '';
+    categorySelect.value = '';
+    render();
+  });
+  document.querySelector('#calendar-save-favorite')?.addEventListener('click', () => {
+    favoriteSlug = favoriteSelect?.value || '';
+    try { if (favoriteSlug) localStorage.setItem(favoriteKey, favoriteSlug); else localStorage.removeItem(favoriteKey); } catch { /* Speicher deaktiviert */ }
+    if (favoriteStatus) favoriteStatus.textContent = favoriteSlug ? 'Lieblingsmannschaft auf diesem Gerät gespeichert.' : 'Favorit entfernt.';
+    render();
+  });
 
   render();
   const loadingWatchdog = window.setTimeout(() => {
@@ -933,6 +992,12 @@ export async function loadCalendar() {
   try {
     reference = await refs();
     teamSelect.innerHTML += reference.teams.map(t => `<option value="${t.id}" data-slug="${escapeHtml(t.slug)}">${escapeHtml(t.name)}</option>`).join('');
+    if (favoriteSelect) {
+      favoriteSelect.innerHTML = '<option value="">Keine / alle Mannschaften</option>' + reference.teams.map(t =>
+        `<option value="${escapeHtml(t.slug)}">${escapeHtml(t.name)}</option>`).join('');
+      const favorite = reference.teams.find(t => t.slug === favoriteSlug);
+      if (favorite) { favoriteSelect.value = favorite.slug; teamSelect.value = favorite.id; }
+    }
     categorySelect.innerHTML += reference.categories.map(c => `<option value="${c.id}" data-slug="${escapeHtml(c.slug)}">${escapeHtml(c.name)}</option>`).join('');
     const [matchResponse, eventResponse] = await Promise.all([
       supabase.from('matches').select('*').eq('is_published', true).order('starts_at'),
