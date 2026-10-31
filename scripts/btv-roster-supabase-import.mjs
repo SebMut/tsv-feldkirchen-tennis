@@ -1,7 +1,6 @@
 // Server-side one-time TSV Feldkirchen roster import.
 // Only verified adult and youth NAME fields, no birth data, LK, player IDs or raw PDFs.
 // Never run from a public page; the service key exists only inside GitHub Actions.
-import { createClient } from '@supabase/supabase-js';
 import { assertVerifiedSummerSnapshot, CONFIRMED_SUMMER_CLASSES } from './btv-roster-pdf-parser.mjs';
 import { rosterTeams, planPrivateRosterImport } from './btv-roster-age-classes.mjs';
 
@@ -39,6 +38,7 @@ export async function importVerifiedPrivateRosters(parsed, secretKey) {
 
   // Do source validation before creating the server client or writing any rows.
   assertVerifiedSummerSnapshot(parsed);
+  const { createClient } = await import('@supabase/supabase-js');
   const db = createClient(PROJECT, secretKey, {
     auth: { persistSession:false, autoRefreshToken:false },
     global: { headers: { 'X-Client-Info':'tsv-btv-nmm-once' } },
