@@ -33,6 +33,18 @@ async function refs() {
   };
 }
 
+
+// Falls ein Dienst nicht antwortet, bleibt keine öffentliche Seite bei "Wird geladen" stehen.
+function watchPublicContent(selector: string) {
+  const element = document.querySelector<HTMLElement>(selector);
+  if (!element) return;
+  window.setTimeout(() => {
+    if (/wird geladen|werden geladen|wird ermittelt|werden ermittelt/i.test(element.textContent || '') || !element.innerHTML.trim()) {
+      element.innerHTML = '<div class="public-unavailable" role="status">Diese Informationen sind gerade nicht verfügbar. Bitte versuche es später erneut.</div>';
+    }
+  }, 12000);
+}
+
 function byId(rows: Row[]) {
   return new Map(rows.map((row) => [row.id, row]));
 }
@@ -158,9 +170,9 @@ export async function loadHome() {
     if (target) target.innerHTML = `<p class="muted" role="status">${escapeHtml(message)}</p>`;
   };
   const watchdog = window.setTimeout(() => {
-    if (facility?.textContent?.includes('Wird geladen')) errorText(facility, 'Anlagenstatus momentan nicht abrufbar. Bitte Courtbooking prüfen.');
+    if (facility?.textContent?.match(/geladen|ermittelt/i)) errorText(facility, 'Anlagenstatus momentan nicht abrufbar. Bitte Courtbooking prüfen.');
     for (const target of [todayTarget, upcomingTarget, recentTarget, newsTarget]) {
-      if (target?.textContent?.includes('geladen')) errorText(target, 'Inhalte momentan nicht abrufbar. Bitte später erneut versuchen.');
+      if (target?.textContent?.match(/geladen|ermittelt/i)) errorText(target, 'Inhalte momentan nicht abrufbar. Bitte später erneut versuchen.');
     }
   }, 12000);
   try {
@@ -264,9 +276,9 @@ export async function loadHome() {
     await renderSponsorPlacements('#home-sponsors', ['home']);
   } catch (error) {
     console.warn('Öffentliche Startseiten-Daten konnten nicht geladen werden:', error);
-    if (facility?.textContent?.includes('Wird geladen')) errorText(facility, 'Anlagenstatus momentan nicht abrufbar.');
+    if (facility?.textContent?.match(/geladen|ermittelt/i)) errorText(facility, 'Anlagenstatus momentan nicht abrufbar.');
     for (const target of [todayTarget, upcomingTarget, recentTarget, newsTarget]) {
-      if (target?.textContent?.includes('geladen')) errorText(target, 'Inhalte momentan nicht abrufbar.');
+      if (target?.textContent?.match(/geladen|ermittelt/i)) errorText(target, 'Inhalte momentan nicht abrufbar.');
     }
   } finally {
     window.clearTimeout(watchdog);
@@ -275,6 +287,7 @@ export async function loadHome() {
 }
 
 export async function loadTeams() {
+  watchPublicContent('#teams-grid');
   const target = document.querySelector('#teams-grid');
   const seasonSelect = document.querySelector('#teams-season');
   const categorySelect = document.querySelector('#teams-category');
@@ -335,6 +348,7 @@ export async function loadTeams() {
 }
 
 export async function loadTeamDetail(slug: string) {
+  watchPublicContent('#team-header');
   const root = document.querySelector<HTMLElement>('[data-team-slug]');
   if (!root) return;
   const reference = await refs();
@@ -516,6 +530,7 @@ export async function loadTeamDetail(slug: string) {
 }
 
 export async function loadMatchDetail(matchId: string | null) {
+  watchPublicContent('#match-detail-head');
   const root = document.querySelector<HTMLElement>('#match-detail-root');
   const head = document.querySelector<HTMLElement>('#match-detail-head');
   const scoreTarget = document.querySelector<HTMLElement>('#match-detail-score');
@@ -639,9 +654,23 @@ export async function loadMatchDetail(matchId: string | null) {
   }
 
   await renderSponsorPlacements('#match-detail-sponsor', ['match'], { teamId: team?.id, matchId });
+  const timelineTarget = document.querySelector<HTMLElement>('#match-detail-timeline');
+  if (timelineTarget) {
+    const { data: entries, error: tickerError } = await supabase.from('live_ticker_entries')
+      .select('*').eq('match_id', matchId).is('deleted_at', null).order('created_at', { ascending: false }).limit(25);
+    timelineTarget.innerHTML = `<div class="page-head"><div><p class="eyebrow">Spielverlauf</p><h2>Tickermeldungen</h2></div>
+      <a class="button ghost" href="/live/?match=${encodeURIComponent(matchId)}">Ticker-Archiv öffnen</a></div>` +
+      (tickerError ? '<p class="muted">Tickermeldungen sind momentan nicht verfügbar.</p>'
+      : entries?.length ? entries.map((entry: Row) => `<div class="timeline-row"><div><strong>${escapeHtml(entry.message)}</strong>
+        <div class="match-meta">${escapeHtml(formatDateTime(entry.created_at))}</div></div></div>`).join('')
+      : '<p class="muted">Noch keine Tickermeldungen zu diesem Spiel.</p>');
+  }
+  if (status === 'live') window.setTimeout(() => loadMatchDetail(matchId), 30000);
+
 }
 
 export async function loadCalendar() {
+  watchPublicContent('#calendar-list');
   const list = document.querySelector<HTMLElement>('#calendar-list');
   const teamSelect = document.querySelector<HTMLSelectElement>('#calendar-team');
   const categorySelect = document.querySelector<HTMLSelectElement>('#calendar-category');
@@ -686,7 +715,13 @@ export async function loadCalendar() {
       ...(kind !== 'matches' ? eventRows : []),
     ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
-    list.innerHTML = combined.length ? combined.map((x) => x.html).join('') : '<p class="muted">Keine Termine für diese Auswahl.</p>';
+    const now = Date.now();
+    const upcoming = combined.filter((entry) => new Date(entry.at).getTime() >= now);
+    const previous = combined.filter((entry) => new Date(entry.at).getTime() < now).reverse();
+    list.innerHTML = combined.length
+      ? `<section class="calendar-time-group"><h2>Bevorstehende Termine (${upcoming.length})</h2>${upcoming.length ? upcoming.map((entry) => entry.html).join('') : '<p class="muted">Keine bevorstehenden Termine.</p>'}</section>
+         ${previous.length ? `<details class="calendar-past"><summary>Vergangene Termine (${previous.length}) anzeigen</summary>${previous.map((entry) => entry.html).join('')}</details>` : ''}`
+      : '<p class="muted">Keine Termine für diese Auswahl.</p>';
 
     const params: Record<string, string> = {};
     if (kind !== 'all') params.type = kind;
@@ -707,9 +742,10 @@ export async function loadCalendar() {
 }
 
 export async function loadNews() {
+  watchPublicContent('#news-list');
   const target = document.querySelector<HTMLElement>('#news-list');
   if (!target) return;
-  const { data } = await supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false });
+  const { data, error } = await supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false });
   target.innerHTML = data?.length ? data.map((item: Row) => `
     <article class="card">
       ${item.hero_image_path ? `<img src="${escapeHtml(mediaUrl(item.hero_image_path))}" alt="" loading="lazy" style="border-radius:14px;aspect-ratio:16/9;object-fit:cover;margin-bottom:16px">` : ''}
@@ -718,16 +754,17 @@ export async function loadNews() {
       <p class="muted">${escapeHtml(item.excerpt || item.body.slice(0, 220))}</p>
       <details><summary>Weiterlesen</summary><p style="white-space:pre-wrap">${escapeHtml(item.body)}</p></details>
     </article>
-  `).join('') : '<p class="muted">Noch keine Beiträge veröffentlicht.</p>';
+  `).join('') : `<p class="muted">${error ? 'Beiträge sind momentan nicht abrufbar.' : 'Noch keine Beiträge veröffentlicht.'}</p>`;
 }
 
 export async function loadManagedPage(slug: string) {
+  watchPublicContent('#managed-page-content');
   const title = document.querySelector<HTMLElement>('#managed-title');
   const content = document.querySelector<HTMLElement>('#managed-page-content');
   if (!content) return;
   const { data, error } = await supabase.from('pages').select('*').eq('slug', slug).eq('published', true).maybeSingle();
   if (error || !data) {
-    content.innerHTML = '<p class="muted">Der Inhalt wird noch gepflegt.</p>';
+    content.innerHTML = `<p class="muted">${error ? 'Dieser Inhalt ist momentan nicht abrufbar.' : 'Der Inhalt wird noch gepflegt.'}</p>`;
     return;
   }
   if (title) title.textContent = data.title;
@@ -735,9 +772,10 @@ export async function loadManagedPage(slug: string) {
 }
 
 export async function loadSponsors() {
+  watchPublicContent('#sponsors-grid');
   const target = document.querySelector<HTMLElement>('#sponsors-grid');
   if (!target) return;
-  const { data } = await supabase.from('sponsors').select('*').eq('active', true).order('sort_order');
+  const { data, error } = await supabase.from('sponsors').select('*').eq('active', true).order('sort_order');
   target.innerHTML = data?.length ? data.map((s: Row) => `
     <article class="card team-card">
       ${s.logo_path ? `<img src="${escapeHtml(mediaUrl(s.logo_path))}" alt="Logo ${escapeHtml(s.name)}" loading="lazy">` : ''}
@@ -745,23 +783,25 @@ export async function loadSponsors() {
       <p class="muted">${escapeHtml(s.description || '')}</p>
       ${s.url ? `<a class="button ghost" href="${escapeHtml(s.url)}" target="_blank" rel="noreferrer">Website ↗</a>` : ''}
     </article>
-  `).join('') : '<p class="muted">Sponsoren werden derzeit eingepflegt.</p>';
+  `).join('') : `<p class="muted">${error ? 'Sponsoren sind momentan nicht abrufbar.' : 'Sponsoren werden derzeit eingepflegt.'}</p>`;
 }
 
 export async function loadOfficials() {
+  watchPublicContent('#officials-grid');
   const target = document.querySelector<HTMLElement>('#officials-grid');
   if (!target) return;
-  const { data } = await supabase.from('officials').select('*').eq('published', true).order('sort_order');
+  const { data, error } = await supabase.from('officials').select('*').eq('published', true).order('sort_order');
   target.innerHTML = data?.length ? data.map((o: Row) => `
     <article class="card team-card">
       ${o.photo_path ? `<img src="${escapeHtml(mediaUrl(o.photo_path))}" alt="${escapeHtml(o.name)}" loading="lazy">` : ''}
       <div><p class="eyebrow">${escapeHtml(o.title)}</p><h3>${escapeHtml(o.name)}</h3></div>
       <p class="muted">${o.email ? `<a href="mailto:${escapeHtml(o.email)}">${escapeHtml(o.email)}</a>` : ''}${o.email && o.phone ? '<br>' : ''}${o.phone ? escapeHtml(o.phone) : ''}</p>
     </article>
-  `).join('') : '<p class="muted">Funktionäre werden derzeit eingepflegt.</p>';
+  `).join('') : `<p class="muted">${error ? 'Funktionäre sind momentan nicht abrufbar.' : 'Funktionäre werden derzeit eingepflegt.'}</p>`;
 }
 
 export async function loadLiveTicker(matchId: string | null) {
+  watchPublicContent('#live-match-head');
   const head = document.querySelector<HTMLElement>('#live-match-head');
   const score = document.querySelector<HTMLElement>('#live-score');
   const encountersTarget = document.querySelector<HTMLElement>('#live-encounters');
