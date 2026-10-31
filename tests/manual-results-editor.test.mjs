@@ -21,7 +21,15 @@ test('correct Supabase project and safe, non-privileged browser key',()=>{
 test('manual entries never write directly to official BTV records',()=>{
   assert.match(html,/from\("manual_match_results"\)/);
   assert.match(html,/from\("manual_editable_matches"\)/);
-  assert.doesNotMatch(html,/from\("matches"\)\.update|btv_result_text\s*:/);
+  // Prüfe tatsächlich verbotene Datenbank-Schreibmethoden, nicht JavaScript-Ternaries.
+  // "m.btv_result_text:saved..." ist Teil eines bedingten Anzeigeausdrucks und kein UPDATE.
+  assert.doesNotMatch(
+    html,
+    /\.from\(\s*["']matches["']\s*\)\s*\.\s*(?:update|insert|upsert|delete)\s*\(/
+  );
+  const payload = html.match(/const\s+payload\s*=\s*\{([^}]+)\}/)?.[1];
+  assert.ok(payload, 'manual result write payload must exist');
+  assert.doesNotMatch(payload, /\bbtv_result_text\s*:/);
   assert.match(html,/manual_pending|amtlich bestätigt/i);
   assert.match(html,/Heim-Punkte/);
   assert.match(html,/Gast-Punkte/);
