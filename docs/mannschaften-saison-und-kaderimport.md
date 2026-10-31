@@ -57,6 +57,33 @@ Die Zuordnung der beiden H00-Gruppen zu Herren / Herren II beruht auf ihrer Reih
 
 Migrationsdatei: `supabase/migrations/20261031210000_official_winter_2026_27_teams.sql`. Sie wurde im erlaubten Supabase-Projekt angewandt. Sie legt **nur** die drei `team_seasons` an, ohne vorhandene Spieltage, Kader, Ergebnisse oder Sommermeldungen zu verändern. Die `btv_url` verweist auf die permanente offizielle Vereinsübersicht, nicht auf eine nicht verifizierte Einzelmannschafts-URL.
 
-Kontrollierte Daten nach Import: Sommer 2026: 20; Winter 2026/27: 3; Sommer 2027: 0. **Winterspiele und namentliche Mannschaftsmeldungen sind noch nicht importiert**; für deren Import sind die verifizierten offiziellen Quellen gesondert zuzuordnen. Der bestehende Standardbranch-Cronjob prüft weiterhin nur Sommer 2026.
+Kontrollierte Daten nach Import: Sommer 2026: 20; Winter 2026/27: 3; Sommer 2027: 0. **15 Winterspiele wurden mittlerweile aus den drei offiziell verifizierten Gruppen importiert.** Namentliche Kader sind nicht importiert, da die öffentlich zugänglichen Porträts keine vollständig prüfbare Mannschaftsmeldung liefern. Der bestehende Standardbranch-Cronjob prüft weiterhin nur Sommer 2026.
 
 Öffentliche Quelle: https://www.btv.de/de/mein-verein/vereinsseite/tsv-feldkirchen.html#Mannschaften
+
+
+## Winter-Spieltermine und automatischer Terminabgleich (31.10.2026)
+
+Die drei offiziellen, **öffentlichen** BTV-Gruppen-PDFs sind nach Vereinsnummer, Saison, Liganame, Gruppe und Vollständigkeit geprüft:
+- Herren: [Gruppe 018, ID 2257673](https://www.btv.de/de/spielbetrieb/tabelle-spielplan.html?groupid=2257673)
+- Herren II: [Gruppe 020, ID 2257681](https://www.btv.de/de/spielbetrieb/tabelle-spielplan.html?groupid=2257681)
+- Herren 50: [Gruppe 166, ID 2257828](https://www.btv.de/de/spielbetrieb/tabelle-spielplan.html?groupid=2257828)
+
+Jede Liga enthält 15 Begegnungen, darunter genau fünf TSV-Spiele. **15/15 TSV-Winterspiele** wurden über die Migration `20261031220000_winter_2026_27_matches.sql` idempotent in Supabase gespeichert. BTV-Links direkt pro Mannschaft wurden über `20261031231000_winter_team_group_links.sql` aktualisiert. Der Spielstand der bereits vergangenen Begegnungen ist ausschließlich als BTV-Quellentext gespeichert; Liveticker-Endstände werden nicht erfunden.
+
+Die Datenbank-Migration `20261031230000_btv_season_scoping.sql` trennt die privaten BTV-Snapshots, Prüfläufe und Verlegungsprotokolle über `season_code` in **sommer-2026**, **winter-2026-2027** und künftig **sommer-2027**. Der bestehende, getestete Verlegungs-Trigger schützt manuelle Änderungen und Liveticker, archiviert nur frühere *automatische* Verlegungs-News und veröffentlicht beim ersten Snapshot keine News.
+
+Die Erweiterung des 6-Stunden-GitHub-Cronjobs wurde read-only erfolgreich getestet:
+- Sommer 2026: 120 Spiele / 20 Teams
+- Winter 2026/27: 15 Spiele / 3 Teams
+
+**Wichtig:** Der Pull Request [#3](https://github.com/SebMut/tsv-feldkirchen-tennis/pull/3) enthält ausschließlich drei BTV-Dateien und ist **noch nicht** nach `main` gemergt. Die automatische Winter-Prüfung startet erst nach dieser getrennten Freigabe. Kein Homepage-Go-live.
+
+## Winter-Spielerkader
+
+Die drei verifizierten Mannschaftsporträts:
+- Herren: https://www.btv.de/de/spielbetrieb/teamportrait.html?teamid=3728614
+- Herren II: https://www.btv.de/de/spielbetrieb/teamportrait.html?teamid=3727556
+- Herren 50: https://www.btv.de/de/spielbetrieb/teamportrait.html?teamid=3727895
+
+Der technisch zugängliche öffentliche BTV-Widget-Inhalt lieferte bislang keine überprüfbare **vollständige namentliche Mannschaftsmeldung**. Deshalb wurden keine zusätzlichen Namen erfunden oder importiert. Der vorhandene berechtigungsgeschützte Kader-Sammelimport in `Mein TSV → Kader` erlaubt den Import aus einem offiziellen BTV-Export pro Mannschaft/Saison; neue Namen bleiben zunächst intern (`public_visible=false`). Die vollständige Vereinsmeldung ist hierfür noch bereitzustellen oder die öffentliche vollständige Quelle zu verifizieren.
