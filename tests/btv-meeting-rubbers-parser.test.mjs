@@ -13,7 +13,7 @@ function row(fields){
 const names=['Muster, Max','Beispiel, Erika','Test, Lina','Probe, Theo','Format, Tessa','Spiel, Sam'];
 const singles=names.slice(0,4).map((_,i)=>row([
  [3,i+1],[14,i+1],[23,'12345678'],[47,names[i]+' GER (LK20,1)'],
- [89,i+1],[98,'87654321'],[122,'Gast'+i+', Greta GER (LK15,4)'],
+ [89,i+1],[98,'87654321'],[122,'Gast, Greta GER (LK15,4)'],
  [159,i===0?'3:6':'6:2'],[172,i===0?'3:6':'6:3']
 ]));
 const dbl=(pos,a,b,away1,away2,homeWins)=>[
@@ -25,8 +25,8 @@ function report(sets){
  return ['Südbayern | Sommer 2026','Gr. 999','TSV Feldkirchen (01012) : TC Beispiel (01001) 4:2',
  'Einzel','Heimmannschaft Gastmannschaft 1. Satz 2. Satz 3. Satz',
  ...sets,'Doppel','Heimmannschaft Gastmannschaft 1. Satz 2. Satz 3. Satz',
- ...dbl(1,names[4],names[5],'Gast4, Eva','Gast5, Eva',true),
- ...dbl(2,names[1],names[3],'Gast6, Eva','Gast7, Eva',false),
+ ...dbl(1,names[4],names[5],'Gast, Eva','Gegen, Laura',true),
+ ...dbl(2,names[1],names[3],'Gast, Nela','Gegen, Lisa',false),
  'Gesamt 4:2'].join('\n');
 }
 test('exact 4+2 report preserves each actual player and each actual set',()=>{
