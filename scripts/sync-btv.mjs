@@ -2,16 +2,22 @@
 // Safe by default: --apply plus BTV_IMPORT_ENABLED=true and server-only key
 // required for *any* DB access. Never retries or bypasses BTV rate limits.
 import { getClubSchedule, normalizedName } from './btv-schedule.mjs';
+import { getWinterSchedule, WINTER_CODE, WINTER_YEAR } from './btv-winter-schedule.mjs';
 
 const apply = process.argv.includes('--apply');
-const year = Number(process.env.BTV_SEASON_YEAR || 2026);
+const isWinter = process.env.BTV_SEASON_CODE === WINTER_CODE;
+const year = isWinter ? WINTER_YEAR : Number(process.env.BTV_SEASON_YEAR || 2026);
+const seasonCode = isWinter ? WINTER_CODE : 'sommer-' + year;
+if (process.env.BTV_SEASON_CODE && process.env.BTV_SEASON_CODE !== WINTER_CODE)
+  throw new Error('Unverified BTV competition code; refusing import');
 if (!Number.isInteger(year) || year < 2025 || year > 2100) throw new Error('Invalid BTV season year');
 if (apply && process.env.BTV_IMPORT_ENABLED !== 'true') throw new Error('BTV_IMPORT_ENABLED=true is required to write');
-const schedule = await getClubSchedule(year);
+const schedule = isWinter ? await getWinterSchedule() : await getClubSchedule(year);
 const counts = new Map();
 for (const fixture of schedule.fixtures) counts.set(fixture.slug, (counts.get(fixture.slug) || 0) + 1);
-console.log(`BTV ${year} / TSV 01012: ${schedule.fixtures.length} fixtures, ${counts.size} teams, ${schedule.pages} PDF pages.`);
-if (year === 2026 && counts.size !== 20) throw new Error('Expected exactly 20 TSV teams; stopping');
+console.log(`BTV ${seasonCode} / TSV 01012: ${schedule.fixtures.length} fixtures, ${counts.size} teams, ${isWinter ? 3 : schedule.pages} PDF pages.`);
+if (isWinter && (schedule.fixtures.length !== 15 || counts.size !== 3)) throw new Error('Expected 15 fixtures across 3 verified winter teams');
+if (!isWinter && year === 2026 && counts.size !== 20) throw new Error('Expected exactly 20 TSV summer teams; stopping');
 if (!apply) {
   console.log('PREVIEW ONLY: source verified; no Supabase access and no news published.');
   process.exit(0);
@@ -39,11 +45,11 @@ const report = {
 let runId = null;
 try {
   const [seasons, teams, teamSeasons] = await Promise.all([
-    get(db.from('seasons').select('id,year,code').eq('code', 'sommer-' + year), 'Seasons'),
+    get(db.from('seasons').select('id,year,code').eq('code', seasonCode), 'Seasons'),
     get(db.from('teams').select('id,slug'), 'Teams'),
     get(db.from('team_seasons').select('id,team_id,season_id,btv_url'), 'Team seasons'),
   ]);
-  if (seasons.length !== 1) throw new Error('No single configured summer season for ' + year);
+  if (seasons.length !== 1) throw new Error('No unique configured competition ' + seasonCode);
   const teamsBySlug = new Map(teams.map(team => [team.slug, team]));
   const registered = new Map(teamSeasons
     .filter(row => row.season_id === seasons[0].id).map(row => [row.team_id, row]));
@@ -59,7 +65,7 @@ try {
     .map(row => [row.btv_source_key, row]));
   const byId = new Map(existing.map(row => [row.id, row]));
   const previousSnapshots = await get(db.from('btv_fixture_snapshots')
-    .select('source_key,first_seen_at,match_id').eq('season_year', year), 'Previous BTV snapshots');
+    .select('source_key,first_seen_at,match_id').eq('season_code', seasonCode), 'Previous BTV snapshots');
   const previousByKey = new Map(previousSnapshots.map(row => [row.source_key, row]));
   const byIdentity = new Map();
   const countPerSeason = new Map();
@@ -104,8 +110,8 @@ try {
           team_season_id: season.id, opponent: fixture.opponent,
           is_home: fixture.isHome, starts_at: fixture.startsAt,
           ends_at: null, match_type: 'league',
-          lineup_format: fixture.four ? '4_2' : '6_3',
-          is_published: true, external_url: season.btv_url || null,
+          lineup_format: isWinter || fixture.four ? '4_2' : '6_3',
+          is_published: true, external_url: isWinter ? 'https://www.btv.de/de/spielbetrieb/tabelle-spielplan.html?groupid=' + fixture.group : season.btv_url || null,
           btv_imported: true, btv_source_key: fixture.sourceKey,
           btv_last_synced_at: new Date().toISOString(),
           btv_result_text: fixture.score,
@@ -117,10 +123,10 @@ try {
     }
     if (matched) report.existing_count++;
     baselineRows.push({
-      season_year: year, source_key: fixture.sourceKey,
+      season_year: year, season_code: seasonCode, source_key: fixture.sourceKey,
       team_season_id: season.id, match_id: matched?.id || null,
       opponent: fixture.opponent, is_home: fixture.isHome,
-      starts_at: fixture.startsAt, source_url: schedule.sourceUrl,
+      starts_at: fixture.startsAt, source_url: fixture.sourceUrl || schedule.sourceUrl,
       first_seen_at: previous?.first_seen_at || new Date().toISOString(),
       last_seen_at: new Date().toISOString(),
     });
@@ -130,7 +136,7 @@ try {
   if (unresolved.length > 20) throw new Error('Too many ambiguous fixtures: ' + unresolved.length);
   const startedAt = new Date().toISOString();
   const { data: run, error: startError } = await db.from('btv_import_runs')
-    .insert({ season_year: year, source_url: schedule.sourceUrl, ...report, started_at: startedAt })
+    .insert({ season_year: year, season_code: seasonCode, source_url: schedule.sourceUrl, ...report, started_at: startedAt })
     .select('id').single();
   if (startError) throw new Error('Cannot start import log: ' + startError.message);
   runId = run.id;
@@ -154,7 +160,7 @@ try {
     .upsert(baselineRows, { onConflict: 'season_year,source_key' });
   if (snapshotError) throw new Error('Snapshot comparison failed: ' + snapshotError.message);
   const changes = await get(db.from('btv_schedule_changes')
-    .select('id,status,news_id').eq('season_year', year).gte('detected_at', startedAt),
+    .select('id,status,news_id').eq('season_code', seasonCode).gte('detected_at', startedAt),
   'Schedule changes');
   report.rescheduled_count = changes.filter(row => row.status === 'published').length;
   report.news_count = changes.filter(row => row.news_id).length;
@@ -164,7 +170,7 @@ try {
     ...report, status: 'success', completed_at: new Date().toISOString(),
   }).eq('id', runId);
   if (endError) throw new Error('Could not finalize schedule sync: ' + endError.message);
-  console.log('BTV 6H SUCCESS:', JSON.stringify(report));
+  console.log(`BTV 6H SUCCESS ${seasonCode}:`, JSON.stringify(report));
   if (unresolved.length) console.log('Needs editorial review:', unresolved.slice(0, 15));
 } catch (error) {
   console.error('BTV SYNC FAILED:', String(error.message || error));
