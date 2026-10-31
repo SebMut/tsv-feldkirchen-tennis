@@ -453,6 +453,32 @@ export async function loadTeamDetail(slug: string) {
     ? (await supabase.from('match_live_state').select('*').in('match_id', allMatchesForTeam.map((m: Row) => m.id))).data ?? []
     : [];
 
+  const statsTarget = document.querySelector<HTMLElement>('#team-stats');
+  if (statsTarget) {
+    const seasonMatches = matches ?? [];
+    const seasonLiveMap = new Map(liveStates.map((state: Row) => [state.match_id, state]));
+    const finished = seasonMatches.filter((m: Row) => seasonLiveMap.get(m.id)?.status === 'finished');
+    const results = finished.map((m: Row) => {
+      const state = seasonLiveMap.get(m.id);
+      const our = m.is_home ? Number(state?.home_score ?? 0) : Number(state?.away_score ?? 0);
+      const rival = m.is_home ? Number(state?.away_score ?? 0) : Number(state?.home_score ?? 0);
+      return Math.sign(our - rival);
+    });
+    const won = results.filter(n => n > 0).length;
+    const drawn = results.filter(n => n === 0).length;
+    const lost = results.filter(n => n < 0).length;
+    const home = seasonMatches.filter((m: Row) => m.is_home).length;
+    const away = seasonMatches.length - home;
+    statsTarget.innerHTML = `<div class="phase8-stat-grid">
+      <div><strong>${seasonMatches.length}</strong><span>Punktspiele</span></div>
+      <div><strong>${home}</strong><span>Heimspiele</span></div>
+      <div><strong>${away}</strong><span>Auswärtsspiele</span></div>
+      <div><strong>${finished.length}</strong><span>Digital abgeschlossen</span></div>
+      </div><p class="muted">Digital erfasste Ergebnisse: ${won} Siege · ${drawn} Unentschieden · ${lost} Niederlagen.
+      ${finished.length < seasonMatches.length ? 'Ältere oder noch nicht im Liveticker abgeschlossene Spiele fließen nicht in die Ergebnisbilanz ein.' : ''}</p>
+      ${current?.btv_url ? `<p><a href="${escapeHtml(current.btv_url)}" class="text-link" target="_blank" rel="noreferrer">Offiziellen BTV-Spielplan und Tabellenstand ansehen ↗</a></p>` : ''}`;
+  }
+
   const nextMatchTarget = document.querySelector<HTMLElement>('#team-next-match');
   if (nextMatchTarget) {
     const now = Date.now();
