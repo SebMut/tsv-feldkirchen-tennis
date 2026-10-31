@@ -84,3 +84,18 @@ Status: **technisch weitgehend umgesetzt – fachliche und visuelle Abnahme offe
 7. Letzten CI- und GitHub-Pages-Status vor endgültiger Abnahme erneut prüfen.
 
 **Keine Freigabe zur Produktionsumschaltung.** Phase 7 darf erst nach technischer und fachlicher Abnahme in den Go-live wechseln.
+
+
+## Ergänzung: Interaktiver Monatskalender mit Fokus auf heute (31.10.2026)
+
+Auf ausdrücklichen Wunsch wurde die bisherige listenbasierte Terminseite durch einen echten Monatskalender ersetzt.
+
+- `src/pages/termine/index.astro`: Monatsraster mit sieben Wochentagen ab Montag, Monatsnavigation, „Heute“-Taste, Tagesagenda rechts und kompakter kommender Terminliste. Die bestehende vollständige Terminliste bleibt aufklappbar.
+- `src/scripts/public.ts`: automatische Auswahl des aktuellen Tages beim Aufruf, Berechnung des Kalendertags in der Zeitzone `Europe/Berlin` (inklusive Zeitumstellung), Hervorhebung des heutigen und ausgewählten Tages, rote Punkte für Punktspiele und grüne Punkte für Veranstaltungen; Klick oder Pfeiltasten wechseln den gewählten Tag. Filter für Terminart, Mannschaft, Kategorie und Zeitraum wirken auf Monatsmarkierungen und Agenda. Auf jeder gewählten Tagesseite werden die echten Daten aus `matches` und `events` angezeigt.
+- `src/styles/global.css`: eigenständiges helles, responsives Monatskalender-Layout; auf kleinen Smartphones folgt die Tagesagenda unter dem Raster.
+- ICS-Abonnements bleiben vorhanden und verweisen weiterhin auf die bestehenden, serverseitig gefilterten Feeds. Der Zeitraumfilter verändert nur die UI-Ansicht, nicht die ICS-Historie.
+- Bei fehlenden Daten oder langsamer Supabase-Antwort ist der Kalender bedienbar und zeigt ein erklärendes Status-/Leerfeld; keine frei erfundenen Termine.
+- Verifikation Supabase zum 31.10.2026 (Europe/Berlin): 121 veröffentlichte Punktspiele, drei veröffentlichte Veranstaltungen, davon **heute 0 Punktspiele und 0 Veranstaltungen**. Daher ist die heutige Agenda derzeit erwartungsgemäß leer; vergangene Tage lassen sich über die Monatsnavigation ansehen.
+- **Keine DB-/Berechtigungsänderungen** für den Monatskalender. Die produktive Domain wurde nicht verändert.
+- Astro-Check und Build der Kalender-Implementierung bei Commit `da5e270f2b49d1880564c2a121355185dc8e92a7` erfolgreich; GitHub-Pages-Publish ebenfalls erfolgreich. Späterer Accessibility- und Watchdog-Fix in `2f9be10c4dedc29f6373b0badf6607d72a9a4c7b`; abschließenden CI-Status prüfen.
+- Offen: Sichtkontrolle auf echten Smartphones und ein Klick-/Tastaturtest im Browser. Eine vollständige dynamische Browser-Vorschau war über die vorhandenen Werkzeuge nicht zugänglich.
