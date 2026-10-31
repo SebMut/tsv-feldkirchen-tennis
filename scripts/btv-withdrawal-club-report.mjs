@@ -29,6 +29,30 @@ function localISO(raw){
 }
 // The PDF contains five adjacent group columns. PDF-to-text must be cropped
 // *per column*; pdftotext without crop interleaves unrelated group rows.
+// A plain -layout text stream preserves horizontal character positions.
+// Derive the real five-column starts from repeated "1 Team", "2 Team", ...
+// rows, rather than dividing full PDF page width into equal fifths: its
+// content width and margins differ from the page width.
+export function columnsFromLayoutText(text){
+  const lines=String(text).split(/\r?\n/);
+  let best=[];
+  for(const line of lines){
+    const starts=[];
+    const rank=/(^|\s{3,})(\d{1,2})\s+(?=[\p{L}])/gu;
+    let m;
+    while((m=rank.exec(line))){
+      const at=m.index+m[1].length;
+      if(Number(m[2])>=1&&Number(m[2])<=20)starts.push(at);
+    }
+    if(starts.length>best.length && starts.length<=7)best=starts;
+  }
+  if(best.length<4||best.length>6||best[0]>20)return [];
+  if(best.some((s,i)=>i>0 && s-best[i-1]<22))return [];
+  return best.map((start,i)=>lines.map(line=>
+    line.slice(start, i+1<best.length?best[i+1]:undefined).trimEnd()
+  ).join('\n'));
+}
+
 export function parseClubReportColumn(text){
   const lines=String(text).split(/\r?\n/);
   let group=null;
@@ -40,7 +64,7 @@ export function parseClubReportColumn(text){
       group=Number(heading[1]);
       continue;
     }
-    const candidate=line.match(/^(\d{1,2})\s+(.+?)\s+zurückgezogen(?:\s*\/\s*gesperrt)?\s+am\b/i);
+    const candidate=line.match(/^(\d{1,2})\s+(.+?)\s+zurückgezogen(?:\s*\/\s*gesperrt)?(?:\s+am)?\b/i);
     if(!group||!candidate)continue;
     const rank=Number(candidate[1]);
     if(rank<1||rank>20)continue;
@@ -141,12 +165,16 @@ export async function fetchClubGroupReport(seasonCode){
         columns.push(text);
       }
     }
-    const entries=parseClubGroupReport(columns,{seasonCode});
+    const layoutColumns=columnsFromLayoutText(full);
+    const croppedGroups=groupNumbersFromColumns(columns).length;
+    const layoutGroups=groupNumbersFromColumns(layoutColumns).length;
+    const preferred=layoutGroups>=croppedGroups?layoutColumns:columns;
+    const entries=parseClubGroupReport(preferred,{seasonCode});
     // Diagnostic metadata only (no roster names or personal details).
     // A source with a withdrawal marker but no parsed entry is an importer
     // coverage gap, not evidence that there were no withdrawals.
     const rawWithdrawalMarkers=(full.match(/zurückgezogen(?:\s*\/\s*gesperrt)?\s+am/gi)||[]).length;
-    const groupsSeen=groupNumbersFromColumns(columns);
+    const groupsSeen=groupNumbersFromColumns(preferred);
     if(rawWithdrawalMarkers>entries.length) {
       // Public team names only: diagnose source layout without ranking errors.
       const plain=full.split(/\r?\n/);
@@ -164,7 +192,7 @@ export async function fetchClubGroupReport(seasonCode){
       })).filter(x=>x.lines.length);
       console.log('BTV_CLUB_WITHDRAWAL_UNPARSED='+JSON.stringify({contexts:contexts.slice(0,10),cropped}));
     }
-    return {url,entries,pages,groupsSeen,rawWithdrawalMarkers,
+    return {url,entries,pages,groupsSeen,rawWithdrawalMarkers,layoutGroups,croppedGroups,
       sourceKind:'club_group_report'};
   }finally{rmSync(dir,{recursive:true,force:true});}
 }
