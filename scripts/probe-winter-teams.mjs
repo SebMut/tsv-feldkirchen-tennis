@@ -46,6 +46,8 @@ try {
      const session=await call('Target.attachToTarget',{targetId:target.targetId,flatten:true});
      const read=await call('Runtime.evaluate',{expression:'document.body.innerText',returnByValue:true},session.sessionId);
      console.log('BTV_PUBLIC_TEAM_TEXT',JSON.stringify(read.result?.value?.slice(0,20000)));
+     const links=await call('Runtime.evaluate',{expression:'Array.from(document.querySelectorAll("a")).filter(a=>/Mannschaftsportrait|Tabelle\/Spielplan/.test(a.innerText)).map(a=>({html:a.outerHTML.slice(0,550),parent:a.parentElement?.parentElement?.innerText.slice(0,260)}))',returnByValue:true},session.sessionId);
+     console.log('BTV_PUBLIC_TEAM_LINKS',JSON.stringify(links.result?.value?.slice(0,20)));
      const click=await call('Runtime.evaluate',{expression:'document.querySelector("button.dropdown-toggle")?.click();true',returnByValue:true},session.sessionId);
      await sleep(1100);
      const menu=await call('Runtime.evaluate',{expression:'Array.from(document.querySelectorAll("li,.z-menuitem")).map(x=>x.innerText).filter(Boolean).slice(0,60)',returnByValue:true},session.sessionId);
