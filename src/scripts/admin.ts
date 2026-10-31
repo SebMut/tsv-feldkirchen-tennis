@@ -1131,19 +1131,23 @@ async function loadFacility() {
     supabase.from('courts').select('*').order('sort_order'),
   ]);
   const current = rows?.[0];
+  const lastUpdated = $('#facility-last-updated');
+  if (lastUpdated) lastUpdated.textContent = current?.updated_at
+    ? `Letzte Statusmeldung: ${formatDateTime(current.updated_at)}`
+    : 'Noch keine Statusmeldung hinterlegt.';
   if (current) {
     ($<HTMLSelectElement>('#facility-status')!).value = current.status;
     ($<HTMLTextAreaElement>('#facility-message')!).value = current.message ?? '';
   }
   const target = $('#courts-admin-list');
   if (!target) return;
-  target.innerHTML = (courts ?? []).map((court) => `<div class="card flat" data-court="${court.id}"><div class="page-head"><strong>${escapeHtml(court.name)}</strong><div class="actions"><select data-court-status><option value="open" ${court.status === 'open' ? 'selected' : ''}>Offen</option><option value="limited" ${court.status === 'limited' ? 'selected' : ''}>Eingeschränkt</option><option value="closed" ${court.status === 'closed' ? 'selected' : ''}>Gesperrt</option></select><input data-court-message value="${escapeHtml(court.status_message || '')}" placeholder="Hinweis" /><button class="button ghost" data-save-court>Speichern</button></div></div></div>`).join('');
+  target.innerHTML = (courts ?? []).map((court) => `<div class="card flat" data-court="${court.id}"><div class="page-head"><strong>${escapeHtml(court.name)}</strong><div class="actions"><select data-court-status aria-label="Platzstatus ändern"><option value="open" ${court.status === 'open' ? 'selected' : ''}>Offen</option><option value="limited" ${court.status === 'limited' ? 'selected' : ''}>Eingeschränkt</option><option value="closed" ${court.status === 'closed' ? 'selected' : ''}>Gesperrt</option><option value="unknown" ${court.status === 'unknown' ? 'selected' : ''}>Unbekannt</option></select><input data-court-message aria-label="Hinweis zum Platz" value="${escapeHtml(court.status_message || '')}" placeholder="Hinweis" /><button class="button ghost" data-save-court>Speichern</button></div></div></div>`).join('');
   target.querySelectorAll<HTMLElement>('[data-court]').forEach((row) => row.querySelector<HTMLButtonElement>('[data-save-court]')?.addEventListener('click', async () => {
     const { error } = await supabase.from('courts').update({
       status: row.querySelector<HTMLSelectElement>('[data-court-status]')?.value,
       status_message: row.querySelector<HTMLInputElement>('[data-court-message]')?.value.trim() || null,
-    }).eq('id', row.dataset.court);
-    if (error) status(error.message, 'error'); else status('Platzstatus gespeichert.', 'success');
+    }).eq('id', row.dataset.court).select('id');
+    if (error) status(error.message, 'error'); else { status('Platzstatus gespeichert.', 'success'); await loadFacility(); }
   }));
 }
 
@@ -1153,8 +1157,9 @@ async function saveFacility(event: Event) {
     status: $<HTMLSelectElement>('#facility-status')?.value,
     message: $<HTMLTextAreaElement>('#facility-message')?.value.trim() || null,
     updated_by: state.user.id,
-  }).eq('id', true);
-  if (error) status(error.message, 'error'); else status('Anlagenstatus gespeichert.', 'success');
+    updated_at: new Date().toISOString(),
+  }).eq('id', true).select('id');
+  if (error) status(error.message, 'error'); else { status('Anlagenstatus gespeichert.', 'success'); await loadFacility(); }
 }
 
 let pages: Row[] = [];
