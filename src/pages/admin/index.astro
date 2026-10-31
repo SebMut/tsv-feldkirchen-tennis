@@ -58,6 +58,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <button data-panel="news" data-editor-only>News</button>
           <button data-panel="notices" data-super-only>Vereinsbrett</button>
           <button data-panel="btv-import" data-super-only>BTV-Spielplan</button>
+          <button data-panel="manual-results" data-super-only class="hidden">Ergebnisse nachtragen</button>
           <button data-panel="audit" data-super-only>Änderungsverlauf</button>
           <button data-panel="events" data-editor-only>Termine</button>
           <button data-panel="galleries" data-editor-only>Bilder</button>
@@ -84,6 +85,61 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div><p class="eyebrow">Mein TSV</p><h2>Meine Mannschaften</h2></div>
               </div>
               <div id="dashboard-teams" class="dashboard-team-grid"></div>
+            </div>
+          </section>
+
+
+          <section id="panel-manual-results" class="admin-panel" data-super-only>
+            <div class="card stack">
+              <p class="eyebrow">SuperAdmin · Mannschaftsspiele</p>
+              <h2>Ergebnisse nachtragen</h2>
+              <p class="muted">Mannschaftsbegegnungen aus allen gespeicherten Saisons. Ergebnisse werden zunächst als <strong>manuell erfasst</strong> gespeichert und bleiben bis zum BTV-/tennis.de-Abgleich intern. Amtliche BTV-Werte und Liveticker bleiben unverändert.</p>
+              <div id="manual-results-feedback" class="notice hidden" aria-live="polite"></div>
+              <div class="form-grid">
+                <div class="field"><label for="manual-results-season">Saison</label><select id="manual-results-season"></select></div>
+                <div class="field"><label for="manual-results-search">Suche nach Heim, Gast oder Mannschaft</label><input id="manual-results-search" type="search" placeholder="Mannschaft oder Gegner" /></div>
+                <div class="field full">
+                  <label><input id="manual-results-open-only" type="checkbox" checked /> Nur Spiele ohne amtlichen Endstand</label>
+                </div>
+                <div class="field full"><button id="manual-results-refresh" class="button secondary" type="button">Begegnungen neu laden</button></div>
+              </div>
+              <h3>Begegnungen (<span id="manual-results-count">0</span>)</h3>
+              <div id="manual-results-list" class="manual-results-list" aria-live="polite"></div>
+            </div>
+            <div class="card stack">
+              <h2>Ergebnis eingeben</h2>
+              <p id="manual-results-empty" class="muted">Wähle oben eine Begegnung aus.</p>
+              <form id="manual-result-form" class="form-grid hidden">
+                <div class="field full"><h3 id="manual-results-selected"></h3><p id="manual-results-date" class="muted"></p><a id="manual-result-official-link" class="text-link hidden" href="#" target="_blank" rel="noopener noreferrer">Offiziellen BTV-Spielplan öffnen →</a></div>
+                <div class="field full">
+                  <label for="manual-result-status">Spielstatus</label>
+                  <select id="manual-result-status" required>
+                    <option value="played">Regulär gespielt</option>
+                    <option value="walkover">Kampflos / w.o.</option>
+                    <option value="withdrawn">Zurückgezogen</option>
+                    <option value="cancelled">Abgesagt</option>
+                    <option value="abandoned">Abgebrochen</option>
+                    <option value="postponed">Verschoben</option>
+                    <option value="unknown">Wertung noch unklar</option>
+                  </select>
+                </div>
+                <div class="field"><label for="manual-result-home">Heim-Punkte</label><input id="manual-result-home" type="number" min="0" max="99" step="1" inputmode="numeric" /></div>
+                <div class="field"><label for="manual-result-away">Gast-Punkte</label><input id="manual-result-away" type="number" min="0" max="99" step="1" inputmode="numeric" /></div>
+                <div class="field full"><p class="muted">Ergebnisse immer aus Sicht <strong>Heim : Gast</strong> eintragen. Bei Rückzug oder unklarer Wertung dürfen die Felder leer bleiben; ein reguläres 0:0 wird nicht akzeptiert.</p></div>
+                <div class="field">
+                  <label for="manual-result-source">Quelle</label>
+                  <select id="manual-result-source">
+                    <option value="club_confirmation">TSV / Mannschaftsführung</option>
+                    <option value="btv_report">BTV / nuLiga</option>
+                    <option value="tennis_de">tennis.de</option>
+                    <option value="other">Sonstige Quelle</option>
+                  </select>
+                </div>
+                <div class="field"><label for="manual-result-url">Link zum Spielbericht (optional)</label><input id="manual-result-url" type="url" maxlength="1000" placeholder="https://..." /></div>
+                <div class="field full"><label for="manual-result-notes">Interne Anmerkung</label><textarea id="manual-result-notes" rows="3" maxlength="1200" placeholder="Nur fachliche Hinweise, keine privaten Jugendspielerdaten"></textarea></div>
+                <div class="field full"><label><input id="manual-result-confirm" type="checkbox" required /> Heim/Gast, Spielstatus und Quelle sind geprüft.</label></div>
+                <div class="field full"><button class="button" id="manual-result-save" type="submit">Ergebnis manuell speichern</button></div>
+              </form>
             </div>
           </section>
 
