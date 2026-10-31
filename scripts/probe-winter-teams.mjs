@@ -20,15 +20,20 @@ try {
  function call(method,params={}){return new Promise((resolve,reject)=>{const key=++id;pending.set(key,{resolve,reject});ws.send(JSON.stringify({id:key,method,params}))})}
  async function evaluate(expression){let r=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result?.value}
  await call('Runtime.enable'); await call('Page.enable');
+ await sleep(3200);
+ console.log('COOKIE_CHOICE',JSON.stringify(await evaluate('Array.from(document.querySelectorAll("button")).filter(b=>/nur notwendige|ablehnen/i.test(b.innerText)).map(b=>({id:b.id,label:b.innerText.slice(0,80)}))')));
+ await evaluate('Array.from(document.querySelectorAll("button")).find(b=>/nur notwendige|alle ablehnen/i.test(b.innerText))?.click()');
  await sleep(6000);
- console.log('INITIAL_PAGE',JSON.stringify((await evaluate('document.body.innerText')).slice(0,10000)));
- console.log('INITIAL_BUTTONS',JSON.stringify(await evaluate('Array.from(document.querySelectorAll("button")).map(x=>({id:x.id,text:x.innerText}))')));
- const frames=await call('Page.getFrameTree'); console.log('FRAME_TREE',JSON.stringify(frames).slice(0,6500));
- const child=frames.frameTree?.childFrames?.find(x=>x.frame?.url?.includes('btvteams'));
- if (child){try{const w=await call('Page.createIsolatedWorld',{frameId:child.frame.id,worldName:'btv-probe'});const k=await call('Runtime.evaluate',{expression:'document.body.innerText',contextId:w.executionContextId,returnByValue:true});console.log('CHILD_FRAME',JSON.stringify(k?.result?.value?.slice(0,14000)))}catch(e){console.log('CHILD_FAILED',String(e))}}
- await evaluate('document.querySelector("button.dropdown-toggle")?.click()');
- await sleep(1800);
- console.log('CLICKED_PAGE',JSON.stringify((await evaluate('document.body.innerText')).slice(0,14000)));
- console.log('SELECT_MENU',JSON.stringify(await evaluate('Array.from(document.querySelectorAll("[role=menuitem],.z-menuitem,.z-menupopup,li")).map(x=>({tag:x.tagName,text:x.innerText,id:x.id})).filter(x=>x.text).slice(0,65)')));
+ const frames=await call('Page.getFrameTree');
+ const flatten=(node)=>[node.frame,...(node.childFrames||[]).flatMap(flatten)];
+ console.log('PUBLIC_FRAME_URLS',JSON.stringify(flatten(frames.frameTree).map(x=>x.url)));
+ for(const frame of flatten(frames.frameTree).filter(x=>/btvteams/i.test(x.url))) {
+   try{
+     const world=await call('Page.createIsolatedWorld',{frameId:frame.id,worldName:'btv-read-only'});
+     const response=await call('Runtime.evaluate',{expression:'document.body.innerText',contextId:world.executionContextId,returnByValue:true});
+     console.log('BTV_TEAMS_AFTER_COOKIE',JSON.stringify(response.result?.value?.slice(0,12000)));
+   }catch(e){console.log('FRAME_RESULT_UNAVAILABLE',String(e).slice(0,300));}
+ }
+
  ws.close();
 }finally{chrome.kill('SIGKILL');try{rmSync(temp,{recursive:true,force:true,maxRetries:5,retryDelay:150})}catch{}}
