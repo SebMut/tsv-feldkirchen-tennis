@@ -49,9 +49,9 @@ test('verified snapshot accepts only the ten confirmed squad sections and 173 ro
   const report = ['TSV Feldkirchen (01012), Sommer 2026'];
   groups.forEach((name, i) => {
     report.push(name + ' | Südligagruppe');
-    const size = i < 3 ? 18 : 17;
+    const size = [49, 27, 27, 0, 23, 13, 12, 7, 7, 8][i];
     for (let n = 1; n <= size; n++) {
-      report.push(n + ' Muster, ' + (i === 9 && n === 17 ? 'Alpha7' : 'Alpha') + '  GER  12345678');
+      report.push(n + ' Muster, ' + (i === 9 && n === 8 ? 'Alpha7' : 'Alpha') + '  GER  12345678');
     }
   });
   const parsed = assertVerifiedSummerSnapshot(parseBtvRosterPdfText(report.join('\n')));
@@ -60,6 +60,9 @@ test('verified snapshot accepts only the ten confirmed squad sections and 173 ro
   assert.equal(parsed.diagnostics.invalidName, 1);
   assert.equal(parsed.diagnostics.classCount, 6);
   assert.equal(parsed.diagnostics.headingCount, 10);
+  assert.equal(parsed.diagnostics.classCounts['Damen 40'], 0);
+  assert.equal(parsed.diagnostics.classCounts['Herren'], 49);
+  assert.equal(parsed.diagnostics.classCounts['Bambini 12'], 21);
   assert.throws(() => assertVerifiedSummerSnapshot(parseBtvRosterPdfText(fixture())),
     /UNVERIFIED_NMM_SNAPSHOT/);
 });
