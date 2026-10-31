@@ -7,7 +7,7 @@ const page=readFileSync(new URL('../src/pages/admin/index.astro',import.meta.url
 
 test('detailed BTV rubbers are fetched only by authenticated SuperAdmin panel',()=>{
   assert.match(admin,/if \(state\.isSuper\) \{\s*initManualResultsPanel\(\);\s*initOfficialReportsPanel\(\)/);
-  assert.match(admin,/name === 'official-rubbers'\) && !state\.isSuper\) return/);
+  assert.match(admin,/if \(name === 'official-rubbers' && !state\.isSuper\) return/);
   assert.match(page,/data-panel="official-rubbers" data-super-only/);
   assert.match(page,/id="panel-official-rubbers" class="admin-panel" data-super-only/);
   assert.match(script,/from\('official_report_rubbers'\)/);
