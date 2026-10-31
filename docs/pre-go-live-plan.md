@@ -53,3 +53,24 @@ Status: **technische Vorbereitung umgesetzt, Abnahme offen**.
 - `docs/go-live-runbook.md`
 
 **Es findet ohne ausdrückliche separate Go-live-Freigabe weder ein Merge auf `main` noch eine Produktivumstellung statt.**
+
+## Phase 8 – Bedienkomfort und Vereinsleben
+
+Status: **alle acht Module technisch eingebaut, praktische Abnahme ausstehend**.
+
+- [x] Spieltags-Cockpit mit 6/3- bzw. 4/2-Fortschritt und vorhandenem Korrekturknopf
+- [x] Persönliche nächste Spielkarte in „Mein TSV“ je zugewiesener Mannschaft
+- [x] Wochenkalender, lokal gespeicherter Teamfavorit, Einzeltermin-ICS
+- [x] Installierbare PWA-Grundlage mit Manifest, PNG-Symbolen, öffentlichem Offline-Shell (ohne private Daten/Push)
+- [x] Mannschafts-Saisonbilanz für digital erfasste Ergebnisse und BTV-Link
+- [x] Digitales Vereinsbrett mit SuperAdmin-Freigabe und Zeitfenstern
+- [x] Geschützter Änderungsverlauf mit personenbezogener Zuordnung und datensparsamer Feldliste
+- [x] Direkter Spielbericht-Entwurf mit Ticker-/Spielstandübernahme, optionalem Bild und erhaltenem Veröffentlichungsdatum
+- [ ] Authentifizierte Rollen- und CRUD-Tests der neuen Module
+- [ ] PWA-Installation und Kalenderfunktion auf iOS/Android
+- [ ] Zwei-Geräte-Liveticker und Änderungsprotokoll praktisch testen
+- [ ] Inhaltliche Vereinsfreigabe und separate Go-live-Entscheidung
+
+Vollständiger Projektbericht: `docs/phase-8-vereinskomfort.md`.
+
+**Phase 8 ist keine Produktivfreigabe. Die Domain bleibt unangetastet.**
