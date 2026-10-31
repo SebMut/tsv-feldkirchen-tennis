@@ -14,11 +14,18 @@ const seasonById=new Map(seasons.map(s=>[s.id,s.code]));
 const teamSeasons=await query(db.from('team_seasons').select('id,season_id,group_name,btv_url').in('season_id',seasons.map(s=>s.id)).eq('is_published',true).limit(50),'TEAM_SEASONS');
 if(teamSeasons.length!==23)throw Error('STANDINGS_TEAM_SEASON_COUNT_CHANGED');
 let groups=0,rowsRead=0,rowsWritten=0;
+const failures=[];
 for(const teamSeason of teamSeasons){
   const groupId=groupIdFromBtvUrl(teamSeason.btv_url);
   if(!groupId)throw Error('STANDINGS_UNVERIFIED_GROUP_LINK');
   const seasonCode=seasonById.get(teamSeason.season_id);
-  const snapshot=await readBtvStandings(groupId,{seasonCode,groupName:teamSeason.group_name});
+  let snapshot;
+  try{
+    snapshot=await readBtvStandings(groupId,{seasonCode,groupName:teamSeason.group_name});
+  }catch(error){
+    failures.push({season:seasonCode,group:groupId,error:String(error?.message||error).slice(0,100)});
+    continue; // One unavailable BTV group must never block every other table.
+  }
   groups++;rowsRead+=snapshot.rows.length;
   if(!apply)continue;
   const syncedAt=new Date().toISOString();
@@ -33,4 +40,5 @@ for(const teamSeason of teamSeasons){
   if(deleteError)throw Error('STANDINGS_STALE_DELETE_FAILED');
   rowsWritten+=payload.length;
 }
-console.log('BTV_STANDINGS_SYNC='+JSON.stringify({groups,rowsRead,rowsWritten,mode:apply?'apply':'dry-run'}));
+if(groups===0)throw Error('STANDINGS_ALL_GROUPS_FAILED');
+console.log('BTV_STANDINGS_SYNC='+JSON.stringify({groups,rowsRead,rowsWritten,failures,mode:apply?'apply':'dry-run'}));

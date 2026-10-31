@@ -29,6 +29,13 @@ test('daily workflow writes only on main with the server key',()=>{
   assert.match(workflow,/BTV_SUPABASE_SECRET_KEY/);
 });
 
+test('one unavailable BTV group cannot abort every other table',()=>{
+  const importer=readFileSync(new URL('../scripts/btv-standings-sync.mjs',import.meta.url),'utf8');
+  assert.match(importer,/failures\.push/);
+  assert.match(importer,/continue; \/\/ One unavailable BTV group/);
+  assert.match(importer,/groups===0/);
+});
+
 test('scheduled result importer includes winter instead of summer-only filter',()=>{
   const workflow=readFileSync(new URL('../.github/workflows/btv-results-private-import.yml',import.meta.url),'utf8');
   const importer=readFileSync(new URL('../scripts/btv-results-import.mjs',import.meta.url),'utf8');
