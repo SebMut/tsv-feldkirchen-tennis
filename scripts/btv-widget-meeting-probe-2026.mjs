@@ -36,8 +36,7 @@ try{
       linkCount:a.length,
       groupIds:[...new Set([...document.documentElement.outerHTML.matchAll(/groupid=([0-9]{7,8})/gi)].map(m=>m[1]))].slice(0,12),
       buttons:[...document.querySelectorAll('button')].map(x=>x.textContent.trim().slice(0,38)).filter(Boolean).slice(0,15),
-      hasConsentDialog:!!document.querySelector('#CybotCookiebotDialog'),
-      textPreview:(document.body?.innerText||'').slice(0,450).replace(/\S+[\w.-]+@\S+/g,'[EMAIL]').replace(/\b[A-ZÄÖÜ][a-zäöüß]+,\s*[A-ZÄÖÜ][a-zäöüß]+\b/g,'[PERSON]')
+      hasConsentDialog:!!document.querySelector('#CybotCookiebotDialog')
     };
    });
    console.log('BTV_WIDGET='+JSON.stringify({groupid,finalHost:new URL(page.url()).host,data,safeResponses}).slice(0,14500));
