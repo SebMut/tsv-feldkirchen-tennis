@@ -9,6 +9,7 @@ on:
       - feature/astro-supabase-foundation
     paths:
       - scripts/btv-schedule.mjs
+      - scripts/btv-winter-schedule.mjs
       - scripts/sync-btv.mjs
       - .github/workflows/btv-club-sync.yml
   workflow_dispatch:
@@ -20,7 +21,7 @@ on:
         options: [preview, apply]
         default: preview
       season_year:
-        description: 'Confirmed BTV season configuration (2026 currently)'
+        description: 'Summer season year (2026 verified); winter 2026/27 is checked separately'
         required: true
         default: '2026'
         type: string
@@ -50,6 +51,10 @@ jobs:
         env:
           BTV_SEASON_YEAR: ${{ inputs.season_year || '2026' }}
         run: node scripts/sync-btv.mjs
+      - name: Verify all 3 public winter group PDFs (read-only)
+        env:
+          BTV_SEASON_CODE: winter-2026-2027
+        run: node scripts/sync-btv.mjs
 
   import:
     # No write unless *all* checks hold. This job does not run on the
@@ -69,6 +74,12 @@ jobs:
       - name: Check official schedule, atomically publish verified postponements to News
         env:
           BTV_SEASON_YEAR: ${{ inputs.season_year || '2026' }}
+          BTV_IMPORT_ENABLED: ${{ vars.BTV_IMPORT_ENABLED }}
+          SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: node scripts/sync-btv.mjs --apply
+      - name: Check Winter 2026/27 groups and publish verified postponements
+        env:
+          BTV_SEASON_CODE: winter-2026-2027
           BTV_IMPORT_ENABLED: ${{ vars.BTV_IMPORT_ENABLED }}
           SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
         run: node scripts/sync-btv.mjs --apply
