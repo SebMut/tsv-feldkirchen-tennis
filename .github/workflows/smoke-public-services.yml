@@ -8,6 +8,7 @@ on:
       - scripts/smoke-public-services.mjs
       - .github/workflows/smoke-public-services.yml
       - supabase/functions/calendar-feed/**
+      - supabase/migrations/**
   workflow_dispatch:
 
 jobs:
