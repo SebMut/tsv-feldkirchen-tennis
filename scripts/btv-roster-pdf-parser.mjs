@@ -116,8 +116,7 @@ export function assertCompleteSummerRoster(parsed) {
 // Exact one-time snapshot gate for the currently verified 7-page PDF.
 // Other clubs, seasons and unexpected changes cannot trigger a write.
 export const CONFIRMED_SUMMER_CLASSES = Object.freeze([
-  'Herren', 'Herren 40', 'Damen 40',
-  'Junioren 18', 'Knaben 15', 'Bambini 12',
+  'Herren', 'Herren 40', 'Junioren 18', 'Knaben 15', 'Bambini 12',
 ]);
 export function assertVerifiedSummerSnapshot(parsed) {
   const d = parsed?.diagnostics;
@@ -126,6 +125,14 @@ export function assertVerifiedSummerSnapshot(parsed) {
     || d.parsedRows !== 172 || d.unassignedRows !== 0 || d.malformedRows !== 1
     || d.invalidName !== 1 || d.invalidFormat !== 0 || d.invalidRank !== 0
     || d.unrecognizedHeaders !== 0 || d.rankResets > 20
+    // Exactly these five classes contain names; the sixth heading (Damen 40)
+    // is present but has no player rows in the verified seven-page source.
+    || d.classCounts['Damen 40'] !== 0
+    || d.classCounts['Herren'] !== 49
+    || d.classCounts['Herren 40'] !== 54
+    || d.classCounts['Junioren 18'] !== 23
+    || d.classCounts['Knaben 15'] !== 25
+    || d.classCounts['Bambini 12'] !== 21
     || actual.length !== CONFIRMED_SUMMER_CLASSES.length
     || CONFIRMED_SUMMER_CLASSES.some(name => !actual.includes(name))) {
     throw Error('UNVERIFIED_NMM_SNAPSHOT');
