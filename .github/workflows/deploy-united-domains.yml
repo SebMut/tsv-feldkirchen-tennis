@@ -2,12 +2,20 @@ name: Deploy to United Domains
 
 on:
   workflow_dispatch:
+    inputs:
+      final_approval:
+        description: "Nur NACH ausdrücklicher separater Go-live-Freigabe: TSV-FELDKIRCHEN-GO-LIVE"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   deploy:
+    # Beides ist notwendig: manuelles Freigabewort UND explizit gesetzte Repository-Variable.
+    # Ein leerer/fehlender Wert lässt diesen Job immer ausfallen (keine SFTP-Verbindung).
+    if: ${{ github.ref == 'refs/heads/main' && inputs.final_approval == 'TSV-FELDKIRCHEN-GO-LIVE' && vars.TSV_GO_LIVE_APPROVED == 'true' }}
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -16,8 +24,9 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm install
+      - run: npm ci
       - run: npm run build
+      - run: npm run audit:site
       - name: Install SFTP client
         run: sudo apt-get update && sudo apt-get install -y sshpass
       - name: Upload dist via SFTP
