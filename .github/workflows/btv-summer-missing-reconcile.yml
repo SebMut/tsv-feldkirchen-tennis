@@ -1,0 +1,48 @@
+name: BTV Summer 2026 unmatched results diagnostic
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/btv-summer-missing-reconcile.yml
+  pull_request:
+    paths:
+      - .github/workflows/btv-summer-missing-reconcile.yml
+      - scripts/btv-summer-missing-reconcile.mjs
+      - tests/btv-summer-missing-reconcile.test.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax and read-only safeguards without secrets
+        run: |
+          node --check scripts/btv-summer-missing-reconcile.mjs
+          node --test tests/btv-summer-missing-reconcile.test.mjs
+
+  audit:
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies and source PDF extractor without credentials
+        run: |
+          npm ci
+          sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Reconcile published official matches (no database writes)
+        env:
+          BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: node scripts/btv-summer-missing-reconcile.mjs
