@@ -99,7 +99,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field"><label for="manual-results-season">Saison</label><select id="manual-results-season"></select></div>
                 <div class="field"><label for="manual-results-search">Suche nach Heim, Gast oder Mannschaft</label><input id="manual-results-search" type="search" placeholder="Mannschaft oder Gegner" /></div>
                 <div class="field full">
-                  <label><input id="manual-results-open-only" type="checkbox" checked /> Nur Spiele ohne amtlichen Endstand</label>
+                  <label><input id="manual-results-open-only" type="checkbox" checked /> Nur noch nicht erfasste Spiele</label>
+                  <p class="muted">Bereits manuell gespeicherte oder amtlich erfasste Begegnungen werden ausgeblendet. Häkchen entfernen, um alle Spiele und Nachträge anzuzeigen und zu bearbeiten.</p>
                 </div>
                 <div class="field full"><button id="manual-results-refresh" class="button secondary" type="button">Begegnungen neu laden</button></div>
               </div>
@@ -137,7 +138,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 </div>
                 <div class="field"><label for="manual-result-url">Link zum Spielbericht (optional)</label><input id="manual-result-url" type="url" maxlength="1000" placeholder="https://..." /></div>
                 <div class="field full"><label for="manual-result-notes">Interne Anmerkung</label><textarea id="manual-result-notes" rows="3" maxlength="1200" placeholder="Nur fachliche Hinweise, keine privaten Jugendspielerdaten"></textarea></div>
-                <div class="field full"><label><input id="manual-result-confirm" type="checkbox" required /> Heim/Gast, Spielstatus und Quelle sind geprüft.</label></div>
+                <div class="field full"><label><input id="manual-result-confirm" type="checkbox" required /> Heim/Gast, Spielstatus und Quelle sind geprüft.</label><p class="muted">Diese Bestätigung speichert noch nichts. Erst „Ergebnis manuell speichern“ schließt die Erfassung ab und entfernt das Spiel aus der Liste der nicht erfassten Begegnungen.</p></div>
                 <div class="field full"><button class="button" id="manual-result-save" type="submit">Ergebnis manuell speichern</button></div>
               </form>
             </div>
