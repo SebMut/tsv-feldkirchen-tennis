@@ -1,0 +1,59 @@
+name: BTV Kader-Dokumente prüfen (nur Metadaten)
+
+# The trusted main branch may attempt one authenticated, read-only discovery.
+# Pull requests never receive secrets; no PDF, player data or upload artifacts.
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/btv-roster-discovery.mjs
+      - .github/workflows/btv-roster-discovery.yml
+  pull_request:
+    paths:
+      - scripts/btv-roster-discovery.mjs
+      - .github/workflows/btv-roster-discovery.yml
+      - tests/btv-roster-discovery.test.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btv-roster-discovery
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JavaScript syntax
+        run: node --check scripts/btv-roster-discovery.mjs
+      - name: Verify secret isolation and read-only guardrails
+        run: node --test tests/btv-roster-discovery.test.mjs
+
+  discover:
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned browser tooling before secrets are available
+        run: |
+          npm ci
+          npm install --no-save --no-package-lock --ignore-scripts playwright@1.64.1
+          npx --no-install playwright install --with-deps chromium
+      - name: Discover protected TSV downloads without downloading personal data
+        env:
+          BTV_LOGIN_USERNAME: ${{ secrets.BTV_LOGIN_USERNAME }}
+          BTV_LOGIN_PASSWORD: ${{ secrets.BTV_LOGIN_PASSWORD }}
+        run: node scripts/btv-roster-discovery.mjs
