@@ -107,6 +107,18 @@ Zusätzlich ist `environment: production` aktiv; erforderliche Reviewer müssen 
 
 **Separater Go-live-Schritt:** erst nach schriftlicher Freigabe durch den Vereinsverantwortlichen gemäß `docs/go-live-runbook.md`.
 
+## Ergänzender Sicherheits- und Betriebscheck (31.10.2026)
+
+- [x] **23/23 öffentliche Tabellen mit RLS** per SQL nachgewiesen.
+- [x] Gefährliche Alt-Grants gefunden: `anon` hatte SQL-Tabellenprivilegien einschließlich **TRUNCATE** (RLS kontrolliert TRUNCATE nicht).
+- [x] Migration `supabase/migrations/20261031120000_phase7_least_privilege_table_grants.sql` angewendet und kontrolliert: `anon` hat **0 Schreib-/TRUNCATE-/REFERENCES-/TRIGGER-Rechte** auf aktuellen öffentlichen Tabellen; angemeldete Nutzer behalten RLS-geschützte DML-Rechte, aber kein TRUNCATE.
+- [x] Öffentliche und private SELECT-Policies anhand von News, Terminen, Profilen, Mitgliedschaften und Spielern stichprobenartig überprüft.
+- [x] Medien-Bucket überprüft: öffentlich lesbar, Bildformate, 8-MiB-Grenze.
+- [x] Verständlicher, rollenbezogener Abnahmebogen für Vereinsmitarbeiter unter `docs/phase-7-abnahme-vereinsmitarbeiter.md` erstellt.
+- [x] Technischer Befund, Lesekontrollen und laufende Betriebsaufgaben unter `docs/phase-7-sicherheits-und-betriebscheck.md` dokumentiert.
+- [ ] Sicherheit bei **zukünftig** angelegten Tabellen/Default-Privileges erneut überprüfen; aktuelle Migrationskorrektur wirkt auf vorhandene Tabellen.
+- [ ] Echte Rollen-/Endgeräte-/Hosting-/Backup-Abnahme bleibt offen. Es gibt **keine** finale Go-live-Freigabe.
+
 ## Abnahmeentscheidung
 
 **Phase 7 technisch vorbereitet; finale fachliche, visuelle und produktive Abnahme noch offen.** Für die eigentliche Go-live-Freigabe müssen alle oben mit `[ ]` gekennzeichneten Sicherheits- und Betriebsblocker geklärt sein. Keine automatische Freigabe auf Grundlage grüner CI-Checks.
