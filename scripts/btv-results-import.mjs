@@ -46,7 +46,11 @@ for(const source of sources){
     .in('team_season_id',ids).limit(400),'MATCHES');
   const states=await query(db.from('match_live_state').select('match_id,status,home_score,away_score')
     .in('match_id',matches.map(m=>m.id)).limit(400),'STATES');
-  const selected=selectOfficialResults(source.fixtures,matches,mapped,states);
+  // Sommer 2026 had BTV-verified postponements from May into late July
+  // (up to 78+ days). Exact club, team, side and opponent still have to match.
+  // Preserve the tighter default for the winter round.
+  const selected=selectOfficialResults(source.fixtures,matches,mapped,states,Date.now(),
+    source.code==='sommer-2026'?120:45);
   console.log('BTV_RESULTS_MATCHES_'+source.code+'='+matches.length);
   console.log('BTV_RESULTS_SCORED_SOURCE_'+source.code+'='+
     source.fixtures.filter(f=>parseScore(f.score)).length);
