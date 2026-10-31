@@ -6,11 +6,20 @@ name: BTV club fixture sync
 on:
   push:
     branches:
+      - main
       - feature/astro-supabase-foundation
     paths:
       - scripts/btv-schedule.mjs
+      - scripts/btv-winter-schedule.mjs
       - scripts/sync-btv.mjs
       - .github/workflows/btv-club-sync.yml
+  pull_request:
+    paths:
+      - scripts/btv-schedule.mjs
+      - scripts/btv-winter-schedule.mjs
+      - scripts/sync-btv.mjs
+      - .github/workflows/btv-club-sync.yml
+      - tests/btv-winter-source.test.mjs
   workflow_dispatch:
     inputs:
       mode:
@@ -20,7 +29,7 @@ on:
         options: [preview, apply]
         default: preview
       season_year:
-        description: 'Confirmed BTV season configuration (2026 currently)'
+        description: 'Summer season year (2026 verified); winter 2026/27 is checked separately'
         required: true
         default: '2026'
         type: string
@@ -36,7 +45,7 @@ concurrency:
 
 jobs:
   preview:
-    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'preview') }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'preview') || (github.event_name == 'schedule' && vars.BTV_IMPORT_ENABLED != 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -46,9 +55,15 @@ jobs:
           node-version-file: .nvmrc
       - name: Install PDF text extractor
         run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Verify winter competition is strictly configured (no database access)
+        run: node --test tests/btv-winter-source.test.mjs
       - name: Read and verify public BTV club schedule (no database access)
         env:
           BTV_SEASON_YEAR: ${{ inputs.season_year || '2026' }}
+        run: node scripts/sync-btv.mjs
+      - name: Verify all 3 public winter group PDFs (read-only)
+        env:
+          BTV_SEASON_CODE: winter-2026-2027
         run: node scripts/sync-btv.mjs
 
   import:
@@ -66,9 +81,17 @@ jobs:
       - run: npm ci
       - name: Install PDF text extractor
         run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Verify winter competition source before applying
+        run: node --test tests/btv-winter-source.test.mjs
       - name: Check official schedule, atomically publish verified postponements to News
         env:
           BTV_SEASON_YEAR: ${{ inputs.season_year || '2026' }}
+          BTV_IMPORT_ENABLED: ${{ vars.BTV_IMPORT_ENABLED }}
+          SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: node scripts/sync-btv.mjs --apply
+      - name: Check Winter 2026/27 groups and publish verified postponements
+        env:
+          BTV_SEASON_CODE: winter-2026-2027
           BTV_IMPORT_ENABLED: ${{ vars.BTV_IMPORT_ENABLED }}
           SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
         run: node scripts/sync-btv.mjs --apply
