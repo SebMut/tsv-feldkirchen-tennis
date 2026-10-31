@@ -24,7 +24,7 @@ test('user example portrait is a direct external link and not a guessed team ass
 test('third-party iframe connects only when opened by visitor', () => {
   assert.match(page, /<details class="card teams-official-widget__details" id="official-tennisde-widget">/);
   assert.match(page, /data-src="https:\/\/services\.tennis\.de\/extern\/tennisdeteamsearch\.zul/);
-  assert.doesNotMatch(page, /<iframe[^>]*\bsrc="https:\/\/services\.tennis\.de/);
+  assert.doesNotMatch(page, /<iframe[^>]*\s+src="https:\/\/services\.tennis\.de/);
   assert.match(page, /officialWidget\?\.addEventListener\('toggle'/);
   assert.match(page, /if \(!officialWidget\.open\) return/);
   assert.match(page, /frame\.src = frame\.dataset\.src/);
