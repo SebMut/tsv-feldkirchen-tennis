@@ -1,21 +1,76 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 ---
-<MainLayout title="Termine & Spielplan | TSV Feldkirchen Tennis" description="Punktspiele und Veranstaltungen der Tennisabteilung TSV Feldkirchen.">
-  <div class="container stack">
-    <div class="page-head"><div><p class="eyebrow">Kalender</p><h1>Termine & Spielplan</h1></div></div>
-    <div class="filters">
-      <select id="calendar-kind" aria-label="Art der Termine"><option value="all">Spiele & Veranstaltungen</option><option value="matches">Nur Punktspiele</option><option value="events">Nur Veranstaltungen</option></select>
-      <select id="calendar-range" aria-label="Zeitraum"><option value="all">Alle Zeiträume</option><option value="upcoming">Nur zukünftige</option><option value="year">Aktuelles Kalenderjahr</option><option value="recent">Letzte 90 Tage</option></select>
-      <select id="calendar-team" aria-label="Mannschaft wählen"><option value="">Alle Mannschaften</option></select>
-      <select id="calendar-category" aria-label="Kategorie wählen"><option value="">Alle Kategorien</option></select>
+<MainLayout title="Tenniskalender | TSV Feldkirchen Tennis" description="Der Tenniskalender des TSV Feldkirchen. Spiele und Vereinsveranstaltungen im Monatskalender – mit direktem Blick auf heute.">
+  <div class="container stack club-calendar" id="club-calendar">
+    <div class="calendar-page-heading">
+      <div>
+        <p class="eyebrow">TSV Feldkirchen Tennis</p>
+        <h1>Unser Kalender.</h1>
+        <p class="muted">Alle Punktspiele und Vereinsevents auf einen Blick. Wähle einen Tag, um seine Termine zu sehen.</p>
+      </div>
+      <div class="calendar-heading-today" aria-label="Der Kalender startet mit dem heutigen Datum">
+        <span>Dein Startpunkt</span>
+        <strong>Heute</strong>
+      </div>
     </div>
-    <section class="card"><div id="calendar-list" class="match-list"><p class="muted">Termine werden geladen …</p></div></section>
+    <section class="calendar-filter-panel" aria-label="Kalender filtern">
+      <div class="calendar-filter-heading"><span>Termine filtern</span><span class="muted">Die Markierungen im Kalender passen sich an.</span></div>
+      <div class="filters calendar-filters">
+        <select id="calendar-kind" aria-label="Art der Termine"><option value="all">Spiele & Veranstaltungen</option><option value="matches">Nur Punktspiele</option><option value="events">Nur Veranstaltungen</option></select>
+        <select id="calendar-range" aria-label="Zeitraum"><option value="all">Alle Zeiträume</option><option value="upcoming">Nur zukünftige</option><option value="year">Aktuelles Kalenderjahr</option><option value="recent">Letzte 90 Tage</option></select>
+        <select id="calendar-team" aria-label="Mannschaft wählen"><option value="">Alle Mannschaften</option></select>
+        <select id="calendar-category" aria-label="Kategorie wählen"><option value="">Alle Kategorien</option></select>
+      </div>
+    </section>
+    <div id="calendar-data-status" class="calendar-data-status hidden" role="status"></div>
+    <div class="calendar-layout">
+      <section class="card calendar-board" aria-labelledby="calendar-month-title">
+        <div class="calendar-toolbar">
+          <div>
+            <p class="eyebrow">Monatsansicht</p>
+            <h2 id="calendar-month-title" aria-live="polite">Kalender</h2>
+          </div>
+          <div class="calendar-controls">
+            <button class="calendar-icon-button" id="calendar-prev" type="button" aria-label="Vorheriger Monat" title="Vorheriger Monat">‹</button>
+            <button class="calendar-today-button" id="calendar-today" type="button">Heute</button>
+            <button class="calendar-icon-button" id="calendar-next" type="button" aria-label="Nächster Monat" title="Nächster Monat">›</button>
+          </div>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+        </div>
+        <div id="calendar-month-grid" class="calendar-month-grid" role="group" aria-label="Tage des Monats"></div>
+        <div class="calendar-legend" aria-label="Markierungen im Kalender">
+          <span><i class="calendar-legend-dot calendar-legend-dot--match"></i> Punktspiel</span>
+          <span><i class="calendar-legend-dot calendar-legend-dot--event"></i> Veranstaltung</span>
+          <span><i class="calendar-legend-today"></i> Heute</span>
+        </div>
+      </section>
+      <aside class="card calendar-agenda" aria-labelledby="calendar-day-heading">
+        <div class="calendar-agenda-heading">
+          <p class="eyebrow">Ausgewählter Tag</p>
+          <h2 id="calendar-day-heading">Heute</h2>
+          <p id="calendar-day-count" class="muted" aria-live="polite">Termine werden ermittelt …</p>
+        </div>
+        <div id="calendar-day-list" class="calendar-day-list" aria-live="polite"><p class="muted">Der Kalender wird geladen …</p></div>
+        <div class="calendar-agenda-next">
+          <h3>Als Nächstes</h3>
+          <div id="calendar-next-list" class="calendar-next-list"></div>
+        </div>
+      </aside>
+    </div>
+    <section class="card calendar-all-section">
+      <details id="calendar-all-details">
+        <summary>Alle Termine als Liste anzeigen</summary>
+        <div id="calendar-list" class="match-list"><p class="muted">Termine werden geladen …</p></div>
+      </details>
+    </section>
     <section class="card" id="abos">
       <p class="eyebrow">Kalender abonnieren</p>
-      <h2>Immer aktuell</h2>
-      <p class="muted">ICS-Feeds können in Apple Kalender, Outlook und vielen anderen Kalender-Apps abonniert werden.</p>
-      <div id="calendar-subscriptions" class="actions"></div>
+      <h2>Immer aktuell.</h2>
+      <p class="muted">Abonniere die Termine mit Apple Kalender, Outlook oder einer anderen Kalender-App. Das Abonnement bleibt auch bei Änderungen aktualisierbar.</p>
+      <div id="calendar-subscriptions" class="actions"><p class="muted">Abo-Links werden geladen …</p></div>
     </section>
   </div>
 </MainLayout>
