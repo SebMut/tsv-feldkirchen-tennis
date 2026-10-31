@@ -234,8 +234,25 @@ import MainLayout from '../../layouts/MainLayout.astro';
               </form>
             </div>
             <div class="grid two">
-              <div class="card"><h2>Sponsor anlegen</h2><form id="sponsor-form" class="form-grid"><div class="field full"><label>Name</label><input id="sponsor-name" required /></div><div class="field full"><label>Website</label><input id="sponsor-url" type="url" /></div><div class="field full"><label>Beschreibung</label><textarea id="sponsor-description"></textarea></div><div class="field full"><label>Logo</label><input id="sponsor-logo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div><div class="field"><button class="button" type="submit">Sponsor speichern</button></div></form></div>
-              <div class="card"><h2>Funktionär anlegen</h2><form id="official-form" class="form-grid"><div class="field full"><label>Name</label><input id="official-name" required /></div><div class="field"><label>Funktion</label><input id="official-title" required /></div><div class="field"><label>E-Mail</label><input id="official-email" type="email" /></div><div class="field"><label>Telefon</label><input id="official-phone" /></div><div class="field"><button class="button" type="submit">Funktionär speichern</button></div></form></div>
+              <div class="card"><h2>Sponsoren verwalten</h2><form id="sponsor-form" class="form-grid"><input type="hidden" id="sponsor-edit-id" />
+<div class="field full"><label for="sponsor-name">Name</label><input id="sponsor-name" required /></div>
+<div class="field full"><label for="sponsor-url">Website</label><input id="sponsor-url" type="url" /></div>
+<div class="field full"><label for="sponsor-description">Beschreibung</label><textarea id="sponsor-description"></textarea></div>
+<div class="field"><label for="sponsor-order">Sortierung</label><input id="sponsor-order" type="number" min="0" value="0" /></div>
+<div class="field"><label><input id="sponsor-active" type="checkbox" checked /> Aktiv und öffentlich anzeigen</label></div>
+<div class="field full"><label for="sponsor-logo">Logo hochladen / ersetzen</label><input id="sponsor-logo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
+<div class="field"><button class="button" type="submit">Sponsor speichern</button><button id="sponsor-cancel-edit" class="button ghost hidden" type="button">Abbrechen</button></div></form>
+<div id="sponsors-admin-list" class="admin-edit-list" aria-live="polite"></div></div>
+              <div class="card"><h2>Funktionäre verwalten</h2><form id="official-form" class="form-grid"><input type="hidden" id="official-edit-id" />
+<div class="field full"><label for="official-name">Name</label><input id="official-name" required /></div>
+<div class="field"><label for="official-title">Funktion</label><input id="official-title" required /></div>
+<div class="field"><label for="official-email">Öffentliche E-Mail (optional)</label><input id="official-email" type="email" /></div>
+<div class="field"><label for="official-phone">Öffentliche Telefonnummer (optional)</label><input id="official-phone" /></div>
+<div class="field"><label for="official-order">Sortierung</label><input id="official-order" type="number" min="0" value="0" /></div>
+<div class="field"><label><input id="official-published" type="checkbox" /> Veröffentlichung freigeben</label></div>
+<div class="field full"><label for="official-photo">Foto hochladen / ersetzen</label><input id="official-photo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
+<div class="field"><button class="button" type="submit">Funktionär speichern</button><button id="official-cancel-edit" class="button ghost hidden" type="button">Abbrechen</button></div></form>
+<div id="officials-admin-list" class="admin-edit-list" aria-live="polite"></div></div>
             </div>
             <div class="card">
               <h2>Sponsor-Platzierungen</h2>
