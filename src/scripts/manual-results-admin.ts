@@ -117,7 +117,7 @@ function renderList() {
     const item = document.createElement('div');
     item.className = 'manual-result-item-wrap';
     item.append(button);
-    const btv = officialBtvTeamDestination(verifiedBtv.get(m.team_season_id));
+    const btv = officialBtvTeamDestination(verifiedBtv.get(m.team_season_id) === m.btv_url ? m.btv_url : null);
     if (btv.href) {
       const link = document.createElement('a');
       link.href = btv.href;
@@ -176,7 +176,7 @@ function selectMatch(id: string) {
 
   const link = byId<HTMLAnchorElement>('manual-result-official-link');
   if (link) {
-    const btv = officialBtvTeamDestination(verifiedBtv.get(selected.team_season_id));
+    const btv = officialBtvTeamDestination(verifiedBtv.get(selected.team_season_id) === selected.btv_url ? selected.btv_url : null);
     link.href = btv.href;
     link.classList.remove('hidden');
     link.textContent = btv.isDirect ? 'Offiziellen BTV-Spielplan öffnen ↗' : 'BTV-Vereinsübersicht öffnen (Gruppenlink ungeprüft) ↗';
