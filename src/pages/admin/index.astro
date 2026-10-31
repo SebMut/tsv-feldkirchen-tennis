@@ -256,14 +256,14 @@ import MainLayout from '../../layouts/MainLayout.astro';
             </div>
             <div class="card">
               <h2>Sponsor-Platzierungen</h2>
-              <form id="placement-form" class="form-grid">
+              <form id="placement-form" class="form-grid"><input type="hidden" id="placement-edit-id" />
                 <div class="field"><label>Sponsor</label><select id="placement-sponsor" required></select></div>
                 <div class="field"><label>Platzierung</label><select id="placement-type"><option value="home">Startseite</option><option value="live">Liveticker</option><option value="team">Mannschaft</option><option value="match">Spieltag</option><option value="sponsors">Sponsoren-Seite</option></select></div>
                 <div class="field"><label>Mannschaft optional</label><select id="placement-team"></select></div>
                 <div class="field"><label>Spiel optional</label><select id="placement-match"><option value="">Kein bestimmtes Spiel</option></select></div>
                 <div class="field"><label>Von</label><input id="placement-start" type="date" /></div>
                 <div class="field"><label>Bis</label><input id="placement-end" type="date" /></div>
-                <div class="field full"><button class="button" type="submit">Platzierung speichern</button></div>
+                <div class="field"><label><input type="checkbox" id="placement-active" checked /> Platzierung aktiv</label></div><div class="field full"><button class="button" type="submit">Platzierung speichern</button><button class="button ghost hidden" type="button" id="placement-cancel-edit">Abbrechen</button></div>
               </form>
               <div id="placements-list" class="table-wrap"></div>
             </div>
