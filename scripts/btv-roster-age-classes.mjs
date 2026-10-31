@@ -44,6 +44,17 @@ export function canonicalAgeClass(label) {
   return AGE_ALIASES.get(classKey(label)) || null;
 }
 
+// PDF headings can contain leagues, additional I/II/III squads and '(4er)'.
+// Accept ONLY a recognized club age-class heading followed by a '| league' marker.
+export function ageClassFromPdfHeading(line) {
+  if (typeof line !== 'string' || !line.includes('|')) return null;
+  const heading = line.split('|', 1)[0].trim()
+    .replace(/\\s*\\((?:4|6)er\\)\\s*/giu, ' ')
+    .replace(/\\s+\\b(?:II|III)\\b$/iu, '')
+    .replace(/\\s+/gu, ' ').trim();
+  return canonicalAgeClass(heading);
+}
+
 export function rosterTeams(ageClass, seasonCode) {
   const canonical = canonicalAgeClass(ageClass);
   if (!canonical) return [];
