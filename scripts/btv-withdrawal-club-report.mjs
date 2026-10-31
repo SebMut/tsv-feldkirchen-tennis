@@ -142,6 +142,12 @@ export async function fetchClubGroupReport(seasonCode){
       }
     }
     const entries=parseClubGroupReport(columns,{seasonCode});
-    return {url,entries,pages,groupsSeen:groupNumbersFromColumns(columns),sourceKind:'club_group_report'};
+    // Diagnostic metadata only (no roster names or personal details).
+    // A source with a withdrawal marker but no parsed entry is an importer
+    // coverage gap, not evidence that there were no withdrawals.
+    const rawWithdrawalMarkers=(full.match(/zurückgezogen(?:\s*\/\s*gesperrt)?\s+am/gi)||[]).length;
+    const groupsSeen=groupNumbersFromColumns(columns);
+    return {url,entries,pages,groupsSeen,rawWithdrawalMarkers,
+      sourceKind:'club_group_report'};
   }finally{rmSync(dir,{recursive:true,force:true});}
 }

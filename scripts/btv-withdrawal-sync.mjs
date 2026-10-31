@@ -57,7 +57,7 @@ for(const seasonCode of sourceSeasonCodes){
       clubReports.set(seasonCode,report);
       console.log('BTV_CLUB_GROUP_REPORT='+JSON.stringify({
         season:seasonCode,pages:report.pages,
-        groups:report.groupsSeen.length,withdrawals:report.entries.length
+        groups:report.groupsSeen.length,groupNumbers:report.groupsSeen.sort((a,b)=>a-b),withdrawals:report.entries.length,rawWithdrawalMarkers:report.rawWithdrawalMarkers
       }));
     } else console.log('BTV_CLUB_GROUP_NO_VERIFIED_REFERENCE='+seasonCode);
   }catch(error){
@@ -71,6 +71,14 @@ for(const seasonCode of sourceSeasonCodes){
   }
 }
 console.log('BTV_WITHDRAWAL_GROUPS='+groupPlans.length);
+const groupsCoveredByClubReport=new Set(
+  groupPlans.filter(p=>{
+    const g=Number(p.group_name.match(/Gr\.\s*0*(\d+)/)?.[1]);
+    return clubReports.get(p.season_code)?.groupsSeen.includes(g);
+  }).map(p=>p.season_code+':'+p.group_id)
+);
+console.log('BTV_WITHDRAWAL_CLUB_GROUP_COVERAGE='+groupsCoveredByClubReport.size);
+
 for(const plan of groupPlans){
   let source;
   try{
