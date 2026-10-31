@@ -81,6 +81,14 @@ try {
     }
     const siblings=byIdentity.get(identity(ts.id,item.isHome,item.opponent))||[];
     if(siblings.length) { summary.existing_count++; continue; } // same fixture already maintained by club
+    // Conservative second guard for changed spelling: one match on that day
+    // and side for the same TSV team is considered manually managed.
+    if(rows.some(row=>row.team_season_id===ts.id && row.is_home===item.isHome
+      && new Date(row.starts_at).toISOString().slice(0,10)===item.date)) {
+      summary.skipped_count++;
+      safeguarded.push(item.slug+' / '+item.opponent+' (same-day manual fixture)');
+      continue;
+    }
     const lineupFormat=item.four?'4_2':'6_3';
     candidates.push({
       team_season_id:ts.id,opponent:item.opponent,is_home:item.isHome,
@@ -108,7 +116,8 @@ try {
   }
   // Inserts are idempotent via the unique btv_source_key. No cleanup, no delete.
   for(const item of candidates) {
-    const result=await db.from('matches').upsert(item,{onConflict:'btv_source_key',ignoreDuplicates:true}).select('id').maybeSingle();
+    const result=await db.from('matches').insert(item).select('id').single();
+    if(result.error?.code==='23505') { summary.existing_count++; continue; } // concurrent import already created it
     if(result.error) throw new Error('BTV candidate insert: '+result.error.message);
     if(result.data) summary.inserted_count++;
   }
