@@ -187,8 +187,9 @@ import MainLayout from '../../layouts/MainLayout.astro';
           </section>
 
           <section id="panel-matches" class="admin-panel">
-            <div class="card" id="match-create-card">
-              <h2>Spiel anlegen</h2>
+            <details class="card match-create-card" id="match-create-card">
+              <summary class="match-create-card__summary">Neues Spiel anlegen</summary>
+              <p class="muted">Für bereits eingetragene Punktspiele direkt unten den Liveticker öffnen.</p>
               <form id="match-form" class="form-grid">
                 <div class="field"><label>Mannschaft / Saison</label><select id="match-team-season" required></select></div>
                 <div class="field"><label>Gegner</label><input id="match-opponent" required /></div>
@@ -201,17 +202,26 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field full"><label>BTV / externer Link</label><input id="match-url" type="url" /></div>
                 <div class="field full"><button class="button" type="submit">Spiel speichern</button></div>
               </form>
-            </div>
-            <div class="card">
+            </details>
+            <div class="card match-ticker-panel">
               <h2>Spiele & Liveticker</h2>
               <p class="muted">Spieltag auswählen, Einzel und Doppel vorbereiten und eigene Spielernamen direkt eintragen. Nur deine zugeordneten Mannschaften sind bearbeitbar.</p>
-              <div class="field">
-                <label for="matches-admin-filter">Spiele anzeigen</label>
-                <select id="matches-admin-filter">
-                  <option value="focus">Aktuelle und kommende Spiele</option>
-                  <option value="all">Alle Spiele (auch ältere)</option>
-                  <option value="finished">Abgeschlossene Spiele</option>
-                </select>
+              <div class="match-ticker-selectors">
+                <div class="field">
+                  <label for="matches-admin-filter">Zeitraum</label>
+                  <select id="matches-admin-filter">
+                    <option value="focus">Aktuelle und kommende Spiele</option>
+                    <option value="all">Alle Spiele (auch ältere)</option>
+                    <option value="finished">Abgeschlossene Spiele</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="matches-admin-game">Spieltag auswählen</label>
+                  <select id="matches-admin-game">
+                    <option value="auto">Laufendes oder nächstes Spiel</option>
+                    <option value="all">Alle angezeigten Spiele</option>
+                  </select>
+                </div>
               </div>
               <p id="matches-filter-summary" class="muted" role="status" aria-live="polite"></p>
               <div id="matches-admin-list" class="stack"></div>
