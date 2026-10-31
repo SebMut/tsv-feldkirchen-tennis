@@ -168,7 +168,7 @@ async function inspectVerifiedWinterPdf(context, downloadsPage) {
       // instead of a selector. Open only a uniquely labeled winter season.
       let candidate = null;
       for (const { page } of pages) {
-        const links = page.getByRole('link', { name: /^\\s*Winter\\s*2026\\s*\\/\\s*(?:20)?27\\s*$/i });
+        const links = page.getByRole('link', { name: /^\s*Winter\s*2026\s*\/\s*(?:20)?27\s*$/i });
         if (await links.count() === 1 && await links.first().isVisible()) {
           if (candidate) fail('WINTER_SEASON_NAVIGATION_AMBIGUOUS');
           candidate = { page, link: links.first() };
@@ -176,7 +176,7 @@ async function inspectVerifiedWinterPdf(context, downloadsPage) {
       }
       if (candidate) {
         const href = await candidate.link.getAttribute('href');
-        if (href && !/\\.pdf(?:\\?|#|$)/i.test(href)) {
+        if (href && !/\.pdf(?:\?|#|$)/i.test(href)) {
           await candidate.link.click();
           await candidate.page.waitForTimeout(1100);
           pages = await visiblePages(context);
