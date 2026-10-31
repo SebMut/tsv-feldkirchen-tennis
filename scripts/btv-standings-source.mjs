@@ -4,6 +4,8 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {officialGroupPdfUrl} from './btv-withdrawal-source.mjs';
+import {columnsFromLayoutText} from './btv-withdrawal-club-report.mjs';
+import {LEAGUE_SEASONS} from './btv-schedule.mjs';
 
 const validSeason=(code)=>/^sommer-20\d{2}$|^winter-20\d{2}-20\d{2}$/.test(String(code));
 
@@ -51,5 +53,68 @@ export async function readBtvStandings(groupId,metadata){
     const text=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8',timeout:18000,maxBuffer:1024*1024});
     const rows=parseBtvStandings(text,metadata);
     return {rows,sourceUrl,sourceHash:createHash('sha256').update(bytes).digest('hex')};
+  }finally{rmSync(dir,{recursive:true,force:true});}
+}
+
+export function officialClubStandingsUrl(seasonCode){
+  const year=String(seasonCode).match(/^sommer-(20\d{2})$/)?.[1];
+  const season=year&&LEAGUE_SEASONS[year];
+  if(!season)return null;
+  const url=new URL('https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument');
+  url.searchParams.set('dokument','ResultReportFOP');
+  url.searchParams.set('type','small');
+  url.searchParams.set('club','23391');
+  url.searchParams.set('season',season);
+  return url.toString();
+}
+
+export function parseClubStandingsColumns(columns,{seasonCode}){
+  if(!Array.isArray(columns)||columns.length<4||columns.length>100)throw Error('CLUB_STANDINGS_INVALID_COLUMNS');
+  const groups=new Map();
+  for(const column of columns){
+    let group=null;
+    for(const raw of String(column).split(/\r?\n/)){
+      const line=raw.replace(/\s+/g,' ').trim();
+      const heading=line.match(/\bGr\.\s*0*(\d{1,4})(?:\s+SU)?\s*$/);
+      if(heading&&/^(?:Herren|Damen|Junior|Knaben|Mädchen|Bambini|Dunlop|Kleinfeld)/i.test(line)){
+        group=Number(heading[1]);
+        continue;
+      }
+      if(!group)continue;
+      const row=line.match(/^(\d{1,2})\s+(.+?)\s+\((\d{5})\)\s+(.+)$/);
+      if(!row||!/\d/.test(row[4]))continue;
+      const parsed={rank:Number(row[1]),teamName:row[2].replace(/^z\s+/i,'').trim(),clubCode:row[3],standingText:row[4].trim()};
+      if(parsed.rank<1||parsed.rank>30||parsed.teamName.length>100)continue;
+      const list=groups.get(group)||[];
+      if(!list.some(item=>item.rank===parsed.rank))list.push(parsed);
+      groups.set(group,list);
+    }
+  }
+  for(const [group,rows] of groups){
+    rows.sort((a,b)=>a.rank-b.rank);
+    if(rows.length<4||rows.length>12||!rows.some(row=>row.clubCode==='01012')||rows.some((row,index)=>row.rank!==index+1))groups.delete(group);
+  }
+  if(!groups.size)throw Error('CLUB_STANDINGS_INCOMPLETE');
+  if(!/^sommer-20\d{2}$/.test(seasonCode))throw Error('CLUB_STANDINGS_INVALID_SEASON');
+  return groups;
+}
+
+export async function readBtvClubStandings(seasonCode){
+  const sourceUrl=officialClubStandingsUrl(seasonCode);
+  if(!sourceUrl)throw Error('CLUB_STANDINGS_UNVERIFIED_SEASON');
+  const response=await fetch(sourceUrl,{headers:{Accept:'application/pdf','User-Agent':'TSV Feldkirchen public club standings sync'},signal:AbortSignal.timeout(26000)});
+  if(response.status===403||response.status===429)throw Error('BTV_CLUB_STANDINGS_RATE_LIMITED');
+  if(!response.ok)throw Error('BTV_CLUB_STANDINGS_HTTP_'+response.status);
+  const bytes=Buffer.from(await response.arrayBuffer());
+  if(bytes.length<1000||bytes.length>15000000||bytes.toString('ascii',0,4)!=='%PDF')throw Error('BTV_CLUB_STANDINGS_NOT_PDF');
+  const dir=mkdtempSync(join(tmpdir(),'btv-club-standings-'));
+  try{
+    const file=join(dir,'standings.pdf');writeFileSync(file,bytes);
+    const full=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8',timeout:22000,maxBuffer:3*1024*1024});
+    const year=seasonCode.slice(7);
+    if(!full.includes('Sommer '+year)||!full.includes('TSV Feldkirchen (01012)'))throw Error('BTV_CLUB_STANDINGS_IDENTITY_MISMATCH');
+    const columns=columnsFromLayoutText(full);
+    const groups=parseClubStandingsColumns(columns,{seasonCode});
+    return {groups,sourceUrl,sourceHash:createHash('sha256').update(bytes).digest('hex')};
   }finally{rmSync(dir,{recursive:true,force:true});}
 }
