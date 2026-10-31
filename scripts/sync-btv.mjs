@@ -39,6 +39,9 @@ try {
   if(missing.length) throw new Error('Missing team season mapping: '+missing.join(', '));
 
   const rows=await get(db.from('matches').select('id,team_season_id,opponent,is_home,starts_at,btv_imported,btv_source_key,btv_result_text').in('team_season_id',[...seasonByTeam.values()].map(x=>x.id)),'existing games');
+  // Existing manually curated seasons (notably 2026) must remain exclusive:
+  // we report discrepancies rather than add apparent duplicates.
+  const seasonsWithManualData = new Set(rows.filter(row=>!row.btv_imported).map(row=>row.team_season_id));
   const byKey=new Map(rows.filter(row=>row.btv_source_key).map(row=>[row.btv_source_key,row]));
   const byIdentity=new Map();
   const identity=(seasonId,isHome,opponent)=>[seasonId,isHome?'H':'A',normalizedName(opponent)].join('|');
@@ -81,6 +84,11 @@ try {
     }
     const siblings=byIdentity.get(identity(ts.id,item.isHome,item.opponent))||[];
     if(siblings.length) { summary.existing_count++; continue; } // same fixture already maintained by club
+    if(seasonsWithManualData.has(ts.id)) {
+      summary.skipped_count++;
+      safeguarded.push(item.slug+' / '+item.opponent+' (manual season; review needed)');
+      continue;
+    }
     // Conservative second guard for changed spelling: one match on that day
     // and side for the same TSV team is considered manually managed.
     if(rows.some(row=>row.team_season_id===ts.id && row.is_home===item.isHome
@@ -103,9 +111,11 @@ try {
     list.push({id:'planned',opponent:item.opponent});
     byIdentity.set(identity(ts.id,item.isHome,item.opponent),list);
   }
-  if(candidates.length>30) throw new Error('Unusually many new games ('+candidates.length+'); requires review before sync');
+  if(rows.length>0 && candidates.length>30) throw new Error('Unusually many new games ('+candidates.length+'); requires review before sync');
+  // A genuinely new year with zero existing games may legitimately have ~120 fixtures.
   console.log('Guarded comparison:',JSON.stringify({existing:summary.existing_count,new:candidates.length,updates:updates.length,protected:summary.skipped_count}));
   console.log('New fixtures:',JSON.stringify(candidates.map(c=>({team_season_id:c.team_season_id,opponent:c.opponent,start:c.starts_at,home:c.is_home})).slice(0,8)));
+  if(safeguarded.length) console.log('Protected unmatched fixtures:',safeguarded.length,safeguarded.slice(0,8));
   const log=await db.from('btv_import_runs').insert({season_year:year,source_url:schedule.sourceUrl,...summary}).select('id').single();
   if(log.error) throw new Error('Cannot log import run: '+log.error.message);
   runId=log.data.id;
