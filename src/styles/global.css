@@ -912,3 +912,13 @@ body{background:var(--sand);color:var(--text)}
   .encounter-card__heading{overflow-wrap:anywhere}
   .match-ticker-selectors select{max-width:100%}
 }
+
+/* Optional external tennis.de team widget: keep the TSV matchday UI independent. */
+.teams-official-widget{display:grid;gap:14px;min-width:0;margin-top:18px}
+.teams-official-widget__details{min-width:0;overflow:hidden}
+.teams-official-widget__details>summary{cursor:pointer;font-weight:850;font-size:1.05rem;padding:9px 0;min-height:48px}
+.teams-official-widget__details>summary:focus-visible{outline:3px solid #cb2733;outline-offset:3px}
+.teams-official-widget__details[open]>summary{margin-bottom:10px}
+.teams-official-widget__frame{display:block;width:100%;max-width:100%;border:1px solid #dce4de;border-radius:12px;background:#fff;min-height:600px}
+.teams-official-widget__details .muted{overflow-wrap:anywhere}
+@media(max-width:700px){.teams-official-widget__details{padding:12px}.teams-official-widget__frame{height:680px;min-height:500px}}
