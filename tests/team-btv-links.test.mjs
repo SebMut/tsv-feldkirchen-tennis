@@ -36,8 +36,8 @@ test('when group verification is missing, use permanent BTV club link, never unv
 
 test('public team cards and individual season view use the verified source table',()=>{
   assert.match(teams,/from\('verified_team_btv_links'\)\.select\('team_season_id,btv_url'\)/);
-  assert.match(teams,/officialBtvTeamDestination\(verifiedBtv\.get\(ts\.id\)\)/);
-  assert.match(teams,/officialBtvTeamDestination\(verifiedBtv\.get\(current\?\.id\)\)/);
+  assert.match(teams,/officialBtvTeamDestination\(verifiedBtv\.get\(ts\.id\) === ts\.btv_url/);
+  assert.match(teams,/officialBtvTeamDestination\(verifiedBtv\.get\(current\?\.id\) === current\?\.btv_url/);
   assert.match(teams,/BTV Tabelle \/ Spielplan/);
   assert.match(teams,/BTV Vereinsübersicht/);
   assert.match(teams,/href="\$\{detailUrl\}"/);
@@ -47,8 +47,8 @@ test('public team cards and individual season view use the verified source table
 
 test('superadmin results list shows verified group link or stable official club link',()=>{
   assert.match(admin,/from\('verified_team_btv_links'\)/);
-  assert.match(admin,/officialBtvTeamDestination\(verifiedBtv\.get\(m\.team_season_id\)\)/);
-  assert.match(admin,/officialBtvTeamDestination\(verifiedBtv\.get\(selected\.team_season_id\)\)/);
+  assert.match(admin,/officialBtvTeamDestination\(verifiedBtv\.get\(m\.team_season_id\) === m\.btv_url/);
+  assert.match(admin,/officialBtvTeamDestination\(verifiedBtv\.get\(selected\.team_season_id\) === selected\.btv_url/);
   assert.match(admin,/link\.rel = 'noopener noreferrer'/);
   assert.match(admin,/Gruppenlink ungeprüft/);
   assert.doesNotMatch(admin,/officialBtvGroupUrl\(m\.btv_url\)/);
