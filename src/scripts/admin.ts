@@ -917,6 +917,7 @@ async function refreshMatches() {
         <label>Allgemeine Tickermeldung</label>
         <textarea data-ticker-message placeholder="z. B. Nach den Einzeln steht es 4:2 für den TSV."></textarea>
         <button class="button" data-publish-ticker type="button">Meldung veröffentlichen</button>
+        <p data-ticker-feedback class="encounter-feedback" role="status" aria-live="polite"></p>
       </div>
     </article>`;
   }).join('') || '<p class="muted">In dieser Auswahl sind keine Spiele vorhanden. Wähle bei Bedarf „Alle Spiele“.</p>';
@@ -1158,23 +1159,36 @@ async function refreshMatches() {
       });
     });
 
-    card.querySelector<HTMLButtonElement>('[data-publish-ticker]')?.addEventListener('click', async () => {
-      const message = card.querySelector<HTMLTextAreaElement>('[data-ticker-message]')?.value.trim();
-      if (!message) return;
-      const current = (await supabase.from('match_live_state').select('*').eq('match_id', matchId).single()).data;
-      const { error } = await supabase.from('live_ticker_entries').insert({
-        match_id: matchId,
-        author_id: state.user.id,
-        message,
-        entry_type: 'update',
-        home_score: current?.home_score ?? null,
-        away_score: current?.away_score ?? null,
-      });
-      if (error) status(error.message, 'error');
-      else {
-        const area = card.querySelector<HTMLTextAreaElement>('[data-ticker-message]');
-        if (area) area.value = '';
-        status('Tickermeldung veröffentlicht.', 'success');
+    const publishButton = card.querySelector<HTMLButtonElement>('[data-publish-ticker]');
+    publishButton?.addEventListener('click', async () => {
+      if (publishButton.disabled) return;
+      const area = card.querySelector<HTMLTextAreaElement>('[data-ticker-message]');
+      const message = area?.value.trim();
+      if (!message) return status('Bitte zuerst eine Tickermeldung eingeben.', 'error');
+      publishButton.disabled = true;
+      publishButton.textContent = 'Wird veröffentlicht …';
+      try {
+        const { data: current, error: stateError } = await supabase.from('match_live_state')
+          .select('home_score,away_score').eq('match_id', matchId).single();
+        if (stateError) return status('Spielstand nicht abrufbar: ' + stateError.message, 'error');
+        const { error } = await supabase.from('live_ticker_entries').insert({
+          match_id: matchId,
+          author_id: state.user.id,
+          message,
+          entry_type: 'update',
+          home_score: current?.home_score ?? null,
+          away_score: current?.away_score ?? null,
+        });
+        if (error) status(error.message, 'error');
+        else {
+          if (area) area.value = '';
+          status('Tickermeldung veröffentlicht.', 'success');
+          const feedback = card.querySelector<HTMLElement>('[data-ticker-feedback]');
+          if (feedback) feedback.textContent = 'Tickermeldung veröffentlicht.';
+        }
+      } finally {
+        publishButton.disabled = false;
+        publishButton.textContent = 'Meldung veröffentlichen';
       }
     });
   });
