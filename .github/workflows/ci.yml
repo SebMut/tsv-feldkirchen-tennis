@@ -22,6 +22,8 @@ jobs:
           cache: npm
       - name: Install pinned dependencies
         run: npm ci
+      - name: Run Phase 4 regression tests
+        run: npm test
       - name: Check and build
         run: npm run build
       - name: Audit generated site, links and SEO
