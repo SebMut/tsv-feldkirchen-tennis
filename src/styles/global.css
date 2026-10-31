@@ -836,3 +836,26 @@ body{background:var(--sand);color:var(--text)}
 @media(max-width:920px){.teams-seasons{gap:10px}.teams-season-card{padding:18px 16px;min-height:162px}.teams-season-card__count{font-size:.7rem}}
 @media(max-width:700px){.teams-seasons{grid-template-columns:1fr;gap:10px}.teams-season-card{min-height:auto;padding:15px 17px;border-radius:16px;gap:5px}.teams-season-card__top{margin-bottom:3px}.teams-season-card__icon{width:32px;height:32px;font-size:1.15rem}.teams-season-card>strong{font-size:1.22rem}.teams-results__heading{align-items:start;flex-direction:column;gap:8px}.teams-page__intro>p:last-child{font-size:1rem}.teams-empty{padding:38px 18px}}
 @media(prefers-reduced-motion:reduce){.teams-season-card{transition:none}.teams-season-card:hover{transform:none}}
+
+
+/* Spielort ist die physische Halle/Anlage, unabhängig vom Heimrecht. */
+.match-venue{display:grid;align-content:start;gap:4px;min-width:0;max-width:100%;margin:10px 0}
+.match-venue__label{font-size:.77rem;letter-spacing:.025em;font-weight:850;color:var(--accent)}
+.match-venue strong{font-size:.96rem;font-weight:850;overflow-wrap:anywhere;line-height:1.35}
+.match-venue small{color:var(--muted);font-size:.82rem;line-height:1.45;overflow-wrap:anywhere}
+.match-route-button{font-size:.83rem;min-height:38px;padding:7px 14px;border-radius:10px;white-space:normal;text-align:center}
+.match-route-button:focus-visible{outline:3px solid #e30613;outline-offset:3px}
+.next-match-card__bottom .match-venue{margin:0}
+.next-match-card__bottom .match-venue strong{color:#fff;font-size:1.04rem}
+.match-detail-hero .match-venue{margin:16px 0;padding:12px 15px;border-left:3px solid #e30613;background:#ffffff0b;border-radius:0 9px 9px 0}
+.match-row__main .match-venue{margin-bottom:0}
+.team-overview-next .match-venue{margin:8px 0}
+.teams-page .match-venue small,.team-overview-card .match-venue small{color:#53645d}
+.matchday-page .match-venue small{color:#c4ceca}
+.matchday-page .match-venue strong{color:#fff}
+.match-admin-venue{margin:12px 0;border:1px solid #dfe7e0;border-radius:12px;padding:12px;background:#f9faf8;color:#20312a}
+.match-admin-venue summary{cursor:pointer;font-weight:800}
+.match-admin-venue__fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.match-admin-venue__fields label{font-size:.86rem;font-weight:750}
+.match-admin-venue__fields input{width:100%;min-width:0;border-radius:9px;border:1px solid #ccd9ce;background:#fff;color:#20312a;padding:10px}
+@media(max-width:680px){.match-row{grid-template-columns:1fr}.match-admin-venue__fields{grid-template-columns:1fr}.match-route-button{width:fit-content;max-width:100%}}
