@@ -1,0 +1,58 @@
+name: BTV Winter 2026/27 Mannschaftskader lesen (ohne Import)
+
+# Single read-only PDF verification. Never exposes secrets in PR workflows.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/btv-roster-winter-audit.yml
+  pull_request:
+    paths:
+      - .github/workflows/btv-roster-winter-audit.yml
+      - scripts/btv-roster-winter-audit.mjs
+      - tests/btv-roster-winter-audit.test.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btv-winter-nmm-audit
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and no-PII security tests
+        run: |
+          node --check scripts/btv-roster-winter-audit.mjs
+          node --test tests/btv-roster-winter-audit.test.mjs
+
+  inspect:
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned browser and PDF reader without access to credentials
+        run: |
+          npm ci
+          npm install --no-save --no-package-lock --ignore-scripts playwright@1.64.1
+          sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+          npx --no-install playwright install --with-deps chromium
+      - name: Verify official TSV 01012 winter nMM without logging player data
+        env:
+          BTV_LOGIN_USERNAME: ${{ secrets.BTV_LOGIN_USERNAME }}
+          BTV_LOGIN_PASSWORD: ${{ secrets.BTV_LOGIN_PASSWORD }}
+        run: node scripts/btv-roster-winter-audit.mjs
