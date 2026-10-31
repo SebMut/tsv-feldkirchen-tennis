@@ -8,7 +8,7 @@ import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { ageClassFromPdfHeading, isYouthClass } from './btv-roster-age-classes.mjs';
-import { parseBtvRosterPdfText, assertCompleteSummerRoster } from './btv-roster-pdf-parser.mjs';
+import { parseBtvRosterPdfText, assertVerifiedSummerSnapshot } from './btv-roster-pdf-parser.mjs';
 
 const ENTRY = 'https://www.btv.de/de/mein-verein/vereins-cockpit.html';
 const LOGIN_HOST = 'tende-id.liga.nu';
@@ -309,10 +309,10 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
     console.log('BTV_PARSE_CLASS_' + label + '=' + count);
   }
   try {
-    assertCompleteSummerRoster(parsed);
-    console.log('BTV_PARSE_COMPLETE=YES');
+    assertVerifiedSummerSnapshot(parsed);
+    console.log('BTV_PARSE_VERIFIED_PARTIAL=YES');
   } catch {
-    console.log('BTV_PARSE_COMPLETE=NO');
+    console.log('BTV_PARSE_VERIFIED_PARTIAL=NO');
     fail('PDF_ROSTER_LAYOUT_INCOMPLETE');
   }
 

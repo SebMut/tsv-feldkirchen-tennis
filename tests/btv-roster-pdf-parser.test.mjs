@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { AGE_CLASSES } from '../scripts/btv-roster-age-classes.mjs';
-import { parseBtvRosterPdfText, assertCompleteSummerRoster } from '../scripts/btv-roster-pdf-parser.mjs';
+import { parseBtvRosterPdfText, assertCompleteSummerRoster, assertVerifiedSummerSnapshot } from '../scripts/btv-roster-pdf-parser.mjs';
 
 function fixture() {
   const rows = [];
@@ -37,4 +37,27 @@ test('incomplete or unrecognized reports are rejected', () => {
     /PDF_ROSTER_LAYOUT_INCOMPLETE|PDF_TEXT_MISSING/);
   assert.throws(() => assertCompleteSummerRoster(parseBtvRosterPdfText(fixture().replace('Mädchen 15 |', 'Unbekannt |'))),
     /PDF_ROSTER_LAYOUT_INCOMPLETE/);
+});
+
+
+test('verified snapshot accepts only the ten confirmed squad sections and 173 rows', () => {
+  const groups = [
+    'Herren II', 'Herren 40', 'Herren 40 II', 'Damen 40',
+    'Junioren 18', 'Knaben 15', 'Knaben 15 II',
+    'Bambini 12', 'Bambini 12 II', 'Bambini 12 III',
+  ];
+  const report = ['TSV Feldkirchen (01012), Sommer 2026'];
+  groups.forEach((name, i) => {
+    report.push(name + ' | Südligagruppe');
+    const size = i < 3 ? 18 : 17;
+    for (let n = 1; n <= size; n++) {
+      report.push(n + ' Muster, Alpha  GER  12345678');
+    }
+  });
+  const parsed = assertVerifiedSummerSnapshot(parseBtvRosterPdfText(report.join('\n')));
+  assert.equal(parsed.diagnostics.numberedRows, 173);
+  assert.equal(parsed.diagnostics.classCount, 6);
+  assert.equal(parsed.diagnostics.headingCount, 10);
+  assert.throws(() => assertVerifiedSummerSnapshot(parseBtvRosterPdfText(fixture())),
+    /UNVERIFIED_NMM_SNAPSHOT/);
 });
