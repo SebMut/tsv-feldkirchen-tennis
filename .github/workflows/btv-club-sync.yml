@@ -1,7 +1,8 @@
 name: BTV club fixture sync
 
-# Schedule jobs only run from GitHub's DEFAULT branch. On this protected
-# development branch the parser can be tested without writing any data.
+# Four checks daily, at 00:17 / 06:17 / 12:17 / 18:17 UTC.
+# GitHub's schedule event only runs on the DEFAULT branch.
+# On the protected development branch tests have no Supabase write access.
 on:
   push:
     branches:
@@ -24,7 +25,7 @@ on:
         default: '2026'
         type: string
   schedule:
-    - cron: '17 3 * * *'
+    - cron: '17 */6 * * *'
 
 permissions:
   contents: read
@@ -65,7 +66,7 @@ jobs:
       - run: npm ci
       - name: Install PDF text extractor
         run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
-      - name: One guarded import of BTV public schedule to Supabase
+      - name: Check official schedule, atomically publish verified postponements to News
         env:
           BTV_SEASON_YEAR: ${{ inputs.season_year || '2026' }}
           BTV_IMPORT_ENABLED: ${{ vars.BTV_IMPORT_ENABLED }}
