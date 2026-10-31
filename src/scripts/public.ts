@@ -160,13 +160,13 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
 }
 
 export async function loadHome() {
-  const facility = document.querySelector('#facility-card');
-  const liveCenter = document.querySelector('#live-center');
-  const todayTarget = document.querySelector('#today-matches');
-  const upcomingTarget = document.querySelector('#upcoming-matches');
-  const recentTarget = document.querySelector('#recent-matches');
-  const newsTarget = document.querySelector('#home-news');
-  const errorText = (target, message) => {
+  const facility = document.querySelector<HTMLElement>('#facility-card');
+  const liveCenter = document.querySelector<HTMLElement>('#live-center');
+  const todayTarget = document.querySelector<HTMLElement>('#today-matches');
+  const upcomingTarget = document.querySelector<HTMLElement>('#upcoming-matches');
+  const recentTarget = document.querySelector<HTMLElement>('#recent-matches');
+  const newsTarget = document.querySelector<HTMLElement>('#home-news');
+  const errorText = (target: HTMLElement | null, message: string) => {
     if (target) target.innerHTML = `<p class="muted" role="status">${escapeHtml(message)}</p>`;
   };
   const watchdog = window.setTimeout(() => {
@@ -289,8 +289,8 @@ export async function loadHome() {
 export async function loadTeams() {
   watchPublicContent('#teams-grid');
   const target = document.querySelector('#teams-grid');
-  const seasonSelect = document.querySelector('#teams-season');
-  const categorySelect = document.querySelector('#teams-category');
+  const seasonSelect = document.querySelector<HTMLSelectElement>('#teams-season');
+  const categorySelect = document.querySelector<HTMLSelectElement>('#teams-category');
   if (!target || !seasonSelect || !categorySelect) return;
   const reference = await refs();
   if (!reference.seasons.length || !reference.teams.length) {
