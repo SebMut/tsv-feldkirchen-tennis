@@ -57,7 +57,7 @@ for(const seasonCode of sourceSeasonCodes){
       clubReports.set(seasonCode,report);
       console.log('BTV_CLUB_GROUP_REPORT='+JSON.stringify({
         season:seasonCode,pages:report.pages,
-        groups:report.groupsSeen.length,groupNumbers:report.groupsSeen.sort((a,b)=>a-b),withdrawals:report.entries.length,rawWithdrawalMarkers:report.rawWithdrawalMarkers
+        groups:report.groupsSeen.length,groupNumbers:report.groupsSeen.sort((a,b)=>a-b),withdrawals:report.entries.length,rawWithdrawalMarkers:report.rawWithdrawalMarkers,layoutGroups:report.layoutGroups,croppedGroups:report.croppedGroups
       }));
     } else console.log('BTV_CLUB_GROUP_NO_VERIFIED_REFERENCE='+seasonCode);
   }catch(error){

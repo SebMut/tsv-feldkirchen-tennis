@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
   officialClubGroupReportUrl,parseClubReportColumn,
-  parseClubGroupReport,groupNumbersFromColumns
+  parseClubGroupReport,groupNumbersFromColumns,columnsFromLayoutText
 } from '../scripts/btv-withdrawal-club-report.mjs';
 import {matchWithdrawalToFixture} from '../scripts/btv-withdrawal-source.mjs';
 
@@ -66,4 +66,35 @@ test('main workflow checks whole TSV club report, then only still missing groups
   assert.match(script,/verification_status:'official_verified'/);
   assert.match(script,/source_kind:'btv_group_schedule'/);
   assert.doesNotMatch(script,/from\('matches'\)\.update/);
+});
+
+
+test('full official 5-column layout preserves all four withdrawn team rows',()=>{
+  const width=82;
+  const line=(...cells)=>cells.map(s=>String(s).padEnd(width,' ')).join('');
+  const pdfText=[
+    'Südbayern | Sommer 2026','TSV Feldkirchen (01012)','Gruppeneinteilung',
+    line('Herren 40 Südliga 2 Gr. 315','Herren 50 Südliga 4 Gr. 396',
+         'Damen Südliga 5 Gr. 240','Knaben 15 Südliga 2 Gr. 565',
+         'Bambini 12 Südliga 5 Gr. 849'),
+    line('1 TSV Feldkirchen II (01012)','1 TC Höhenkirchen (02158)',
+         '1 TC Oberding (02080)','1 TSV Feldkirchen (01012)',
+         '1 TSV Feldkirchen (01012)'),
+    line('8 VfB Forstinning zurückgezogen/gesperrt am','7 SV DJK Taufkirchen zurückgezogen/gesperrt am',
+         '7 TC Beispiel (02999)','7 TC Moosburg zurückgezogen/gesperrt am',
+         '7 TSV Oberpframmern II zurückgezogen/gesperrt am'),
+    line("'11.05.2026' (02098)","'10.04.2026' (02351)",'',
+         "'07.07.2026' (02451)","'20.06.2026' (02199)")
+  ].join('\n');
+  const sliced=columnsFromLayoutText(pdfText);
+  assert.equal(sliced.length,5);
+  assert.deepEqual(groupNumbersFromColumns(sliced).sort((a,b)=>a-b),
+    [240,315,396,565,849]);
+  const entries=parseClubGroupReport(sliced,{seasonCode:'sommer-2026'});
+  assert.deepEqual(entries.map(e=>e.team),[
+    'vfb forstinning','sv djk taufkirchen','tc moosburg','tsv oberpframmern ii'
+  ]);
+  assert.deepEqual(entries.map(e=>e.withdrawnOn),[
+    '2026-05-11','2026-04-10','2026-07-07','2026-06-20'
+  ]);
 });
