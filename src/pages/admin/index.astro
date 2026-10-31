@@ -213,11 +213,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <div class="card">
               <h2>Anlagenstatus</h2>
               <form id="facility-form" class="form-grid">
-                <div class="field"><label>Status</label><select id="facility-status"><option value="open">Geöffnet</option><option value="limited">Teilweise geöffnet</option><option value="closed">Gesperrt</option></select></div>
+                <div class="field"><label>Status</label><select id="facility-status"><option value="open">Geöffnet</option><option value="limited">Teilweise geöffnet</option><option value="closed">Gesperrt</option><option value="unknown">Unbekannt</option></select></div>
                 <div class="field full"><label>Hinweis</label><textarea id="facility-message"></textarea></div>
                 <div class="field"><button class="button" type="submit">Status speichern</button></div>
               </form>
-              <div id="courts-admin-list" class="stack"></div>
+              <p id="facility-last-updated" class="muted" aria-live="polite"></p><p class="muted">Der hier gepflegte Anlagenstatus ist ein Vereinshinweis; die verbindliche Buchung und Buchungsverfügbarkeit erfolgen über Courtbooking.</p><div id="courts-admin-list" class="stack"></div>
             </div>
           </section>
 
