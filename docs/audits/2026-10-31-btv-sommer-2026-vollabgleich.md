@@ -1,5 +1,24 @@
 # TSV Feldkirchen – amtlicher BTV-Vollabgleich Sommer 2026
 
+## Abschluss 31.10.2026 – letzte zwei BTV-Endstände bestätigt
+
+Die beiden zuletzt noch unbelegten Sommer-2026-Ergebnisse konnten durch erneuten **aktuellen Live-PDF-Abruf** mit eindeutiger Zuordnung nach Club (01012), Mannschaft, Gegner, Heim/Auswärts, Saison, Gruppe und Datum gefunden und in der TSV-Supabase-Datenbank als BTV-Endstand gespeichert werden:
+
+| Spiel | Datum / Zeit | Offizielles Ergebnis Heim:Gast | Quelle |
+| --- | --- | ---: | --- |
+| ETC Siegertsbrunn II – TSV Feldkirchen Herren 50 II | 16.05.2026, 09:00 | **3:3** | [Aktueller BTV-TSV-Vereinsspielplan Sommer 2026](https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?club=23391&dokument=ScheduleReportFOP&season=18105) |
+| STK Garching – TSV Feldkirchen Knaben 15 II | 10.07.2026, 15:00 | **5:1** | [Aktueller BTV-TSV-Vereinsspielplan](https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?club=23391&dokument=ScheduleReportFOP&season=18105), [BTV-STK-Garching-Vereinsspielplan](https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?club=23376&dokument=ScheduleReportFOP&season=18105) |
+
+**Datenbankstand nach dem Import:** 124 interne Sommer-2026-Begegnungen, davon 120 mit BTV-Fixture-Snapshot, 118 mit numerischem amtlichem BTV-Endstand. **0 unbearbeitete Begegnungen**, wenn die sechs Fälle mit bereits dokumentiertem, aber teilweise noch nicht amtlich abschließend bewerteten Sonderstatus/externem Nachweis berücksichtigt werden. Numerisch unbelegt bleiben u. a. zwei vom TSV gemeldete Rückzüge, zwei offiziell dokumentierte Mannschaftsrückzüge, ein manueller Nachtrag und ein extern belegtes Ergebnis mit BTV-Prüfvorbehalt. Diese dürfen nicht als amtlich numerisch gewertete BTV-Ergebnisse bezeichnet werden.
+
+**Wichtige Verwechslungsgefahr:** Der vom Nutzer gefundene öffentliche BTV-Bericht [Gruppe 2226499](https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?dokument=ScheduleReportFOP&group=2226499) betrifft `Herren 40 Südliga 4 Gr. 349` mit `TV Feldkirchen II (02091)` – **nicht** TSV Feldkirchen Herren 50 II (01012), Gr. 396. Dieser Link darf nicht als Quelle für TSV-Herren-50-II-Werte oder als deren Mannschaftslink gespeichert werden.
+
+**Behobener wiederkehrender Fehler:** Der offizielle Endergebnisimport wurde zuvor nur bei ausgewählten GitHub-Main-Änderungen ausgeführt, nicht regelmäßig. Die neue [BTV-Ergebnis-Workflowregel](https://github.com/SebMut/tsv-feldkirchen-tennis/blob/main/.github/workflows/btv-results-private-import.yml) prüft den amtlichen Sommer-2026-Spielplan seit PR #60 auf `main` automatisch viermal täglich (UTC 01:23, 07:23, 13:23 und 19:23); neue numerische Resultate werden ausschließlich bei eindeutiger Paarung übernommen. Die geplanten Läufe greifen ausschließlich auf **Sommer 2026** zu.
+
+**Alle folgenden älteren Zwischenstände bleiben ausschließlich als historische Audit-Chronologie dokumentiert.**
+
+---
+
 ## Aktualisierung 31.10.2026 – ergänzter Gruppen- und Presseabgleich
 
 Dieser Abschnitt ist der **neueste Datenstand**. Die Zahlen in der ursprünglichen Vollprüfung weiter unten dokumentieren den vorherigen Zwischenstand.
