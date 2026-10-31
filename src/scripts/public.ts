@@ -1,5 +1,6 @@
 import { calendarFeedUrl, mediaUrl, supabase, COURTBOOKING_URL } from '../lib/supabase';
 import { escapeHtml, formatDateTime } from '../lib/ui';
+import { officialBtvGroupUrl } from '../lib/btv-group-url';
 
 type Row = Record<string, any>;
 
@@ -486,7 +487,14 @@ export async function loadTeams() {
       return `
         <article class="card team-card team-overview-card">
           <img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" />
-          <div><p class="eyebrow">${escapeHtml(title)}</p><h3>${escapeHtml(team.name)}</h3></div>
+          <div>
+            <p class="eyebrow">${escapeHtml(title)}</p>
+            <h3><a href="${detailUrl}" class="text-link">${escapeHtml(team.name)}</a></h3>
+            ${officialBtvGroupUrl(ts.btv_url)
+              ? `<a class="text-link" href="${escapeHtml(officialBtvGroupUrl(ts.btv_url)!)}" target="_blank" rel="noopener noreferrer"
+                   aria-label="BTV-Tabelle und Spielplan ${escapeHtml(team.name)} – ${escapeHtml(activeCode)} öffnen">BTV Tabelle / Spielplan ↗</a>`
+              : `<span class="muted" aria-label="BTV-Gruppenlink noch nicht verfügbar">BTV-Gruppenlink noch nicht verfügbar</span>`}
+          </div>
           <p class="muted">${escapeHtml([ts.league, ts.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p>
           ${featured ? `
             <div class="team-overview-next ${isLive ? 'is-live' : ''}">
