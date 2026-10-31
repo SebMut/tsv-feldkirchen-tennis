@@ -826,7 +826,7 @@ export async function loadCalendar() {
       const outside = cellDate.getUTCMonth() !== viewMonth - 1;
       const today = key === todayKey, selected = key === selectedDay;
       const fullLabel = fullDayFormatter.format(cellDate);
-      cells.push(`<button type="button" class="calendar-day${outside ? ' calendar-day--outside' : ''}${today ? ' calendar-day--today' : ''}${selected ? ' calendar-day--selected' : ''}${count ? ' calendar-day--busy' : ''}" data-calendar-day="${key}" aria-label="${escapeHtml(fullLabel)}${today ? ', heute' : ''}${count ? `, ${count} Termine` : ', keine Termine'}" aria-pressed="${selected ? 'true' : 'false'}" ${today ? 'aria-current="date"' : ''}>
+      cells.push(`<button type="button" class="calendar-day${outside ? ' calendar-day--outside' : ''}${today ? ' calendar-day--today' : ''}${selected ? ' calendar-day--selected' : ''}${count ? ' calendar-day--busy' : ''}" data-calendar-day="${key}" tabindex="${selected ? '0' : '-1'}" aria-label="${escapeHtml(fullLabel)}${today ? ', heute' : ''}${count ? `, ${count} Termine` : ', keine Termine'}" aria-pressed="${selected ? 'true' : 'false'}" ${today ? 'aria-current="date"' : ''}>
         <span class="calendar-day__number">${cellDate.getUTCDate()}</span>
         <span class="calendar-day__dots" aria-hidden="true">${counts.match ? '<i class="calendar-dot calendar-dot--match"></i>' : ''}${counts.event ? '<i class="calendar-dot calendar-dot--event"></i>' : ''}</span>
         ${count ? `<small class="calendar-day__count">${count} ${count === 1 ? 'Termin' : 'Termine'}</small>` : ''}
@@ -883,7 +883,7 @@ export async function loadCalendar() {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const button = target.closest<HTMLButtonElement>('button[data-calendar-day]');
-    if (button?.dataset.calendarDay) chooseDay(button.dataset.calendarDay);
+    if (button?.dataset.calendarDay) chooseDay(button.dataset.calendarDay, true);
   });
   grid.addEventListener('keydown', event => {
     const target = event.target;
@@ -898,6 +898,15 @@ export async function loadCalendar() {
   [teamSelect, categorySelect, kindSelect, rangeSelect].filter((el): el is HTMLSelectElement => !!el).forEach(el => el.addEventListener('change', render));
 
   render();
+  const loadingWatchdog = window.setTimeout(() => {
+    if (!ready) {
+      fetchError = true;
+      ready = true;
+      statusTarget.classList.remove('hidden');
+      statusTarget.textContent = 'Die Datenabfrage dauert ungewöhnlich lange. Der Kalender lässt sich bereits bedienen; Termine werden nachgeladen.';
+      render();
+    }
+  }, 12000);
   try {
     reference = await refs();
     teamSelect.innerHTML += reference.teams.map(t => `<option value="${t.id}" data-slug="${escapeHtml(t.slug)}">${escapeHtml(t.name)}</option>`).join('');
@@ -917,6 +926,7 @@ export async function loadCalendar() {
     fetchError = true;
     console.warn('Kalenderdaten konnten nicht vollständig geladen werden:', error);
   } finally {
+    window.clearTimeout(loadingWatchdog);
     ready = true;
     if (fetchError) {
       statusTarget.classList.remove('hidden');
