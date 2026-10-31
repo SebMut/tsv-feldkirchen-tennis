@@ -1,0 +1,60 @@
+name: BTV Vereins-Cockpit Logincheck (nur lesend)
+
+# Secrets are NEVER available in pull request checks.
+# The login probe runs once on a reviewed merge to main, or by manual dispatch.
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/btv-auth-check.mjs
+      - .github/workflows/btv-auth-check.yml
+  pull_request:
+    paths:
+      - scripts/btv-auth-check.mjs
+      - .github/workflows/btv-auth-check.yml
+      - tests/btv-auth-check.test.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btv-auth-check
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Check script syntax
+        run: node --check scripts/btv-auth-check.mjs
+      - name: Run security guard tests (without secrets)
+        run: node --test tests/btv-auth-check.test.mjs
+
+  login-probe:
+    # Only a trusted default-branch revision may access GitHub Actions Secrets.
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install pinned browser tooling (no secrets in environment)
+        run: |
+          npm ci
+          npm install --no-save --no-package-lock --ignore-scripts playwright@1.64.1
+          npx --no-install playwright install --with-deps chromium
+      - name: Probe BTV login once, without downloading or publishing personal data
+        env:
+          BTV_LOGIN_USERNAME: ${{ secrets.BTV_LOGIN_USERNAME }}
+          BTV_LOGIN_PASSWORD: ${{ secrets.BTV_LOGIN_PASSWORD }}
+        run: node scripts/btv-auth-check.mjs
