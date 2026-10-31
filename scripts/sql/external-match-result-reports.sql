@@ -6,7 +6,7 @@ create table if not exists public.external_match_result_reports (
   home_points integer not null check (home_points between 0 and 99),
   away_points integer not null check (away_points between 0 and 99),
   source_type text not null check (source_type in ('municipal_publication','club_publication','press_report')),
-  source_url text not null check (length(source_url) between 12 and 1000 and source_url ~ '^https://[^[:space:]]+
+  source_url text not null check (length(source_url) between 12 and 1000 and left(source_url,8)='https://'),
   source_title text not null check (length(source_title) between 5 and 240),
   source_note text not null check (length(source_note) between 10 and 600),
   review_status text not null default 'pending_btv_confirmation'
