@@ -790,3 +790,9 @@ body{background:var(--sand);color:var(--text)}
 .phase8-encounter-summary>p{margin:0;color:#43574c;font-weight:750;font-size:.83rem}
 .phase8-report-guide{border:1px dashed #d5ddd5;padding:13px;border-radius:10px;background:#fbfcfb;margin:12px 0}
 @media(max-width:680px){.phase8-calendar-preferences{display:grid;grid-template-columns:1fr 1fr;gap:7px}.phase8-calendar-preferences label{grid-column:1}.phase8-calendar-preferences select{grid-column:2;min-width:0;max-width:none}.phase8-calendar-preferences .button,.phase8-calendar-preferences .muted{grid-column:1/-1}.phase8-notice-grid{grid-template-columns:1fr}.phase8-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.phase8-next-content .button{width:100%}}
+
+/* BTV schedule monitoring: identifiable but unobtrusive verified updates */
+.news-card--reschedule{border-left:5px solid #e30613;background:linear-gradient(110deg,#fff 72%,#fff6f7)}
+.news-reschedule-label{display:inline-flex;align-items:center;gap:7px;color:#9f101a;background:#ffebed;border-radius:999px;padding:5px 10px;font-size:.76rem;font-weight:850;margin:0 0 12px}
+.phase8-btv-last{border-left:4px solid #16836f;border-radius:9px;background:#f2f9f5;padding:15px;margin:12px 0}
+.phase8-btv-last p{margin:6px 0}
