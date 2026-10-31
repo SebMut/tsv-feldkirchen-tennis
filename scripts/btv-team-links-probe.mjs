@@ -3,6 +3,9 @@ const urls=[
  'https://btv-prod.burdadigitalsystems.de/btvteams/?clubnr=01012',
  'https://btv-prod.burdadigitalsystems.de/btvteams/?clubnr=01012&season=2026',
  'https://services.tennis.de/extern/tennisdeteamsearch.zul?verband=BTV&verein=01012&linkfarbe=20aebd',
+ 'https://btv.liga.nu/cgi-bin/WebObjects/nuLigaTENDE.woa/wa/clubTeams?club=23391',
+ 'https://btv.liga.nu/cgi-bin/WebObjects/nuLigaTENDE.woa/wa/clubTeams?club=23391&season=18105',
+ 'https://btv.liga.nu/cgi-bin/WebObjects/nuLigaTENDE.woa/wa/clubInfo?club=23391',
  'https://www.tennis-tsvfeldkirchen.de/jugendmannschaften/',
  'https://www.tennis-tsvfeldkirchen.de/herrenmannschaften/',
  'https://www.tennis-tsvfeldkirchen.de/damenmannschaften/'
