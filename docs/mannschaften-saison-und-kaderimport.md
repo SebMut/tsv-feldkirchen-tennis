@@ -3,7 +3,7 @@
 ## Frontend (Entwicklungsbranch)
 Die öffentliche Übersicht `/mannschaften/` bietet drei direkt sichtbare Saison-Kacheln:
 - **Saison 2026**: bereits gemeldete 20 Sommermannschaften
-- **Winter 2026/2027**: getrennte Saison; die Wintermannschaften sind laut BTV-Vereinsseite bereits öffentlich einsehbar, aber noch **0 Mannschaften in Supabase dieser Saison zugeordnet**
+- **Winter 2026/2027**: getrennte Saison; die Wintermannschaften wurden inzwischen aus dem offiziellen BTV-Mannschafts-Widget ausgelesen; **3 Mannschaften sind dieser Saison in Supabase zugeordnet**
 - **Sommer 2027**: getrennte Saison, Spielplan noch nicht veröffentlicht
 
 Saisons sind unter `seasons.code` eindeutig hinterlegt (`sommer-2026`, `winter-2026-2027`, `sommer-2027`); `year` ist aus Kompatibilitätsgründen erhalten, für die Winterrunde aktuell das Endjahr 2027. Die Saisons 2026 und 2027 dürfen nie ausschließlich per `year` gematcht werden. Zusätzliche Felder: `season_type`, `end_year`, `display_order`, `is_published`.
@@ -41,3 +41,22 @@ Die Datenbankfunktion `public.import_team_player_name(uuid,text)` prüft die Tea
 ## Nachprüfung 31.10.2026 – BTV Winter bereits sichtbar
 
 Die Nutzeransicht der offiziellen [BTV-Vereinsseite](https://www.btv.de/de/mein-verein/vereinsseite/tsv-feldkirchen.html#Mannschaften) zeigt bereits Winterdaten für 2026/27. Der bisherige Hinweis, die BTV-Wintermannschaften seien nicht veröffentlicht, ist falsch und wurde im Frontend korrigiert. Im lokalen Import-Datensatz fehlen jedoch noch die **verifizierten Namen bzw. Vereins-Saison-IDs der Wintermannschaften**. Die offizielle BTV-Mannschaftsliste ist als dynamisch geladenes ZK-Widget eingebunden. Direkte serverseitige Testabrufe des öffentlichen Widgets ergaben nur die leere Standardansicht (kein verlässlicher Beleg für eine tatsächlich leere Winterrunde). Ohne vollständige Daten nicht aus Sommerteams raten und keine falschen Winterzuordnungen eintragen. Die Winter-Kachel verlinkt solange die offizielle BTV-Mannschaftsübersicht. Eine saisongetrennte Match-/Kaderübernahme ist weiterhin offen.
+
+
+## Verifizierter Import der Wintermannschaften 2026/27 (31.10.2026)
+
+Die offizielle BTV-Webseite enthält nach Wahl der Mannschaftsrubrik und Zustimmung zu notwendigen Cookies ein dynamisches ZK-Widget für Vereinsnummer `01012`. Der technische Prüflauf las folgende **drei** Teamzeilen:
+
+| BTV-Kategorie | Liga / Gruppe | TSV Mannschaft |
+|---|---|---|
+| H00 | Herren Südliga 2 Gr. 018 | Herren (erste H00-Zeile) |
+| H00 | Herren Südliga 2 Gr. 020 | Herren II (zweite H00-Zeile) |
+| H50 | Herren 50 Südliga 1 Gr. 166 | Herren 50 |
+
+Die Zuordnung der beiden H00-Gruppen zu Herren / Herren II beruht auf ihrer Reihenfolge im offiziellen Widget; bei widersprechender BTV-Mannschaftsdetailansicht ist diese Gruppenzuordnung gezielt zu korrigieren.
+
+Migrationsdatei: `supabase/migrations/20261031210000_official_winter_2026_27_teams.sql`. Sie wurde im erlaubten Supabase-Projekt angewandt. Sie legt **nur** die drei `team_seasons` an, ohne vorhandene Spieltage, Kader, Ergebnisse oder Sommermeldungen zu verändern. Die `btv_url` verweist auf die permanente offizielle Vereinsübersicht, nicht auf eine nicht verifizierte Einzelmannschafts-URL.
+
+Kontrollierte Daten nach Import: Sommer 2026: 20; Winter 2026/27: 3; Sommer 2027: 0. **Winterspiele und namentliche Mannschaftsmeldungen sind noch nicht importiert**; für deren Import sind die verifizierten offiziellen Quellen gesondert zuzuordnen. Der bestehende Standardbranch-Cronjob prüft weiterhin nur Sommer 2026.
+
+Öffentliche Quelle: https://www.btv.de/de/mein-verein/vereinsseite/tsv-feldkirchen.html#Mannschaften
