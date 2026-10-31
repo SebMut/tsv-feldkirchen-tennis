@@ -1,6 +1,7 @@
 // Weekly official BTV withdrawal audit. Server-side and restricted to the TSV project.
 // No score changes, no ticker writes, no public-player data, no absence-based inference.
 import {createClient} from '@supabase/supabase-js';
+import {fetchClubGroupReport} from './btv-withdrawal-club-report.mjs';
 import {
   groupIdFromBtvUrl,readBtvGroupWithdrawals,matchWithdrawalToFixture
 } from './btv-withdrawal-source.mjs';
@@ -47,13 +48,41 @@ for(const p of groupPlans){
   seen.add(key);
 }
 let checked=0,withdrawals=0,candidates=0,stored=0,ignored=0,blocked=0;
+const clubReports=new Map();
+const sourceSeasonCodes=[...new Set(groupPlans.map(p=>p.season_code))];
+for(const seasonCode of sourceSeasonCodes){
+  try {
+    const report=await fetchClubGroupReport(seasonCode);
+    if(report) {
+      clubReports.set(seasonCode,report);
+      console.log('BTV_CLUB_GROUP_REPORT='+JSON.stringify({
+        season:seasonCode,pages:report.pages,
+        groups:report.groupsSeen.length,withdrawals:report.entries.length
+      }));
+    } else console.log('BTV_CLUB_GROUP_NO_VERIFIED_REFERENCE='+seasonCode);
+  }catch(error){
+    const code=String(error?.message||error).slice(0,100);
+    console.log('BTV_CLUB_GROUP_UNAVAILABLE='+JSON.stringify({season:seasonCode,error:code}));
+    if(code==='BTV_CLUB_GROUP_BLOCKED') {
+      blocked++;
+      console.log('BTV_WITHDRAWAL_ABORTED_ON_BLOCK=true');
+      process.exit(0); // never bypass, retry or change source on BTV access block
+    }
+  }
+}
 console.log('BTV_WITHDRAWAL_GROUPS='+groupPlans.length);
 for(const plan of groupPlans){
   let source;
   try{
-    source=await readBtvGroupWithdrawals(plan.group_id,{
-      seasonCode:plan.season_code,groupName:plan.group_name
-    });
+    const report=clubReports.get(plan.season_code);
+    const groupNumber=Number(plan.group_name.match(/Gr\.\s*0*(\d+)/)?.[1]);
+    if(report?.groupsSeen.includes(groupNumber)) {
+      source={url:report.url,entries:report.entries.filter(e=>e.group===groupNumber)};
+    } else {
+      source=await readBtvGroupWithdrawals(plan.group_id,{
+        seasonCode:plan.season_code,groupName:plan.group_name
+      });
+    }
   }catch(error){
     const code=String(error?.message||error).slice(0,100);
     console.log('BTV_WITHDRAWAL_GROUP_UNAVAILABLE='+JSON.stringify({
@@ -75,6 +104,9 @@ for(const plan of groupPlans){
   const existingManual=await get(db.from('manual_match_results')
     .select('match_id,result_status').in('match_id',matches.map(m=>m.id)).limit(25),'MANUAL');
   const manualMap=new Map(existingManual.map(m=>[m.match_id,m]));
+  const existingFlags=await get(db.from('match_withdrawal_flags')
+    .select('match_id,affected_side,verification_status').in('match_id',matches.map(m=>m.id)).limit(25),'FLAGS');
+  const previousFlags=new Map(existingFlags.map(f=>[f.match_id,f]));
   for(const m of matches){
     const matched=source.entries.map(entry=>({
       entry,side:matchWithdrawalToFixture(entry,m,plan.team_name)
@@ -84,6 +116,14 @@ for(const plan of groupPlans){
       ignored++;continue; // conflicting TSV score needs manual review
     }
     const {entry,side}=matched[0];
+    const existing=previousFlags.get(m.id);
+    if(existing && existing.affected_side!==side){
+      ignored++;
+      console.log('BTV_WITHDRAWAL_SIDE_CONFLICT='+JSON.stringify({
+        match_id:m.id,old:existing.affected_side,official:side
+      }));
+      continue; // no silent contradiction of existing TSV report
+    }
     candidates++;
     if(!apply)continue;
     const record={
@@ -102,5 +142,5 @@ for(const plan of groupPlans){
   await new Promise(resolve=>setTimeout(resolve,1250));
 }
 console.log('BTV_WITHDRAWAL_RESULT='+JSON.stringify({
-  checked,withdrawals,candidates,stored,ignored,blocked,mode:apply?'apply':'dry-run'
+  checked,withdrawals,candidates,stored,ignored,blocked,clubReports:clubReports.size,mode:apply?'apply':'dry-run'
 }));
