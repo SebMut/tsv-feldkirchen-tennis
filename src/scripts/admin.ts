@@ -134,7 +134,8 @@ async function ensureProfile(user: any) {
 }
 
 function showPanel(name: string) {
-  if ((name === 'manual-results' || name === 'official-rubbers') && !state.isSuper) return;
+  if (name === 'manual-results' && !state.isSuper) return;
+  if (name === 'official-rubbers' && !state.isSuper) return;
   document.querySelectorAll<HTMLElement>('.admin-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `panel-${name}`));
   document.querySelectorAll<HTMLButtonElement>('.admin-nav button').forEach((button) => button.classList.toggle('active', button.dataset.panel === name));
 }
