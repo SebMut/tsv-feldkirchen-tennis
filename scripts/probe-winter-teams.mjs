@@ -10,6 +10,6 @@ for (const exe of ['google-chrome','chromium','chromium-browser']) {
  const html=r.stdout||'';
  let text=html.replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
  console.log('BTV_RENDERED_TEXT',text.slice(0,13500));
- console.log('BTV_RENDERED_HEAD',html.slice(0,2200));
+ console.log('BTV_RENDERED_HTML',html.slice(0,9000));
  break;
 }
