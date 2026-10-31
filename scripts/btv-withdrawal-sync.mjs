@@ -73,7 +73,7 @@ for(const seasonCode of sourceSeasonCodes){
 console.log('BTV_WITHDRAWAL_GROUPS='+groupPlans.length);
 const groupsCoveredByClubReport=new Set(
   groupPlans.filter(p=>{
-    const g=Number(p.group_name.match(/Gr\\.\\s*0*(\\d+)/)?.[1]);
+    const g=Number(p.group_name.match(/Gr\.\s*0*(\d+)/)?.[1]);
     return clubReports.get(p.season_code)?.groupsSeen.includes(g);
   }).map(p=>p.season_code+':'+p.group_id)
 );
