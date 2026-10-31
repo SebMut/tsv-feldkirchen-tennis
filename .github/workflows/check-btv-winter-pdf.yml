@@ -2,7 +2,7 @@ name: Verify official BTV Winter group PDF
 on:
   push:
     branches: [feature/astro-supabase-foundation]
-    paths: [scripts/check-btv-winter-pdf.mjs, .github/workflows/check-btv-winter-pdf.yml]
+    paths: [scripts/check-btv-winter-pdf.mjs, scripts/btv-winter-schedule.mjs, .github/workflows/check-btv-winter-pdf.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,3 +17,5 @@ jobs:
           node-version-file: .nvmrc
       - run: sudo apt-get update -qq && sudo apt-get install -qq -y poppler-utils
       - run: node scripts/check-btv-winter-pdf.mjs
+      - name: Verify strict winter schedule parser (read only)
+        run: node --input-type=module -e "import('./scripts/btv-winter-schedule.mjs').then(async m=>{const x=await m.getWinterSchedule(); console.log('WINTER_PARSED',JSON.stringify(x.fixtures.map(g=>({team:g.slug,opponent:g.opponent,home:g.isHome,date:g.date,time:g.time}))));})"
