@@ -1,0 +1,40 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+<MainLayout title="Mannschaften | TSV Feldkirchen Tennis" description="Alle TSV Feldkirchen Tennismannschaften aus Sommer- und Winterrunde – mit Spielplan, Liga, Kader und Ergebnissen.">
+  <div class="container stack teams-page">
+    <header class="teams-page__intro">
+      <p class="eyebrow">Unser Sport · TSV Feldkirchen</p>
+      <h1>Unsere <span>Mannschaften</span></h1>
+      <p>Sommer oder Winter? Entdecke die Teams und Spieltage der jeweiligen Runde.</p>
+    </header>
+
+    <nav class="teams-seasons" aria-label="Saison auswählen" id="teams-season-nav">
+      <button type="button" class="teams-season-card" data-season="sommer-2026" aria-pressed="false">
+        <span class="teams-season-card__top"><span class="teams-season-card__icon" aria-hidden="true">☀</span><span class="teams-season-card__count" data-count="sommer-2026">–</span></span>
+        <strong>Saison 2026</strong><span class="teams-season-card__subtitle">Sommerrunde 2026</span>
+      </button>
+      <button type="button" class="teams-season-card" data-season="winter-2026-2027" aria-pressed="false">
+        <span class="teams-season-card__top"><span class="teams-season-card__icon" aria-hidden="true">❄</span><span class="teams-season-card__count" data-count="winter-2026-2027">–</span></span>
+        <strong>Winter 2026/2027</strong><span class="teams-season-card__subtitle">Winterrunde</span>
+      </button>
+      <button type="button" class="teams-season-card" data-season="sommer-2027" aria-pressed="false">
+        <span class="teams-season-card__top"><span class="teams-season-card__icon" aria-hidden="true">☀</span><span class="teams-season-card__count" data-count="sommer-2027">–</span></span>
+        <strong>Sommer 2027</strong><span class="teams-season-card__subtitle">Kommende Saison</span>
+      </button>
+    </nav>
+
+    <section class="teams-results" aria-labelledby="teams-results-title">
+      <div class="teams-results__heading">
+        <div><p class="eyebrow">Im Überblick</p><h2 id="teams-results-title">Mannschaften</h2><p id="teams-results-info" class="muted" aria-live="polite">Mannschaften werden geladen …</p></div>
+        <a class="teams-results__official" href="https://www.btv.de/de/mein-verein/vereinsseite/tsv-feldkirchen.html" target="_blank" rel="noopener noreferrer">Offizielle BTV-Vereinsseite ↗</a>
+      </div>
+      <div class="teams-category-chips" id="teams-category-chips" role="group" aria-label="Mannschaftskategorie"></div>
+      <div id="teams-grid" class="team-grid" aria-live="polite"><p class="muted">Mannschaften werden geladen …</p></div>
+    </section>
+  </div>
+</MainLayout>
+<script>
+  import { loadTeams } from '../../scripts/public';
+  loadTeams();
+</script>

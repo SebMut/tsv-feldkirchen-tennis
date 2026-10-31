@@ -1,0 +1,40 @@
+name: Snapshot WordPress Content
+
+on:
+  push:
+    branches:
+      - feature/astro-supabase-foundation
+    paths:
+      - scripts/snapshot-wordpress.mjs
+      - .github/workflows/snapshot-wordpress.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/astro-supabase-foundation
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Fetch public WordPress data
+        run: node scripts/snapshot-wordpress.mjs
+
+      - name: Commit snapshot
+        run: |
+          if [ -z "$(git status --porcelain -- migration/wordpress-export)" ]; then
+            echo "No snapshot changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add migration/wordpress-export
+          git commit -m "Snapshot current WordPress content"
+          git push origin HEAD:feature/astro-supabase-foundation

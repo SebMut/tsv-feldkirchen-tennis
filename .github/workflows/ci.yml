@@ -1,0 +1,33 @@
+name: Build Astro
+
+on:
+  push:
+    branches:
+      - main
+      - feature/**
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci
+      - name: Check and build
+        run: npm run build
+      - name: Audit generated site, links and SEO
+        run: npm run audit:site
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsv-tennis-dist
+          path: dist

@@ -1,0 +1,86 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import { COURTBOOKING_URL, mediaUrl } from '../lib/supabase';
+---
+<MainLayout
+  title="TSV Feldkirchen Tennis"
+  description="Tennis beim TSV Feldkirchen: Mannschaften, Spieltage, Liveticker, Termine und Platzbuchung."
+  mainClass="main--flush"
+>
+  <section class="premium-hero">
+    <div class="premium-hero__photo" aria-hidden="true" style={`background-image: url("${mediaUrl("news/platzaufbau.png")}")`}></div>
+    <div class="container premium-hero__inner">
+      <p class="eyebrow">Tennis TSV Feldkirchen</p>
+      <h1>Tennis.<br />Teams.<br /><span>Gemeinschaft.</span></h1>
+      <p class="premium-hero__lead">Sportlich ambitioniert, familiär im Club und digital am Spieltag. Alles rund um Mannschaften, Termine und Vereinsleben an einem Ort.</p>
+      <div class="actions">
+        <a class="button button--hot" href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Platz buchen</a>
+        <a class="button button--outline" href="/mitglied-werden/">Mitglied werden</a>
+        <a class="button button--outline" href="/spieltag/">Zum Spieltag</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="premium-metrics" aria-label="Vereinskennzahlen">
+    <div><strong id="home-court-count" data-count-only="true">8</strong><span>Sandplätze</span></div>
+    <div><strong>329</strong><span>Mitglieder</span></div>
+    <div><strong id="home-team-count" data-count-only="true">20</strong><span>Mannschaften</span></div>
+    <div><strong>LIVE</strong><span>digitaler Spieltag</span></div>
+  </section>
+
+  <div class="container premium-content" id="home">
+    <section id="live-center" class="card live-center hidden premium-live" aria-live="polite"></section>
+
+    <section class="premium-editorial">
+      <div>
+        <p class="eyebrow">Club Journal</p>
+        <h2>Was gerade zählt.</h2>
+        <article id="facility-card" class="premium-feature" aria-live="polite">
+          <div class="premium-feature__content">
+            <p class="eyebrow">Anlagenstatus</p>
+            <h2>Status wird ermittelt</h2><p class="muted">Falls die Meldung nicht verfügbar ist, prüfe bitte Courtbooking.</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="premium-story-stack">
+        <article class="premium-story">
+          <p class="eyebrow">Spieltag</p>
+          <h3>Heute beim TSV</h3>
+          <div id="today-matches" class="match-list"><p class="muted">Die nächsten Punktspiele werden ermittelt …</p></div>
+          <p><a class="text-link" href="/spieltag/">Spieltagszentrale öffnen →</a></p>
+        </article>
+
+        <article class="premium-story">
+          <p class="eyebrow">Aktuelles</p>
+          <h3>News aus dem Verein</h3>
+          <div id="home-news" class="news-list"><p class="muted">Aktuelle Beiträge werden ermittelt …</p></div>
+          <p><a class="text-link" href="/aktuelles/">Alle Nachrichten →</a></p>
+        </article>
+
+        <article class="premium-story premium-story--links">
+          <p class="eyebrow">Schnellzugriff</p>
+          <a href="/mannschaften/">Mannschaften & Ligen →</a>
+          <a href="/termine/">Kalender & Abos →</a>
+          <a href="/training/">Training →</a>
+          <a href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Courtbooking →</a>
+        </article>
+      </div>
+    </section>
+
+    <section id="club-notices" class="phase8-notice-board hidden" aria-label="Aktuelle Vereinsmitteilungen"></section>
+    <section class="card phase8-install" id="phase8-install" aria-label="TSV Tennis als App installieren">
+      <div><p class="eyebrow">TSV auf dem Smartphone</p><h2>Die Tennis-Homepage als App</h2>
+      <p class="muted" data-install-hint>Du kannst diese Website über die Teilen-Funktion deines Browsers zum Home-Bildschirm hinzufügen. Auf unterstützten Android-Browsern erscheint zusätzlich eine Installationsschaltfläche.</p></div>
+      <button class="button secondary" type="button" data-install-app hidden>TSV Tennis installieren</button>
+    </section>
+    <section id="home-sponsors" class="hidden" aria-label="Sponsoren"></section>
+  </div>
+</MainLayout>
+<script>
+  import { loadHome } from '../scripts/public';
+  import { loadClubNotices, initInstallPrompt } from '../scripts/phase8';
+  loadHome();
+  loadClubNotices();
+  initInstallPrompt();
+</script>

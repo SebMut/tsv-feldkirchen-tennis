@@ -1,21 +1,73 @@
-# TSV Feldkirchen Tennis – Homepage-Entwürfe
+# TSV Feldkirchen Tennis
 
-Fünf unterschiedliche Designkonzepte für die neue Website der Tennisabteilung des TSV Feldkirchen.
+Neue Vereinswebsite und Verwaltungsplattform für die Tennisabteilung TSV Feldkirchen.
 
-## Vorschläge
+## Architektur
 
-1. Sportlich & dynamisch
-2. Club & Community
-3. Modern Premium
-4. Jung & familiär
-5. Matchday Dashboard
+- Astro 7 (statischer Build, TypeScript)
+- Supabase Postgres, Auth, Storage und Realtime
+- GitHub Actions für Build und GitHub-Pages-Vorschau
+- United Domains als späteres Produktivhosting
+- Courtbooking bleibt das externe Platzbuchungssystem
 
-Die Startseite `index.html` dient als Auswahlseite für alle fünf Entwürfe.
+**Projektgrenzen:**
+- GitHub-Repository: `SebMut/tsv-feldkirchen-tennis`
+- Einziges Supabase-Projekt: `eaurnufdochjapfzqwvm`
+- Entwicklungsbranch: `feature/astro-supabase-foundation`
+- Vorschau: <https://sebmut.github.io/tsv-feldkirchen-tennis/>
+- Produktion: <https://www.tennis-tsvfeldkirchen.de/> (**nicht ohne separate Freigabe umstellen**)
 
-## Bilder
+## Lokale Entwicklung
 
-Die Bilder werden in dieser frühen Entwurfsphase **nur über externe URLs eingebunden** und nicht im Repository gespeichert. Das TSV-Tennis-Logo und der Schnuppertag-Flyer werden von der bestehenden Vereinswebsite geladen; weitere Tennisbilder dienen ausschließlich als visuelle Platzhalter für die Konzeptphase. Vor einer öffentlichen Live-Schaltung sollten die Beispielbilder durch eigene oder entsprechend lizenzierte Vereinsfotos ersetzt werden.
+Node.js gemäß `.nvmrc` verwenden.
 
-## GitHub Pages
+```bash
+npm ci
+npm run dev
+```
 
-Das Projekt ist als statische HTML-Seite aufgebaut und kann direkt über GitHub Pages aus dem Root des `main`-Branches veröffentlicht werden.
+## Build und technische Prüfung
+
+```bash
+npm run build
+npm run audit:site
+node scripts/smoke-public-services.mjs
+```
+
+- `npm run build` umfasst den Astro-/TypeScript-Check und die statische Generierung.
+- `audit:site` prüft lokale Seiten, Links, Meta-Angaben, Preview-Noindex und `sitemap.xml` im erzeugten `dist/`.
+- Der Smoke-Test prüft veröffentlichte ICS-Feeds, Courtbooking und öffentlich erreichbare Vereinsbilder ohne Testdaten zu schreiben.
+- CI und GitHub-Pages-Vorschau laufen auf dem Feature-Branch automatisch.
+- Ein produktives SFTP-Deployment wird ausschließlich nach **separater schriftlicher Freigabe** manuell ausgelöst; der Workflow benötigt zusätzlich Branch- und Freigabe-Checks.
+
+## Konfiguration
+
+Es werden ausschließlich öffentliche Supabase-Publishable-Keys im Browser verwendet. Vertrauliche Admin-/Service-Keys dürfen nie im Frontend oder Repository liegen. Siehe `.env.example`.
+
+## Design
+
+- Öffentliche Website: Konzept **03 – Modern Premium**
+- Spieltagszentrale und Liveticker: Konzept **05 – Matchday Dashboard**
+- Helles Layout, Original-TSV-Tennis-Logo, Rot `#e30613`
+
+## Projektstatus und Go-live
+
+- Technischer Umsetzungsstand: `docs/pre-go-live-plan.md`
+- Phase 7 / noch offene Abnahme: `docs/phase-7-go-live-readiness.md`
+- Nur nach Freigabe: `docs/go-live-runbook.md`
+- Bestehende Betriebshinweise: `docs/operations.md`
+
+Der eigentliche Go-live ist **kein Bestandteil** der laufenden technischen Vorbereitungsarbeiten.
+
+## Phase 8 – zusätzliche Vereinsfunktionen
+
+Der Entwicklungsbranch enthält jetzt Spieltags-Cockpit 2.0, personalisierte „Mein TSV“-Karte, Wochenkalender mit Favoriten, installierbare Web-App-Grundlage, Mannschaftsstatistik, Vereinsbrett, Änderungsprotokoll und erleichterte Spielberichte. Siehe `docs/phase-8-vereinskomfort.md` für den konkreten Umsetzungsstand und die **noch offenen Praxistests**.
+
+Die produktive Domain bleibt bis zur separaten ausdrücklichen Go-live-Freigabe unverändert.
+
+
+## BTV-Spielplan und automatische News zu Spielverlegungen
+
+Der offizielle Vereinsspielplan 01012 umfasst alle Mannschaften. Ein vorbereiteter Job prüft ihn viermal täglich mit einem einzigen PDF-Abruf und kann bestätigte künftige Spielverlegungen automatisch als News veröffentlichen. Nur im genehmigten Schreibbetrieb; der Entwicklungsbranch bleibt zunächst read-only.
+
+Technischer Ablauf, Aktivierungsbedingungen und Schutz manueller Spielstände: `docs/btv-6h-spielverlegungen.md`.

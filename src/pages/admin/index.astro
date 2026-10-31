@@ -1,0 +1,397 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+<MainLayout title="Mein TSV | TSV Feldkirchen Tennis" description="Geschützter Bereich für Mannschaften und SuperAdmins." noindex={true}>
+  <div class="container stack" id="admin-root">
+    <section id="auth-box" class="card">
+      <p class="eyebrow">Mein TSV</p>
+      <h1>Login</h1>
+      <p class="muted">Mannschaftsverantwortliche und Administratoren melden sich hier an.</p>
+      <div id="auth-status" class="notice hidden" aria-live="polite"></div>
+      <form id="login-form" class="form-grid">
+        <div class="field"><label for="login-email">E-Mail</label><input id="login-email" name="email" type="email" autocomplete="email" required /></div>
+        <div class="field"><label for="login-password">Passwort</label><input id="login-password" name="password" type="password" autocomplete="current-password" required /></div>
+        <div class="field full"><button class="button" type="submit">Anmelden</button></div>
+      </form>
+      <details class="auth-help">
+        <summary>Passwort vergessen?</summary>
+        <form id="password-reset-form" class="form-grid">
+          <div class="field"><label for="reset-email">E-Mail</label><input id="reset-email" type="email" autocomplete="email" required /></div>
+          <div class="field"><button class="button secondary" type="submit">Link zum Zurücksetzen senden</button></div>
+        </form>
+      </details>
+      <p class="muted">Neue Mannschaftsnutzer werden ausschließlich durch den SuperAdmin eingeladen.</p>
+    </section>
+
+    <section id="password-setup-box" class="card hidden">
+      <p class="eyebrow">Mein TSV</p>
+      <h1>Passwort festlegen</h1>
+      <p class="muted">Bevor du den geschützten Bereich verwenden kannst, lege bitte dein persönliches Passwort fest.</p>
+      <div id="password-setup-status" class="notice hidden" aria-live="polite"></div>
+      <form id="password-setup-form" class="form-grid">
+        <div class="field">
+          <label for="setup-password">Neues Passwort</label>
+          <input id="setup-password" type="password" minlength="12" autocomplete="new-password" required />
+          <p class="muted">Mindestens 12 Zeichen. Verwende ein Passwort, das du nicht bei anderen Diensten nutzt.</p>
+        </div>
+        <div class="field">
+          <label for="setup-password-confirm">Passwort wiederholen</label>
+          <input id="setup-password-confirm" type="password" minlength="12" autocomplete="new-password" required />
+          <p class="muted form-helper-spacer" aria-hidden="true">Mindestens 12 Zeichen. Verwende ein Passwort, das du nicht bei anderen Diensten nutzt.</p>
+        </div>
+        <div class="field full"><button class="button" type="submit">Passwort speichern und weiter</button></div>
+      </form>
+    </section>
+
+    <section id="admin-app" class="hidden">
+      <div class="page-head">
+        <div><p class="eyebrow">Mein TSV</p><h1 id="admin-title">Administration</h1><p id="admin-userline" class="muted"></p></div>
+      </div>
+      <div id="admin-status" class="notice hidden" aria-live="polite"></div>
+
+      <div class="admin-shell">
+        <nav class="card admin-nav" aria-label="Administration">
+          <button data-panel="dashboard" class="active">Übersicht</button>
+          <button data-panel="teams" data-editor-only>Mannschaft</button>
+          <button data-panel="players" data-editor-only>Kader</button>
+          <button data-panel="matches" data-ticker-only>Spiele & Liveticker</button>
+          <button data-panel="news" data-editor-only>News</button>
+          <button data-panel="notices" data-super-only>Vereinsbrett</button>
+          <button data-panel="btv-import" data-super-only>BTV-Spielplan</button>
+          <button data-panel="audit" data-super-only>Änderungsverlauf</button>
+          <button data-panel="events" data-editor-only>Termine</button>
+          <button data-panel="galleries" data-editor-only>Bilder</button>
+          <button data-panel="seasons" data-super-only>Saisons</button>
+          <button data-panel="facility" data-super-only>Anlage</button>
+          <button data-panel="content" data-super-only>Website-Inhalte</button>
+          <button data-panel="settings" data-super-only>Einstellungen</button>
+          <button data-panel="users" data-super-only>Benutzer</button>
+          <button data-panel="account">Mein Konto</button>
+        </nav>
+
+        <div class="stack">
+          <section id="panel-dashboard" class="admin-panel active">
+            <div id="phase8-my-next" class="card phase8-my-next" aria-live="polite"><p class="eyebrow">Mein TSV</p><h2>Mein nächster Spieltag</h2><p class="muted">Deine Mannschaft und der nächste Spieltag werden geladen …</p></div>
+            <div id="dashboard-quickstart" class="card dashboard-quickstart">
+              <p class="eyebrow">Schnellstart</p>
+              <h2>Was möchtest du machen?</h2>
+              <p class="muted">Am Spieltag kommst du von hier mit einem Klick zum passenden Liveticker.</p>
+              <div id="dashboard-live-action"></div>
+            </div>
+            <div class="card">
+              <div class="page-head">
+                <div><p class="eyebrow">Mein TSV</p><h2>Meine Mannschaften</h2></div>
+              </div>
+              <div id="dashboard-teams" class="dashboard-team-grid"></div>
+            </div>
+          </section>
+
+          <section id="panel-btv-import" class="admin-panel">
+            <div class="card stack">
+              <p class="eyebrow">Offizieller BTV-Spielplan · TSV Feldkirchen (01012)</p>
+              <h2>Automatischer Terminabgleich</h2>
+              <p>Die geplante Prüfung läuft alle sechs Stunden. Der erste Abruf erzeugt ausschließlich eine Vergleichsbasis. Bei späteren bestätigten Verschiebungen wird – sofern der Spieltag nicht manuell überschrieben oder bereits live ist – der Kalendertermin aktualisiert und eine Meldung unter „Aktuelles“ veröffentlicht.</p>
+              <p class="muted">Die eigentliche Synchronisierung ist bis zur getrennten Aktivierung im GitHub-Standardbranch gesperrt. Diese Ansicht zeigt nur tatsächlich gespeicherte Läufe.</p>
+              <div class="actions">
+                <button class="button ghost" type="button" id="btv-sync-refresh">Status aktualisieren</button>
+                <a class="button ghost" href="https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?club=23391&amp;dokument=ScheduleReportFOP&amp;season=18105" target="_blank" rel="noopener noreferrer">BTV-Spielplan 2026 (PDF) öffnen</a>
+              </div>
+              <div id="btv-sync-status" aria-live="polite"><p class="muted">Importprotokoll wird geladen …</p></div>
+              <h3>Erkannte Terminänderungen</h3>
+              <div id="btv-sync-changes" aria-live="polite"></div>
+            </div>
+          </section>
+
+          <section id="panel-notices" class="admin-panel">
+            <div class="card">
+              <p class="eyebrow">Digitales Vereinsbrett</p><h2>Wichtige Mitteilungen</h2>
+              <p class="muted">Mitteilungen erscheinen öffentlich nur nach Freigabe und innerhalb des gewählten Zeitraums.</p>
+              <form id="notice-form" class="form-grid">
+                <input id="notice-id" type="hidden"/>
+                <div class="field full"><label for="notice-title">Überschrift</label><input id="notice-title" maxlength="160" required /></div>
+                <div class="field"><label for="notice-kind">Art</label><select id="notice-kind"><option value="info">Hinweis</option><option value="event">Aktion / Vereinsfest</option><option value="urgent">Wichtig</option></select></div>
+                <div class="field"><label for="notice-order">Sortierung</label><input id="notice-order" type="number" min="0" value="0"/></div>
+                <div class="field full"><label for="notice-message">Mitteilung</label><textarea id="notice-message" rows="4" maxlength="2500" required></textarea></div>
+                <div class="field"><label for="notice-start">Sichtbar ab</label><input id="notice-start" type="datetime-local" required/></div>
+                <div class="field"><label for="notice-end">Sichtbar bis (optional)</label><input id="notice-end" type="datetime-local"/></div>
+                <div class="field"><label><input id="notice-published" type="checkbox"/> Zur Veröffentlichung freigeben</label></div>
+                <div class="field"><button class="button" type="submit">Mitteilung speichern</button><button class="button ghost" type="button" id="notice-reset">Abbrechen / Neu</button></div>
+              </form>
+              <div id="notice-status" class="notice hidden" role="status"></div>
+              <div id="notice-admin-list" class="admin-edit-list" aria-live="polite"></div>
+            </div>
+          </section>
+
+          <section id="panel-audit" class="admin-panel">
+            <div class="card">
+              <p class="eyebrow">Sicherheit</p><h2>Änderungsverlauf</h2>
+              <p class="muted">Zeigt die letzten 80 Änderungen an Spielständen, Tickermeldungen, Terminen, News, Anlagenstatus und Vereinsmitteilungen. Aus Datenschutzgründen werden keine früheren Nachrichteninhalte oder Spielerprofile gespeichert.</p>
+              <button id="audit-refresh" class="button ghost" type="button">Aktualisieren</button>
+              <div id="audit-list" class="table-wrap" aria-live="polite"><p class="muted">Änderungen werden geladen …</p></div>
+            </div>
+          </section>
+
+          <section id="panel-teams" class="admin-panel">
+            <div class="card">
+              <h2>Mannschaft pflegen</h2>
+              <form id="team-form" class="form-grid">
+                <div class="field full"><label>Mannschaft</label><select id="team-select" required></select></div>
+                <div class="field"><label>Name</label><input id="team-name" required /></div>
+                <div class="field"><label>Kurzname</label><input id="team-short-name" /></div>
+                <div class="field full"><label>Beschreibung</label><textarea id="team-description"></textarea></div>
+                <div class="field"><label>Liga</label><input id="team-league" /></div>
+                <div class="field"><label>Gruppe</label><input id="team-group" /></div>
+                <div class="field full"><label>BTV-Link</label><input id="team-btv-url" type="url" /></div>
+                <div class="field full">
+                  <label>Aktuelles Mannschaftsbild</label>
+                  <div id="team-image-preview" class="team-image-preview"></div>
+                </div>
+                <div class="field"><label>Neues Mannschaftsbild</label><input id="team-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
+                <div class="field"><button id="team-image-reset" class="button ghost" type="button">Auf Standardbild zurücksetzen</button></div>
+                <div class="field"><button class="button" type="submit">Mannschaft speichern</button></div>
+              </form>
+            </div>
+          </section>
+
+          <section id="panel-players" class="admin-panel">
+            <div class="card">
+              <h2>Kader</h2>
+              <div class="field"><label>Mannschaft / Saison</label><select id="players-team-season"></select></div>
+              <form id="player-form" class="form-grid">
+                <input id="player-edit-id" type="hidden" />
+                <div class="field"><label>Anzeigename</label><input id="player-display-name" required /></div>
+                <div class="field"><label>Foto</label><input id="player-photo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
+                <div class="field"><label><input id="player-captain" type="checkbox" /> Mannschaftsführung</label></div>
+                <div class="field"><label><input id="player-public-visible" type="checkbox" /> öffentlich im Kader anzeigen</label><p class="muted">Aus Datenschutzgründen bleiben neue Spieler zunächst intern.</p></div>
+                <div class="field"><button id="player-submit" class="button" type="submit">Spieler hinzufügen</button></div>
+                <div class="field"><button id="player-cancel-edit" class="button ghost hidden" type="button">Bearbeiten abbrechen</button></div>
+              </form>
+              <details class="roster-bulk-import">
+                <summary>Namentliche Mannschaftsmeldung gesammelt übernehmen</summary>
+                <p class="muted">Aus einer offiziellen BTV-Meldung für die oben gewählte Mannschaft und Saison. Einen Namen pro Zeile einfügen, ohne LK, Geburtsdatum, Rang oder Kontaktdaten. Die Liste wird nicht auf GitHub gespeichert.</p>
+                <form id="roster-bulk-form" class="stack">
+                  <div class="field"><label for="roster-bulk-names">Spielernamen (ein Name pro Zeile)</label>
+                    <textarea id="roster-bulk-names" rows="7" maxlength="12000" placeholder="Vorname Nachname&#10;Vorname Nachname"></textarea>
+                  </div>
+                  <div class="field"><label><input id="roster-bulk-verified" type="checkbox" required /> Ich habe die Namen mit der offiziellen Mannschaftsmeldung abgeglichen und darf sie für den Vereinsbetrieb verwenden.</label></div>
+                  <div id="roster-bulk-preview" class="muted" aria-live="polite">Noch keine Namen geprüft.</div>
+                  <div class="actions">
+                    <button id="roster-bulk-check" class="button ghost" type="button">Namen prüfen</button>
+                    <button id="roster-bulk-submit" class="button" type="submit" disabled>Geprüfte Namen intern importieren</button>
+                  </div>
+                </form>
+                <p class="muted">Importierte Namen sind zunächst ausschließlich intern sichtbar. Eine öffentliche Freigabe erfolgt bei jeder Person separat.</p>
+              </details>
+              <div id="players-list" class="table-wrap"></div>
+            </div>
+          </section>
+
+          <section id="panel-matches" class="admin-panel">
+            <div class="card" id="match-create-card">
+              <h2>Spiel anlegen</h2>
+              <form id="match-form" class="form-grid">
+                <div class="field"><label>Mannschaft / Saison</label><select id="match-team-season" required></select></div>
+                <div class="field"><label>Gegner</label><input id="match-opponent" required /></div>
+                <div class="field"><label>Beginn</label><input id="match-start" type="datetime-local" required /></div>
+                <div class="field"><label>Ende</label><input id="match-end" type="datetime-local" /></div>
+                <div class="field"><label><input id="match-home" type="checkbox" checked /> Heimspiel</label></div>
+                <div class="field"><label>Spieltag-Format</label><select id="match-lineup-format"><option value="6_3" selected>6 Einzel + 3 Doppel</option><option value="4_2">4 Einzel + 2 Doppel</option></select></div>
+                <div class="field full"><label>BTV / externer Link</label><input id="match-url" type="url" /></div>
+                <div class="field full"><button class="button" type="submit">Spiel speichern</button></div>
+              </form>
+            </div>
+            <div class="card"><h2>Spiele & Liveticker</h2><div id="matches-admin-list" class="stack"></div></div>
+          </section>
+
+          <section id="panel-news" class="admin-panel">
+            <div class="card">
+              <h2>News / Spielbericht</h2>
+              <form id="news-form" class="form-grid"><input id="news-edit-id" type="hidden" />
+                <div class="field"><label>Mannschaft</label><select id="news-team"></select></div>
+                <div class="field"><label>Bezug zu Spiel</label><select id="news-match"><option value="">Kein Spiel</option></select></div>
+                <div class="field full"><label>Titel</label><input id="news-title" required /></div>
+                <div class="field full"><label>Kurztext</label><textarea id="news-excerpt"></textarea></div>
+                <div class="field full"><label>Text</label><textarea id="news-body" required></textarea></div>
+                <div class="field"><label>Status</label><select id="news-status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="archived">Archiviert</option></select></div>
+                <div class="field"><label>Beitragsbild</label><input id="news-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
+                <div class="field"><button class="button" type="submit">Beitrag speichern</button><button id="news-cancel-edit" class="button ghost hidden" type="button">Bearbeiten abbrechen</button></div><div class="field full"><button id="news-preview-button" class="button ghost" type="button">Vorschau anzeigen</button><div id="news-preview" class="card flat hidden" aria-live="polite"></div></div>
+              </form>
+              <div id="news-admin-list" class="table-wrap"></div>
+            </div>
+          </section>
+
+          <section id="panel-events" class="admin-panel">
+            <div class="card">
+              <h2>Veranstaltung</h2>
+              <form id="event-form" class="form-grid"><input id="event-edit-id" type="hidden" />
+                <div class="field"><label>Mannschaft optional</label><select id="event-team"></select></div>
+                <div class="field"><label>Kategorie</label><input id="event-category" value="club" /></div>
+                <div class="field full"><label>Titel</label><input id="event-title" required /></div>
+                <div class="field"><label>Beginn</label><input id="event-start" type="datetime-local" required /></div>
+                <div class="field"><label>Ende</label><input id="event-end" type="datetime-local" /></div>
+                <div class="field full"><label>Beschreibung</label><textarea id="event-description"></textarea></div>
+                <div class="field"><label>Ort</label><input id="event-location" /></div>
+                <div class="field"><label>Status</label><select id="event-status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="cancelled">Abgesagt</option><option value="archived">Archiviert</option></select></div><div class="field"><button class="button" type="submit">Termin speichern</button><button class="button ghost hidden" id="event-cancel-edit" type="button">Bearbeiten abbrechen</button></div>
+              </form>
+              <div id="events-admin-list" class="table-wrap"></div>
+            </div>
+          </section>
+
+          <section id="panel-galleries" class="admin-panel">
+            <div class="card">
+              <h2>Bildergalerie</h2>
+              <form id="gallery-form" class="form-grid">
+                <div class="field"><label>Mannschaft</label><select id="gallery-team" required></select></div>
+                <div class="field"><label>Punktspiel optional</label><select id="gallery-match"><option value="">Keine Spielzuordnung</option></select></div>
+                <div class="field full"><p class="muted">Wird ein Punktspiel gewählt, erscheint die Galerie direkt auf der Detailseite dieses Spiels.</p></div>
+                <div class="field"><label>Titel</label><input id="gallery-title" required /></div>
+                <div class="field full"><label>Bilder</label><input id="gallery-files" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple required /></div>
+                <div class="field"><label><input id="gallery-published" type="checkbox" checked /> Galerie sofort veröffentlichen</label></div>
+                <div class="field"><button class="button" type="submit">Galerie anlegen & hochladen</button></div>
+              </form>
+              <div id="galleries-list" class="grid two"></div>
+            </div>
+          </section>
+
+          <section id="panel-seasons" class="admin-panel">
+            <div class="grid two">
+              <div class="card">
+                <h2>Saison anlegen</h2>
+                <form id="season-form" class="form-grid">
+                  <div class="field"><label>Jahr</label><input id="season-year" type="number" min="2020" max="2100" required /></div>
+                  <div class="field"><label>Name</label><input id="season-name" placeholder="Saison 2027" required /></div>
+                  <div class="field"><label>Beginn</label><input id="season-start" type="date" /></div>
+                  <div class="field"><label>Ende</label><input id="season-end" type="date" /></div>
+                  <div class="field"><label><input id="season-current" type="checkbox" /> als aktuelle Saison setzen</label></div>
+                  <div class="field"><label><input id="season-clone" type="checkbox" checked /> Mannschaften der letzten Saison übernehmen</label></div>
+                  <div class="field full"><button class="button" type="submit">Saison anlegen</button></div>
+                </form>
+              </div>
+              <div class="card">
+                <h2>Saisonverwaltung</h2>
+                <div id="seasons-list" class="stack"></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="panel-facility" class="admin-panel">
+            <div class="card">
+              <h2>Anlagenstatus</h2>
+              <form id="facility-form" class="form-grid">
+                <div class="field"><label>Status</label><select id="facility-status"><option value="open">Geöffnet</option><option value="limited">Teilweise geöffnet</option><option value="closed">Gesperrt</option><option value="unknown">Unbekannt</option></select></div>
+                <div class="field full"><label>Hinweis</label><textarea id="facility-message"></textarea></div>
+                <div class="field"><button class="button" type="submit">Status speichern</button></div>
+              </form>
+              <p id="facility-last-updated" class="muted" aria-live="polite"></p><p class="muted">Der hier gepflegte Anlagenstatus ist ein Vereinshinweis; die verbindliche Buchung und Buchungsverfügbarkeit erfolgen über Courtbooking.</p><div id="courts-admin-list" class="stack"></div>
+            </div>
+          </section>
+
+          <section id="panel-content" class="admin-panel">
+            <div class="card">
+              <h2>Seiteninhalte</h2>
+              <form id="page-form" class="form-grid">
+                <div class="field"><label>Seite</label><select id="page-select"></select></div>
+                <div class="field"><label>Titel</label><input id="page-title" /></div>
+                <div class="field full"><label>Inhalt</label><textarea id="page-body"></textarea></div>
+                <div class="field"><label>Meta-Titel</label><input id="page-meta-title" /></div>
+                <div class="field"><label>Meta-Beschreibung</label><input id="page-meta-description" /></div>
+                <div class="field"><button class="button" type="submit">Seite speichern</button></div>
+              </form>
+            </div>
+            <div class="grid two">
+              <div class="card"><h2>Sponsoren verwalten</h2><form id="sponsor-form" class="form-grid"><input type="hidden" id="sponsor-edit-id" />
+<div class="field full"><label for="sponsor-name">Name</label><input id="sponsor-name" required /></div>
+<div class="field full"><label for="sponsor-url">Website</label><input id="sponsor-url" type="url" /></div>
+<div class="field full"><label for="sponsor-description">Beschreibung</label><textarea id="sponsor-description"></textarea></div>
+<div class="field"><label for="sponsor-order">Sortierung</label><input id="sponsor-order" type="number" min="0" value="0" /></div>
+<div class="field"><label><input id="sponsor-active" type="checkbox" checked /> Aktiv und öffentlich anzeigen</label></div>
+<div class="field full"><label for="sponsor-logo">Logo hochladen / ersetzen</label><input id="sponsor-logo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
+<div class="field"><button class="button" type="submit">Sponsor speichern</button><button id="sponsor-cancel-edit" class="button ghost hidden" type="button">Abbrechen</button></div></form>
+<div id="sponsors-admin-list" class="admin-edit-list" aria-live="polite"></div></div>
+              <div class="card"><h2>Funktionäre verwalten</h2><form id="official-form" class="form-grid"><input type="hidden" id="official-edit-id" />
+<div class="field full"><label for="official-name">Name</label><input id="official-name" required /></div>
+<div class="field"><label for="official-title">Funktion</label><input id="official-title" required /></div>
+<div class="field"><label for="official-email">Öffentliche E-Mail (optional)</label><input id="official-email" type="email" /></div>
+<div class="field"><label for="official-phone">Öffentliche Telefonnummer (optional)</label><input id="official-phone" /></div>
+<div class="field"><label for="official-order">Sortierung</label><input id="official-order" type="number" min="0" value="0" /></div>
+<div class="field"><label><input id="official-published" type="checkbox" /> Veröffentlichung freigeben</label></div>
+<div class="field full"><label for="official-photo">Foto hochladen / ersetzen</label><input id="official-photo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
+<div class="field"><button class="button" type="submit">Funktionär speichern</button><button id="official-cancel-edit" class="button ghost hidden" type="button">Abbrechen</button></div></form>
+<div id="officials-admin-list" class="admin-edit-list" aria-live="polite"></div></div>
+            </div>
+            <div class="card">
+              <h2>Sponsor-Platzierungen</h2>
+              <form id="placement-form" class="form-grid"><input type="hidden" id="placement-edit-id" />
+                <div class="field"><label>Sponsor</label><select id="placement-sponsor" required></select></div>
+                <div class="field"><label>Platzierung</label><select id="placement-type"><option value="home">Startseite</option><option value="live">Liveticker</option><option value="team">Mannschaft</option><option value="match">Spieltag</option><option value="sponsors">Sponsoren-Seite</option></select></div>
+                <div class="field"><label>Mannschaft optional</label><select id="placement-team"></select></div>
+                <div class="field"><label>Spiel optional</label><select id="placement-match"><option value="">Kein bestimmtes Spiel</option></select></div>
+                <div class="field"><label>Von</label><input id="placement-start" type="date" /></div>
+                <div class="field"><label>Bis</label><input id="placement-end" type="date" /></div>
+                <div class="field"><label><input type="checkbox" id="placement-active" checked /> Platzierung aktiv</label></div><div class="field full"><button class="button" type="submit">Platzierung speichern</button><button class="button ghost hidden" type="button" id="placement-cancel-edit">Abbrechen</button></div>
+              </form>
+              <div id="placements-list" class="table-wrap"></div>
+            </div>
+          </section>
+
+          <section id="panel-settings" class="admin-panel">
+            <div class="card">
+              <h2>Website-Einstellungen</h2>
+              <form id="settings-form" class="form-grid">
+                <div class="field"><label>Vereinsname</label><input id="setting-club-name" /></div>
+                <div class="field"><label>E-Mail</label><input id="setting-email" type="email" /></div>
+                <div class="field"><label>Telefon</label><input id="setting-phone" /></div>
+                <div class="field"><label>Mitglieder</label><input id="setting-member-count" type="number" min="0" /></div>
+                <div class="field"><label>Mannschaften</label><input id="setting-team-count" type="number" min="0" /></div>
+                <div class="field"><label>Plätze</label><input id="setting-court-count" type="number" min="0" /></div>
+                <div class="field full"><label>Courtbooking-URL</label><input id="setting-courtbooking-url" type="url" /></div>
+                <div class="field full"><label>Tennisschule-URL</label><input id="setting-tennis-school-url" type="url" /></div>
+                <div class="field full"><label>Adresse (JSON)</label><textarea id="setting-address" placeholder='{"street":"Olympiastrasse 1","postal_code":"85622","city":"Feldkirchen","country":"Deutschland"}'></textarea></div>
+                <div class="field full"><label>Social-Links (JSON)</label><textarea id="setting-social-links" placeholder='{"instagram":"https://..."}'></textarea></div>
+                <div class="field"><button class="button" type="submit">Einstellungen speichern</button></div>
+              </form>
+            </div>
+          </section>
+
+          <section id="panel-users" class="admin-panel">
+            <div class="card">
+              <h2>Benutzer einladen</h2>
+              <p class="muted"><strong>Manager/Editor:</strong> Mannschaftsdaten und Liveticker. <strong>Nur Liveticker:</strong> ausschließlich vorhandene Spiele live begleiten. Ein Benutzer kann mehreren Mannschaften mit unterschiedlichen Rollen zugeordnet werden.</p>
+              <form id="invite-form" class="form-grid">
+                <div class="field"><label>Name</label><input id="invite-name" required /></div>
+                <div class="field"><label>E-Mail</label><input id="invite-email" type="email" required /></div>
+                <div class="field"><label>Globale Rolle</label><select id="invite-global-role"><option value="user">Mannschafts-Nutzer</option><option value="super_admin">SuperAdmin</option></select></div>
+                <div class="field full superadmin-role-info" id="invite-superadmin-info" hidden>
+                  <strong>SuperAdmin – Vollzugriff auf die Plattform</strong>
+                  <p>Diese Rolle kann alle Mannschaften und Saisons verwalten, Kader und Bilder pflegen, Spiele und Liveticker bearbeiten, News und Termine verwalten, Website-Inhalte und Einstellungen ändern sowie weitere Benutzer und deren Rechte administrieren.</p>
+                  <p class="muted">Eine zusätzliche Mannschaftszuordnung ist deshalb nicht erforderlich.</p>
+                </div>
+                <div class="field full" id="invite-team-section">
+                  <label>Mannschaften und Rollen</label>
+                  <p class="muted">Initial ist keine Mannschaft ausgewählt. Für jede gewählte Mannschaft kann eine eigene Rolle vergeben werden.</p>
+                  <div id="invite-teams" class="invite-team-grid"></div>
+                </div>
+                <div class="field"><button class="button" type="submit">Einladung senden</button></div>
+              </form>
+            </div>
+            <div class="card"><h2>Benutzer</h2><div id="users-list" class="table-wrap"></div></div>
+          </section>
+
+          <section id="panel-account" class="admin-panel">
+            <div class="card">
+              <h2>Mein Konto</h2>
+              <form id="password-form" class="form-grid">
+                <div class="field"><label>Neues Passwort</label><input id="new-password" type="password" minlength="12" autocomplete="new-password" required /><p class="muted">Mindestens 12 Zeichen. Verwende ein eigenes Passwort, das du nicht bei anderen Diensten nutzt.</p></div>
+                <div class="field"><button class="button" type="submit">Passwort setzen</button></div>
+              </form>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </div>
+</MainLayout>
+<script>
+  import { initAdmin } from '../../scripts/admin';
+  initAdmin();
+</script>

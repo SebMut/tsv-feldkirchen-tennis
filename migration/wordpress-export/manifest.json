@@ -1,0 +1,26 @@
+{
+  "source": "https://www.tennis-tsvfeldkirchen.de",
+  "created_at": "2026-09-30T09:41:44.762Z",
+  "resources": {
+    "pages": {
+      "ok": true,
+      "count": 13
+    },
+    "posts": {
+      "ok": true,
+      "count": 128
+    },
+    "media": {
+      "ok": true,
+      "count": 64
+    },
+    "categories": {
+      "ok": true,
+      "count": 1
+    },
+    "events": {
+      "ok": true,
+      "count": 127
+    }
+  }
+}
