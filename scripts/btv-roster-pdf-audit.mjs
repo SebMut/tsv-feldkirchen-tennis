@@ -8,6 +8,7 @@ import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { ageClassFromPdfHeading, isYouthClass } from './btv-roster-age-classes.mjs';
+import { parseBtvRosterPdfText, assertCompleteSummerRoster } from './btv-roster-pdf-parser.mjs';
 
 const ENTRY = 'https://www.btv.de/de/mein-verein/vereins-cockpit.html';
 const LOGIN_HOST = 'tende-id.liga.nu';
@@ -277,6 +278,26 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   console.log('BTV_NMM_YOUTH_AGE_CLASSES=' + youth);
   console.log('BTV_NMM_ADULT_AGE_CLASSES=' + (headings.size - youth));
   console.log('BTV_NMM_PLAYERS_STORED=0');
+  const parsed = parseBtvRosterPdfText(text);
+  const d = parsed.diagnostics;
+  console.log('BTV_PARSE_HEADINGS=' + d.headingCount);
+  console.log('BTV_PARSE_AGE_CLASSES=' + d.classCount);
+  console.log('BTV_PARSE_ROWS=' + d.parsedRows);
+  console.log('BTV_PARSE_MALFORMED_ROWS=' + d.malformedRows);
+  console.log('BTV_PARSE_UNASSIGNED_ROWS=' + d.unassignedRows);
+  console.log('BTV_PARSE_UNKNOWN_HEADERS=' + d.unrecognizedHeaders);
+  for (const [name, count] of Object.entries(d.classCounts)) {
+    const label = name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+    console.log('BTV_PARSE_CLASS_' + label + '=' + count);
+  }
+  try {
+    assertCompleteSummerRoster(parsed);
+    console.log('BTV_PARSE_COMPLETE=YES');
+  } catch {
+    console.log('BTV_PARSE_COMPLETE=NO');
+    fail('PDF_ROSTER_LAYOUT_INCOMPLETE');
+  }
+
   if (!youth) fail('NMM_YOUTH_HEADINGS_NOT_FOUND');
 }
 
