@@ -202,7 +202,20 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field full"><button class="button" type="submit">Spiel speichern</button></div>
               </form>
             </div>
-            <div class="card"><h2>Spiele & Liveticker</h2><div id="matches-admin-list" class="stack"></div></div>
+            <div class="card">
+              <h2>Spiele & Liveticker</h2>
+              <p class="muted">Spieltag auswählen, Einzel und Doppel vorbereiten und eigene Spielernamen direkt eintragen. Nur deine zugeordneten Mannschaften sind bearbeitbar.</p>
+              <div class="field">
+                <label for="matches-admin-filter">Spiele anzeigen</label>
+                <select id="matches-admin-filter">
+                  <option value="focus">Aktuelle und kommende Spiele</option>
+                  <option value="all">Alle Spiele (auch ältere)</option>
+                  <option value="finished">Abgeschlossene Spiele</option>
+                </select>
+              </div>
+              <p id="matches-filter-summary" class="muted" role="status" aria-live="polite"></p>
+              <div id="matches-admin-list" class="stack"></div>
+            </div>
           </section>
 
           <section id="panel-news" class="admin-panel">
