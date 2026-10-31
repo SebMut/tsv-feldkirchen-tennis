@@ -859,3 +859,46 @@ body{background:var(--sand);color:var(--text)}
 .match-admin-venue__fields label{font-size:.86rem;font-weight:750}
 .match-admin-venue__fields input{width:100%;min-width:0;border-radius:9px;border:1px solid #ccd9ce;background:#fff;color:#20312a;padding:10px}
 @media(max-width:680px){.match-row{grid-template-columns:1fr}.match-admin-venue__fields{grid-template-columns:1fr}.match-route-button{width:fit-content;max-width:100%}}
+
+
+/* Phase 4 – touch-friendly live ticker administration */
+.match-create-card__summary{cursor:pointer;font-size:1.08rem;font-weight:850;min-height:48px;display:flex;align-items:center}
+.match-create-card[open]>.match-create-card__summary{margin-bottom:14px}
+.match-ticker-panel{min-width:0}
+.match-ticker-selectors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}
+.match-ticker-selectors select{min-height:48px}
+.encounter-card{min-width:0}
+.encounter-card>summary{cursor:pointer;list-style:none;min-height:52px;gap:10px}
+.encounter-card>summary::-webkit-details-marker{display:none}
+.encounter-card>summary::after{content:'⌄';font-size:1.25rem;font-weight:800;color:#5e6b64;flex:0 0 auto}
+.encounter-card[open]>summary::after{transform:rotate(180deg)}
+.encounter-card__heading{display:grid;gap:3px;min-width:0;flex:1}
+.encounter-card__heading small{font-size:.81rem;line-height:1.25;color:#53645a;overflow-wrap:anywhere}
+.encounter-card__body{display:grid;gap:12px}
+.encounter-side__fields input{width:100%;min-width:0;min-height:44px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:9px}
+.encounter-side__fields select,.encounter-side__fields input,.encounter-result-row input{font-size:16px}
+.encounter-actions .button,.match-admin-main-actions .button,.match-admin-main-actions a{min-height:46px;display:inline-flex;align-items:center;justify-content:center}
+.encounter-actions button:disabled,.match-admin-main-actions button:disabled{opacity:.55;cursor:not-allowed}
+.encounter-feedback{margin:0;font-size:.87rem;font-weight:750;color:#15552e}
+.encounter-feedback[data-tone="error"]{color:#a3170f}
+.encounter-feedback:empty{display:none}
+.encounter-card>summary:focus-visible,.match-create-card>summary:focus-visible{outline:3px solid #cb2733;outline-offset:4px}
+@media(max-width:760px){
+  .match-ticker-selectors{grid-template-columns:1fr}
+  .match-admin-card{padding:14px;scroll-margin-top:78px}
+  .match-admin-card .page-head{margin-bottom:12px}
+  .match-admin-main-actions{display:grid;grid-template-columns:1fr;gap:10px}
+  .match-admin-main-actions .button,.match-admin-main-actions a{width:100%;min-height:50px}
+  .encounter-card{padding:12px}
+  .encounter-card__body{gap:12px}
+  .encounter-card__body>.muted{font-size:.85rem;margin:0}
+  .encounter-actions .button{min-height:52px}
+  .encounter-side{padding:10px}
+  .encounter-side img,.encounter-opponent-mark{width:34px;height:34px;flex-basis:34px}
+  .match-ticker-message .button{min-height:50px}
+}
+@media(max-width:420px){
+  .encounter-actions{grid-template-columns:1fr}
+  .encounter-card__head{align-items:flex-start}
+  .encounter-card__head .status-pill{flex-shrink:0}
+}
