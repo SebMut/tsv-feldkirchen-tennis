@@ -6,11 +6,11 @@ const script = readFileSync(new URL('../src/scripts/manual-results-admin.ts', im
 const admin = readFileSync(new URL('../src/pages/admin/index.astro', import.meta.url),'utf8');
 
 // Execute the actual pure filter expression from the TypeScript file.
-function activeFilter(manualIds) {
+function activeFilter(manualIds, withdrawalIds = new Set()) {
   const match = script.match(/function isNotYetRecorded\(m: Entry\) \{ return ([^;]+); \}/);
   assert.ok(match, 'unprocessed-match filter must exist');
-  const actual = new Function('m','isOfficial','manual','return ('+match[1]+');');
-  return m => actual(m, row => Boolean(row.btv_result_text?.trim()), new Map([...manualIds].map(id=>[id,true])));
+  const actual = new Function('m','isOfficial','manual','withdrawalFlags','return ('+match[1]+');');
+  return m => actual(m, row => Boolean(row.btv_result_text?.trim()), new Map([...manualIds].map(id=>[id,true])), new Map([...withdrawalIds].map(id=>[id,true])));
 }
 
 test('saved manual withdrawal is absent from outstanding task list', () => {
@@ -42,4 +42,16 @@ test('confirmation checkbox is required and saving is a separate action', () => 
   assert.match(admin, /id="manual-result-save" type="submit"/);
   assert.match(admin, /Erst „Ergebnis manuell speichern“/);
   assert.match(script, /if \(!byId<HTMLInputElement>\('manual-result-confirm'\)\?\.checked\)/);
+});
+
+test('a specifically reported withdrawal is no longer an unresolved score task', () => {
+  const forstinning = {
+    match_id: '6533cb1a-c344-4f4b-a517-1214db28ffa8',
+    btv_result_text: null
+  };
+  assert.equal(activeFilter(new Set())(forstinning), true);
+  assert.equal(activeFilter(new Set(), new Set([forstinning.match_id]))(forstinning), false);
+  assert.match(script, /from\('match_withdrawal_flags'\)/);
+  assert.match(script, /offizielle Prüfung ausstehend|BTV-Bestätigung offen/);
+  assert.match(admin, /id="manual-results-withdrawal"/);
 });

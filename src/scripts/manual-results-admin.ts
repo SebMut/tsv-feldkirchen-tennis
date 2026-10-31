@@ -13,6 +13,13 @@ type Entry = {
   btv_url: string | null;
   tennis_de_portrait_url: string | null;
 };
+type WithdrawalFlag = {
+  match_id: string;
+  affected_side: 'home' | 'away' | 'unknown';
+  source_kind: 'club_report' | 'btv_group_schedule';
+  verification_status: 'reported' | 'official_verified';
+  evidence_url: string | null;
+};
 type Manual = {
   match_id: string;
   result_status: string;
@@ -29,6 +36,7 @@ const localDate = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', 
 const localTime = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hour12: false });
 let fixtures: Entry[] = [];
 let manual = new Map<string, Manual>();
+let withdrawalFlags = new Map<string, WithdrawalFlag>();
 let selected: Entry | null = null;
 let initialized = false;
 
@@ -45,7 +53,7 @@ function matchLabel(m: Entry) { return teamHome(m) + ' – ' + teamAway(m); }
 function isOfficial(m: Entry) { return !!m.btv_result_text?.trim(); }
 // Ein bestätigter manueller Nachtrag zählt für die Aufgabenliste als bereits erfasst,
 // bleibt aber bis zum offiziellen Quellenabgleich ausdrücklich ungeprüft.
-function isNotYetRecorded(m: Entry) { return !isOfficial(m) && !manual.has(m.match_id); }
+function isNotYetRecorded(m: Entry) { return !isOfficial(m) && !manual.has(m.match_id) && !withdrawalFlags.has(m.match_id); }
 function option(value: string, title: string): HTMLOptionElement {
   const element = document.createElement('option');
   element.value = value;
@@ -98,7 +106,9 @@ function renderList() {
     tag.className = 'muted';
     tag.textContent = isOfficial(m)
       ? 'BTV-Ergebnis bereits gespeichert: ' + m.btv_result_text
-      : manual.has(m.match_id) ? 'Manuell erfasst · amtliche Prüfung offen' : 'Ergebnis offen';
+      : manual.has(m.match_id) ? 'Manuell erfasst · amtliche Prüfung offen'
+      : withdrawalFlags.has(m.match_id) ? (withdrawalFlags.get(m.match_id)?.verification_status === 'official_verified'
+        ? 'Mannschaft zurückgezogen · durch BTV bestätigt' : 'Rückzug gemeldet · BTV-Bestätigung offen') : 'Ergebnis offen';
     button.append(heading, metadata, tag);
     button.addEventListener('click', () => selectMatch(m.match_id));
     list.append(button);
@@ -109,11 +119,20 @@ function selectMatch(id: string) {
   selected = fixtures.find(m => m.match_id === id) || null;
   if (!selected) return;
   const saved = manual.get(id);
+  const withdrawal = withdrawalFlags.get(id);
   const form = byId<HTMLFormElement>('manual-result-form');
   if (form) form.classList.remove('hidden');
   const noSelection = byId<HTMLElement>('manual-results-empty');
   noSelection?.classList.add('hidden');
 
+  const specialNotice = byId<HTMLElement>('manual-results-withdrawal');
+  if (specialNotice) {
+    specialNotice.classList.toggle('hidden', !withdrawal);
+    if (withdrawal) specialNotice.textContent =
+      (withdrawal.affected_side === 'away' ? 'Gastmannschaft' : withdrawal.affected_side === 'home' ? 'Heimmannschaft' : 'Mannschaft') +
+      ' zurückgezogen · ' + (withdrawal.verification_status === 'official_verified' ? 'amtlich von BTV bestätigt' : 'gemeldet, offizielle Prüfung ausstehend') +
+      '. Kein reguläres Match-Ergebnis erfinden.';
+  }
   const label = byId<HTMLElement>('manual-results-selected');
   const date = byId<HTMLElement>('manual-results-date');
   if (label) label.textContent = matchLabel(selected);
@@ -146,18 +165,23 @@ function selectMatch(id: string) {
 
 async function loadMatches() {
   showStatus('Begegnungen werden geladen …');
-  const [matchRes, manualRes] = await Promise.all([
+  const [matchRes, manualRes, flagsRes] = await Promise.all([
     supabase.from('manual_editable_matches')
       .select('match_id,starts_at,is_home,opponent,btv_result_text,team_name,season_code,season_name,btv_url,tennis_de_portrait_url')
       .order('starts_at', { ascending: true }).limit(1000),
     supabase.from('manual_match_results')
       .select('match_id,result_status,home_points,away_points,source_type,source_url,notes,review_status')
       .limit(1000),
+    supabase.from('match_withdrawal_flags')
+      .select('match_id,affected_side,source_kind,verification_status,evidence_url')
+      .limit(1000),
   ]);
   if (matchRes.error) throw matchRes.error;
   if (manualRes.error) throw manualRes.error;
+  if (flagsRes.error) throw flagsRes.error;
   fixtures = (matchRes.data || []) as Entry[];
   manual = new Map(((manualRes.data || []) as Manual[]).map(m => [m.match_id, m]));
+  withdrawalFlags = new Map(((flagsRes.data || []) as WithdrawalFlag[]).map(m => [m.match_id, m]));
   const seasons = new Map(fixtures.map(m => [m.season_code, m.season_name]));
   const seasonSelect = byId<HTMLSelectElement>('manual-results-season');
   if (seasonSelect) {
