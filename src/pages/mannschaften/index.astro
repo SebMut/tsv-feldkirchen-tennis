@@ -41,12 +41,15 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <p class="muted">Die aktuelle Mannschaftssuche von tennis.de ergänzt unsere eigenen Spielpläne und den TSV-Liveticker. Sie bietet Verweise auf Mannschaftsaufstellungen, Tabellen, Ergebnisse und Spieltermine.</p>
         </div>
       </div>
-      <details class="card teams-official-widget__details">
+      <p class="muted">
+        <a href="https://www.tennis.de/spielen/spielbetrieb/mannschaftssuche.html?verband=btv&amp;verein=01012#teamportrait/3728614" target="_blank" rel="noopener noreferrer">Beispiel: direktes Mannschaftsportrait bei tennis.de ↗</a>
+      </p>
+      <details class="card teams-official-widget__details" id="official-tennisde-widget">
         <summary>Offizielle tennis.de-Mannschaftssuche öffnen</summary>
         <p class="muted">Beim Öffnen werden Inhalte vom externen Anbieter tennis.de geladen. Unsere Mannschaftsdaten und Ergebnisse bleiben weiterhin in der TSV-Datenbank.</p>
         <iframe
           title="Offizielle tennis.de-Mannschaftssuche für TSV Feldkirchen, BTV-Vereinsnummer 01012"
-          src="https://services.tennis.de/extern/tennisdeteamsearch.zul?verband=BTV&amp;verein=01012&amp;linkfarbe=20aebd"
+          data-src="https://services.tennis.de/extern/tennisdeteamsearch.zul?verband=BTV&amp;verein=01012&amp;linkfarbe=20aebd"
           loading="lazy"
           width="100%"
           height="800"
@@ -61,4 +64,15 @@ import MainLayout from '../../layouts/MainLayout.astro';
 <script>
   import { loadTeams } from '../../scripts/public';
   loadTeams();
+
+  // Load the third-party iframe only after a deliberate click; do not
+  // contact tennis.de automatically just because the TSV page was visited.
+  const officialWidget = document.querySelector<HTMLDetailsElement>('#official-tennisde-widget');
+  officialWidget?.addEventListener('toggle', () => {
+    if (!officialWidget.open) return;
+    const frame = officialWidget.querySelector<HTMLIFrameElement>('iframe[data-src]');
+    if (frame?.dataset.src && !frame.src) {
+      frame.src = frame.dataset.src;
+    }
+  });
 </script>
