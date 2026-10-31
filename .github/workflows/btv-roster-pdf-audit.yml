@@ -36,8 +36,9 @@ jobs:
         run: |
           node --check scripts/btv-roster-age-classes.mjs
           node --check scripts/btv-roster-pdf-audit.mjs
-      - name: Test strict adult and youth mapping and privacy controls
-        run: node --test tests/btv-roster-age-classes.test.mjs
+          node --check scripts/btv-roster-pdf-parser.mjs
+      - name: Test strict age-class mapping and PDF name-column parsing
+        run: node --test tests/btv-roster-age-classes.test.mjs tests/btv-roster-pdf-parser.test.mjs
 
   pdf-audit:
     if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
