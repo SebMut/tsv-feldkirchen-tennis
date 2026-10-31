@@ -972,7 +972,7 @@ main.main--flush{padding:0}
   height:100%;
   object-fit:cover;
   object-position:center 48%;
-  opacity:1;
+  opacity:.5;
   max-width:none;
   mask-image:none;
   pointer-events:none;
@@ -1013,7 +1013,7 @@ main.main--flush{padding:0}
     width:100%;
     height:100%;
     object-position:55% center;
-    opacity:1;
+    opacity:.5;
     mask-image:none;
   }
   .premium-hero::before{
