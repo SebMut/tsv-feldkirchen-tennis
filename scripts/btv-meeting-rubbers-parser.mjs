@@ -70,7 +70,7 @@ export function parseOfficialMeetingText(text,{expectedHomePoints,expectedAwayPo
       awayNameStart:idx.awayRaw[0],setStart:idx.set1[0]};
     singles.push({discipline:'single',position:pos,
       home_participants:[{name:homeName}],away_participants:[{name:awayName}],
-      set_results:scores,winner_side:winner,special_status:explicitWalkover?'walkover':null,
+      set_results:scores,winner_side:winner,special_status:explicitWalkover?'walkover':'played',
       result_text:scores.map(s=>s.home+':'+s.away).join(' '),
       source_section:'BTV MeetingReportFOP Einzel',verification_status:'verified'});
   }
@@ -99,7 +99,7 @@ export function parseOfficialMeetingText(text,{expectedHomePoints,expectedAwayPo
     doubles.push({discipline:'double',position,
       home_participants:[{name:first.home},{name:second.home}],
       away_participants:[{name:first.away},{name:second.away}],
-      set_results:scoreParts,winner_side:winnerOf(scoreParts),special_status:null,
+      set_results:scoreParts,winner_side:winnerOf(scoreParts),special_status:'played',
       result_text:scoreParts.map(s=>s.home+':'+s.away).join(' '),
       source_section:'BTV MeetingReportFOP Doppel',verification_status:'verified'});
   }
