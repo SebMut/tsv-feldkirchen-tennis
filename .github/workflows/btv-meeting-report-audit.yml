@@ -1,0 +1,44 @@
+name: BTV single and double report structure check (read-only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/btv-meeting-report-audit.yml
+      - scripts/btv-meeting-report-audit.mjs
+  pull_request:
+    paths:
+      - .github/workflows/btv-meeting-report-audit.yml
+      - scripts/btv-meeting-report-audit.mjs
+      - tests/btv-meeting-report-audit.test.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and no-personal-data tests
+        run: |
+          node --check scripts/btv-meeting-report-audit.mjs
+          node --test tests/btv-meeting-report-audit.test.mjs
+
+  audit:
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install PDF extractors
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Inspect four confirmed TSV PDF meeting reports without saving names
+        run: node scripts/btv-meeting-report-audit.mjs
