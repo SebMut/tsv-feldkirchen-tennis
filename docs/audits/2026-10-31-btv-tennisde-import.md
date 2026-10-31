@@ -12,7 +12,7 @@
 | Winter 2026/27 | 3 | 15 | 4 | 6 | 9 | 15 |
 | Sommer 2027 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-**Nicht als Saisonvollständigkeit missverstehen:** `official_meeting_reports` enthält vier Teilberichte (`partial`); `official_report_rubbers` enthält 0 Positionen. `official_season_sources` und `official_team_season_refs` sind noch leer. In `official_import_issues` sind 18 ungelöste Einträge: 14 `missing_official_result`, vier `report_rubbers_not_imported`.
+**Nicht als Saisonvollständigkeit missverstehen:** `official_meeting_reports` enthält vier Teilberichte (`partial`); `official_report_rubbers` enthält 0 Positionen. `official_season_sources` und `official_team_season_refs` sind noch leer. Nach dem geprüften, ausschließlich ergänzenden Audit-Write sind in `official_import_issues` **25 ungelöste Einträge**: 14 `missing_official_result`, vier `report_rubbers_not_imported`, drei `unmapped_btv_snapshot` und vier `internal_fixture_without_btv_snapshot`.
 
 ### Quell- und Sicherheitsprüfung
 
@@ -87,4 +87,22 @@ Der bestehende lesende GitHub-Audit prüft die PDF-Struktur, importiert aber **k
 
 ## Änderungsumfang dieses Auditlaufs
 
-Es wurden **keine** Matchresultate, Aufstellungen, Jugendlichen-Daten, Hallen, Liveticker, RLS-Regeln, Cronjobs, privaten Berichte oder Produktionsseiten geändert. Dieser Bericht hält den tatsächlich abgefragten Stand und überprüfbare Lücken fest und ist **keine** Behauptung eines abgeschlossenen Vollimports.
+Es wurden **keine** Matchresultate, Aufstellungen, Jugendlichen-Daten, Hallen, Liveticker, RLS-Regeln, Cronjobs, privaten Berichte oder Produktionsseiten geändert. **Sieben interne Prüfaufgaben wurden neu in die RLS-geschützte `official_import_issues`-Tabelle eingefügt** (3 BTV-Snapshots ohne Matchreferenz, 4 interne Begegnungen ohne Snapshotreferenz); anschließend wurde die neue Summe von **25 offenen Fällen** in Supabase verifiziert. Die übrigen 18 bestehenden Aufgaben wurden nicht verändert. Dies ist **kein** vollständiger amtlicher Import.
+
+### Rückabwicklung des ergänzenden Prüfaufgaben-Imports
+
+Nur die sieben neu angelegten, eindeutig markierten Audit-Einträge könnten im Bedarfsfall gezielt zurückgenommen werden. Die nachfolgende Anweisung **nicht** automatisch ausführen; sie ist ein dokumentierter Rollback-Pfad. Vor Anwendung zunächst Anzahl und fachlichen Stand nochmals prüfen.
+
+```sql
+SELECT issue_code, count(*)
+FROM public.official_import_issues
+WHERE details->>'audit_run'='chatgpt-btv-tennisde-20261031'
+GROUP BY issue_code;
+
+-- Rückabwicklung ausschließlich nach ausdrücklicher Kontrolle/Freigabe:
+-- DELETE FROM public.official_import_issues
+-- WHERE details->>'audit_run'='chatgpt-btv-tennisde-20261031'
+--   AND issue_code IN ('unmapped_btv_snapshot',
+--                      'internal_fixture_without_btv_snapshot');
+```
+
