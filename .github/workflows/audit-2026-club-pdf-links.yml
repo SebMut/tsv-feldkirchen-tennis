@@ -1,0 +1,18 @@
+name: Verify 2026 TSV whole-club BTV PDFs
+on:
+  pull_request:
+    paths:
+      - 'scripts/audit-2026-club-pdf-links.mjs'
+      - '.github/workflows/audit-2026-club-pdf-links.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - run: node scripts/audit-2026-club-pdf-links.mjs
