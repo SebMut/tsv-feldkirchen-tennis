@@ -68,7 +68,7 @@ try {
  const trigger=await evalJS('Array.from(document.querySelectorAll("a,button")).find(x=>x.innerText&&x.innerText.trim()==="Tabelle/Spielplan")?.outerHTML',session);
  console.log('BTV_PLAN_CLICKABLE',JSON.stringify(trigger).slice(0,1000));
 
- const labels = ['Mannschaftsportrait','Tabelle/Spielplan','Tabelle/Spielplan [PDF]'];
+ const labels = ['Tabelle/Spielplan [PDF]'];
  for (const label of labels) {
    const clickExpr='Array.from(document.querySelectorAll("a.z-toolbarbutton")).find(x=>x.textContent.trim()==='+JSON.stringify(label)+')?.click(); true';
    try{
