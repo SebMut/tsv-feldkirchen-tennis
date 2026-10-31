@@ -32,6 +32,30 @@ import MainLayout from '../../layouts/MainLayout.astro';
       <div class="teams-category-chips" id="teams-category-chips" role="group" aria-label="Mannschaftskategorie"></div>
       <div id="teams-grid" class="team-grid" aria-live="polite"><p class="muted">Mannschaften werden geladen …</p></div>
     </section>
+
+    <section class="teams-official-widget" aria-labelledby="teams-official-widget-title">
+      <div class="teams-results__heading">
+        <div>
+          <p class="eyebrow">Direkt vom Deutschen Tennis Bund</p>
+          <h2 id="teams-official-widget-title">Offizielle Mannschaftsübersicht</h2>
+          <p class="muted">Die aktuelle Mannschaftssuche von tennis.de ergänzt unsere eigenen Spielpläne und den TSV-Liveticker. Sie bietet Verweise auf Mannschaftsaufstellungen, Tabellen, Ergebnisse und Spieltermine.</p>
+        </div>
+      </div>
+      <details class="card teams-official-widget__details">
+        <summary>Offizielle tennis.de-Mannschaftssuche öffnen</summary>
+        <p class="muted">Beim Öffnen werden Inhalte vom externen Anbieter tennis.de geladen. Unsere Mannschaftsdaten und Ergebnisse bleiben weiterhin in der TSV-Datenbank.</p>
+        <iframe
+          title="Offizielle tennis.de-Mannschaftssuche für TSV Feldkirchen, BTV-Vereinsnummer 01012"
+          src="https://services.tennis.de/extern/tennisdeteamsearch.zul?verband=BTV&amp;verein=01012&amp;linkfarbe=20aebd"
+          loading="lazy"
+          width="100%"
+          height="800"
+          referrerpolicy="strict-origin-when-cross-origin"
+          class="teams-official-widget__frame"
+        ></iframe>
+        <p class="muted">Falls die Übersicht nicht lädt: <a href="https://services.tennis.de/extern/tennisdeteamsearch.zul?verband=BTV&amp;verein=01012&amp;linkfarbe=20aebd" target="_blank" rel="noopener noreferrer">Offizielle Mannschaftssuche direkt öffnen ↗</a></p>
+      </details>
+    </section>
   </div>
 </MainLayout>
 <script>
