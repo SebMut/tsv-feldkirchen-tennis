@@ -70,7 +70,7 @@ test('PDF league header detection accepts only known age classes', () => {
 test('protected PDF audit never uploads minors data to GitHub', () => {
   const js = readFileSync(new URL('../scripts/btv-roster-pdf-audit.mjs', import.meta.url), 'utf8');
   const yaml = readFileSync(new URL('../.github/workflows/btv-roster-pdf-audit.yml', import.meta.url), 'utf8');
-  assert.match(js, /canonicalAgeClass/);
+  assert.match(js, /ageClassFromPdfHeading/);
   assert.match(js, /NMM_YOUTH_HEADINGS_NOT_FOUND/);
   assert.match(js, /BTV_NMM_PLAYERS_STORED=0/);
   assert.match(js, /TSV/);
