@@ -253,8 +253,16 @@ async function refreshDashboard() {
       </article>`;
   }).join('');
 
-  const openMatch = (matchId: string) => {
+  const openMatch = async (matchId: string) => {
     showPanel('matches');
+    // Dashboard shortcuts may point to games hidden by the current filter.
+    if (!document.querySelector<HTMLElement>(`[data-match-card="${matchId}"]`)) {
+      const filter = $<HTMLSelectElement>('#matches-admin-filter');
+      if (filter && filter.value !== 'all') {
+        filter.value = 'all';
+        await refreshMatches();
+      }
+    }
     window.setTimeout(() => {
       const card = document.querySelector<HTMLElement>(`[data-match-card="${matchId}"]`);
       if (!card) return;
@@ -705,9 +713,17 @@ async function refreshMatches() {
       <img src="${escapeHtml(mediaUrl('branding/tennis-logo.png'))}" alt="TSV Feldkirchen Tennis" />
       <div class="encounter-side__fields">
         <strong>TSV Feldkirchen</strong>
-        <select data-enc-player1>${playerOptions(match, encounter.tsv_player_1_id)}</select>
+        <select data-enc-player1 aria-label="TSV-Spieler 1 aus Kader wählen">${playerOptions(match, encounter.tsv_player_1_id)}</select>
+        <input data-enc-name1 type="text" maxlength="120" autocomplete="off"
+          aria-label="TSV-Spieler 1 – Name direkt eingeben"
+          value="${escapeHtml(encounter.tsv_player_1_name || playerMap.get(encounter.tsv_player_1_id)?.display_name || '')}"
+          placeholder="Oder Namen direkt eingeben" />
         ${encounter.discipline === 'doubles'
-          ? `<select data-enc-player2>${playerOptions(match, encounter.tsv_player_2_id)}</select>`
+          ? `<select data-enc-player2 aria-label="TSV-Spieler 2 aus Kader wählen">${playerOptions(match, encounter.tsv_player_2_id)}</select>
+             <input data-enc-name2 type="text" maxlength="120" autocomplete="off"
+               aria-label="TSV-Spieler 2 – Name direkt eingeben"
+               value="${escapeHtml(encounter.tsv_player_2_name || playerMap.get(encounter.tsv_player_2_id)?.display_name || '')}"
+               placeholder="Oder Namen direkt eingeben" />`
           : ''}
       </div>
     </div>`;
@@ -739,6 +755,7 @@ async function refreshMatches() {
           <span class="status-pill ${encounter.status === 'live' ? 'live' : ''}">${statusLabel}</span>
         </div>
 
+        <p class="muted">TSV-Spieler aus dem Kader wählen oder direkt mit Namen eintragen. Die Namen erscheinen im öffentlichen Liveticker.</p>
         <div class="encounter-sides">
           ${match.is_home ? tsvSide : opponentSide}
           <span class="encounter-vs">VS</span>
@@ -759,7 +776,18 @@ async function refreshMatches() {
       </article>`;
   };
 
-  target.innerHTML = state.matches.map((match) => {
+  const filter = $<HTMLSelectElement>('#matches-admin-filter')?.value || 'focus';
+  const visibleMatches = state.matches.filter((match) => {
+    const matchStatus = liveMap.get(match.id)?.status || 'scheduled';
+    if (filter === 'all') return true;
+    if (filter === 'finished') return matchStatus === 'finished';
+    // Include recent games so a delayed ticker update is still easy to find.
+    return matchStatus === 'live' || (matchStatus !== 'finished' && new Date(match.starts_at).getTime() >= now - 7 * 86400000);
+  });
+  const summary = $('#matches-filter-summary');
+  if (summary) summary.textContent = `${visibleMatches.length} von ${state.matches.length} Spielen angezeigt. Ältere Spiele findest du unter „Alle Spiele“.`;
+
+  target.innerHTML = visibleMatches.map((match) => {
     const ts = state.teamSeasons.find((row) => row.id === match.team_season_id);
     const team = state.teams.find((row) => row.id === ts?.team_id);
     const live: any = liveMap.get(match.id) || { status: 'scheduled', home_score: 0, away_score: 0 };
@@ -849,7 +877,7 @@ async function refreshMatches() {
         <button class="button" data-publish-ticker type="button">Meldung veröffentlichen</button>
       </div>
     </article>`;
-  }).join('') || '<p class="muted">Noch keine Spiele.</p>';
+  }).join('') || '<p class="muted">In dieser Auswahl sind keine Spiele vorhanden. Wähle bei Bedarf „Alle Spiele“.</p>';
 
   const updateEncounter = async (encounterId: string, patch: Row) => {
     const { error } = await supabase
@@ -930,7 +958,11 @@ async function refreshMatches() {
         if (await updateEncounter(encounterId, {
           tsv_player_1_id: select.value || null,
           tsv_player_1_name: player?.display_name || null,
-        })) status('Aufstellung gespeichert.', 'success');
+        })) {
+          const nameInput = encounterCard.querySelector<HTMLInputElement>('[data-enc-name1]');
+          if (nameInput) nameInput.value = player?.display_name || '';
+          status('Aufstellung gespeichert.', 'success');
+        }
       });
 
       encounterCard.querySelector<HTMLSelectElement>('[data-enc-player2]')?.addEventListener('change', async (event) => {
@@ -939,8 +971,30 @@ async function refreshMatches() {
         if (await updateEncounter(encounterId, {
           tsv_player_2_id: select.value || null,
           tsv_player_2_name: player?.display_name || null,
-        })) status('Aufstellung gespeichert.', 'success');
+        })) {
+          const nameInput = encounterCard.querySelector<HTMLInputElement>('[data-enc-name2]');
+          if (nameInput) nameInput.value = player?.display_name || '';
+          status('Aufstellung gespeichert.', 'success');
+        }
       });
+
+      // A roster is not required to start a match day. Direct names are stored
+      // in the encounter itself and deliberately clear any old player reference.
+      for (const position of [1, 2] as const) {
+        encounterCard.querySelector<HTMLInputElement>(`[data-enc-name${position}]`)?.addEventListener('change', async (event) => {
+          const input = event.currentTarget as HTMLInputElement;
+          const name = input.value.trim();
+          if (name.length === 1) return status('Bitte einen vollständigen Spielernamen eintragen.', 'error');
+          const patch = position === 1
+            ? { tsv_player_1_id: null, tsv_player_1_name: name || null }
+            : { tsv_player_2_id: null, tsv_player_2_name: name || null };
+          if (await updateEncounter(encounterId, patch)) {
+            const select = encounterCard.querySelector<HTMLSelectElement>(`[data-enc-player${position}]`);
+            if (select) select.value = '';
+            status(name ? 'TSV-Spieler gespeichert.' : 'Spielername entfernt.', 'success');
+          }
+        });
+      }
 
       encounterCard.querySelector<HTMLSelectElement>('[data-enc-opponent1]')?.addEventListener('change', async (event) => {
         const value = Number((event.currentTarget as HTMLSelectElement).value) || null;
@@ -1561,6 +1615,7 @@ function bindForms() {
   $<HTMLSelectElement>('#players-team-season')?.addEventListener('change', () => { resetPlayerForm(); clearBulkRosterPreview(); refreshPlayers(); });
   $<HTMLButtonElement>('#player-cancel-edit')?.addEventListener('click', resetPlayerForm);
   $<HTMLFormElement>('#match-form')?.addEventListener('submit', addMatch);
+  $<HTMLSelectElement>('#matches-admin-filter')?.addEventListener('change', () => { void refreshMatches(); });
   $<HTMLFormElement>('#news-form')?.addEventListener('submit', addNews);
   $<HTMLFormElement>('#event-form')?.addEventListener('submit', addEvent);
   $('#news-cancel-edit')?.addEventListener('click', () => {
