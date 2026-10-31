@@ -34,6 +34,7 @@ test('exact 4+2 report preserves each actual player and each actual set',()=>{
  assert.equal(x.verification_status,'verified',x.errors.join(','));
  assert.equal(x.singles.length,4);
  assert.equal(x.doubles.length,2);
+ assert.ok([...x.singles,...x.doubles].every(r=>r.special_status==='played'));
  assert.equal(x.total,6);
  assert.deepEqual(x.singles[0].home_participants,[{name:'Muster, Max'}]);
  assert.equal(x.doubles[0].home_participants.length,2);
