@@ -29,5 +29,18 @@ try {
   const segments = text.split('Spielplan');
   console.log('PDF SEGMENTS',segments.length);
   for(let i=1;i<Math.min(3,segments.length);i++) console.log('SCHEDULE EXCERPT:',segments[i].split('\n').slice(0,27).join('\n').slice(0,4200));
+  const info = execFileSync('pdfinfo',[file],{encoding:'utf8',timeout:10000});
+  console.log('PDF PAGE INFO:',info.split('\n').filter(x=>/Pages:|Page size:/.test(x)).join(' | '));
+  for (const region of [
+    ['page1-right',1,1,600,0,650,1000],
+    ['page2-left',2,2,0,0,600,1000],
+    ['page2-right',2,2,600,0,650,1000],
+  ]) {
+    const [label,first,last,x,y,width,height] = region;
+    try {
+      const section = execFileSync('pdftotext',['-layout','-f',String(first),'-l',String(last),'-x',String(x),'-y',String(y),'-W',String(width),'-H',String(height),file,'-'],{encoding:'utf8',timeout:16000});
+      console.log('CROP '+label+' LINES:'+section.split('\n').slice(0,33).join('\n').slice(0,3900));
+    } catch(error) { console.log('CROP ERROR '+label+': '+String(error).slice(0,140)); }
+  }
   if (!/TSV Feldkirchen\s*\(01012\)/.test(text) || !/Sommer 2026/.test(text)) process.exitCode = 4;
 } finally { rmSync(dir,{recursive:true,force:true}); }
