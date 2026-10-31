@@ -16,6 +16,15 @@ try{
    if(!response.ok || bytes.toString('ascii',0,4)!=='%PDF')continue;
    const file=join(d,group+'.pdf');writeFileSync(file,bytes);
    const txt=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8',timeout:16000,maxBuffer:2e6});
+
+   const metadata=execFileSync('pdfinfo',[file],{encoding:'utf8'});
+   const dimensions=metadata.match(/^Page size:\s+([\d.]+) x ([\d.]+)/m);
+   if(!dimensions)throw Error('No expected PDF size for group '+group);
+   const width=Number(dimensions[1]),height=Number(dimensions[2]);
+   const left=execFileSync('pdftotext',['-layout','-f','1','-l','1','-x','0','-y','0','-W',String(Math.floor(width/2)),'-H',String(Math.ceil(height)),file,'-'],{encoding:'utf8'});
+   const right=execFileSync('pdftotext',['-layout','-f','1','-l','1','-x',String(Math.floor(width/2)),'-y','0','-W',String(Math.ceil(width/2)),'-H',String(Math.ceil(height)),file,'-'],{encoding:'utf8'});
+   console.log('PDF_TWO_COLUMNS',JSON.stringify({group,width,height,left:left.slice(0,3500),right:right.slice(0,11500)}));
+
    const lines=txt.split('\n');
    const rows=[];
    for(let i=0;i<lines.length;i++) if(/TSV Feldkirchen|Winter 2026\/2027|Gr\. 0(18|20)|Gr\. 166/.test(lines[i]))rows.push(lines.slice(Math.max(0,i-2),Math.min(i+3,lines.length)).join('  ').slice(0,420));
