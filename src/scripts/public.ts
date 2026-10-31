@@ -301,49 +301,131 @@ export async function loadHome() {
 
 export async function loadTeams() {
   watchPublicContent('#teams-grid');
-  const target = document.querySelector('#teams-grid');
-  const seasonSelect = document.querySelector<HTMLSelectElement>('#teams-season');
-  const categorySelect = document.querySelector<HTMLSelectElement>('#teams-category');
-  if (!target || !seasonSelect || !categorySelect) return;
+  const target = document.querySelector<HTMLElement>('#teams-grid');
+  const nav = document.querySelector<HTMLElement>('#teams-season-nav');
+  const categoryTarget = document.querySelector<HTMLElement>('#teams-category-chips');
+  const info = document.querySelector<HTMLElement>('#teams-results-info');
+  const heading = document.querySelector<HTMLElement>('#teams-results-title');
+  if (!target || !nav || !categoryTarget || !info || !heading) return;
+
   const reference = await refs();
   if (!reference.seasons.length || !reference.teams.length) {
-    target.innerHTML = '<p class="muted">Mannschaften sind momentan nicht abrufbar. Bitte später erneut versuchen.</p>';
+    target.innerHTML = '<div class="teams-empty" role="status"><h3>Mannschaften derzeit nicht verfügbar</h3><p>Bitte versuche es später erneut.</p></div>';
+    info.textContent = 'Der Spielplan konnte nicht geladen werden.';
     return;
   }
-  const current = reference.seasons.find(s => s.is_current) ?? reference.seasons[0];
-  seasonSelect.innerHTML = reference.seasons.map(s => `<option value="${s.id}" ${s.id === current?.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('');
-  categorySelect.innerHTML = '<option value="">Alle Kategorien</option>' + reference.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-  const seasonIds = reference.teamSeasons.filter(ts => ts.is_published).map(ts => ts.id);
+
+  const seasonCodes = ['sommer-2026', 'winter-2026-2027', 'sommer-2027'];
+  const seasonByCode = new Map<string, Row>(reference.seasons
+    .filter((s: Row) => s.is_published !== false && seasonCodes.includes(s.code))
+    .map((s: Row) => [s.code, s]));
+  const teamsById = byId(reference.teams);
+  const publishedTeamSeasons = reference.teamSeasons.filter((ts: Row) => ts.is_published && teamsById.has(ts.team_id));
+  const teamsForSeason = (season: Row | undefined) => season
+    ? publishedTeamSeasons.filter((ts: Row) => ts.season_id === season.id) : [];
+  const seasonCounts = new Map<string, number>(seasonCodes.map((code) => [code, teamsForSeason(seasonByCode.get(code)).length]));
+  for (const button of Array.from(nav.querySelectorAll<HTMLButtonElement>('[data-season]'))) {
+    const code = button.dataset.season || '';
+    const count = button.querySelector<HTMLElement>('[data-count]');
+    if (count) {
+      const value = seasonCounts.get(code) ?? 0;
+      count.textContent = value === 0 ? 'Noch keine Teams' : value + (value === 1 ? ' Team' : ' Teams');
+    }
+  }
+
+  // Prefer an actually populated current round, never an empty placeholder season.
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
+  const byCurrentDate = seasonCodes.map(code => seasonByCode.get(code)).find((s: Row | undefined) =>
+    s && (seasonCounts.get(s.code) || 0) > 0 && s.starts_on <= today && s.ends_on >= today);
+  const defaultSeason = byCurrentDate
+    || seasonCodes.map(code => seasonByCode.get(code)).find((s: Row | undefined) => s?.is_current && (seasonCounts.get(s.code) || 0) > 0)
+    || seasonByCode.get('sommer-2026');
+  let activeCode = defaultSeason?.code || 'sommer-2026';
+  let activeCategory = '';
+  const knownCategories = reference.categories.filter((category: Row) =>
+    publishedTeamSeasons.some((ts: Row) => teamsById.get(ts.team_id)?.category_id === category.id));
+  categoryTarget.innerHTML = [
+    '<button type="button" class="teams-category-chip is-active" data-category="" aria-pressed="true">Alle Teams</button>',
+    ...knownCategories.map((category: Row) =>
+      `<button type="button" class="teams-category-chip" data-category="${escapeHtml(category.id)}" aria-pressed="false">${escapeHtml(category.name)}</button>`)
+  ].join('');
+
+  const seasonIds = publishedTeamSeasons.map((ts: Row) => ts.id);
   const matchResult = seasonIds.length
     ? await supabase.from('matches').select('*').eq('is_published', true).in('team_season_id', seasonIds).order('starts_at')
     : { data: [], error: null };
   const matches = matchResult.data ?? [];
   const stateResult = matches.length
-    ? await supabase.from('match_live_state').select('*').in('match_id', matches.map(m => m.id))
+    ? await supabase.from('match_live_state').select('*').in('match_id', matches.map((m: Row) => m.id))
     : { data: [], error: null };
-  const states = new Map((stateResult.data ?? []).map(s => [s.match_id, s]));
+  const states = new Map((stateResult.data ?? []).map((s: Row) => [s.match_id, s]));
+
+  const applyUrlState = () => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('season');
+    const legacy = reference.seasons.find((s: Row) => s.id === code)?.code;
+    activeCode = seasonCodes.includes(code || '') ? code! :
+      legacy && seasonCodes.includes(legacy) ? legacy : defaultSeason?.code || 'sommer-2026';
+    const category = params.get('category') || '';
+    activeCategory = knownCategories.some((c: Row) => c.id === category) ? category : '';
+  };
+  const setUrlState = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('season', activeCode);
+    if (activeCategory) url.searchParams.set('category', activeCategory);
+    else url.searchParams.delete('category');
+    window.history.pushState({}, '', url.toString());
+  };
+
   const render = () => {
-    const seasonId = seasonSelect.value, categoryId = categorySelect.value;
-    const rows = reference.teamSeasons
-      .filter(ts => ts.season_id === seasonId && ts.is_published)
-      .map(ts => ({ ts, team: reference.teams.find(t => t.id === ts.team_id) }))
-      .filter((x): x is { ts: Row; team: Row } => !!x.team && (!categoryId || x.team.category_id === categoryId))
-      .sort((a, b) => (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0));
+    for (const button of Array.from(nav.querySelectorAll<HTMLButtonElement>('[data-season]'))) {
+      const active = button.dataset.season === activeCode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    }
+    for (const button of Array.from(categoryTarget.querySelectorAll<HTMLButtonElement>('[data-category]'))) {
+      const active = button.dataset.category === activeCategory;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    }
+    const selectedSeason = seasonByCode.get(activeCode);
+    const allRows = teamsForSeason(selectedSeason)
+      .map((ts: Row) => ({ ts, team: teamsById.get(ts.team_id) }))
+      .filter((item: {ts: Row; team: Row | undefined}): item is {ts: Row; team: Row} => !!item.team)
+      .sort((a: {team: Row}, b: {team: Row}) => (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0));
+    const rows = allRows.filter(({ team }: {team: Row}) => !activeCategory || team.category_id === activeCategory);
+    const title = selectedSeason?.name || (activeCode === 'winter-2026-2027' ? 'Winter 2026/2027' : activeCode === 'sommer-2027' ? 'Sommer 2027' : 'Saison 2026');
+    heading.textContent = title;
+    info.textContent = allRows.length > 0
+      ? `${rows.length} ${rows.length === 1 ? 'Mannschaft' : 'Mannschaften'}${activeCategory ? ' in dieser Kategorie' : ' in dieser Runde'}`
+      : 'Noch keine bestätigten Mannschaftsmeldungen für diese Runde.';
+    const emptyMessage = activeCode === 'sommer-2027'
+      ? 'Die Mannschaften und Spielpläne für Sommer 2027 werden veröffentlicht, sobald die offiziellen BTV-Daten verfügbar sind.'
+      : activeCode === 'winter-2026-2027'
+        ? 'Für die Winterrunde 2026/2027 sind noch keine offiziell bestätigten TSV-Mannschaften hinterlegt. Sobald die BTV-Meldungen geprüft sind, erscheinen die Winterteams hier.'
+        : 'Für diese Saison wurden noch keine Mannschaften veröffentlicht.';
+    if (!rows.length) {
+      target.innerHTML = allRows.length && activeCategory
+        ? '<div class="teams-empty"><span aria-hidden="true">◎</span><h3>Keine Mannschaft in dieser Kategorie</h3><p>Wähle „Alle Teams“, um die gesamte Saison zu sehen.</p></div>'
+        : `<div class="teams-empty"><span aria-hidden="true">${activeCode.startsWith('winter') ? '❄' : '☀'}</span><h3>Noch keine Mannschaften veröffentlicht</h3><p>${emptyMessage}</p></div>`;
+      return;
+    }
     const now = Date.now();
-    target.innerHTML = rows.length ? rows.map(({ ts, team }) => {
-      const teamMatches = matches.filter(m => m.team_season_id === ts.id);
-      const liveMatch = teamMatches.find(m => states.get(m.id)?.status === 'live');
-      const next = teamMatches.find(m => new Date(m.starts_at).getTime() >= now && states.get(m.id)?.status !== 'finished');
+    target.innerHTML = rows.map(({ ts, team }: {ts: Row; team: Row}) => {
+      const teamMatches = matches.filter((m: Row) => m.team_season_id === ts.id);
+      const liveMatch = teamMatches.find((m: Row) => states.get(m.id)?.status === 'live');
+      const next = teamMatches.find((m: Row) => new Date(m.starts_at).getTime() >= now && states.get(m.id)?.status !== 'finished');
       const featured = liveMatch || next;
       const currentState = featured ? states.get(featured.id) : null;
       const isLive = currentState?.status === 'live';
       const clubScore = featured ? (featured.is_home ? currentState?.home_score : currentState?.away_score) : null;
       const otherScore = featured ? (featured.is_home ? currentState?.away_score : currentState?.home_score) : null;
+      const detailUrl = `/mannschaften/${encodeURIComponent(team.slug)}/?season=${encodeURIComponent(activeCode)}`;
       return `
         <article class="card team-card team-overview-card">
           <img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" />
-          <div><p class="eyebrow">${escapeHtml(reference.seasons.find(s => s.id === ts.season_id)?.name || 'Saison')}</p><h3>${escapeHtml(team.name)}</h3></div>
-          <p class="muted">${escapeHtml([ts.league, ts.group_name].filter(Boolean).join(' · '))}</p>
+          <div><p class="eyebrow">${escapeHtml(title)}</p><h3>${escapeHtml(team.name)}</h3></div>
+          <p class="muted">${escapeHtml([ts.league, ts.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p>
           ${featured ? `
             <div class="team-overview-next ${isLive ? 'is-live' : ''}">
               <span class="status-pill ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'Nächstes Spiel'}</span>
@@ -351,12 +433,28 @@ export async function loadTeams() {
               <small>${escapeHtml(formatDateTime(featured.starts_at))} · ${featured.is_home ? 'Heim' : 'Auswärts'}${isLive ? ` · ${clubScore ?? 0} : ${otherScore ?? 0}` : ''}</small>
               ${isLive ? `<a href="/live/?match=${encodeURIComponent(featured.id)}">Zum Liveticker</a>` : ''}
             </div>` : '<p class="muted">Derzeit kein nächstes Punktspiel eingetragen.</p>'}
-          <div class="actions"><a class="button" href="/mannschaften/${escapeHtml(team.slug)}/">Mannschaft öffnen</a>${ts.btv_url ? `<a class="button ghost" href="${escapeHtml(ts.btv_url)}" target="_blank" rel="noreferrer">BTV ↗</a>` : ''}</div>
+          <div class="actions"><a class="button" href="${detailUrl}">Mannschaft öffnen</a>${ts.btv_url && /^https:\/\//.test(ts.btv_url) ? `<a class="button ghost" href="${escapeHtml(ts.btv_url)}" target="_blank" rel="noopener noreferrer">BTV ↗</a>` : ''}</div>
         </article>`;
-    }).join('') : '<p class="muted">Für diese Auswahl sind keine Mannschaften hinterlegt.</p>';
+    }).join('');
   };
-  seasonSelect.addEventListener('change', render);
-  categorySelect.addEventListener('change', render);
+
+  applyUrlState();
+  nav.addEventListener('click', (event: MouseEvent) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-season]');
+    if (!button || !nav.contains(button) || button.dataset.season === activeCode) return;
+    activeCode = button.dataset.season || 'sommer-2026';
+    activeCategory = '';
+    setUrlState();
+    render();
+  });
+  categoryTarget.addEventListener('click', (event: MouseEvent) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-category]');
+    if (!button || !categoryTarget.contains(button) || button.dataset.category === activeCategory) return;
+    activeCategory = button.dataset.category || '';
+    setUrlState();
+    render();
+  });
+  window.addEventListener('popstate', () => { applyUrlState(); render(); });
   render();
 }
 
