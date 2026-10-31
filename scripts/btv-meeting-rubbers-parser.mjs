@@ -38,6 +38,16 @@ const rowWithScores=line=>[...line.matchAll(scoreRegex)].length>=2;
 const sum=(xs,key)=>xs.filter(x=>x.winner_side===key).length;
 const exactNameRe=/^[^\d\n]{1,100},\s*[^\d\n,]{1,100}$/u;
 
+export function canonicalRubberSnapshot(rows){
+  return [...rows].sort((a,b)=>a.discipline.localeCompare(b.discipline)||a.position-b.position).map(row=>({
+    discipline:row.discipline,position:Number(row.position),
+    home_participants:(row.home_participants||[]).map(x=>({name:x.name})),
+    away_participants:(row.away_participants||[]).map(x=>({name:x.name})),
+    set_results:(row.set_results||[]).map(x=>({home:Number(x.home),away:Number(x.away)})),winner_side:row.winner_side,
+    special_status:row.special_status,result_text:row.result_text
+  }));
+}
+
 export function parseOfficialMeetingText(text,{expectedHomePoints,expectedAwayPoints}={}){
   if(typeof text!=='string'||text.length<150||text.length>500000)throw Error('REPORT_TEXT_INVALID');
   const lines=text.split(/\r?\n/);
