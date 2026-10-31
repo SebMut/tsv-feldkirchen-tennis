@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import {selectOfficialResults} from '../scripts/btv-results-import.mjs';
+import {selectOfficialResults} from '../scripts/btv-results-match.mjs';
 const text=readFileSync(new URL('../scripts/btv-results-import.mjs',import.meta.url),'utf8');
 const workflow=readFileSync(new URL('../.github/workflows/btv-results-private-import.yml',import.meta.url),'utf8');
 const ts=new Map([['herren','ts1']]);
