@@ -148,20 +148,18 @@ export async function fetchClubGroupReport(seasonCode){
     const rawWithdrawalMarkers=(full.match(/zurückgezogen(?:\s*\/\s*gesperrt)?\s+am/gi)||[]).length;
     const groupsSeen=groupNumbersFromColumns(columns);
     if(rawWithdrawalMarkers>entries.length) {
-      // Official public team rankings only: log the abbreviated source
-      // context so layout regressions can be corrected without inventing
-      // withdrawals from unrelated groups or the legend.
-      const plain=full.split(/\\r?\\n/);
+      // Public team names only: diagnose source layout without ranking errors.
+      const plain=full.split(/\r?\n/);
       const contexts=[];
       for(let i=0;i<plain.length;i++){
-        if(!/zurückgezogen(?:\\s*\\/\\s*gesperrt)?\\s+am/i.test(plain[i]))continue;
+        if(!/zurückgezogen(?:\s*\/\s*gesperrt)?\s+am/i.test(plain[i]))continue;
         contexts.push(plain.slice(Math.max(0,i-1),Math.min(plain.length,i+3))
           .map(l=>l.trim().slice(0,230)).join(' | '));
       }
       const cropped=columns.map((t,index)=>({
         index,
         headings:groupNumbersFromColumns([t]),
-        lines:t.split(/\\r?\\n/).filter(l=>/zurückgezogen|\\bGr\\./i.test(l)).slice(0,15)
+        lines:t.split(/\r?\n/).filter(l=>/zurückgezogen|\bGr\./i.test(l)).slice(0,15)
           .map(l=>l.trim().slice(0,140))
       })).filter(x=>x.lines.length);
       console.log('BTV_CLUB_WITHDRAWAL_UNPARSED='+JSON.stringify({contexts:contexts.slice(0,10),cropped}));
