@@ -926,8 +926,33 @@ async function refreshMatches() {
       .from('match_encounters')
       .update({ ...patch, updated_by: state.user.id, updated_at: new Date().toISOString() })
       .eq('id', encounterId);
-    if (error) status(error.message, 'error');
+    if (error) {
+      status(error.message, 'error');
+      const feedback = target.querySelector<HTMLElement>(`[data-encounter-id="${encounterId}"] [data-enc-feedback]`);
+      if (feedback) {
+        feedback.textContent = 'Speichern fehlgeschlagen: ' + error.message;
+        feedback.dataset.tone = 'error';
+      }
+    }
     return !error;
+  };
+
+  const refreshChangedEncounter = async (encounterId: string, message: string) => {
+    openMobileEncounterId = encounterId;
+    await refreshMatches();
+    const details = target.querySelector<HTMLDetailsElement>(`[data-encounter-id="${encounterId}"]`);
+    if (details) {
+      if (mobileLayout) {
+        details.open = true;
+        details.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      }
+      const feedback = details.querySelector<HTMLElement>('[data-enc-feedback]');
+      if (feedback) {
+        feedback.textContent = message;
+        feedback.dataset.tone = 'success';
+      }
+    }
+    status(message, 'success');
   };
 
   target.querySelectorAll<HTMLElement>('[data-match-card]').forEach((card) => {
@@ -1030,7 +1055,7 @@ async function refreshMatches() {
         })) {
           const nameInput = encounterCard.querySelector<HTMLInputElement>('[data-enc-name1]');
           if (nameInput) nameInput.value = player?.display_name || '';
-          status('Aufstellung gespeichert.', 'success');
+          localFeedback('Aufstellung gespeichert.');
         }
       });
 
@@ -1043,7 +1068,7 @@ async function refreshMatches() {
         })) {
           const nameInput = encounterCard.querySelector<HTMLInputElement>('[data-enc-name2]');
           if (nameInput) nameInput.value = player?.display_name || '';
-          status('Aufstellung gespeichert.', 'success');
+          localFeedback('Aufstellung gespeichert.');
         }
       });
 
@@ -1067,12 +1092,12 @@ async function refreshMatches() {
 
       encounterCard.querySelector<HTMLSelectElement>('[data-enc-opponent1]')?.addEventListener('change', async (event) => {
         const value = Number((event.currentTarget as HTMLSelectElement).value) || null;
-        if (await updateEncounter(encounterId, { opponent_slot_1: value })) status('Gegner gespeichert.', 'success');
+        if (await updateEncounter(encounterId, { opponent_slot_1: value })) localFeedback('Gegner gespeichert.');
       });
 
       encounterCard.querySelector<HTMLSelectElement>('[data-enc-opponent2]')?.addEventListener('change', async (event) => {
         const value = Number((event.currentTarget as HTMLSelectElement).value) || null;
-        if (await updateEncounter(encounterId, { opponent_slot_2: value })) status('Gegner gespeichert.', 'success');
+        if (await updateEncounter(encounterId, { opponent_slot_2: value })) localFeedback('Gegner gespeichert.');
       });
 
       encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.addEventListener('change', async (event) => {
@@ -1080,17 +1105,23 @@ async function refreshMatches() {
         if (await updateEncounter(encounterId, { result_text: resultText })) localFeedback('Ergebnis gespeichert.');
       });
 
-      encounterCard.querySelector<HTMLButtonElement>('[data-enc-start]')?.addEventListener('click', async () => {
-        if (!(await ensureMatchLive())) return;
-        if (await updateEncounter(encounterId, {
-          status: 'live',
-          started_at: encounter.started_at || new Date().toISOString(),
-          finished_at: null,
-          winner: null,
-        })) {
-          openMobileEncounterId = encounterId;
-          localFeedback(`${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position} läuft jetzt.`);
-          await refreshMatches();
+      const startButton = encounterCard.querySelector<HTMLButtonElement>('[data-enc-start]');
+      startButton?.addEventListener('click', async () => {
+        if (startButton.disabled) return;
+        startButton.disabled = true;
+        try {
+          if (!(await ensureMatchLive())) return;
+          if (await updateEncounter(encounterId, {
+            status: 'live',
+            started_at: encounter.started_at || new Date().toISOString(),
+            finished_at: null,
+            winner: null,
+          })) {
+            await refreshChangedEncounter(encounterId,
+              `${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position} läuft jetzt.`);
+          }
+        } finally {
+          if (startButton.isConnected) startButton.disabled = false;
         }
       });
 
@@ -1107,9 +1138,8 @@ async function refreshMatches() {
             result_text: resultText,
             finished_at: new Date().toISOString(),
           })) {
-            openMobileEncounterId = encounterId;
-            localFeedback(winner === 'tsv' ? 'Punkt für TSV Feldkirchen gespeichert.' : 'Punkt für den Gegner gespeichert.');
-            await refreshMatches();
+            await refreshChangedEncounter(encounterId,
+              winner === 'tsv' ? 'Punkt für TSV Feldkirchen gespeichert.' : 'Punkt für den Gegner gespeichert.');
           } else button.disabled = false;
         });
       });
@@ -1123,8 +1153,7 @@ async function refreshMatches() {
           started_at: null,
           finished_at: null,
         })) {
-          status('Begegnung zurückgesetzt.', 'success');
-          refreshMatches();
+          await refreshChangedEncounter(encounterId, 'Begegnung zurückgesetzt.');
         }
       });
     });
@@ -1689,7 +1718,10 @@ function bindForms() {
   $<HTMLButtonElement>('#player-cancel-edit')?.addEventListener('click', resetPlayerForm);
   $<HTMLFormElement>('#match-form')?.addEventListener('submit', addMatch);
   $<HTMLSelectElement>('#matches-admin-filter')?.addEventListener('change', () => { void refreshMatches(); });
-  $<HTMLSelectElement>('#matches-admin-game')?.addEventListener('change', () => { void refreshMatches(); });
+  $<HTMLSelectElement>('#matches-admin-game')?.addEventListener('change', () => {
+    openMobileEncounterId = null;
+    void refreshMatches();
+  });
   $<HTMLFormElement>('#news-form')?.addEventListener('submit', addNews);
   $<HTMLFormElement>('#event-form')?.addEventListener('submit', addEvent);
   $('#news-cancel-edit')?.addEventListener('click', () => {
