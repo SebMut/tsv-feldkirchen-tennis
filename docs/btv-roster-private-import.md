@@ -6,8 +6,10 @@ mit sieben PDF-Seiten bestätigt.
 
 ## Verifizierte Teildaten
 
-- Zehn dokumentierte Mannschaftsabschnitte in sechs Altersklassen
-  (Herren, Herren 40, Damen 40, Junioren 18, Knaben 15, Bambini 12).
+- Zehn dokumentierte Mannschaftsabschnitte mit sechs Altersklassenüberschriften.
+  **Nur fünf Altersklassen enthalten auslesbare Spielernamen**: Herren (49),
+  Herren 40 (54), Junioren 18 (23), Knaben 15 (25), Bambini 12 (21).
+  Damen 40 ist als Überschrift vorhanden, hat aber im Bericht keinen Eintrag.
 - 173 nummerierte Zeilen, davon 172 mit gültig extrahierbaren Spielernamen.
 - Eine Zeile wird ausdrücklich ausgeschlossen, weil das Namensformat
   nicht eindeutig der erlaubten Struktur entspricht.
@@ -35,7 +37,7 @@ mit sieben PDF-Seiten bestätigt.
 
 ## Offene Nacharbeiten
 
-Die bislang nicht abgedeckten Altersklassen und der eine
+Die bislang nicht abgedeckten Altersklassen einschließlich Damen 40, Mädchen 15 und Kleinfeld U9 sowie der eine
 nicht lesbare Eintrag müssen über weitere verifizierte BTV-Dokumente
 beziehungsweise die TSV-Mannschaftsverwaltung abgeglichen werden.
 

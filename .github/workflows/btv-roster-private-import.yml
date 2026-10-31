@@ -1,6 +1,6 @@
 name: BTV 2026 verifizierte Kader intern importieren
 
-# One protected write after review and merge to main.
+# One protected write after review and merge: five nonempty BTV classes, 172 validated names.
 # Pull requests only run synthetic tests and never receive Secrets.
 on:
   push:
