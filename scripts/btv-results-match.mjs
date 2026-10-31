@@ -9,7 +9,10 @@ export const parseScore=(raw)=>{
 const identity=(seasonId,home,opponent)=>
   [seasonId,home?'H':'A',normalizedName(opponent)].join('|');
 
-export function selectOfficialResults(fixtures, matches, teamSeasonIds, states=[], now=Date.now()) {
+export function selectOfficialResults(fixtures, matches, teamSeasonIds, states=[], now=Date.now(), maxDateDistanceDays=45) {
+  // Long verified postponements are allowed only when caller explicitly opts in.
+  if(!Number.isInteger(maxDateDistanceDays)||maxDateDistanceDays<0||maxDateDistanceDays>120)
+    throw Error('INVALID_OFFICIAL_MATCH_DATE_WINDOW');
   const bySource=new Map(),byDb=new Map(),stateById=new Map(states.map(s=>[s.match_id,s]));
   let withoutResult=0, future=0, ambiguous=0, unmatched=0, oldConflict=0, existing=0, live=0, farDate=0;
   const updates=[];
@@ -34,7 +37,7 @@ export function selectOfficialResults(fixtures, matches, teamSeasonIds, states=[
       continue;
     }
     const match=found[0];
-    if(Math.abs(Date.parse(match.starts_at)-Date.parse(fixture.startsAt))>45*86400000){
+    if(Math.abs(Date.parse(match.starts_at)-Date.parse(fixture.startsAt))>maxDateDistanceDays*86400000){
       farDate++;continue;
     }
     const ticker=stateById.get(match.id);

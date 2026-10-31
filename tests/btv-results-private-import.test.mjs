@@ -64,3 +64,31 @@ test('repository and secret scope are strictly restricted, only score fields cha
   assert.match(workflow,/secrets\.BTV_SUPABASE_SECRET_KEY/);
   assert.doesNotMatch(workflow,/upload-artifact|schedule:|cron:/);
 });
+
+
+test('Sommer 2026 rescheduled 84-day official result is matched only when explicitly enabled',()=>{
+  const original='2026-05-02T07:00:00Z';
+  const official='2026-07-25T07:00:00Z';
+  const source=[fixture('TS Jahn München II',false,official,'4:2')];
+  const saved=[match('m1','TS Jahn München II',false,original)];
+  const regular=selectOfficialResults(source,saved,ts,[],now);
+  assert.equal(regular.updates.length,0);
+  assert.equal(regular.farDate,1);
+  const summer=selectOfficialResults(source,saved,ts,[],now,120);
+  assert.deepEqual(summer.updates.map(x=>[x.id,x.score]),[['m1','4:2']]);
+});
+
+test('2026 extended window still excludes conflicting or ambiguous matches',()=>{
+  const official='2026-07-25T07:00:00Z';
+  const source=[fixture('TS Jahn München II',false,official,'4:2')];
+  const original='2026-05-02T07:00:00Z';
+  const wrongSide=[match('m1','TS Jahn München II',true,original)];
+  assert.equal(selectOfficialResults(source,wrongSide,ts,[],now,120).updates.length,0);
+  const duplicate=[match('m1','TS Jahn München II',false,original),
+    match('m2','TS Jahn München II',false,original)];
+  assert.equal(selectOfficialResults(source,duplicate,ts,[],now,120).updates.length,0);
+  const tooFar=match('m3','TS Jahn München II',false,'2026-01-01T07:00:00Z');
+  assert.equal(selectOfficialResults(source,[tooFar],ts,[],now,120).updates.length,0);
+  assert.throws(()=>selectOfficialResults(source,[tooFar],ts,[],now,121),/INVALID_OFFICIAL_MATCH_DATE_WINDOW/);
+  assert.match(text,/source\.code==='sommer-2026'\?120:45/);
+});
