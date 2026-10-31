@@ -325,7 +325,7 @@ export async function loadTeams() {
     const rows = reference.teamSeasons
       .filter(ts => ts.season_id === seasonId && ts.is_published)
       .map(ts => ({ ts, team: reference.teams.find(t => t.id === ts.team_id) }))
-      .filter(x => x.team && (!categoryId || x.team.category_id === categoryId))
+      .filter((x): x is { ts: Row; team: Row } => !!x.team && (!categoryId || x.team.category_id === categoryId))
       .sort((a, b) => (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0));
     const now = Date.now();
     target.innerHTML = rows.length ? rows.map(({ ts, team }) => {
