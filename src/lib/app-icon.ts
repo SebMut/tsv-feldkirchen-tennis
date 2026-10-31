@@ -47,7 +47,7 @@ export function renderIconPng(size: 192 | 512): Buffer {
       const br = 16, cx = Math.max(0,Math.abs(x-256)-(161-br));
       const cy = Math.max(0,Math.abs(y-419)-(42-br));
       if (cx*cx+cy*cy<=br*br) {
-        const textStart=121, textTop=392, pixel=12, spacing=14;
+        const textStart=169, textTop=388, pixel=10, spacing=12;
         for (const [i,letter] of ['T','S','V'].entries()) {
           const rows=glyphs[letter];
           const localX=x-(textStart+i*(5*pixel+spacing));
