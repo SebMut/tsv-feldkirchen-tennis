@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {parseBtvStandings} from '../scripts/btv-standings-source.mjs';
+import {parseBtvStandings,parseClubStandingsColumns,officialClubStandingsUrl} from '../scripts/btv-standings-source.mjs';
 
 const text=[
   'Südbayern | Sommer 2026',
@@ -34,6 +34,26 @@ test('one unavailable BTV group cannot abort every other table',()=>{
   assert.match(importer,/failures\.push/);
   assert.match(importer,/continue; \/\/ One unavailable BTV group/);
   assert.match(importer,/groups===0/);
+});
+
+test('official small club report supplies complete summer group tables',()=>{
+  const columns=[0,1,2,3].map((_,index)=>[
+    `Herren Südliga 2 Gr. ${315+index}`,
+    '1 TSV Feldkirchen II (01012) 7 12:2 45:18',
+    '2 SC Baldham (02035) 7 10:4 40:23',
+    '3 TC Muster (09991) 7 8:6 35:28',
+    '4 VfB Beispiel (09992) 7 6:8 30:33'
+  ].join('\n'));
+  const groups=parseClubStandingsColumns(columns,{seasonCode:'sommer-2026'});
+  assert.equal(groups.size,4);
+  assert.equal(groups.get(315)[0].teamName,'TSV Feldkirchen II');
+  const url=new URL(officialClubStandingsUrl('sommer-2026'));
+  assert.equal(url.searchParams.get('dokument'),'ResultReportFOP');
+  assert.equal(url.searchParams.get('type'),'small');
+  assert.equal(url.searchParams.get('club'),'23391');
+  assert.equal(url.searchParams.get('season'),'18105');
+  assert.equal(url.searchParams.has('etag'),false);
+  assert.equal(url.searchParams.has('utm_source'),false);
 });
 
 test('scheduled result importer includes winter instead of summer-only filter',()=>{

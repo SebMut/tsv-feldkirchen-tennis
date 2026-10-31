@@ -1,4 +1,4 @@
-import {readBtvStandings} from './btv-standings-source.mjs';
+import {readBtvStandings,readBtvClubStandings} from './btv-standings-source.mjs';
 import {groupIdFromBtvUrl} from './btv-withdrawal-source.mjs';
 
 const apply=process.argv.includes('--apply');
@@ -15,13 +15,19 @@ const teamSeasons=await query(db.from('team_seasons').select('id,season_id,group
 if(teamSeasons.length!==23)throw Error('STANDINGS_TEAM_SEASON_COUNT_CHANGED');
 let groups=0,rowsRead=0,rowsWritten=0;
 const failures=[];
+let summerClubReport=null;
+try{summerClubReport=await readBtvClubStandings('sommer-2026');}
+catch(error){failures.push({season:'sommer-2026',group:'club-report',error:String(error?.message||error).slice(0,100)});}
 for(const teamSeason of teamSeasons){
   const groupId=groupIdFromBtvUrl(teamSeason.btv_url);
   if(!groupId)throw Error('STANDINGS_UNVERIFIED_GROUP_LINK');
   const seasonCode=seasonById.get(teamSeason.season_id);
   let snapshot;
+  const groupNumber=Number(String(teamSeason.group_name).match(/Gr\.\s*(\d{1,4})/)?.[1]);
+  const clubRows=seasonCode==='sommer-2026'&&summerClubReport?.groups.get(groupNumber);
+  if(clubRows) snapshot={rows:clubRows,sourceUrl:summerClubReport.sourceUrl,sourceHash:summerClubReport.sourceHash};
   try{
-    snapshot=await readBtvStandings(groupId,{seasonCode,groupName:teamSeason.group_name});
+    snapshot??=await readBtvStandings(groupId,{seasonCode,groupName:teamSeason.group_name});
   }catch(error){
     failures.push({season:seasonCode,group:groupId,error:String(error?.message||error).slice(0,100)});
     continue; // One unavailable BTV group must never block every other table.
