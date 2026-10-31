@@ -49,3 +49,23 @@ if (courtbooking.status < 200 || courtbooking.status >= 400) {
   throw new Error(`Courtbooking returned HTTP ${courtbooking.status}`);
 }
 console.log(`OK Courtbooking connection: HTTP ${courtbooking.status}`);
+
+const storageBase = 'https://eaurnufdochjapfzqwvm.supabase.co/storage/v1/object/public/media/';
+const essentialImages = [
+  'branding/tennis-logo.png',
+  'news/platzaufbau.png',
+  'teams/herren.png',
+  'teams/damen.png',
+  'teams/jugend.png',
+];
+for (const path of essentialImages) {
+  const response = await fetch(storageBase + path, {
+    method: 'HEAD',
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!response.ok) throw new Error(`Media ${path}: HTTP ${response.status}`);
+  if (!(response.headers.get('content-type') || '').startsWith('image/')) {
+    throw new Error(`Media ${path}: invalid content type ${response.headers.get('content-type')}`);
+  }
+  console.log(`OK media: ${path}`);
+}
