@@ -19,6 +19,7 @@ const missing=[
 ];
 const out=await getClubSchedule(2026);
 console.log('BTV_SUMMER_2026_SOURCE='+JSON.stringify({url:out.sourceUrl,rows:out.rawRows,fixtures:out.fixtures.length,pages:out.pages,unrecognized:out.unrecognized.length}));
+console.log('BTV_SUMMER_2026_ALL='+JSON.stringify(out.fixtures.map(({slug,opponent,isHome,score,date,time,sourcePage})=>({slug,opponent,isHome,score,date,time,sourcePage}))));
 for(const [matchId,slug,opponent,home,dbDate] of missing){
  const exact=out.fixtures.filter(x=>x.slug===slug && x.isHome===home &&
    normalizedName(x.opponent)===normalizedName(opponent));
