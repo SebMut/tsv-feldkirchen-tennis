@@ -225,8 +225,15 @@ async function run() {
     if (!trusted(clubPage)) fail('UNEXPECTED_REDIRECT');
     console.log('BTV_TSV_SCOPE=CONFIRMED');
     await openDownloads(clubPage);
-    const scanned = await visiblePages(context);
-    const downloadPage = scanned.find(({ text }) => /Namentliche\s+Mannschaftsmeldung|Nam\.\s*Meldung/i.test(text));
+    // BTV renders the Downloads panel asynchronously after navigation.
+    // Poll only the already authorized page; never repeat a login request.
+    let downloadPage = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const scanned = await visiblePages(context);
+      downloadPage = scanned.find(({ text }) => /Namentliche\s+Mannschaftsmeldung|Nam\.\s*Meldung/i.test(text));
+      if (downloadPage) break;
+      await page.waitForTimeout(1200);
+    }
     if (!downloadPage) fail('NMM_DOWNLOAD_NOT_DISCOVERED');
 
     // No PDF links are opened. Neither names nor generated document URLs are logged.
