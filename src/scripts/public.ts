@@ -18,7 +18,17 @@ function initials(name = '') {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || 'TSV';
 }
 
+let refsCache: Promise<{ seasons: Row[]; categories: Row[]; teams: Row[]; teamSeasons: Row[] }> | null = null;
+let refsCachedAt = 0;
+
 async function refs() {
+  if (refsCache && Date.now() - refsCachedAt < 60000) return refsCache;
+  refsCachedAt = Date.now();
+  refsCache = fetchRefs();
+  return refsCache;
+}
+
+async function fetchRefs() {
   const [{ data: seasons }, { data: categories }, { data: teams }, { data: teamSeasons }] = await Promise.all([
     supabase.from('seasons').select('*').order('year', { ascending: false }),
     supabase.from('team_categories').select('*').order('sort_order'),
