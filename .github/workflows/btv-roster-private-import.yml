@@ -1,0 +1,65 @@
+name: BTV 2026 verifizierte Kader intern importieren
+
+# One protected write after review and merge to main.
+# Pull requests only run synthetic tests and never receive Secrets.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/btv-roster-private-import.yml
+  pull_request:
+    paths:
+      - .github/workflows/btv-roster-private-import.yml
+      - scripts/btv-roster-supabase-import.mjs
+      - scripts/btv-roster-pdf-parser.mjs
+      - scripts/btv-roster-pdf-audit.mjs
+      - tests/btv-roster-supabase-import.test.mjs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btv-roster-pdf-audit
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check code syntax
+        run: |
+          node --check scripts/btv-roster-pdf-parser.mjs
+          node --check scripts/btv-roster-supabase-import.mjs
+          node --check scripts/btv-roster-pdf-audit.mjs
+      - name: Verify synthetic PDF and private assignment plan
+        run: node --test tests/btv-roster-pdf-parser.test.mjs tests/btv-roster-supabase-import.test.mjs
+
+  import:
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Prepare pinned runtime before secrets
+        run: |
+          npm ci
+          npm install --no-save --no-package-lock --ignore-scripts playwright@1.64.1
+          sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+          npx --no-install playwright install --with-deps chromium
+      - name: Verify BTV report then import TSV names into private Supabase rosters
+        env:
+          BTV_LOGIN_USERNAME: ${{ secrets.BTV_LOGIN_USERNAME }}
+          BTV_LOGIN_PASSWORD: ${{ secrets.BTV_LOGIN_PASSWORD }}
+          BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+          BTV_ROSTER_WRITE_ENABLED: 'true'
+        run: node scripts/btv-roster-pdf-audit.mjs --apply
