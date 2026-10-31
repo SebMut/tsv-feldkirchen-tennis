@@ -56,3 +56,17 @@ test('team-score conflicts block verification',()=>{
 test('cannot fabricate results from a 2026 fixture PDF',()=>{
  assert.throws(()=>parseOfficialMeetingText('Gr. 999 Tabelle und Spielplan\n1 TSV Feldkirchen 4:2\n',{expectedHomePoints:4,expectedAwayPoints:2}),/REPORT_TEXT_INVALID/);
 });
+
+
+test('explicit BTV w.o. on home participant counts as guest win without fake sets',()=>{
+  const line=row([[3,1],[14,1],[23,'12345678'],
+    [47,'Muster, Max GER (LK20,1) (w.o.)'],
+    [89,1],[98,'87654321'],[122,'Gast, Greta GER (LK15,4)'],
+    [159,'0:0'],[172,'0:0'],[184,'0:0']]);
+  const data=report([line,...singles.slice(1)]);
+  const x=parseOfficialMeetingText(data,{expectedHomePoints:4,expectedAwayPoints:2});
+  assert.equal(x.verification_status,'verified',x.errors.join(','));
+  assert.equal(x.singles[0].winner_side,'away');
+  assert.equal(x.singles[0].special_status,'walkover');
+  assert.deepEqual(x.singles[0].set_results,[]);
+});
