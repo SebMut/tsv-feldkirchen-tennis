@@ -1,70 +1,52 @@
-# Pre-Go-Live Plan
+# Vor-Go-live-Plan – aktueller Projektphasenstand
 
-Die produktive Domain und United Domains bleiben bis zur finalen Abnahme unangetastet.
+**Stand: 31. Oktober 2026. Die Produktionswebsite bleibt unangetastet.**
 
-## Phase 1 – Inhalte und Datenbestand
-Status: **abgeschlossen**
+Dieses Dokument verwendet die *aktuellen* Phasenbezeichnungen des Website-Rebuilds. Frühere Import-/Migrationsnotizen in `docs/migration-status.md` benutzen teilweise eine ältere Zählung; die dortigen einzelnen Prüfpunkte bleiben als historische Checkliste relevant.
 
-Siehe `docs/phase-1-content-audit.md`.
+## Phase 1 – Bestandsaufnahme und Datenmigration
+
+Status: **abgeschlossen**, redaktionelle Nachpflege einzelner Daten weiterhin möglich. Siehe `docs/phase-1-content-audit.md` und `docs/migration-status.md`.
 
 ## Phase 2 – Mannschaften und Medien
-Status: **abgeschlossen**
 
-- Übergangsbilder für alle Mannschaften eingerichtet
-- Mannschaftsfoto-Upload vorhanden
-- Kader-/Spielerverwaltung erweitert
-- öffentliche Sichtbarkeit je Spieler
-- Spielerbilder
-- Sponsorlogos vorhanden
-- Galerien inkl. Entwurf/Veröffentlichen/Löschen
-- Bildoptimierung auf WebP
+Status: **technisch abgeschlossen**. Mannschaftsseiten, Bilder, Kaderverwaltung und Galerien sind vorhanden. Reale Kader und Bilder werden durch berechtigte Mannschaftsverantwortliche gepflegt.
 
-Reale Mannschaftsfotos, Kaderdaten und Spielerbilder werden künftig redaktionell über **Mein TSV** gepflegt und blockieren den weiteren Projektfortschritt nicht.
+## Phase 3 – Benutzerkonten und Rechte
 
-## Phase 3 – Admin und Rechte
-Status: **abgeschlossen**
+Status: **technisch abgeschlossen**, praktische End-to-End-Abnahme der aktuellen Gesamtversion noch erforderlich. Serverbasierte Einladungen, SuperAdmin, Manager, Editor, Nur-Ticker und RLS sind vorhanden.
 
-- SuperAdmin vorhanden
-- sichere serverseitige Einladungen
-- Benutzerstatus und letzte Anmeldung
-- mehrere Mannschaften pro Nutzer
-- Rolle je Mannschaft
-- Editor/Manager vs. Nur-Liveticker in der Oberfläche getrennt
-- RLS bleibt die verbindliche Berechtigungsebene
-- Passwort-Reset
-- Benutzerzugänge löschbar
-- letzter SuperAdmin geschützt
+## Phase 4 – Spieltagszentrale und Liveticker
 
-Die praktische Abnahme mit Einladung, Passwort-Setup, Rollen und Login/Logout ist abgeschlossen.
+Status: **implementiert, Zwei-Geräte-Praxistest offen**. 6 Einzel/3 Doppel, optional 4 Einzel/2 Doppel, Heim-/Auswärtslogik, TSV-Logo, Gegner-Platzhalter, Punkte und Echtzeitfunktionen vorhanden. Siehe `docs/phase-4-matchday-live.md`.
 
-## Phase 4 – Spieltag und Liveticker
-Status: **in Arbeit**
+## Phase 5 – Öffentliches Frontend
 
-- einfacher rollenbasierter Einstieg in „Mein TSV“ ✅
-- direkter Schnellstart zum laufenden bzw. nächsten Liveticker ✅
-- mobile Schnellaktionen je Mannschaft ✅
-- Spieltag-Format 6 Einzel + 3 Doppel bzw. 4 Einzel + 2 Doppel ✅
-- einzelne Begegnungen mit TSV-Spielern und Gegner-Platzhaltern ✅
-- automatische Gesamtwertung aus Einzel-/Doppelergebnissen ✅
-- öffentliche Live-Ansicht mit TSV-Logo, Heim/Auswärts und Einzel/Doppel ✅
-- Testspiel durchführen
-- zwei Browser / Endgeräte
-- Smartphone-Abnahme
+Status: **technisch umgesetzt, visuelle Abnahme offen**. Startseite, Spieltage, News, Mannschaften, Galerie, Anlagenstatus und Fallbacks überarbeitet. Siehe `docs/phase-5-frontend-finish.md`.
 
-## Phase 5 – Kalender, Anlage und Courtbooking
-- ICS-Feeds extern gegenprüfen
-- Anlagenstatus testen
-- Courtbooking-Anbindung finalisieren
+## Phase 6 – Vereinsfunktionen
 
-## Phase 6 – Recht, SEO und Weiterleitungen
-- alte WordPress-URLs prüfen
-- Redirects finalisieren
-- Rechtstexte vor Go-Live abgleichen
+Status: **technisch weitgehend umgesetzt, fachliche Abnahme offen**. Courtbooking-Weiterleitung, Monatskalender mit farbigen Herren-/Damen-/Jugend-/Veranstaltungsmarkern, Anlagenstatus, News, Funktionäre, Sponsoren, Saisonarchiv und Mein TSV. Siehe `docs/phase-6-vereinsfunktionen.md`.
 
-## Phase 7 – Technische Abnahme
-- öffentliche Seiten
-- Auth
-- CRUD
-- mobile Darstellung
-- Performance
-- Barrierefreiheit
+## Phase 7 – Technische Qualitätsprüfung und Go-live-Bereitschaft
+
+Status: **technische Vorbereitung umgesetzt, Abnahme offen**.
+
+- [x] CI-/SEO-/Sitemap-/Linkaudits erweitert
+- [x] Öffentliche Service-, ICS-, Courtbooking- und Medien-Smoke-Tests
+- [x] Unnötige anonyme RPC-Berechtigung entfernt
+- [x] Supabase-Fremdschlüssel-Indizes ergänzt
+- [x] Preview-Crawler-Sperre und Build-Schutz
+- [x] Produktionsdeployment mit ausdrücklicher mehrstufiger Freigabesperre
+- [x] Separater Go-live- und Rollback-Plan dokumentiert
+- [ ] Reale Browser-/Smartphone-Abnahme
+- [ ] Live-Ticker-Praxis mit zwei Geräten
+- [ ] Echte Rollen-/CRUD-End-to-End-Tests
+- [ ] Rechtliche/Inhaltliche Freigabe, Produktionsbackup und Hosting-Preflight
+- [ ] Separates schriftliches Go-live-Einverständnis
+
+**Verbindliche Detaildokumente:**
+- `docs/phase-7-go-live-readiness.md`
+- `docs/go-live-runbook.md`
+
+**Es findet ohne ausdrückliche separate Go-live-Freigabe weder ein Merge auf `main` noch eine Produktivumstellung statt.**
