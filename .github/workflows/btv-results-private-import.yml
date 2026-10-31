@@ -1,0 +1,55 @@
+name: BTV verified summer and winter final results import
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/btv-results-private-import.yml
+  pull_request:
+    paths:
+      - .github/workflows/btv-results-private-import.yml
+      - scripts/btv-results-import.mjs
+      - scripts/btv-results-match.mjs
+      - tests/btv-results-private-import.test.mjs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btv-official-results-once
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate source and safe result mappings (no secrets)
+        run: |
+          node --check scripts/btv-results-match.mjs
+          node --check scripts/btv-results-import.mjs
+          node --test tests/btv-results-private-import.test.mjs
+
+  import:
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install audited dependencies and public PDF text extractor
+        run: |
+          npm ci
+          sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Read only verified final scores and update matching TSV fixtures
+        env:
+          BTV_RESULTS_WRITE_ENABLED: 'true'
+          BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: node scripts/btv-results-import.mjs --apply
