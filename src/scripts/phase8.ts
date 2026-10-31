@@ -140,6 +140,43 @@ function renderPersonalNext(base: AdminState) {
   });
 }
 
+
+async function renderBtvScheduleStatus() {
+  const status = el<HTMLElement>('btv-sync-status');
+  const changes = el<HTMLElement>('btv-sync-changes');
+  if (!status || !changes) return;
+  const [{ data: runs, error: runError }, { data: records, error: changesError }] = await Promise.all([
+    supabase.from('btv_import_runs').select('started_at,completed_at,status,season_year,source_fixture_count,existing_count,inserted_count,rescheduled_count,news_count,conflicts_count,error_message')
+      .order('started_at', { ascending: false }).limit(8),
+    supabase.from('btv_schedule_changes').select('detected_at,status,reason,old_starts_at,new_starts_at,match_id')
+      .order('detected_at', { ascending: false }).limit(30),
+  ]);
+  if (runError || changesError) {
+    status.innerHTML = '<p class="muted">Die BTV-Protokolle können momentan nicht geladen werden.</p>';
+    changes.innerHTML = '';
+    return;
+  }
+  const latest = runs?.[0];
+  if (!latest) {
+    status.innerHTML = '<p class="muted">Noch kein automatischer Schreibabgleich durchgeführt. Die sechs-Stunden-Prüfung ist vorbereitet, aber noch nicht aktiviert. Der erste bestätigte Abruf erstellt nur die Vergleichsbasis.</p>';
+  } else {
+    status.innerHTML = `<div class="phase8-btv-last">
+      <strong>Letzter Lauf: ${escapeHtml(formatDateTime(latest.started_at))}</strong>
+      <p>Status: ${escapeHtml(latest.status)} · Saison ${latest.season_year} · ${latest.source_fixture_count} BTV-Begegnungen</p>
+      <p>Neue Spiele: ${latest.inserted_count} · Erkannte Verschiebungen: ${latest.rescheduled_count} · Veröffentlichte News: ${latest.news_count} · Konflikte: ${latest.conflicts_count}</p>
+      ${latest.error_message ? `<p class="muted">Hinweis: ${escapeHtml(latest.error_message)}</p>` : ''}
+      </div>`;
+  }
+  changes.innerHTML = records?.length ? `<div class="admin-edit-list">${records.map((change: Row) =>
+    `<article class="admin-edit-item">
+      <div><strong>${change.status === 'published' ? 'Spielverlegung veröffentlicht' : change.status === 'protected' ? 'Manuell geschützt' : change.status === 'historical' ? 'Historischer Termin' : 'Nicht eindeutig zugeordnet'}</strong>
+      <p class="muted">${escapeHtml(formatDateTime(change.detected_at))}</p>
+      <p>Bisher: ${escapeHtml(formatDateTime(change.old_starts_at))} · Neu: ${escapeHtml(formatDateTime(change.new_starts_at))}</p>
+      ${change.reason ? `<p class="muted">${escapeHtml(change.reason)}</p>` : ''}</div>
+      </article>`).join('')}</div>` :
+    '<p class="muted">Noch keine Verschiebungen erkannt. Die Erstaufnahme ist eine stumme Vergleichsbasis.</p>';
+}
+
 export async function initPhase8Admin(base: AdminState) {
   renderPersonalNext(base);
   if (!base.isSuper) return;
@@ -177,7 +214,8 @@ export async function initPhase8Admin(base: AdminState) {
     await Promise.all([renderNotices(), renderAudit()]);
   });
   el<HTMLButtonElement>('audit-refresh')?.addEventListener('click', renderAudit);
-  await Promise.all([renderNotices(), renderAudit()]);
+  el<HTMLButtonElement>('btv-sync-refresh')?.addEventListener('click', renderBtvScheduleStatus);
+  await Promise.all([renderNotices(), renderAudit(), renderBtvScheduleStatus()]);
 }
 
 
