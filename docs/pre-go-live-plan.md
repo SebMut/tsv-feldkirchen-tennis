@@ -35,6 +35,7 @@ Status: **technische Vorbereitung umgesetzt, Abnahme offen**.
 - [x] CI-/SEO-/Sitemap-/Linkaudits erweitert
 - [x] Öffentliche Service-, ICS-, Courtbooking- und Medien-Smoke-Tests
 - [x] Unnötige anonyme RPC-Berechtigung entfernt
+- [x] Alle 23 öffentlichen Tabellen mit aktiver RLS und ohne anonyme Tabellen-Schreib-/TRUNCATE-Privilegien geprüft
 - [x] Supabase-Fremdschlüssel-Indizes ergänzt
 - [x] Preview-Crawler-Sperre und Build-Schutz
 - [x] Produktionsdeployment mit ausdrücklicher mehrstufiger Freigabesperre
@@ -47,6 +48,8 @@ Status: **technische Vorbereitung umgesetzt, Abnahme offen**.
 
 **Verbindliche Detaildokumente:**
 - `docs/phase-7-go-live-readiness.md`
+- `docs/phase-7-sicherheits-und-betriebscheck.md`
+- `docs/phase-7-abnahme-vereinsmitarbeiter.md`
 - `docs/go-live-runbook.md`
 
 **Es findet ohne ausdrückliche separate Go-live-Freigabe weder ein Merge auf `main` noch eine Produktivumstellung statt.**
