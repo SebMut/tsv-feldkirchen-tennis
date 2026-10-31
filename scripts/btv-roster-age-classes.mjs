@@ -49,7 +49,7 @@ export function canonicalAgeClass(label) {
 export function ageClassFromPdfHeading(line) {
   if (typeof line !== 'string' || !line.includes('|')) return null;
   const heading = line.split('|', 1)[0].trim()
-    .replace(/\s*\((?:4|6)er\)\s*/giu, ' ')
+    .replace(/\s*\((?:4|6)er\)\s*/giu, ' ').trim()
     .replace(/\s+\b(?:II|III)\b$/iu, '')
     .replace(/\s+/gu, ' ').trim();
   return canonicalAgeClass(heading);
