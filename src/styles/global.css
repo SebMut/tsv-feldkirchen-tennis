@@ -796,3 +796,43 @@ body{background:var(--sand);color:var(--text)}
 .news-reschedule-label{display:inline-flex;align-items:center;gap:7px;color:#9f101a;background:#ffebed;border-radius:999px;padding:5px 10px;font-size:.76rem;font-weight:850;margin:0 0 12px}
 .phase8-btv-last{border-left:4px solid #16836f;border-radius:9px;background:#f2f9f5;padding:15px;margin:12px 0}
 .phase8-btv-last p{margin:6px 0}
+
+
+/* Public squads / season switcher: independent from site-global selects */
+.teams-page{--team-ink:#19221f;--team-subtle:#60706b;color:var(--team-ink);gap:32px}
+.teams-page__intro{padding:12px 0 0}
+.teams-page__intro h1{margin:0;font-size:clamp(2.4rem,5.5vw,4.6rem);letter-spacing:-.055em}
+.teams-page__intro h1 span{color:#e30613}
+.teams-page__intro>p:last-child{margin:12px 0 0;color:#53645d;font-size:1.1rem}
+.teams-seasons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.teams-season-card{display:flex;flex-direction:column;text-align:left;gap:9px;min-width:0;min-height:175px;padding:21px 22px;border-radius:20px;border:1px solid #dfe4e0;background:linear-gradient(145deg,#fff,#f5f7f5);color:#1b2823;box-shadow:0 10px 28px rgb(32 50 41 / .065);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease,background .2s ease}
+.teams-season-card:hover{transform:translateY(-3px);border-color:#d98d94;box-shadow:0 15px 35px rgb(34 29 29 / .11)}
+.teams-season-card:focus-visible,.teams-category-chip:focus-visible{outline:3px solid #e30613;outline-offset:3px}
+.teams-season-card__top{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:auto}
+.teams-season-card__icon{display:grid;place-items:center;width:40px;height:40px;background:#fce9e9;color:#b70813;border-radius:13px;font-size:1.4rem}
+.teams-season-card__count{display:inline-flex;max-width:170px;padding:7px 10px;font-weight:800;font-size:.73rem;line-height:1.3;border-radius:999px;background:#eaf0ec;color:#52685d}
+.teams-season-card>strong{font-size:clamp(1.13rem,2vw,1.55rem);font-weight:900;line-height:1.18;overflow-wrap:anywhere}
+.teams-season-card__subtitle{color:#66726d;font-size:.92rem;font-weight:650}
+.teams-season-card.is-active{background:linear-gradient(140deg,#e30613,#b70612);border-color:#b70612;color:#fff;box-shadow:0 18px 40px rgb(175 6 20 / .22)}
+.teams-season-card.is-active .teams-season-card__icon{background:#ffffff27;color:#fff}
+.teams-season-card.is-active .teams-season-card__count{background:#ffffff27;color:#fff}
+.teams-season-card.is-active .teams-season-card__subtitle{color:#ffe4e6}
+.teams-results{display:grid;gap:18px;min-width:0}
+.teams-results__heading{display:flex;align-items:end;justify-content:space-between;gap:20px}
+.teams-results__heading h2{margin:0 0 6px}
+.teams-results__heading .muted{margin:0}
+.teams-results__official{display:inline-flex;align-items:center;text-decoration:none;color:#9f0913;font-weight:850;padding:11px 0}
+.teams-results__official:hover{text-decoration:underline}
+.teams-category-chips{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.teams-category-chip{border:1px solid #d6dfd8;background:#fff;color:#34453a;padding:10px 17px;border-radius:999px;font-weight:750;min-height:43px}
+.teams-category-chip:hover{border-color:#e30613}
+.teams-category-chip.is-active{background:#1a2721;color:#fff;border-color:#1a2721}
+.teams-page .team-grid{align-items:stretch}
+.teams-page .team-overview-card{border-color:#e0e6e1;min-width:0}
+.teams-empty{grid-column:1/-1;display:grid;justify-items:center;text-align:center;gap:12px;padding:52px 25px;background:linear-gradient(145deg,#fff,#f7f9f7);border:1px solid #e1e6e1;border-radius:20px;color:#1c2821;box-shadow:0 8px 25px rgb(13 30 20 / .05)}
+.teams-empty>span{display:grid;place-items:center;width:65px;height:65px;border-radius:20px;background:#fce9e9;color:#ae0c16;font-size:2rem}
+.teams-empty h3{margin:4px 0 0;font-size:1.36rem}
+.teams-empty p{margin:0;color:#64716b;max-width:590px}
+@media(max-width:920px){.teams-seasons{gap:10px}.teams-season-card{padding:18px 16px;min-height:162px}.teams-season-card__count{font-size:.7rem}}
+@media(max-width:700px){.teams-seasons{grid-template-columns:1fr;gap:10px}.teams-season-card{min-height:auto;padding:15px 17px;border-radius:16px;gap:5px}.teams-season-card__top{margin-bottom:3px}.teams-season-card__icon{width:32px;height:32px;font-size:1.15rem}.teams-season-card>strong{font-size:1.22rem}.teams-results__heading{align-items:start;flex-direction:column;gap:8px}.teams-page__intro>p:last-child{font-size:1rem}.teams-empty{padding:38px 18px}}
+@media(prefers-reduced-motion:reduce){.teams-season-card{transition:none}.teams-season-card:hover{transform:none}}
