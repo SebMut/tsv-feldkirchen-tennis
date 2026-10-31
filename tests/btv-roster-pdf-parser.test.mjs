@@ -51,11 +51,13 @@ test('verified snapshot accepts only the ten confirmed squad sections and 173 ro
     report.push(name + ' | Südligagruppe');
     const size = i < 3 ? 18 : 17;
     for (let n = 1; n <= size; n++) {
-      report.push(n + ' Muster, Alpha  GER  12345678');
+      report.push(n + ' Muster, ' + (i === 9 && n === 17 ? 'Alpha7' : 'Alpha') + '  GER  12345678');
     }
   });
   const parsed = assertVerifiedSummerSnapshot(parseBtvRosterPdfText(report.join('\n')));
   assert.equal(parsed.diagnostics.numberedRows, 173);
+  assert.equal(parsed.diagnostics.parsedRows, 172);
+  assert.equal(parsed.diagnostics.invalidName, 1);
   assert.equal(parsed.diagnostics.classCount, 6);
   assert.equal(parsed.diagnostics.headingCount, 10);
   assert.throws(() => assertVerifiedSummerSnapshot(parseBtvRosterPdfText(fixture())),

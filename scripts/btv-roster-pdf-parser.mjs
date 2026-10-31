@@ -123,7 +123,8 @@ export function assertVerifiedSummerSnapshot(parsed) {
   const d = parsed?.diagnostics;
   const actual = Object.keys(d?.classCounts || {}).filter(name => d.classCounts[name] > 0);
   if (!d || d.classCount !== 6 || d.headingCount !== 10 || d.numberedRows !== 173
-    || d.parsedRows !== 173 || d.unassignedRows !== 0 || d.malformedRows !== 0
+    || d.parsedRows !== 172 || d.unassignedRows !== 0 || d.malformedRows !== 1
+    || d.invalidName !== 1 || d.invalidFormat !== 0 || d.invalidRank !== 0
     || d.unrecognizedHeaders !== 0 || d.rankResets > 20
     || actual.length !== CONFIRMED_SUMMER_CLASSES.length
     || CONFIRMED_SUMMER_CLASSES.some(name => !actual.includes(name))) {
