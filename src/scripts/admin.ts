@@ -485,6 +485,80 @@ function resetPlayerForm() {
   $<HTMLButtonElement>('#player-cancel-edit')?.classList.add('hidden');
 }
 
+// A roster is obtained by an authorized club editor from an official BTV nMM.
+// Never collect ranks, birthdays, phone numbers or upload this text to GitHub.
+let checkedRoster: { teamSeasonId: string; names: string[]; raw: string } | null = null;
+function clearBulkRosterPreview() {
+  checkedRoster = null;
+  const submit = $<HTMLButtonElement>('#roster-bulk-submit');
+  if (submit) submit.disabled = true;
+  const preview = $('#roster-bulk-preview');
+  if (preview) preview.textContent = 'Noch keine Namen geprüft.';
+}
+function checkBulkRoster() {
+  clearBulkRosterPreview();
+  const textarea = $<HTMLTextAreaElement>('#roster-bulk-names');
+  const tsId = $<HTMLSelectElement>('#players-team-season')?.value || '';
+  const ts = state.teamSeasons.find((row) => row.id === tsId);
+  const preview = $('#roster-bulk-preview');
+  if (!textarea || !preview || !ts || !canEditTeamId(ts.team_id))
+    return status('Keine berechtigte Mannschaft/Saison ausgewählt.', 'error');
+  const rows = textarea.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (!rows.length || rows.length > 100) {
+    preview.textContent = 'Bitte 1 bis 100 Namen eingeben.';
+    return;
+  }
+  const unique = new Map<string,string>();
+  for (const name of rows) {
+    if (name.length < 3 || name.length > 90 || /[0-9@<>\t]/u.test(name) || /\s{3,}/u.test(name)) {
+      preview.textContent = 'Ungültige Zeile erkannt. Nur vollständige Namen, keine Spielernummern, Ränge oder Kontaktdaten einfügen.';
+      return;
+    }
+    const normalized = name.normalize('NFKC').replace(/\s+/g, ' ').trim();
+    unique.set(normalized.toLocaleLowerCase('de-DE'), normalized);
+  }
+  const names = [...unique.values()];
+  checkedRoster = { teamSeasonId: tsId, names, raw: textarea.value };
+  preview.innerHTML = `<strong>${names.length} Namen geprüft.</strong> ${rows.length - names.length} doppelte Zeilen entfernt.<br><span>Vorschau: ${escapeHtml(names.slice(0, 8).join(' · '))}${names.length > 8 ? ' …' : ''}</span><br>Alle Einträge werden zunächst nichtöffentlich gespeichert.`;
+  const submit = $<HTMLButtonElement>('#roster-bulk-submit');
+  if (submit) submit.disabled = false;
+}
+async function importBulkRoster(event: Event) {
+  event.preventDefault();
+  const namesInput = $<HTMLTextAreaElement>('#roster-bulk-names');
+  const verified = $<HTMLInputElement>('#roster-bulk-verified');
+  const tsId = $<HTMLSelectElement>('#players-team-season')?.value;
+  const ts = state.teamSeasons.find((row) => row.id === tsId);
+  const submit = $<HTMLButtonElement>('#roster-bulk-submit');
+  if (!ts || !canEditTeamId(ts.team_id) || !checkedRoster || checkedRoster.teamSeasonId !== ts.id
+    || checkedRoster.raw !== namesInput?.value || !verified?.checked) {
+    return status('Bitte die offiziellen Namen und die ausgewählte Mannschaft erneut prüfen.', 'error');
+  }
+  if (!window.confirm(`${checkedRoster.names.length} Namen in den internen Kader dieser Mannschaft/Saison übernehmen? Öffentliche Sichtbarkeit bleibt ausgeschaltet.`)) return;
+  const names = [...checkedRoster.names];
+  if (submit) submit.disabled = true;
+  let inserted = 0, existing = 0;
+  for (const name of names) {
+    const { data, error } = await supabase.rpc('import_team_player_name', {
+      p_team_season_id: ts.id,
+      p_display_name: name,
+    });
+    if (error) {
+      status(`Import nach ${inserted} neuen und ${existing} bereits vorhandenen Namen gestoppt: ${error.message}`, 'error');
+      await refreshPlayers();
+      clearBulkRosterPreview();
+      return;
+    }
+    if (data === true) inserted++;
+    else existing++;
+  }
+  namesInput!.value = '';
+  verified.checked = false;
+  clearBulkRosterPreview();
+  await refreshPlayers();
+  status(`BTV-Kaderimport abgeschlossen: ${inserted} intern angelegt, ${existing} bereits vorhanden. Keine öffentliche Freigabe erfolgt.`, 'success');
+}
+
 async function savePlayer(event: Event) {
   event.preventDefault();
   const tsId = $<HTMLSelectElement>('#players-team-season')?.value;
@@ -1451,7 +1525,10 @@ function bindForms() {
   $<HTMLSelectElement>('#team-select')?.addEventListener('change', fillTeamForm);
   $<HTMLButtonElement>('#team-image-reset')?.addEventListener('click', resetTeamImage);
   $<HTMLFormElement>('#player-form')?.addEventListener('submit', savePlayer);
-  $<HTMLSelectElement>('#players-team-season')?.addEventListener('change', () => { resetPlayerForm(); refreshPlayers(); });
+  $<HTMLTextAreaElement>('#roster-bulk-names')?.addEventListener('input', clearBulkRosterPreview);
+  $<HTMLButtonElement>('#roster-bulk-check')?.addEventListener('click', checkBulkRoster);
+  $<HTMLFormElement>('#roster-bulk-form')?.addEventListener('submit', importBulkRoster);
+  $<HTMLSelectElement>('#players-team-season')?.addEventListener('change', () => { resetPlayerForm(); clearBulkRosterPreview(); refreshPlayers(); });
   $<HTMLButtonElement>('#player-cancel-edit')?.addEventListener('click', resetPlayerForm);
   $<HTMLFormElement>('#match-form')?.addEventListener('submit', addMatch);
   $<HTMLFormElement>('#news-form')?.addEventListener('submit', addNews);
