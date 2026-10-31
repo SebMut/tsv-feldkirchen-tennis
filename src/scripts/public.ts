@@ -622,7 +622,7 @@ export async function loadTeamDetail(slug: string) {
     standingsTarget.innerHTML = standings.length ? `
       <div class="table-wrap">
         <table class="data-table team-standings-table">
-          <thead><tr><th scope="col">Rang</th><th scope="col">Mannschaft</th><th scope="col">Begegnungen</th><th scope="col">Punkte</th><th scope="col">Matches</th><th scope="col">Sätze</th><th scope="col">Spiele</th></tr></thead>
+          <thead><tr><th scope="col">Rang</th><th scope="col">Mannschaft</th><th scope="col">Beg.</th><th scope="col">Punkte</th><th scope="col">Matches</th><th scope="col">Sätze</th><th scope="col">Spiele</th></tr></thead>
           <tbody>${standings.map((row: Row) => {
             const values = standingValues(row.standing_text);
             return `
