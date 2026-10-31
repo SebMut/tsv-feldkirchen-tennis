@@ -119,19 +119,80 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   if (await overview.count() !== 1) fail('DOWNLOAD_OVERVIEW_NOT_FOUND');
   await overview.click();
   await downloadsPage.waitForTimeout(900);
-  const pages = await visiblePages(context);
+  let pages = await visiblePages(context);
   let chosen = null;
-  for (const { page } of pages) {
-    const rows = page.locator('tr').filter({ hasText: /Sommer\s*2026/i });
-    for (const row of await rows.all()) {
-      const links = row.getByRole('link', { name: /Namentliche\s+Mannschaftsmeldung|Nam\.?\s*Meldung/i });
-      if (await links.count() === 1) {
-        if (chosen) fail('SUMMER_NMM_AMBIGUOUS');
-        chosen = { page, link: links.first() };
+  const nmmName = /Namentliche\s+Mannschaftsmeldung|Nam\.?\s*Meldung/i;
+  async function findSummerRowLinks() {
+    for (const { page } of pages) {
+      const rows = page.locator('tr').filter({ hasText: /Sommer\s*2026/i });
+      for (const row of await rows.all()) {
+        const links = row.getByRole('link', { name: nmmName });
+        if (await links.count() === 1) {
+          if (chosen) fail('SUMMER_NMM_AMBIGUOUS');
+          chosen = { page, link: links.first() };
+        }
       }
     }
   }
-  if (!chosen) fail('SUMMER_NMM_LINK_NOT_FOUND');
+  await findSummerRowLinks();
+  let openedSummer = false;
+  let archiveLinkFound = false;
+  let archiveSelectorFound = false;
+  if (!chosen) {
+    // Some BTV archive pages first require selection of an older competition.
+    // Do not select an arbitrary document from a multi-season page.
+    for (const { page } of pages) {
+      if (openedSummer) break;
+      for (const select of await page.locator('select').all()) {
+        const options = await select.locator('option').all();
+        const matches = [];
+        for (const option of options) {
+          const label = (await option.textContent()) || '';
+          if (/^\s*Sommer\s*2026\s*$/i.test(label)) {
+            const value = await option.getAttribute('value');
+            if (value) matches.push(value);
+          }
+        }
+        if (matches.length === 1) {
+          archiveSelectorFound = true;
+          await select.selectOption(matches[0]);
+          await page.waitForTimeout(900);
+          openedSummer = true;
+          break;
+        }
+      }
+      if (!openedSummer) {
+        const link = page.getByRole('link', { name: /^\s*Sommer\s*2026\s*$/i }).first();
+        if (await link.count() === 1 && await link.isVisible()) {
+          const href = await link.getAttribute('href');
+          if (href && !/\.pdf(?:\?|#|$)/i.test(href)) {
+            archiveLinkFound = true;
+            await link.click();
+            await page.waitForTimeout(900);
+            openedSummer = true;
+          }
+        }
+      }
+    }
+    pages = await visiblePages(context);
+    await findSummerRowLinks();
+    if (!chosen && openedSummer) {
+      const options = [];
+      for (const { page, text } of pages) {
+        if (!/Sommer\s*2026/i.test(text)) continue;
+        const links = page.getByRole('link', { name: nmmName });
+        if (await links.count() === 1) options.push({ page, link: links.first() });
+      }
+      if (options.length === 1) chosen = options[0];
+    }
+  }
+  if (!chosen) {
+    console.log('BTV_ARCHIVE_SUMMER_TEXT=' + (pages.some(({ text }) => /Sommer\s*2026/i.test(text)) ? 'YES' : 'NO'));
+    console.log('BTV_ARCHIVE_SUMMER_LINK=' + (archiveLinkFound ? 'YES' : 'NO'));
+    console.log('BTV_ARCHIVE_SUMMER_SELECTOR=' + (archiveSelectorFound ? 'YES' : 'NO'));
+    console.log('BTV_ARCHIVE_SEASON_VIEW=' + (openedSummer ? 'YES' : 'NO'));
+    fail('SUMMER_NMM_LINK_NOT_FOUND');
+  }
   const href = await chosen.link.getAttribute('href');
   if (!href) fail('NMM_DOWNLOAD_LINK_NOT_FOUND');
   const destination = new URL(href, chosen.page.url());
