@@ -62,7 +62,13 @@ test('repository and secret scope are strictly restricted, only score fields cha
   assert.match(workflow,/github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow,/github\.event_name == 'push'/);
   assert.match(workflow,/secrets\.BTV_SUPABASE_SECRET_KEY/);
-  assert.doesNotMatch(workflow,/upload-artifact|schedule:|cron:/);
+  assert.doesNotMatch(workflow,/upload-artifact/);
+  assert.match(workflow,/schedule:/);
+  assert.match(workflow,/cron: '23 1,7,13,19 \* \* \*'/);
+  assert.match(workflow,/github\.event_name == 'schedule'/);
+  assert.match(workflow,/github\.ref == 'refs\/heads\/main'/);
+  assert.match(text,/BTV_RESULTS_ONLY_SOMMER_2026/);
+  assert.match(text,/ACTIVE_SEASONS\.map\(s=>s\.code\)/);
 });
 
 
@@ -91,4 +97,25 @@ test('2026 extended window still excludes conflicting or ambiguous matches',()=>
   assert.equal(selectOfficialResults(source,[tooFar],ts,[],now,120).updates.length,0);
   assert.throws(()=>selectOfficialResults(source,[tooFar],ts,[],now,121),/INVALID_OFFICIAL_MATCH_DATE_WINDOW/);
   assert.match(text,/source\.code==='sommer-2026'\?120:45/);
+});
+
+
+test('both 2026 opponent-club fixtures are matched only to exact TSV team and home/away',()=>{
+  const teams=new Map([['herren-50-ii','ts50'],['knaben-15-ii','ts15']]);
+  const official=[
+    {slug:'herren-50-ii',opponent:'ETC Siegertsbrunn II',isHome:false,
+     startsAt:'2026-05-16T07:00:00Z',score:'3:3'},
+    {slug:'knaben-15-ii',opponent:'STK Garching',isHome:false,
+     startsAt:'2026-07-10T13:00:00Z',score:'5:1'}
+  ];
+  const stored=[
+    {id:'m50',team_season_id:'ts50',opponent:'ETC Siegertsbrunn II',
+     is_home:false,starts_at:'2026-05-16T07:00:00Z',btv_result_text:null},
+    {id:'m15',team_season_id:'ts15',opponent:'STK Garching',
+     is_home:false,starts_at:'2026-07-10T13:00:00Z',btv_result_text:null}
+  ];
+  assert.deepEqual(selectOfficialResults(official,stored,teams,[],now,120).updates
+    .map(u=>[u.id,u.score]),[['m50','3:3'],['m15','5:1']]);
+  assert.equal(selectOfficialResults(official,[{...stored[0],opponent:'TC Siegertsbrunn'},stored[1]],teams,[],now,120).updates.length,1);
+  assert.equal(selectOfficialResults(official,[{...stored[0],is_home:true},stored[1]],teams,[],now,120).updates.length,1);
 });
