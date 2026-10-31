@@ -39,11 +39,11 @@ const report = {
 let runId = null;
 try {
   const [seasons, teams, teamSeasons] = await Promise.all([
-    get(db.from('seasons').select('id,year').eq('year', year), 'Seasons'),
+    get(db.from('seasons').select('id,year,code').eq('code', 'sommer-' + year), 'Seasons'),
     get(db.from('teams').select('id,slug'), 'Teams'),
     get(db.from('team_seasons').select('id,team_id,season_id,btv_url'), 'Team seasons'),
   ]);
-  if (seasons.length !== 1) throw new Error('No single configured season for ' + year);
+  if (seasons.length !== 1) throw new Error('No single configured summer season for ' + year);
   const teamsBySlug = new Map(teams.map(team => [team.slug, team]));
   const registered = new Map(teamSeasons
     .filter(row => row.season_id === seasons[0].id).map(row => [row.team_id, row]));
