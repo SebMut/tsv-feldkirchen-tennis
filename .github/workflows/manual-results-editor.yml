@@ -1,0 +1,27 @@
+name: Manual result editor safety checks
+on:
+  pull_request:
+    paths:
+      - 'verwaltung/ergebnisse/index.html'
+      - 'scripts/sql/manual-results-entry-schema.sql'
+      - 'tests/manual-results-editor.test.mjs'
+      - '.github/workflows/manual-results-editor.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'verwaltung/ergebnisse/index.html'
+      - 'scripts/sql/manual-results-entry-schema.sql'
+      - 'tests/manual-results-editor.test.mjs'
+      - '.github/workflows/manual-results-editor.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/manual-results-editor.test.mjs
