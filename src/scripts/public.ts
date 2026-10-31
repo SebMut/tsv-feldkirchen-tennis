@@ -189,12 +189,26 @@ function scoreFor(match: Row, liveStates: Row[]) {
   return liveStates.find((state) => state.match_id === match.id);
 }
 
+// BTV publishes its results in home:away order, independent of the TSV venue.
+// An absent official result (including a placeholder 0:0) is never a defeat.
+function officialBtvScore(match: Row): { home: number; away: number } | null {
+  const result = typeof match.btv_result_text === 'string'
+    ? /^\s*(\d{1,2})\s*:\s*(\d{1,2})\s*$/.exec(match.btv_result_text)
+    : null;
+  if (!result) return null;
+  const home = Number(result[1]);
+  const away = Number(result[2]);
+  if (home === 0 && away === 0) return null;
+  return { home, away };
+}
+
 function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveStates: Row[] = [], matchesWithGallery = new Set<string>()) {
   const { team } = matchContext(match, reference);
   const state = scoreFor(match, liveStates);
   const status = state?.status ?? 'scheduled';
-  const home = state?.home_score ?? 0;
-  const away = state?.away_score ?? 0;
+  const official = status === 'scheduled' ? officialBtvScore(match) : null;
+  const home = official?.home ?? state?.home_score ?? 0;
+  const away = official?.away ?? state?.away_score ?? 0;
   const clubScore = match.is_home ? home : away;
   const opponentScore = match.is_home ? away : home;
   const homeAway = match.is_home ? 'Heim' : 'Auswärts';
@@ -208,8 +222,8 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
       </a>
       <div class="actions">
         ${matchRouteButton(match)}
-        ${status === 'live' ? '<span class="status-pill live">LIVE</span>' : status === 'finished' ? '<span class="status-pill">Beendet</span>' : ''}
-        ${status !== 'scheduled' ? `<span class="score">${clubScore} : ${opponentScore}</span>` : ''}
+        ${status === 'live' ? '<span class="status-pill live">LIVE</span>' : status === 'finished' ? '<span class="status-pill">Beendet</span>' : official ? '<span class="status-pill">BTV-Ergebnis</span>' : ''}
+        ${status !== 'scheduled' || official ? `<span class="score">${clubScore} : ${opponentScore}</span>` : ''}
         <a class="button ghost" href="${detailUrl}">${matchesWithGallery.has(match.id) ? 'Spiel & Bilder' : 'Spiel öffnen'}</a>
         ${status === 'live' ? `<a class="button" href="/live/?match=${encodeURIComponent(match.id)}">Liveticker</a>` : ''}
       </div>
@@ -322,7 +336,8 @@ export async function loadHome() {
       ? '<p class="muted">Spielplan momentan nicht abrufbar.</p>'
       : next.length ? next.slice(0, 8).map(m => matchRow(m, reference, scoreRows)).join('')
       : '<p class="muted">Keine weiteren Punktspiele angekündigt.</p>';
-    const finishedPast = past.filter(m => scoreRows.find(s => s.match_id === m.id)?.status === 'finished');
+    const finishedPast = past.filter(m =>
+      scoreRows.find(s => s.match_id === m.id)?.status === 'finished' || officialBtvScore(m));
     if (recentTarget) recentTarget.innerHTML = recentResult.error
       ? '<p class="muted">Ergebnisse momentan nicht abrufbar.</p>'
       : finishedPast.length ? finishedPast.map(m => matchRow(m, reference, scoreRows)).join('')
@@ -612,11 +627,16 @@ export async function loadTeamDetail(slug: string) {
   if (statsTarget) {
     const seasonMatches = matches ?? [];
     const seasonLiveMap = new Map(liveStates.map((state: Row) => [state.match_id, state]));
-    const finished = seasonMatches.filter((m: Row) => seasonLiveMap.get(m.id)?.status === 'finished');
+    const finished = seasonMatches.filter((m: Row) =>
+      seasonLiveMap.get(m.id)?.status === 'finished' || officialBtvScore(m));
     const results = finished.map((m: Row) => {
       const state = seasonLiveMap.get(m.id);
-      const our = m.is_home ? Number(state?.home_score ?? 0) : Number(state?.away_score ?? 0);
-      const rival = m.is_home ? Number(state?.away_score ?? 0) : Number(state?.home_score ?? 0);
+      const official = officialBtvScore(m);
+      const useLive = state?.status === 'finished';
+      const homeScore = useLive ? Number(state?.home_score ?? 0) : Number(official?.home ?? 0);
+      const awayScore = useLive ? Number(state?.away_score ?? 0) : Number(official?.away ?? 0);
+      const our = m.is_home ? homeScore : awayScore;
+      const rival = m.is_home ? awayScore : homeScore;
       return Math.sign(our - rival);
     });
     const won = results.filter(n => n > 0).length;
@@ -628,9 +648,9 @@ export async function loadTeamDetail(slug: string) {
       <div><strong>${seasonMatches.length}</strong><span>Punktspiele</span></div>
       <div><strong>${home}</strong><span>Heimspiele</span></div>
       <div><strong>${away}</strong><span>Auswärtsspiele</span></div>
-      <div><strong>${finished.length}</strong><span>Digital abgeschlossen</span></div>
-      </div><p class="muted">Digital erfasste Ergebnisse: ${won} Siege · ${drawn} Unentschieden · ${lost} Niederlagen.
-      ${finished.length < seasonMatches.length ? 'Ältere oder noch nicht im Liveticker abgeschlossene Spiele fließen nicht in die Ergebnisbilanz ein.' : ''}</p>
+      <div><strong>${finished.length}</strong><span>Ergebnisse</span></div>
+      </div><p class="muted">Offiziell bestätigte BTV-Ergebnisse und abgeschlossene TSV-Liveticker: ${won} Siege · ${drawn} Unentschieden · ${lost} Niederlagen.
+      ${finished.length < seasonMatches.length ? 'Spiele ohne veröffentlichten Endstand werden nicht als 0:0 gewertet.' : ''}</p>
       ${current?.btv_url ? `<p><a href="${escapeHtml(current.btv_url)}" class="text-link" target="_blank" rel="noreferrer">Offiziellen BTV-Spielplan und Tabellenstand ansehen ↗</a></p>` : ''}`;
   }
 
@@ -775,8 +795,11 @@ export async function loadMatchDetail(matchId: string | null) {
   const leftTeam = match.is_home ? clubName : match.opponent;
   const rightTeam = match.is_home ? match.opponent : clubName;
   const status = liveState?.status ?? 'scheduled';
-  const clubScore = match.is_home ? liveState?.home_score ?? 0 : liveState?.away_score ?? 0;
-  const opponentScore = match.is_home ? liveState?.away_score ?? 0 : liveState?.home_score ?? 0;
+  const officialScore = status === 'scheduled' ? officialBtvScore(match) : null;
+  const homeScore = officialScore?.home ?? liveState?.home_score ?? 0;
+  const awayScore = officialScore?.away ?? liveState?.away_score ?? 0;
+  const clubScore = match.is_home ? homeScore : awayScore;
+  const opponentScore = match.is_home ? awayScore : homeScore;
   const detailDate = formatDateTime(match.starts_at);
 
   head.innerHTML = `
@@ -795,9 +818,9 @@ export async function loadMatchDetail(matchId: string | null) {
       </div>
     </div>`;
 
-  scoreTarget.innerHTML = status !== 'scheduled'
-    ? `<div class="match-detail-score"><span class="status-pill ${status === 'live' ? 'live' : ''}">${status === 'live' ? 'LIVE' : 'Beendet'}</span><strong>${clubScore} : ${opponentScore}</strong><span>aus Sicht des TSV</span></div>`
-    : '<div class="match-detail-score"><span class="status-pill">Geplant</span><strong>– : –</strong><span>Spiel noch nicht begonnen</span></div>';
+  scoreTarget.innerHTML = status !== 'scheduled' || officialScore
+    ? `<div class="match-detail-score"><span class="status-pill ${status === 'live' ? 'live' : ''}">${status === 'live' ? 'LIVE' : status === 'finished' ? 'Beendet' : 'Offizielles BTV-Ergebnis'}</span><strong>${clubScore} : ${opponentScore}</strong><span>aus Sicht des TSV</span></div>`
+    : '<div class="match-detail-score"><span class="status-pill">Geplant</span><strong>– : –</strong><span>Kein offizieller Endstand vorhanden</span></div>';
 
   const encounterRows = encounters ?? [];
   const renderDetailEncounter = (encounter: Row) => {
