@@ -42,8 +42,10 @@ import MainLayout from '../../layouts/MainLayout.astro';
         </div>
         <div id="calendar-month-grid" class="calendar-month-grid" role="group" aria-label="Tage des Monats"></div>
         <div class="calendar-legend" aria-label="Markierungen im Kalender">
-          <span><i class="calendar-legend-dot calendar-legend-dot--match"></i> Punktspiel</span>
-          <span><i class="calendar-legend-dot calendar-legend-dot--event"></i> Veranstaltung</span>
+          <span><i class="calendar-legend-dot calendar-legend-dot--men" aria-hidden="true"></i> Herren</span>
+          <span><i class="calendar-legend-dot calendar-legend-dot--women" aria-hidden="true"></i> Damen</span>
+          <span><i class="calendar-legend-dot calendar-legend-dot--youth" aria-hidden="true"></i> Jugend</span>
+          <span><i class="calendar-legend-dot calendar-legend-dot--event" aria-hidden="true"></i> Veranstaltungen</span>
           <span><i class="calendar-legend-today"></i> Heute</span>
         </div>
       </section>
