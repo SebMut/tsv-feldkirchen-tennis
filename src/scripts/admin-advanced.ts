@@ -361,6 +361,35 @@ function decorateMatchCards(base: BaseState) {
       const actions = card.querySelector<HTMLElement>('.actions');
       const team = match ? matchTeam(base, match) : null;
       if (actions && canEditTeam(base, team?.id)) {
+        const report = document.createElement('button');
+        report.type = 'button';
+        report.className = 'button secondary';
+        report.textContent = 'Spielbericht mit Ergebnissen erstellen';
+        report.addEventListener('click', async () => {
+          const form = $<HTMLFormElement>('#news-form');
+          form?.reset();
+          const editId = $<HTMLInputElement>('#news-edit-id');
+          if (editId) editId.value = '';
+          const title = $<HTMLInputElement>('#news-title');
+          const excerpt = $<HTMLTextAreaElement>('#news-excerpt');
+          const body = $<HTMLTextAreaElement>('#news-body');
+          if (title) title.value = '';
+          if (excerpt) excerpt.value = '';
+          if (body) body.value = '';
+          const teamField = $<HTMLSelectElement>('#news-team');
+          if (teamField && team) teamField.value = team.id;
+          const matchField = $<HTMLSelectElement>('#news-match');
+          if (matchField) {
+            matchField.value = matchId;
+            await prefillReport(base);
+          }
+          const status = $<HTMLSelectElement>('#news-status');
+          if (status) status.value = 'draft';
+          document.querySelector<HTMLButtonElement>('[data-panel="news"]')?.click();
+          document.getElementById('news-form')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          reportStatus('Spieltag und Ticker wurden übernommen. Bitte Bericht ergänzen, Bild auswählen und als Entwurf speichern.', 'info');
+        });
+        actions.append(report);
         const edit = document.createElement('button');
         edit.type = 'button';
         edit.className = 'button ghost';
