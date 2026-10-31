@@ -780,6 +780,7 @@ async function refreshMatches() {
           <p class="eyebrow">${escapeHtml(team?.name || '')}</p>
           <h3>${escapeHtml(match.opponent)}</h3>
           <p class="muted">${escapeHtml(formatDateTime(match.starts_at))} · ${match.is_home ? 'Heimspiel' : 'Auswärtsspiel'} · ${format === '4_2' ? '4 Einzel + 2 Doppel' : '6 Einzel + 3 Doppel'}</p>
+          <p class="muted"><strong>Spielort:</strong> ${escapeHtml(match.venue_name || 'Noch nicht eingetragen')}${match.venue_address ? ' · '+escapeHtml(match.venue_address) : ''}</p>
         </div>
         <div class="match-admin-score">
           <span class="status-pill ${live.status === 'live' ? 'live' : ''}">${live.status === 'live' ? 'LIVE' : live.status === 'finished' ? 'Beendet' : 'Geplant'}</span>
@@ -787,6 +788,20 @@ async function refreshMatches() {
         </div>
       </div>
 
+      <details class="match-admin-venue">
+        <summary>Tatsächlichen Spielort / Halle bearbeiten</summary>
+        <p class="muted">Heimspiel bleibt Heimspiel – auch bei Hallenspielen außerhalb Feldkirchens.</p>
+        <div class="match-admin-venue__fields">
+          <label>Halle / Anlage
+            <input type="text" maxlength="200" data-match-venue-name value="${escapeHtml(match.venue_name || '')}" placeholder="Halle oder Anlage" />
+          </label>
+          <label>Straße / PLZ / Ort
+            <input type="text" maxlength="260" data-match-venue-address value="${escapeHtml(match.venue_address || '')}" placeholder="Bestätigte Adresse" />
+          </label>
+        </div>
+        <p class="muted">Bei unklarer Adresse das Feld leer lassen. Der Routenbutton kann dann nur nach dem Hallennamen suchen.</p>
+        <button type="button" class="button secondary" data-save-match-venue>Spielort speichern</button>
+      </details>
       <div class="phase8-encounter-summary" role="status">
         <p>${finished} von ${expected} Begegnungen abgeschlossen · ${active} laufen gerade
         · ${singles.length || (format === '4_2' ? 4 : 6)} Einzel / ${doubles.length || (format === '4_2' ? 2 : 3)} Doppel</p>
@@ -849,6 +864,19 @@ async function refreshMatches() {
     const matchId = card.dataset.matchCard!;
     const match = state.matches.find((row) => row.id === matchId);
     const live: any = liveMap.get(matchId) || { match_id: matchId, status: 'scheduled', home_score: 0, away_score: 0 };
+
+    card.querySelector<HTMLButtonElement>('[data-save-match-venue]')?.addEventListener('click', async () => {
+      if (!match) return;
+      const venueName = card.querySelector<HTMLInputElement>('[data-match-venue-name]')?.value.trim() || '';
+      const venueAddress = card.querySelector<HTMLInputElement>('[data-match-venue-address]')?.value.trim() || '';
+      if (!venueName && venueAddress) return status('Bitte auch den Namen der Halle oder Anlage eintragen.', 'error');
+      const { error } = await supabase.from('matches')
+        .update({ venue_name: venueName || null, venue_address: venueAddress || null })
+        .eq('id', matchId).eq('team_season_id', match.team_season_id);
+      if (error) return status('Spielort konnte nicht gespeichert werden: ' + error.message, 'error');
+      status('Der tatsächliche Spielort wurde gespeichert. Heim- oder Auswärtsspiel bleibt unverändert.', 'success');
+      refreshMatches();
+    });
 
     card.querySelector<HTMLButtonElement>('[data-configure-match]')?.addEventListener('click', async () => {
       const selected = card.querySelector<HTMLSelectElement>('[data-match-format]')?.value || '6_3';
@@ -1013,6 +1041,8 @@ async function addMatch(event: Event) {
     starts_at: start ? new Date(start).toISOString() : null,
     ends_at: end ? new Date(end).toISOString() : null,
     is_home: $<HTMLInputElement>('#match-home')?.checked ?? true,
+    venue_name: $<HTMLInputElement>('#match-venue-name')?.value.trim() || null,
+    venue_address: $<HTMLInputElement>('#match-venue-address')?.value.trim() || null,
     lineup_format: $<HTMLSelectElement>('#match-lineup-format')?.value || '6_3',
     external_url: $<HTMLInputElement>('#match-url')?.value.trim() || null,
     is_published: true,
