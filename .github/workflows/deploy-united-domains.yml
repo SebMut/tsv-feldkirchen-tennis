@@ -42,5 +42,7 @@ jobs:
           test -n "$SFTP_PASSWORD"
           test -n "$SFTP_REMOTE_PATH"
           PORT="${SFTP_PORT:-22}"
-          printf 'cd %s\nput -r dist/*\nbye\n' "$SFTP_REMOTE_PATH" > /tmp/sftp-batch.txt
+          # Die versteckte Apache-Konfiguration ist NICHT in dist/* enthalten.
+          test -f dist/.htaccess
+          printf 'cd %s\nput -r dist/*\nput dist/.htaccess .htaccess\nbye\n' "$SFTP_REMOTE_PATH" > /tmp/sftp-batch.txt
           sshpass -p "$SFTP_PASSWORD" sftp -o StrictHostKeyChecking=accept-new -P "$PORT" -b /tmp/sftp-batch.txt "$SFTP_USER@$SFTP_HOST"
