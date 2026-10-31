@@ -381,7 +381,22 @@ export async function loadTeamDetail(slug: string) {
       const by = reference.seasons.find((s: Row) => s.id === b.season_id)?.year ?? 0;
       return by - ay;
     });
-  const current = teamSeasons.find((ts: Row) => reference.seasons.find((s: Row) => s.id === ts.season_id)?.is_current) ?? teamSeasons[0];
+  const requestedSeason = new URLSearchParams(window.location.search).get('season');
+  const current = teamSeasons.find((ts: Row) => ts.season_id === requestedSeason)
+    ?? teamSeasons.find((ts: Row) => reference.seasons.find((season: Row) => season.id === ts.season_id)?.is_current)
+    ?? teamSeasons[0];
+  const seasonSelect = document.querySelector<HTMLSelectElement>('#team-season-select');
+  if (seasonSelect) {
+    seasonSelect.innerHTML = teamSeasons.map((ts: Row) => {
+      const season = reference.seasons.find((row: Row) => row.id === ts.season_id);
+      return `<option value="${ts.season_id}" ${ts.id === current?.id ? 'selected' : ''}>${escapeHtml(season?.name || 'Saison')}${season?.is_current ? ' · aktuell' : ' · Archiv'}</option>`;
+    }).join('');
+    seasonSelect.addEventListener('change', () => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('season', seasonSelect.value);
+      window.location.assign(url.toString());
+    });
+  }
 
   const head = document.querySelector<HTMLElement>('#team-header');
   if (head) head.innerHTML = `
@@ -433,7 +448,7 @@ export async function loadTeamDetail(slug: string) {
     </div>`
     : '<p class="muted">Der öffentliche Kader wird noch gepflegt.</p>';
 
-  const allMatchesForTeam = allTeamMatches ?? matches ?? [];
+  const allMatchesForTeam = requestedSeason ? (matches ?? []) : (allTeamMatches ?? matches ?? []);
   const liveStates = allMatchesForTeam.length
     ? (await supabase.from('match_live_state').select('*').in('match_id', allMatchesForTeam.map((m: Row) => m.id))).data ?? []
     : [];
