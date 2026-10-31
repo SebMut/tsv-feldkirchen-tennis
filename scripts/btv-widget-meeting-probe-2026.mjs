@@ -20,11 +20,20 @@ try{
   const url='https://widget.btv.de/btvgroup/?groupid='+groupid;
   try{
    await page.goto(url,{waitUntil:'domcontentloaded',timeout:35000});
-   const necessary=page.getByRole('button',{name:/Nur notwendige Cookies/i}).first();
-   if(await necessary.count() && await necessary.isVisible()){
-     await necessary.click({timeout:7000});
+   // Cookiebot presents "Nur notwendige Cookies" inside a dialog.
+   // Accept *necessary only* by clicking its actual visible UI button.
+   const choices=[
+     page.locator('#CybotCookiebotDialogBodyButtonDecline'),
+     page.locator('#CybotCookiebotDialogBodyLevelButtonLevelOptinDeclineAll'),
+     page.getByRole('button',{name:/Nur notwendige Cookies/i}).first()
+   ];
+   for(const choice of choices){
+     if(await choice.count() && await choice.isVisible()){
+       await choice.click({timeout:7000}).catch(()=>{});
+       break;
+     }
    }
-   await page.waitForTimeout(8000);
+   await page.waitForTimeout(4000);
    const data=await page.evaluate(()=>{
     const a=[...document.querySelectorAll('a[href]')];
     const links=a.filter(x=>/meeting(?:Report)?|Spielbericht|anzeigen|Begegnung/i.test(x.href+' '+x.textContent))
