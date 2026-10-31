@@ -939,49 +939,66 @@ async function addMatch(event: Event) {
   refreshMatches();
 }
 
-async function refreshNews() {
-  const ids = allowedTeamIds();
-  let query = supabase.from('news').select('*').order('created_at', { ascending: false });
-  if (!state.isSuper && ids.length) query = query.in('team_id', ids);
-  const { data } = await query;
-  const target = $('#news-admin-list');
-  if (!target) return;
-  target.innerHTML = `<table class="data-table"><thead><tr><th>Titel</th><th>Status</th><th>Mannschaft</th></tr></thead><tbody>${(data ?? []).map((n) => `<tr><td>${escapeHtml(n.title)}</td><td>${escapeHtml(n.status)}</td><td>${escapeHtml(state.teams.find((t) => t.id === n.team_id)?.name || 'Allgemein')}</td></tr>`).join('')}</tbody></table>`;
+const editorialInput = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+async function refreshNews(){
+ const target=document.getElementById('news-admin-list');if(!target)return;
+ const ids=allowedTeamIds('edit');
+ if(!state.isSuper&&!ids.length){target.textContent='Keine Redaktionsberechtigung.';return;}
+ let query=supabase.from('news').select('*').order('created_at',{ascending:false});
+ if(!state.isSuper)query=query.in('team_id',ids);
+ const {data,error}=await query;
+ if(error){target.textContent='Beiträge derzeit nicht abrufbar.';status(error.message,'error');return;}
+ const rows=data??[];
+ target.innerHTML=rows.length?`<div class="admin-edit-list">${rows.map(row=>`<div class="admin-edit-item" data-news-id="${row.id}"><div><strong>${escapeHtml(row.title)}</strong><p class="muted">${escapeHtml(row.status)} · ${escapeHtml(state.teams.find(t=>t.id===row.team_id)?.name||'Verein')}</p></div><button type="button" class="button ghost" data-edit-news>Bearbeiten</button></div>`).join('')}</div>`:'<p class="muted">Noch keine Beiträge vorhanden.</p>';
+ target.querySelectorAll('[data-edit-news]').forEach(button=>button.addEventListener('click',()=>{
+   const item=rows.find(row=>row.id===button.closest('[data-news-id]')?.getAttribute('data-news-id'));if(!item)return;
+   editorialInput('news-edit-id').value=item.id;
+   editorialInput('news-title').value=item.title||'';
+   editorialInput('news-excerpt').value=item.excerpt||'';
+   editorialInput('news-body').value=item.body||'';
+   editorialInput('news-team').value=item.team_id||'';
+   editorialInput('news-match').value=item.match_id||'';
+   editorialInput('news-status').value=item.status||'draft';
+   document.getElementById('news-cancel-edit')?.classList.remove('hidden');
+   document.getElementById('news-form')?.scrollIntoView({block:'start'});
+   status('Beitrag zur Bearbeitung geladen.','info');
+ }));
 }
 
-async function addNews(event: Event) {
-  event.preventDefault();
-  const title = $<HTMLInputElement>('#news-title')?.value.trim() || '';
-  const teamId = $<HTMLSelectElement>('#news-team')?.value || null;
-  const matchId = $<HTMLSelectElement>('#news-match')?.value || null;
-  const publication = $<HTMLSelectElement>('#news-status')?.value || 'draft';
-  const { data: article, error } = await supabase.from('news').insert({
-    slug: `${slugify(title)}-${Date.now().toString(36)}`,
-    title,
-    excerpt: $<HTMLTextAreaElement>('#news-excerpt')?.value.trim() || null,
-    body: $<HTMLTextAreaElement>('#news-body')?.value.trim() || '',
-    team_id: teamId,
-    match_id: matchId,
-    status: publication,
-    author_id: state.user.id,
-    published_at: publication === 'published' ? new Date().toISOString() : null,
-  }).select().single();
-  if (error || !article) return status(error?.message || 'Beitrag konnte nicht gespeichert werden.', 'error');
-
-  const file = $<HTMLInputElement>('#news-image')?.files?.[0];
-  if (file) {
-    const image = await optimizeImage(file);
-    const base = teamId ? `teams/${teamId}/news/${article.id}` : `site/news/${article.id}`;
-    const path = `${base}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
-    const { error: uploadError } = await supabase.storage.from('media').upload(path, image);
-    if (uploadError) return status(uploadError.message, 'error');
-    const { error: imageError } = await supabase.from('news').update({ hero_image_path: path }).eq('id', article.id);
-    if (imageError) return status(imageError.message, 'error');
-  }
-
-  ($<HTMLFormElement>('#news-form'))?.reset();
-  status('Beitrag gespeichert.', 'success');
-  refreshNews();
+async function addNews(event: Event){
+ event.preventDefault();
+ const editId=editorialInput('news-edit-id')?.value||null;
+ const title=editorialInput('news-title')?.value.trim()||'';
+ const teamId=editorialInput('news-team')?.value||null;
+ const matchId=editorialInput('news-match')?.value||null;
+ const publication=editorialInput('news-status')?.value||'draft';
+ const body=editorialInput('news-body')?.value.trim()||'';
+ if(!title||!body)return status('Titel und Text fehlen.','error');
+ if(!state.isSuper&&(!teamId||!canEditTeamId(teamId)))return status('Keine Redaktionsberechtigung.','error');
+ if(matchId){
+   const match=state.matches.find(m=>m.id===matchId);
+   const ts=state.teamSeasons.find(x=>x.id===match?.team_season_id);
+   if(!match||ts?.team_id!==teamId)return status('Das Spiel gehört nicht zu dieser Mannschaft.','error');
+ }
+ const patch={title,body,excerpt:editorialInput('news-excerpt')?.value.trim()||null,team_id:teamId,match_id:matchId,status:publication,published_at:publication==='published'?new Date().toISOString():null};
+ const result=editId?await supabase.from('news').update(patch).eq('id',editId).select('id').single():await supabase.from('news').insert({...patch,slug:`${slugify(title)}-${Date.now().toString(36)}`,author_id:state.user.id}).select('id').single();
+ if(result.error||!result.data)return status(result.error?.message||'Speichern fehlgeschlagen.','error');
+ const photo=document.getElementById('news-image');
+ if(photo instanceof HTMLInputElement&&photo.files?.[0]){
+   let image;try{image=await optimizeImage(photo.files[0]);}catch{return status('Text gespeichert, Bildverarbeitung fehlgeschlagen.','error');}
+   const path=`${teamId?`teams/${teamId}`:'site'}/news/${result.data.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
+   const upload=await supabase.storage.from('media').upload(path,image);
+   if(upload.error)return status(`Text gespeichert, Bildfehler: ${upload.error.message}`,'error');
+   const saved=await supabase.from('news').update({hero_image_path:path}).eq('id',result.data.id);
+   if(saved.error)return status(`Text gespeichert, Bildverknüpfung fehlgeschlagen: ${saved.error.message}`,'error');
+ }
+ const form=document.getElementById('news-form');if(form instanceof HTMLFormElement)form.reset();
+ editorialInput('news-edit-id').value='';
+ editorialInput('news-status').value='draft';
+ document.getElementById('news-cancel-edit')?.classList.add('hidden');
+ document.getElementById('news-preview')?.classList.add('hidden');
+ status(editId?'Beitrag aktualisiert.':'Beitrag erstellt.','success');
+ await refreshNews();
 }
 
 async function refreshEvents() {
