@@ -133,6 +133,34 @@ async function renderSponsorPlacements(
     </div>`;
 }
 
+// A home match can take place in a third-party indoor venue.
+// Do not infer its location from is_home, and never route to Feldkirchen by default.
+function matchRouteUrl(match: Row): string | null {
+  const address = typeof match.venue_address === 'string' ? match.venue_address.trim() : '';
+  const venue = typeof match.venue_name === 'string' ? match.venue_name.trim() : '';
+  if (!address && !venue) return null;
+  const destination = address || venue;
+  return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(destination);
+}
+
+function matchRouteButton(match: Row): string {
+  const url = matchRouteUrl(match);
+  return url
+    ? `<a class="button ghost match-route-button" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="Route zum Spielort ${escapeHtml(match.venue_name || match.venue_address || '')} planen">↗ Route planen</a>`
+    : '';
+}
+
+function matchVenueInfo(match: Row, includeRoute = false): string {
+  const venue = typeof match.venue_name === 'string' ? match.venue_name.trim() : '';
+  const address = typeof match.venue_address === 'string' ? match.venue_address.trim() : '';
+  return `<div class="match-venue">
+    <span class="match-venue__label">📍 Tatsächlicher Spielort</span>
+    <strong>${escapeHtml(venue || address || 'Spielort noch nicht bekannt')}</strong>
+    ${address ? `<small>${escapeHtml(address)}</small>` : venue ? '<small>Genaue Anschrift bitte vor der Fahrt prüfen.</small>' : ''}
+    ${includeRoute ? matchRouteButton(match) : ''}
+  </div>`;
+}
+
 function matchContext(match: Row, reference: Awaited<ReturnType<typeof refs>>) {
   const ts = reference.teamSeasons.find((row: Row) => row.id === match.team_season_id);
   const team = reference.teams.find((row: Row) => row.id === ts?.team_id);
@@ -159,8 +187,10 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
       <a class="match-row__main" href="${detailUrl}">
         <span class="match-row__teamline"><img class="match-row__tsv-logo" src="${escapeHtml(mediaUrl('branding/tennis-logo.png'))}" alt="" /><strong>${escapeHtml(team?.name ?? 'TSV Feldkirchen')} · ${escapeHtml(homeAway)}</strong></span>
         <div class="match-meta">${escapeHtml(formatDateTime(match.starts_at))} · gegen ${escapeHtml(match.opponent)}</div>
+        ${matchVenueInfo(match)}
       </a>
       <div class="actions">
+        ${matchRouteButton(match)}
         ${status === 'live' ? '<span class="status-pill live">LIVE</span>' : status === 'finished' ? '<span class="status-pill">Beendet</span>' : ''}
         ${status !== 'scheduled' ? `<span class="score">${clubScore} : ${opponentScore}</span>` : ''}
         <a class="button ghost" href="${detailUrl}">${matchesWithGallery.has(match.id) ? 'Spiel & Bilder' : 'Spiel öffnen'}</a>
@@ -430,7 +460,9 @@ export async function loadTeams() {
             <div class="team-overview-next ${isLive ? 'is-live' : ''}">
               <span class="status-pill ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'Nächstes Spiel'}</span>
               <strong>gegen ${escapeHtml(featured.opponent)}</strong>
-              <small>${escapeHtml(formatDateTime(featured.starts_at))} · ${featured.is_home ? 'Heim' : 'Auswärts'}${isLive ? ` · ${clubScore ?? 0} : ${otherScore ?? 0}` : ''}</small>
+              <small>${escapeHtml(formatDateTime(featured.starts_at))} · ${featured.is_home ? 'Heimspiel' : 'Auswärtsspiel'}${isLive ? ` · ${clubScore ?? 0} : ${otherScore ?? 0}` : ''}</small>
+              ${matchVenueInfo(featured)}
+              ${matchRouteButton(featured)}
               ${isLive ? `<a href="/live/?match=${encodeURIComponent(featured.id)}">Zum Liveticker</a>` : ''}
             </div>` : '<p class="muted">Derzeit kein nächstes Punktspiel eingetragen.</p>'}
           <div class="actions"><a class="button" href="${detailUrl}">Mannschaft öffnen</a>${ts.btv_url && /^https:\/\//.test(ts.btv_url) ? `<a class="button ghost" href="${escapeHtml(ts.btv_url)}" target="_blank" rel="noopener noreferrer">BTV ↗</a>` : ''}</div>
@@ -618,7 +650,6 @@ export async function loadTeamDetail(slug: string) {
             : 'Nächstes Punktspiel';
       const leftTeam = featuredMatch.is_home ? team.name : featuredMatch.opponent;
       const rightTeam = featuredMatch.is_home ? featuredMatch.opponent : team.name;
-      const venue = featuredMatch.venue_name || (featuredMatch.is_home ? 'TSV Feldkirchen' : 'Auswärts');
       const detailUrl = `/spiel/?match=${encodeURIComponent(featuredMatch.id)}`;
 
       nextMatchTarget.classList.remove('hidden');
@@ -640,12 +671,9 @@ export async function loadTeamDetail(slug: string) {
             <div class="${!featuredMatch.is_home ? 'is-tsv' : ''}">${!featuredMatch.is_home ? `<img class="next-match-tsv-logo" src="${escapeHtml(mediaUrl('branding/tennis-logo.png'))}" alt="TSV Feldkirchen Tennis" />` : ''}<span>${escapeHtml(rightTeam)}</span></div>
           </a>
           <div class="next-match-card__bottom">
-            <div>
-              <span class="match-meta">Ort</span>
-              <strong>${escapeHtml(venue)}</strong>
-              ${featuredMatch.venue_address ? `<span class="match-meta">${escapeHtml(featuredMatch.venue_address)}</span>` : ''}
-            </div>
+            ${matchVenueInfo(featuredMatch)}
             <div class="actions">
+              ${matchRouteButton(featuredMatch)}
               <a class="button secondary" href="${detailUrl}">Spiel öffnen</a>
               ${isLive ? `<a class="button" href="/live/?match=${encodeURIComponent(featuredMatch.id)}">Liveticker</a>` : ''}
             </div>
@@ -732,15 +760,16 @@ export async function loadMatchDetail(matchId: string | null) {
   const clubScore = match.is_home ? liveState?.home_score ?? 0 : liveState?.away_score ?? 0;
   const opponentScore = match.is_home ? liveState?.away_score ?? 0 : liveState?.home_score ?? 0;
   const detailDate = formatDateTime(match.starts_at);
-  const location = match.venue_name || (match.is_home ? 'TSV Feldkirchen' : 'Auswärts');
 
   head.innerHTML = `
     <div class="match-detail-hero">
       <div>
         <p class="eyebrow">${escapeHtml([season?.name, ts?.league].filter(Boolean).join(' · ') || 'Punktspiel')}</p>
         <div class="match-detail-titleline"><img src="${escapeHtml(mediaUrl('branding/tennis-logo.png'))}" alt="TSV Feldkirchen Tennis" /><h1>${escapeHtml(leftTeam)} <span>vs.</span> ${escapeHtml(rightTeam)}</h1></div>
-        <p class="hero__lead">${escapeHtml(detailDate)} · ${escapeHtml(location)}</p>
+        <p class="hero__lead">${escapeHtml(detailDate)} · ${match.is_home ? 'Heimspiel' : 'Auswärtsspiel'}</p>
+        ${matchVenueInfo(match)}
         <div class="actions">
+          ${matchRouteButton(match)}
           <a class="button secondary" href="/mannschaften/${escapeHtml(team?.slug || '')}/">Zur Mannschaft</a>
           ${status === 'live' ? `<a class="button" href="/live/?match=${encodeURIComponent(match.id)}">Liveticker öffnen</a>` : ''}
           ${match.external_url ? `<a class="button ghost" href="${escapeHtml(match.external_url)}" target="_blank" rel="noreferrer">BTV / Details ↗</a>` : ''}
@@ -923,7 +952,7 @@ export async function loadCalendar() {
     }).map(m => {
       const { team } = matchContext(m, reference);
       return {
-        id: m.id, endAt: m.ends_at || null, location: m.venue_name || '',
+        id: m.id, endAt: m.ends_at || null, location: [m.venue_name, m.venue_address].filter(Boolean).join(', '),
         at: m.starts_at, key: dateKey(m.starts_at), kind: 'match', marker: matchMarker(team),
         title: `${team?.name || 'TSV Feldkirchen'} gegen ${m.opponent}`,
         href: `/spiel/?match=${encodeURIComponent(m.id)}`,
@@ -1322,7 +1351,9 @@ export async function loadLiveTicker(matchId: string | null) {
     head.innerHTML = `
       <p class="eyebrow">Liveticker</p>
       <h1>${escapeHtml(leftName)} <span>vs.</span> ${escapeHtml(rightName)}</h1>
-      <p class="muted">${escapeHtml(formatDateTime(match.starts_at))} · ${match.is_home ? 'Heimspiel' : 'Auswärtsspiel'}</p>`;
+      <p class="muted">${escapeHtml(formatDateTime(match.starts_at))} · ${match.is_home ? 'Heimspiel' : 'Auswärtsspiel'}</p>
+      ${matchVenueInfo(match)}
+      ${matchRouteButton(match)}`;
 
     const homeScore = state?.home_score ?? 0;
     const awayScore = state?.away_score ?? 0;
