@@ -67,6 +67,21 @@ try {
  // Capture one public table link navigation if ordinary hrefs are unavailable.
  const trigger=await evalJS('Array.from(document.querySelectorAll("a,button")).find(x=>x.innerText&&x.innerText.trim()==="Tabelle/Spielplan")?.outerHTML',session);
  console.log('BTV_PLAN_CLICKABLE',JSON.stringify(trigger).slice(0,1000));
+
+ const labels = ['Mannschaftsportrait','Tabelle/Spielplan','Tabelle/Spielplan [PDF]'];
+ for (const label of labels) {
+   const clickExpr='Array.from(document.querySelectorAll("a.z-toolbarbutton")).find(x=>x.textContent.trim()==='+JSON.stringify(label)+')?.click(); true';
+   try{
+     await evalJS(clickExpr,session);
+     await sleep(2700);
+     const nextTargets=await call('Target.getTargets');
+     const opened=nextTargets.targetInfos.filter(t=>t.type==='page' && !t.url.includes('/btvteams/') && !t.url.includes('about:blank')).map(t=>({type:t.type,url:t.url}));
+     console.log('BTV_LINK_RESULT',JSON.stringify({label,opened}).slice(0,7000));
+     const iframeText=(await evalJS('document.body.innerText',session)).slice(0,8500);
+     console.log('BTV_WIDGET_AFTER_CLICK',JSON.stringify({label,text:iframeText}).slice(0,10500));
+   }catch(e){ console.log('BTV_LINK_ERROR',JSON.stringify({label,error:String(e).slice(0,500)})) }
+ }
+
  ws.close();
 } finally {
  chrome.kill('SIGKILL');
