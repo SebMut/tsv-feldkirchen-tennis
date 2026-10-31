@@ -7,7 +7,8 @@
     "dev": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
-    "check": "astro check"
+    "check": "astro check",
+    "audit:site": "node scripts/audit-built-site.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.57.4",
