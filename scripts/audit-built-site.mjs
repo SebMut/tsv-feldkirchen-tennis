@@ -69,6 +69,14 @@ else {
 }
 if (!existsSync(workerPath)) errors.push('Service Worker fehlt');
 if (!existsSync(iconPath)) errors.push('PWA Icon-Datei fehlt');
+for (const size of [192,512]) {
+  const path = join(dist, `icon-${size}.png`);
+  if (!existsSync(path)) errors.push(`PNG App-Icon ${size} fehlt`);
+  else {
+    const png = readFileSync(path);
+    if (png.length < 64 || png.readUInt32BE(16) !== size || png.readUInt32BE(20) !== size) errors.push(`PNG Icon ${size} hat falsches Format/Abmessungen`);
+  }
+}
 
 console.log(`Static site audit: ${htmlFiles.length} HTML-Seiten, ${required.length} Hauptrouten, preview=${preview}`);
 if (errors.length) {
