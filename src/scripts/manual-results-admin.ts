@@ -224,7 +224,7 @@ async function saveMatch(event: SubmitEvent) {
     if (data) manual.set(selected.match_id, data as Manual);
     const recordedMatch = matchLabel(selected);
     renderList();
-    showStatus('Nachtrag für ' + recordedMatch + ' gespeichert. Bei aktivierter Auswahl „Nur noch nicht erfasste Spiele“ ist die Begegnung jetzt ausgeblendet. Unter „Alle Begegnungen“ bleibt sie bearbeitbar. Amtliche Prüfung ausstehend.', 'success');
+    showStatus('Nachtrag für ' + recordedMatch + ' gespeichert. Bei aktivierter Auswahl „Nur noch nicht erfasste Spiele“ ist die Begegnung jetzt ausgeblendet. Für spätere Korrekturen das Häkchen bei „Nur noch nicht erfasste Spiele“ entfernen. Amtliche Prüfung ausstehend.', 'success');
   } catch (e) {
     showStatus('Nachtrag konnte nicht gespeichert werden: ' + (e instanceof Error ? e.message : 'Zugriff verweigert'), 'error');
   } finally {
