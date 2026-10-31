@@ -1,0 +1,33 @@
+name: BTV official results read-only verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/btv-results-verification.yml
+      - scripts/btv-results-audit.mjs
+  pull_request:
+    paths:
+      - .github/workflows/btv-results-verification.yml
+      - scripts/btv-results-audit.mjs
+      - tests/btv-results-audit.test.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect and test no-write source reader
+        run: |
+          node --check scripts/btv-results-audit.mjs
+          node --test tests/btv-results-audit.test.mjs
+      - name: Install PDF extractor
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Verify official summer and winter team match results, read-only
+        run: node scripts/btv-results-audit.mjs
