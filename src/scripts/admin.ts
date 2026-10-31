@@ -939,7 +939,7 @@ async function addMatch(event: Event) {
   refreshMatches();
 }
 
-const editorialInput = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+const editorialInput = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 async function refreshNews(){
  const target=document.getElementById('news-admin-list');if(!target)return;
  const ids=allowedTeamIds('edit');
@@ -1001,37 +1001,63 @@ async function addNews(event: Event){
  await refreshNews();
 }
 
-async function refreshEvents() {
-  const ids = allowedTeamIds();
-  let query = supabase.from('events').select('*').order('starts_at', { ascending: false });
-  if (!state.isSuper && ids.length) query = query.in('team_id', ids);
-  const { data } = await query;
-  const target = $('#events-admin-list');
-  if (!target) return;
-  target.innerHTML = `<table class="data-table"><thead><tr><th>Termin</th><th>Titel</th><th>Mannschaft</th></tr></thead><tbody>${(data ?? []).map((e) => `<tr><td>${escapeHtml(formatDateTime(e.starts_at))}</td><td>${escapeHtml(e.title)}</td><td>${escapeHtml(state.teams.find((t) => t.id === e.team_id)?.name || 'Verein')}</td></tr>`).join('')}</tbody></table>`;
+async function refreshEvents(){
+ const target=document.getElementById('events-admin-list');if(!target)return;
+ const ids=allowedTeamIds('edit');
+ if(!state.isSuper&&!ids.length){target.textContent='Keine Berechtigung für Termine.';return;}
+ let query=supabase.from('events').select('*').order('starts_at',{ascending:false});
+ if(!state.isSuper)query=query.in('team_id',ids);
+ const {data,error}=await query;
+ if(error){target.textContent='Termine sind momentan nicht abrufbar.';status(error.message,'error');return;}
+ const rows=data??[];
+ target.innerHTML=rows.length?`<div class="admin-edit-list">${rows.map(row=>`<div class="admin-edit-item" data-event-id="${row.id}"><div><strong>${escapeHtml(row.title)}</strong><p class="muted">${escapeHtml(formatDateTime(row.starts_at))} · ${escapeHtml(row.status)} · ${escapeHtml(state.teams.find(t=>t.id===row.team_id)?.name||'Verein')}</p></div><button type="button" class="button ghost" data-edit-event>Bearbeiten</button></div>`).join('')}</div>`:'<p class="muted">Noch keine Termine vorhanden.</p>';
+ target.querySelectorAll('[data-edit-event]').forEach(button=>button.addEventListener('click',()=>{
+   const item=rows.find(row=>row.id===button.closest('[data-event-id]')?.getAttribute('data-event-id'));if(!item)return;
+   editorialInput('event-edit-id').value=item.id;
+   editorialInput('event-team').value=item.team_id||'';
+   editorialInput('event-category').value=item.category||'club';
+   editorialInput('event-title').value=item.title||'';
+   const local=(stamp: string | null)=>{if(!stamp)return'';const d=new Date(stamp);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
+   editorialInput('event-start').value=local(item.starts_at);
+   editorialInput('event-end').value=local(item.ends_at);
+   editorialInput('event-description').value=item.description||'';
+   editorialInput('event-location').value=item.location_name||'';
+   editorialInput('event-status').value=item.status||'draft';
+   document.getElementById('event-cancel-edit')?.classList.remove('hidden');
+   document.getElementById('event-form')?.scrollIntoView({block:'start'});
+   status('Termin zur Bearbeitung geladen.','info');
+ }));
 }
 
-async function addEvent(event: Event) {
-  event.preventDefault();
-  const start = $<HTMLInputElement>('#event-start')?.value;
-  const end = $<HTMLInputElement>('#event-end')?.value;
-  const title = $<HTMLInputElement>('#event-title')?.value.trim() || '';
-  const { error } = await supabase.from('events').insert({
-    slug: `${slugify(title)}-${Date.now().toString(36)}`,
-    title,
-    description: $<HTMLTextAreaElement>('#event-description')?.value.trim() || null,
-    category: $<HTMLInputElement>('#event-category')?.value.trim() || 'club',
-    starts_at: start ? new Date(start).toISOString() : null,
-    ends_at: end ? new Date(end).toISOString() : null,
-    location_name: $<HTMLInputElement>('#event-location')?.value.trim() || null,
-    team_id: $<HTMLSelectElement>('#event-team')?.value || null,
-    status: 'published',
-    created_by: state.user.id,
-  });
-  if (error) return status(error.message, 'error');
-  ($<HTMLFormElement>('#event-form'))?.reset();
-  status('Termin gespeichert.', 'success');
-  refreshEvents();
+async function addEvent(event: Event){
+ event.preventDefault();
+ const editId=editorialInput('event-edit-id')?.value||null;
+ const title=editorialInput('event-title')?.value.trim()||'';
+ const start=editorialInput('event-start')?.value||'';
+ const end=editorialInput('event-end')?.value||'';
+ const teamId=editorialInput('event-team')?.value||null;
+ if(!title||!start)return status('Titel und Beginn sind erforderlich.','error');
+ if(end&&new Date(end).getTime()<new Date(start).getTime())return status('Das Ende darf nicht vor dem Beginn liegen.','error');
+ if(!state.isSuper&&(!teamId||!canEditTeamId(teamId)))return status('Keine Berechtigung für diese Mannschaft.','error');
+ const patch={
+   title,description:editorialInput('event-description')?.value.trim()||null,
+   category:editorialInput('event-category')?.value.trim()||'club',
+   starts_at:new Date(start).toISOString(),ends_at:end?new Date(end).toISOString():null,
+   location_name:editorialInput('event-location')?.value.trim()||null,
+   team_id:teamId,status:editorialInput('event-status')?.value||'draft'
+ };
+ if(!editId){
+   const duplicate=await supabase.from('events').select('id').eq('title',title).eq('starts_at',patch.starts_at).limit(1);
+   if(duplicate.data?.length)return status('Ein Termin mit diesem Titel und Beginn existiert bereits.','error');
+ }
+ const result=editId?await supabase.from('events').update(patch).eq('id',editId).select('id').single():await supabase.from('events').insert({...patch,slug:`${slugify(title)}-${Date.now().toString(36)}`,created_by:state.user.id}).select('id').single();
+ if(result.error||!result.data)return status(result.error?.message||'Termin konnte nicht gespeichert werden.','error');
+ const form=document.getElementById('event-form');if(form instanceof HTMLFormElement)form.reset();
+ editorialInput('event-edit-id').value='';
+ editorialInput('event-status').value='draft';
+ document.getElementById('event-cancel-edit')?.classList.add('hidden');
+ status(editId?'Termin aktualisiert.':'Termin erstellt.','success');
+ await refreshEvents();
 }
 
 async function refreshGalleries() {
@@ -1358,6 +1384,25 @@ function bindForms() {
   $<HTMLFormElement>('#match-form')?.addEventListener('submit', addMatch);
   $<HTMLFormElement>('#news-form')?.addEventListener('submit', addNews);
   $<HTMLFormElement>('#event-form')?.addEventListener('submit', addEvent);
+  $('#news-cancel-edit')?.addEventListener('click', () => {
+    ($<HTMLFormElement>('#news-form'))?.reset();
+    editorialInput('news-edit-id').value = '';
+    editorialInput('news-status').value = 'draft';
+    $('#news-cancel-edit')?.classList.add('hidden');
+    $('#news-preview')?.classList.add('hidden');
+  });
+  $('#news-preview-button')?.addEventListener('click', () => {
+    const preview = $('#news-preview');
+    if (!preview) return;
+    preview.classList.remove('hidden');
+    preview.textContent = ['news-title', 'news-excerpt', 'news-body'].map((id) => editorialInput(id).value).filter(Boolean).join('\n\n');
+  });
+  $('#event-cancel-edit')?.addEventListener('click', () => {
+    ($<HTMLFormElement>('#event-form'))?.reset();
+    editorialInput('event-edit-id').value = '';
+    editorialInput('event-status').value = 'draft';
+    $('#event-cancel-edit')?.classList.add('hidden');
+  });
   $<HTMLFormElement>('#gallery-form')?.addEventListener('submit', addGallery);
   $<HTMLSelectElement>('#gallery-team')?.addEventListener('change', renderGalleryMatchOptions);
   $<HTMLFormElement>('#facility-form')?.addEventListener('submit', saveFacility);
