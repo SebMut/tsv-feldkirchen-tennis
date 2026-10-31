@@ -166,6 +166,22 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field"><button id="player-submit" class="button" type="submit">Spieler hinzufügen</button></div>
                 <div class="field"><button id="player-cancel-edit" class="button ghost hidden" type="button">Bearbeiten abbrechen</button></div>
               </form>
+              <details class="roster-bulk-import">
+                <summary>Namentliche Mannschaftsmeldung gesammelt übernehmen</summary>
+                <p class="muted">Aus einer offiziellen BTV-Meldung für die oben gewählte Mannschaft und Saison. Einen Namen pro Zeile einfügen, ohne LK, Geburtsdatum, Rang oder Kontaktdaten. Die Liste wird nicht auf GitHub gespeichert.</p>
+                <form id="roster-bulk-form" class="stack">
+                  <div class="field"><label for="roster-bulk-names">Spielernamen (ein Name pro Zeile)</label>
+                    <textarea id="roster-bulk-names" rows="7" maxlength="12000" placeholder="Vorname Nachname&#10;Vorname Nachname"></textarea>
+                  </div>
+                  <div class="field"><label><input id="roster-bulk-verified" type="checkbox" required /> Ich habe die Namen mit der offiziellen Mannschaftsmeldung abgeglichen und darf sie für den Vereinsbetrieb verwenden.</label></div>
+                  <div id="roster-bulk-preview" class="muted" aria-live="polite">Noch keine Namen geprüft.</div>
+                  <div class="actions">
+                    <button id="roster-bulk-check" class="button ghost" type="button">Namen prüfen</button>
+                    <button id="roster-bulk-submit" class="button" type="submit" disabled>Geprüfte Namen intern importieren</button>
+                  </div>
+                </form>
+                <p class="muted">Importierte Namen sind zunächst ausschließlich intern sichtbar. Eine öffentliche Freigabe erfolgt bei jeder Person separat.</p>
+              </details>
               <div id="players-list" class="table-wrap"></div>
             </div>
           </section>
