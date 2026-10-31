@@ -17,7 +17,7 @@ try {
  await new Promise((res,rej)=>{ws.addEventListener('open',res,{once:true});ws.addEventListener('error',rej,{once:true})});
  let id=0;const pending=new Map();
  ws.addEventListener('message',m=>{const msg=JSON.parse(m.data);if(msg.id&&pending.has(msg.id)){const p=pending.get(msg.id);pending.delete(msg.id);msg.error?p.reject(Error(msg.error.message)):p.resolve(msg.result)}});
- function call(method,params={}){return new Promise((resolve,reject)=>{const key=++id;pending.set(key,{resolve,reject});ws.send(JSON.stringify({id:key,method,params}))})}
+ function call(method,params={},sessionId){return new Promise((resolve,reject)=>{const key=++id;pending.set(key,{resolve,reject});ws.send(JSON.stringify({id:key,method,params,...(sessionId?{sessionId}:{})}))})}
  async function evaluate(expression){let r=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result?.value}
  await call('Runtime.enable'); await call('Page.enable');
  await sleep(3200);
@@ -39,5 +39,18 @@ try {
    }catch(e){console.log('FRAME_RESULT_UNAVAILABLE',String(e).slice(0,300));}
  }
 
+ const targets=await call('Target.getTargets');
+ console.log('BTV_PUBLIC_TARGETS',JSON.stringify((targets.targetInfos||[]).filter(x=>/btv-prod|btvteams|btvmeetings/.test(x.url)).map(x=>({id:x.targetId,type:x.type,url:x.url}))).slice(0,3500));
+ for(const target of (targets.targetInfos||[]).filter(x=>x.type==='iframe'&&x.url.includes('btvteams'))) {
+   try {
+     const session=await call('Target.attachToTarget',{targetId:target.targetId,flatten:true});
+     const read=await call('Runtime.evaluate',{expression:'document.body.innerText',returnByValue:true},session.sessionId);
+     console.log('BTV_PUBLIC_TEAM_TEXT',JSON.stringify(read.result?.value?.slice(0,20000)));
+     const click=await call('Runtime.evaluate',{expression:'document.querySelector("button.dropdown-toggle")?.click();true',returnByValue:true},session.sessionId);
+     await sleep(1100);
+     const menu=await call('Runtime.evaluate',{expression:'Array.from(document.querySelectorAll("li,.z-menuitem")).map(x=>x.innerText).filter(Boolean).slice(0,60)',returnByValue:true},session.sessionId);
+     console.log('BTV_TEAM_MENU',JSON.stringify(menu.result?.value));
+   } catch(e){console.log('BTV_TEAM_TARGET_ERROR',String(e).slice(0,400))}
+ }
  ws.close();
 }finally{chrome.kill('SIGKILL');try{rmSync(temp,{recursive:true,force:true,maxRetries:5,retryDelay:150})}catch{}}
