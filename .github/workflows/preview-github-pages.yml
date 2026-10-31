@@ -33,6 +33,16 @@ jobs:
           PUBLIC_PREVIEW_MODE: "true"
         run: npm run build
 
+      - name: Audit preview pages
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis
+          PUBLIC_PREVIEW_MODE: "true"
+        run: npm run audit:site
+
+      - name: Block crawling of the preview
+        run: |
+          printf 'User-agent: *\\nDisallow: /\\n' > dist/robots.txt
+
       - name: Disable Jekyll processing
         run: touch dist/.nojekyll
 
