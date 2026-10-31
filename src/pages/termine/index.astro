@@ -6,6 +6,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
     <div class="page-head"><div><p class="eyebrow">Kalender</p><h1>Termine & Spielplan</h1></div></div>
     <div class="filters">
       <select id="calendar-kind" aria-label="Art der Termine"><option value="all">Spiele & Veranstaltungen</option><option value="matches">Nur Punktspiele</option><option value="events">Nur Veranstaltungen</option></select>
+      <select id="calendar-range" aria-label="Zeitraum"><option value="all">Alle Zeiträume</option><option value="upcoming">Nur zukünftige</option><option value="year">Aktuelles Kalenderjahr</option><option value="recent">Letzte 90 Tage</option></select>
       <select id="calendar-team" aria-label="Mannschaft wählen"><option value="">Alle Mannschaften</option></select>
       <select id="calendar-category" aria-label="Kategorie wählen"><option value="">Alle Kategorien</option></select>
     </div>
