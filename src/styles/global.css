@@ -928,3 +928,99 @@ body{background:var(--sand);color:var(--text)}
 .teams-official-widget__frame{display:block;width:100%;max-width:100%;border:1px solid #dce4de;border-radius:12px;background:#fff;min-height:600px}
 .teams-official-widget__details .muted{overflow-wrap:anywhere}
 @media(max-width:700px){.teams-official-widget__details{padding:12px}.teams-official-widget__frame{height:680px;min-height:500px}}
+
+
+/* TSV Website 2026: 80% desktop content shell, white 10% margins on both sides.
+   Mobile/tablet remain full-width and comfortable to read. */
+body{background:#fff}
+.site-header,main,.site-footer{
+  width:80%;
+  margin-left:auto;
+  margin-right:auto;
+  min-width:0;
+}
+.container{
+  width:calc(100% - 48px);
+  max-width:none;
+  margin-inline:auto;
+}
+/* Keep content, including the header, footer, hero and the app/admin pages,
+   inside the shared centered site shell. */
+.site-header__inner,.footer-grid{width:calc(100% - 48px);max-width:none}
+main{background:var(--sand)}
+main.main--flush{padding:0}
+@media(max-width:1023px){
+  .site-header,main,.site-footer{width:100%}
+}
+@media(max-width:600px){
+  .container,.site-header__inner,.footer-grid{width:calc(100% - 32px)}
+}
+
+/* Real TSV Feldkirchen tennis courts — high priority responsive hero photo. */
+.premium-hero{
+  background:#162521;
+  color:#fff;
+  min-height:clamp(520px,54vw,740px);
+  isolation:isolate;
+}
+.premium-hero__photo{
+  display:block;
+  position:absolute;
+  inset:0;
+  z-index:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 48%;
+  opacity:1;
+  max-width:none;
+  mask-image:none;
+  pointer-events:none;
+}
+.premium-hero::before{
+  content:"";
+  position:absolute;
+  z-index:1;
+  inset:0;
+  background:linear-gradient(90deg,
+    rgba(8,22,20,.82) 0%,
+    rgba(8,22,20,.72) 32%,
+    rgba(8,22,20,.36) 63%,
+    rgba(8,22,20,.1) 100%);
+  pointer-events:none;
+}
+.premium-hero::after{display:none}
+.premium-hero__inner{z-index:2}
+.premium-hero h1{color:#fff}
+.premium-hero h1 span{color:#ff5360}
+.premium-hero .eyebrow{color:#ffb7bd}
+.premium-hero__lead{color:#f1f6f3}
+.premium-hero .button--outline{
+  border-color:rgba(255,255,255,.8);
+  color:#fff;
+  background:rgba(15,32,28,.35);
+}
+.premium-hero .button--outline:hover,
+.premium-hero .button--outline:focus-visible{
+  color:#121b18;
+  border-color:#fff;
+  background:#fff;
+}
+@media(max-width:760px){
+  .premium-hero{min-height:570px}
+  .premium-hero__photo{
+    inset:0;
+    width:100%;
+    height:100%;
+    object-position:55% center;
+    opacity:1;
+    mask-image:none;
+  }
+  .premium-hero::before{
+    background:linear-gradient(0deg,
+      rgba(6,19,16,.87) 0%,
+      rgba(6,19,16,.62) 54%,
+      rgba(6,19,16,.17) 100%);
+  }
+  .premium-hero h1{font-size:clamp(2.8rem,12vw,4.6rem)}
+}
