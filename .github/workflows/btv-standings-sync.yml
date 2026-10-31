@@ -1,0 +1,48 @@
+name: BTV public team standings sync
+on:
+  schedule:
+    - cron: '41 4 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/btv-standings-*.mjs
+      - .github/workflows/btv-standings-sync.yml
+      - supabase/migrations/20261031235500_public_team_standings.sql
+  pull_request:
+    paths:
+      - scripts/btv-standings-*.mjs
+      - tests/btv-standings-source.test.mjs
+      - .github/workflows/btv-standings-sync.yml
+
+permissions:
+  contents: read
+concurrency:
+  group: btv-public-standings
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: node --check scripts/btv-standings-source.mjs && node --check scripts/btv-standings-sync.mjs
+      - run: node --test tests/btv-standings-source.test.mjs
+  import:
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Import verified public BTV standings
+        env:
+          BTV_STANDINGS_WRITE_ENABLED: 'true'
+          BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: node scripts/btv-standings-sync.mjs --apply
