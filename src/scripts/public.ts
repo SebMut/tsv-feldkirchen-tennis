@@ -402,12 +402,12 @@ export async function loadTeams() {
     const emptyMessage = activeCode === 'sommer-2027'
       ? 'Die Mannschaften und Spielpläne für Sommer 2027 werden veröffentlicht, sobald die offiziellen BTV-Daten verfügbar sind.'
       : activeCode === 'winter-2026-2027'
-        ? 'Für die Winterrunde 2026/2027 sind noch keine offiziell bestätigten TSV-Mannschaften hinterlegt. Sobald die BTV-Meldungen geprüft sind, erscheinen die Winterteams hier.'
+        ? 'Die Mannschaften der Winterrunde 2026/2027 sind beim BTV bereits veröffentlicht. Wir gleichen ihre Meldungen und Spielpläne derzeit mit unserer Mannschaftsverwaltung ab.'
         : 'Für diese Saison wurden noch keine Mannschaften veröffentlicht.';
     if (!rows.length) {
       target.innerHTML = allRows.length && activeCategory
         ? '<div class="teams-empty"><span aria-hidden="true">◎</span><h3>Keine Mannschaft in dieser Kategorie</h3><p>Wähle „Alle Teams“, um die gesamte Saison zu sehen.</p></div>'
-        : `<div class="teams-empty"><span aria-hidden="true">${activeCode.startsWith('winter') ? '❄' : '☀'}</span><h3>Noch keine Mannschaften veröffentlicht</h3><p>${emptyMessage}</p></div>`;
+        : `<div class="teams-empty"><span aria-hidden="true">${activeCode.startsWith('winter') ? '❄' : '☀'}</span><h3>${activeCode === 'winter-2026-2027' ? 'BTV-Winterrunde 2026/27' : 'Noch keine Mannschaften veröffentlicht'}</h3><p>${emptyMessage}</p>${activeCode === 'winter-2026-2027' ? '<a class="button secondary" href="https://www.btv.de/de/mein-verein/vereinsseite/tsv-feldkirchen.html#Mannschaften" target="_blank" rel="noopener noreferrer">Winter-Mannschaften beim BTV ansehen ↗</a>' : ''}</div>`;
       return;
     }
     const now = Date.now();
