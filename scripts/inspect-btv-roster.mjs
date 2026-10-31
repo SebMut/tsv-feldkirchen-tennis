@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 const ids={herren:3728614,'herren-ii':3727556,'herren-50':3727895};
 const slug=process.env.BTV_TEAM_SLUG;
 if(!(slug in ids))throw Error('Unverified team');
-const root='https://www.btv.de/de/spielbetrieb/teamportrait.html?teamid='+ids[slug];
+const root='https://widget.btv.de/btvteamportrait/?teamid='+ids[slug];
 const dir=mkdtempSync(join(tmpdir(),'btv-roster-'));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const port=9237;
@@ -29,6 +29,8 @@ try {
  const iframes=await evaluate('Array.from(document.querySelectorAll("iframe")).map(x=>x.src).filter(x=>x.includes("btv"))');
  console.log('BTV_PORTRAIT_STRUCTURE',JSON.stringify({slug,iframes,links}).slice(0,4000));
  await sleep(5500);
+ const topMeta=await evaluate('(() => {const s=document.body?.innerText||"";return {length:s.length,containsRoster:/Mannschaftsmeldung|Spielerliste|Spielerinnen|Meldeliste|Kader/i.test(s),tables:document.querySelectorAll("table").length,rows:document.querySelectorAll("tr").length,buttons:Array.from(document.querySelectorAll("a,button")).map(x=>(x.innerText||"").trim()).filter(x=>/^(Spieler|Kader|Aufstellung|Meldung|LK|Mannschaft|Winter)/i.test(x)).slice(0,20)}})()');
+ console.log('BTV_DIRECT_ROSTER_META',JSON.stringify({slug,...topMeta}).slice(0,4200));
  const targets=(await call('Target.getTargets')).targetInfos||[];
  const relevant=targets.filter(t=>t.type==='iframe'&&/btv-prod|widget.btv.de/.test(t.url));
  console.log('BTV_PORTRAIT_WIDGETS',JSON.stringify({slug,urls:relevant.map(t=>t.url)}).slice(0,3000));
