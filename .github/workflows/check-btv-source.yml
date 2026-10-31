@@ -1,0 +1,27 @@
+name: Check BTV import source
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/astro-supabase-foundation
+    paths:
+      - scripts/probe-btv.mjs
+      - .github/workflows/check-btv-source.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install PDF text extraction
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Probe BTV once, no database writes
+        run: node scripts/probe-btv.mjs
