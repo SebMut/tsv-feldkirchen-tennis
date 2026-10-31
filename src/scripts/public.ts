@@ -1059,8 +1059,9 @@ export async function loadNews() {
   if (!target) return;
   const { data, error } = await supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false });
   target.innerHTML = data?.length ? data.map((item: Row) => `
-    <article class="card">
+    <article class="card ${item.slug?.startsWith('btv-spielverlegung-') ? 'news-card--reschedule' : ''}">
       ${item.hero_image_path ? `<img src="${escapeHtml(mediaUrl(item.hero_image_path))}" alt="" loading="lazy" style="border-radius:14px;aspect-ratio:16/9;object-fit:cover;margin-bottom:16px">` : ''}
+      ${item.slug?.startsWith('btv-spielverlegung-') ? '<p class="news-reschedule-label">BTV · Spielverlegung</p>' : ''}
       <p class="eyebrow">${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : 'Aktuelles'}</p>
       <h2>${escapeHtml(item.title)}</h2>
       <p class="muted">${escapeHtml(item.excerpt || (item.body || '').slice(0, 220))}</p>
