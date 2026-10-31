@@ -730,3 +730,25 @@ body{background:var(--sand);color:var(--text)}
   .calendar-agenda-heading h2{font-size:1.5rem}
 }
 @media(max-width:390px){.calendar-filters{grid-template-columns:1fr}.calendar-toolbar h2{font-size:1.14rem}.calendar-icon-button{width:36px}.calendar-today-button{min-width:55px}}
+
+
+/* Kalender: jeweils ein eigener Farbpunkt pro Mannschaftskategorie / Veranstaltung */
+.calendar-dot--men,.calendar-legend-dot--men{background:#2563eb}
+.calendar-dot--women,.calendar-legend-dot--women{background:#9436ac}
+.calendar-dot--youth,.calendar-legend-dot--youth{background:#d97706}
+.calendar-dot--event,.calendar-legend-dot--event{background:#16836f}
+.calendar-dot--other,.calendar-legend-dot--other{background:#64748b}
+.calendar-day__dots{flex-wrap:wrap;max-width:100%}
+.calendar-legend-dot{flex-shrink:0}
+.calendar-day-entry{display:grid;gap:7px;min-width:0}
+.calendar-entry-type{display:inline-flex;align-items:center;gap:7px;justify-self:start;border-radius:999px;padding:4px 10px;background:#f2f5f8;color:#394851;font-weight:800;font-size:.76rem}
+.calendar-entry-type--men{background:#e8efff;color:#1e4da3}
+.calendar-entry-type--women{background:#f5eaf9;color:#813099}
+.calendar-entry-type--youth{background:#fff0d9;color:#955100}
+.calendar-entry-type--event{background:#e2f4ef;color:#166453}
+.calendar-next-type{display:flex!important;align-items:center;gap:7px}
+.calendar-next-type .calendar-dot{width:7px;height:7px}
+@media(max-width:680px){
+  .calendar-day__dots{justify-content:center;gap:3px}
+  .calendar-legend{gap:9px 14px}
+}
