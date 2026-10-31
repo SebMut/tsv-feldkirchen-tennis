@@ -54,6 +54,22 @@ if (!htmlFiles.length) errors.push('Keine HTML-Seiten im Build');
 const sitemap = join(dist, 'sitemap.xml');
 if (!existsSync(sitemap)) errors.push('Sitemap fehlt');
 else if (!readFileSync(sitemap, 'utf8').includes('<urlset')) errors.push('Sitemap ungültig');
+const manifestPath = join(dist, 'manifest.webmanifest');
+const workerPath = join(dist, 'sw.js');
+const iconPath = join(dist, 'app-icon.svg');
+if (!existsSync(manifestPath)) errors.push('PWA Manifest fehlt');
+else {
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    const expected = (basePath || '') + '/';
+    if (manifest.start_url !== expected || manifest.scope !== expected) errors.push('PWA Start/Scope passt nicht zum Basis-Pfad');
+    if (manifest.name !== 'TSV Feldkirchen Tennis') errors.push('PWA App-Name fehlt');
+    if (!manifest.icons?.length) errors.push('PWA Icon fehlt im Manifest');
+  } catch { errors.push('PWA Manifest ist kein gültiges JSON'); }
+}
+if (!existsSync(workerPath)) errors.push('Service Worker fehlt');
+if (!existsSync(iconPath)) errors.push('PWA Icon-Datei fehlt');
+
 console.log(`Static site audit: ${htmlFiles.length} HTML-Seiten, ${required.length} Hauptrouten, preview=${preview}`);
 if (errors.length) {
   for (const error of errors) console.error('FEHLER:', error);
