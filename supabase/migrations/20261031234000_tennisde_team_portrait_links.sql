@@ -15,7 +15,7 @@ begin
       check (
         tennis_de_portrait_url is null or
         tennis_de_portrait_url ~
-          '^https://www\\.tennis\\.de/spielen/spielbetrieb/mannschaftssuche\\.html\\?verband=btv&verein=01012#teamportrait/[0-9]+$'
+          '^https://www\.tennis\.de/spielen/spielbetrieb/mannschaftssuche\.html\?verband=btv&verein=01012#teamportrait/[0-9]+$'
       );
   end if;
 end $$;
