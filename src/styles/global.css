@@ -619,3 +619,12 @@ body{background:var(--sand);color:var(--text)}
 .premium-hero__photo{position:absolute;inset:0 0 0 42%;z-index:0;background-size:cover;background-position:center 43%;opacity:.19;mask-image:linear-gradient(90deg,transparent,black 40%);pointer-events:none}
 .premium-hero__inner{position:relative;z-index:2}
 @media(max-width:760px){.premium-hero__photo{inset:26% 0 0 10%;opacity:.1;mask-image:linear-gradient(180deg,transparent,black 55%)}}
+
+/* Phase 6 – mobile-freundliche Vereinsredaktion */
+.admin-edit-list{display:grid;gap:10px;margin-top:18px}
+.admin-edit-item{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:#fafbfa}
+.admin-edit-item>div{min-width:0;overflow-wrap:anywhere}
+.admin-edit-item strong{display:block}
+.admin-edit-item .match-meta,.admin-edit-item .muted{margin:4px 0 0}
+#news-preview{white-space:pre-wrap;margin-top:12px;line-height:1.6;max-height:520px;overflow:auto}
+@media(max-width:620px){.admin-edit-item{align-items:stretch;flex-direction:column}.admin-edit-item .button{width:100%;min-height:44px}}
