@@ -7,6 +7,8 @@ on:
       - feature/astro-supabase-foundation
     paths:
       - scripts/probe-btv.mjs
+      - scripts/btv-schedule.mjs
+      - scripts/check-btv-parser.mjs
       - .github/workflows/check-btv-source.yml
 
 permissions:
@@ -24,4 +26,4 @@ jobs:
       - name: Install PDF text extraction
         run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - name: Probe BTV once, no database writes
-        run: node scripts/probe-btv.mjs
+        run: node scripts/check-btv-parser.mjs
