@@ -57,6 +57,9 @@ test('youth import plans are private and require every mapped club team', () => 
 });
 test('PDF league header detection accepts only known age classes', () => {
   assert.equal(ageClassFromPdfHeading('Herren II | Südliga 2'), 'Herren');
+  assert.equal(ageClassFromPdfHeading('Herren I | Südliga 2'), 'Herren');
+  assert.equal(ageClassFromPdfHeading('Bambini 12 I (4er) | Südliga'), 'Bambini 12');
+  assert.equal(ageClassFromPdfHeading('Kleinfeld U9 I (4er) | Südliga'), 'Kleinfeld U9');
   assert.equal(ageClassFromPdfHeading('Damen (4er) | Südliga 5'), 'Damen');
   assert.equal(ageClassFromPdfHeading('Herren 50 II (4er) | Südliga 4'), 'Herren 50');
   assert.equal(ageClassFromPdfHeading('Bambini 12 III (4er) | Südliga'), 'Bambini 12');

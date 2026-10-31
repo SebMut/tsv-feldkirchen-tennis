@@ -241,6 +241,18 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   // Do not print any raw PDF lines, player names, birth years or document links.
   const numbered = lines.filter(line => /^\s*\d{1,3}[.)]?\s+\p{L}/u.test(line));
   console.log('BTV_LAYOUT_NUMBERED_ROWS=' + numbered.length);
+  const nameColumnCount = numbered.filter(line => {
+    const first = line.trim().split(/\s{2,}/)[0];
+    return /^\d{1,3}[.)]?\s+\p{L}[^,]{2,70},\s*\p{L}/u.test(first);
+  }).length;
+  console.log('BTV_LAYOUT_NAME_COLUMNS=' + nameColumnCount);
+  for (const [i, line] of numbered.slice(0, 7).entries()) {
+    const columns = line.trim().split(/\s{2,}/);
+    const first = columns[0].slice(0, 100).replace(/\p{L}/gu, 'X')
+      .replace(/\d/g, '9').replace(/[^X9\s()|:;.,\/-]/g, '?');
+    console.log('BTV_LAYOUT_COLUMN_COUNT_' + (i + 1) + '=' + columns.length);
+    console.log('BTV_LAYOUT_NAME_COLUMN_' + (i + 1) + '=' + first);
+  }
   for (const [i, line] of numbered.slice(0, 7).entries()) {
     const masked = line.slice(0, 110).replace(/\p{L}/gu, 'X')
       .replace(/\d/g, '9').replace(/[^X9\s()|:;.,\/-]/g, '?')
