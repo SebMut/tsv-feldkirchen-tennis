@@ -58,3 +58,9 @@ Es werden ausschließlich öffentliche Supabase-Publishable-Keys im Browser verw
 - Bestehende Betriebshinweise: `docs/operations.md`
 
 Der eigentliche Go-live ist **kein Bestandteil** der laufenden technischen Vorbereitungsarbeiten.
+
+## Phase 8 – zusätzliche Vereinsfunktionen
+
+Der Entwicklungsbranch enthält jetzt Spieltags-Cockpit 2.0, personalisierte „Mein TSV“-Karte, Wochenkalender mit Favoriten, installierbare Web-App-Grundlage, Mannschaftsstatistik, Vereinsbrett, Änderungsprotokoll und erleichterte Spielberichte. Siehe `docs/phase-8-vereinskomfort.md` für den konkreten Umsetzungsstand und die **noch offenen Praxistests**.
+
+Die produktive Domain bleibt bis zur separaten ausdrücklichen Go-live-Freigabe unverändert.
