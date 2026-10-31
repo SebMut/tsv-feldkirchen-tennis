@@ -814,7 +814,7 @@ export async function loadCalendar() {
     const indexed = new Map<string, { match: number; event: number }>();
     entries.forEach(item => {
       const old = indexed.get(item.key) || { match: 0, event: 0 };
-      old[item.kind] += 1;
+      if (item.kind === 'match') old.match += 1; else old.event += 1;
       indexed.set(item.key, old);
     });
     const cells: string[] = [];
@@ -870,7 +870,7 @@ export async function loadCalendar() {
     selectedDay = key;
     [viewYear, viewMonth] = key.split('-').map(Number);
     render();
-    if (focus) grid.querySelector(`[data-calendar-day="${key}"]`)?.focus();
+    if (focus) grid.querySelector<HTMLButtonElement>(`[data-calendar-day="${key}"]`)?.focus();
   };
   const moveMonth = (amount: number) => {
     const target = new Date(Date.UTC(viewYear, viewMonth - 1 + amount, 1, 12));
@@ -895,7 +895,7 @@ export async function loadCalendar() {
     const key = isoAt(new Date(dateAt(target.dataset.calendarDay).getTime() + offset * 86400000));
     chooseDay(key, true);
   });
-  [teamSelect, categorySelect, kindSelect, rangeSelect].filter(Boolean).forEach(el => el.addEventListener('change', render));
+  [teamSelect, categorySelect, kindSelect, rangeSelect].filter((el): el is HTMLSelectElement => !!el).forEach(el => el.addEventListener('change', render));
 
   render();
   try {
