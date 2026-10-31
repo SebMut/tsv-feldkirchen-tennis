@@ -41,7 +41,7 @@ async function confirmClub(context) {
   let pages = await visiblePages(context);
   // If several clubs are offered, select only an explicit TSV Feldkirchen control.
   for (const { page, text } of pages) {
-    if (CLUB.test(text) && CLUB_NUMBER.test(text)) return page;
+    // A multi-club chooser may list TSV without selecting it.\n    if (CLUB.test(text) && CLUB_NUMBER.test(text)\n        && !/Vereinsauswahl|Verein auswählen|Bitte.*Verein.*wählen/i.test(text)) return page;
   }
   for (const { page } of pages) {
     const clubLink = page.getByRole('link', { name: /TSV Feldkirchen(?:\s*\(01012\))?/i }).first();
