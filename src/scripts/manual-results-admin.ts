@@ -22,6 +22,14 @@ type WithdrawalFlag = {
   verification_status: 'reported' | 'official_verified';
   evidence_url: string | null;
 };
+type ExternalReport = {
+  match_id: string;
+  home_points: number;
+  away_points: number;
+  source_url: string;
+  source_title: string;
+  review_status: string;
+};
 type Manual = {
   match_id: string;
   result_status: string;
@@ -39,6 +47,7 @@ const localTime = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', 
 let fixtures: Entry[] = [];
 let manual = new Map<string, Manual>();
 let withdrawalFlags = new Map<string, WithdrawalFlag>();
+let externalReports = new Map<string, ExternalReport>();
 let verifiedBtv = new Map<string, string>();
 let selected: Entry | null = null;
 let initialized = false;
@@ -56,7 +65,7 @@ function matchLabel(m: Entry) { return teamHome(m) + ' – ' + teamAway(m); }
 function isOfficial(m: Entry) { return !!m.btv_result_text?.trim(); }
 // Ein bestätigter manueller Nachtrag zählt für die Aufgabenliste als bereits erfasst,
 // bleibt aber bis zum offiziellen Quellenabgleich ausdrücklich ungeprüft.
-function isNotYetRecorded(m: Entry) { return !isOfficial(m) && !manual.has(m.match_id) && !withdrawalFlags.has(m.match_id); }
+function isNotYetRecorded(m: Entry) { return !isOfficial(m) && !manual.has(m.match_id) && !withdrawalFlags.has(m.match_id) && !externalReports.has(m.match_id); }
 function option(value: string, title: string): HTMLOptionElement {
   const element = document.createElement('option');
   element.value = value;
@@ -111,7 +120,10 @@ function renderList() {
       ? 'BTV-Ergebnis bereits gespeichert: ' + m.btv_result_text
       : manual.has(m.match_id) ? 'Manuell erfasst · amtliche Prüfung offen'
       : withdrawalFlags.has(m.match_id) ? (withdrawalFlags.get(m.match_id)?.verification_status === 'official_verified'
-        ? 'Mannschaft zurückgezogen · durch BTV bestätigt' : 'Rückzug gemeldet · BTV-Bestätigung offen') : 'Ergebnis offen';
+        ? 'Mannschaft zurückgezogen · durch BTV bestätigt' : 'Rückzug gemeldet · BTV-Bestätigung offen')
+      : externalReports.has(m.match_id)
+        ? 'Extern belegt: ' + externalReports.get(m.match_id)?.home_points + ':' + externalReports.get(m.match_id)?.away_points + ' · BTV-Bestätigung offen'
+        : 'Ergebnis offen';
     button.append(heading, metadata, tag);
     button.addEventListener('click', () => selectMatch(m.match_id));
     const item = document.createElement('div');
@@ -133,6 +145,17 @@ function renderList() {
       missing.textContent = 'Offizieller Gruppenlink noch nicht bestätigt';
       item.append(missing);
     }
+    const external = externalReports.get(m.match_id);
+    if (external) {
+      const proof = document.createElement('a');
+      proof.href = external.source_url;
+      proof.className = 'text-link';
+      proof.target = '_blank';
+      proof.rel = 'noopener noreferrer';
+      proof.textContent = 'Externer Ergebnisnachweis ↗';
+      proof.setAttribute('aria-label', external.source_title + ' öffnen');
+      item.append(proof);
+    }
     list.append(item);
   }
 }
@@ -142,6 +165,7 @@ function selectMatch(id: string) {
   if (!selected) return;
   const saved = manual.get(id);
   const withdrawal = withdrawalFlags.get(id);
+  const external = externalReports.get(id);
   const form = byId<HTMLFormElement>('manual-result-form');
   if (form) form.classList.remove('hidden');
   const noSelection = byId<HTMLElement>('manual-results-empty');
@@ -149,11 +173,14 @@ function selectMatch(id: string) {
 
   const specialNotice = byId<HTMLElement>('manual-results-withdrawal');
   if (specialNotice) {
-    specialNotice.classList.toggle('hidden', !withdrawal);
+    specialNotice.classList.toggle('hidden', !withdrawal && !external);
     if (withdrawal) specialNotice.textContent =
       (withdrawal.affected_side === 'away' ? 'Gastmannschaft' : withdrawal.affected_side === 'home' ? 'Heimmannschaft' : 'Mannschaft') +
       ' zurückgezogen · ' + (withdrawal.verification_status === 'official_verified' ? 'amtlich von BTV bestätigt' : 'gemeldet, offizielle Prüfung ausstehend') +
       '. Kein reguläres Match-Ergebnis erfinden.';
+    else if (external) specialNotice.textContent =
+      'Extern dokumentiertes Ergebnis ' + external.home_points + ':' + external.away_points +
+      ' (' + external.source_title + '). Noch keine offizielle BTV-Bestätigung; Ergebnisquelle im Link der Begegnung.';
   }
   const label = byId<HTMLElement>('manual-results-selected');
   const date = byId<HTMLElement>('manual-results-date');
@@ -164,15 +191,15 @@ function selectMatch(id: string) {
   }
   const assign = (id: string, value: string) => { const el = byId<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id); if (el) el.value = value; };
   assign('manual-result-status', saved?.result_status || 'played');
-  assign('manual-result-home', saved?.home_points == null ? '' : String(saved.home_points));
-  assign('manual-result-away', saved?.away_points == null ? '' : String(saved.away_points));
-  assign('manual-result-source', saved?.source_type || 'club_confirmation');
-  assign('manual-result-url', saved?.source_url || '');
-  assign('manual-result-notes', saved?.notes || '');
+  assign('manual-result-home', saved?.home_points == null ? (external ? String(external.home_points) : '') : String(saved.home_points));
+  assign('manual-result-away', saved?.away_points == null ? (external ? String(external.away_points) : '') : String(saved.away_points));
+  assign('manual-result-source', saved?.source_type || (external ? 'other' : 'club_confirmation'));
+  assign('manual-result-url', saved?.source_url || external?.source_url || '');
+  assign('manual-result-notes', saved?.notes || external?.source_title || '');
   const confirmation = byId<HTMLInputElement>('manual-result-confirm');
   if (confirmation) confirmation.checked = false;
   const save = byId<HTMLButtonElement>('manual-result-save');
-  if (save) save.disabled = isOfficial(selected);
+  if (save) save.disabled = isOfficial(selected) || !!external;
 
   const link = byId<HTMLAnchorElement>('manual-result-official-link');
   if (link) {
@@ -182,12 +209,13 @@ function selectMatch(id: string) {
     link.textContent = btv.isDirect ? 'Offiziellen BTV-Spielplan öffnen ↗' : 'BTV-Vereinsübersicht öffnen (Gruppenlink ungeprüft) ↗';
   }
   if (isOfficial(selected)) showStatus('Ein offizielles BTV-Ergebnis ist bereits hinterlegt. Manuelle Änderungen sind für dieses Spiel gesperrt.', 'info');
+  else if (external) showStatus('Extern belegtes Ergebnis ist gespeichert. Eine amtliche BTV-Bestätigung steht noch aus.', 'info');
   renderList();
 }
 
 async function loadMatches() {
   showStatus('Begegnungen werden geladen …');
-  const [matchRes, manualRes, flagsRes, verifiedRes] = await Promise.all([
+  const [matchRes, manualRes, flagsRes, verifiedRes, externalRes] = await Promise.all([
     supabase.from('manual_editable_matches')
       .select('match_id,team_season_id,starts_at,is_home,opponent,btv_result_text,team_name,season_code,season_name,btv_url,tennis_de_portrait_url')
       .order('starts_at', { ascending: true }).limit(1000),
@@ -199,13 +227,17 @@ async function loadMatches() {
       .limit(1000),
     supabase.from('verified_team_btv_links')
       .select('team_season_id,btv_url').limit(1000),
+    supabase.from('external_match_result_reports')
+      .select('match_id,home_points,away_points,source_url,source_title,review_status').limit(1000),
   ]);
   if (matchRes.error) throw matchRes.error;
   if (manualRes.error) throw manualRes.error;
   if (flagsRes.error) throw flagsRes.error;
+  if (externalRes.error) throw externalRes.error;
   fixtures = (matchRes.data || []) as Entry[];
   manual = new Map(((manualRes.data || []) as Manual[]).map(m => [m.match_id, m]));
   withdrawalFlags = new Map(((flagsRes.data || []) as WithdrawalFlag[]).map(m => [m.match_id, m]));
+  externalReports = new Map(((externalRes.data || []) as ExternalReport[]).map(m => [m.match_id, m]));
   // On a failed verification lookup, never present an unverified legacy ID as official.
   verifiedBtv = new Map((verifiedRes.data || []).map(m => [m.team_season_id, m.btv_url]));
   const seasons = new Map(fixtures.map(m => [m.season_code, m.season_name]));
