@@ -1,5 +1,26 @@
 # TSV Feldkirchen – amtlicher BTV-Vollabgleich Sommer 2026
 
+## Aktualisierung 31.10.2026 – ergänzter Gruppen- und Presseabgleich
+
+Dieser Abschnitt ist der **neueste Datenstand**. Die Zahlen in der ursprünglichen Vollprüfung weiter unten dokumentieren den vorherigen Zwischenstand.
+
+- **124** interne Begegnungen, davon **120** mit amtlichem BTV-Snapshot verknüpft.
+- **116** numerische BTV-Ergebnisse; davon wurde **TC Malgersdorf – TSV Feldkirchen Herren 40, 5:4** am 13.06.2026 aus dem offiziellen [BTV-Gruppenspielplan Gr. 039 SU](https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?dokument=ScheduleReportFOP&group=2165602) ergänzend übernommen.
+- **2 weitere amtlich belegte Rückzüge ohne numerisches Spielergebnis:** SV DJK Taufkirchen (10.04.2026) für Herren 50 II, [BTV-Vereins-Gruppeneinteilung](https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?club=23391&dokument=ResultReportFOP&season=18105&type=group), und TSV Oberpframmern II (09.04.2026) für Bambini 12, [BTV-Gruppenspielplan Gr. 849](https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?dokument=ScheduleReportFOP&group=2216734). Beide wurden in `match_withdrawal_flags` mit `official_verified` gespeichert; **kein 0:0 erfunden**.
+- **1 extern belegter, noch nicht amtlich bestätigter Endstand:** TC Oberding – Damen am 14.06.2026 **4:2**, Quelle [Gemeindeanzeiger Oberding/Eitting vom 19.06.2026](https://www.vg-oberding.de/fileadmin/Gemeinde/Amtsblatt/2026/Nr._24_-_19.06.2026.pdf). Der Eintrag steht **nur** in `external_match_result_reports` als `pending_btv_confirmation`, ausdrücklich **nicht** in `matches.btv_result_text`. Superadmins sehen den Beleg im Ergebniseditor.
+- **2 TSV-seitig gemeldete Rückzüge ohne BTV-Einzelwertung:** TC Moosburg (Spiel 19.06.2026) und VfB Forstinning (04.07.2026). Hinzu kommt **1 manueller Rückzugsnachtrag** gegen TC Unterföhring. Die nachgewiesene spätere Moosburger Mannschaftsabmeldung am 07.07.2026 darf nicht rückwirkend als Spielwertung vom 19.06.2026 interpretiert werden.
+
+**Noch ohne jede konkrete Ergebnis-/Rückzugsquelle bleiben genau zwei Begegnungen:**
+
+1. **16.05.2026, 09:00 – ETC Siegertsbrunn II – TSV Feldkirchen Herren 50 II**, Gr. 396.
+2. **10.07.2026, 15:00 – STK Garching – TSV Feldkirchen Knaben 15 II**, Gr. 646.
+
+Beide stehen im offiziellen BTV-Vereinsspielplan ohne numerische Wertung. Die alten zugehörigen BTV-Gruppen-PDF-Links antworteten beim unabhängigen Live-Abruf mit HTTP 500. Es ist daher noch nicht seriös möglich, eine Ergebniszahl oder einen Rückzug einzutragen.
+
+Datenschutz: Ausschließlich öffentliche Mannschaftsbegegnungen und Endstände, keine individuellen Jugendspieler.
+
+---
+
 Stand: 31.10.2026. **Ausschließlich Sommer 2026**; frühere Saisons sind ausdrücklich nicht Gegenstand dieses Audits.
 
 ## Verbindliche öffentliche Quelle
