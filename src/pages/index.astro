@@ -69,12 +69,18 @@ import { COURTBOOKING_URL, mediaUrl } from '../lib/supabase';
     </section>
 
     <section id="club-notices" class="phase8-notice-board hidden" aria-label="Aktuelle Vereinsmitteilungen"></section>
+    <section class="card phase8-install" id="phase8-install" aria-label="TSV Tennis als App installieren">
+      <div><p class="eyebrow">TSV auf dem Smartphone</p><h2>Die Tennis-Homepage als App</h2>
+      <p class="muted" data-install-hint>Du kannst diese Website über die Teilen-Funktion deines Browsers zum Home-Bildschirm hinzufügen. Auf unterstützten Android-Browsern erscheint zusätzlich eine Installationsschaltfläche.</p></div>
+      <button class="button secondary" type="button" data-install-app hidden>TSV Tennis installieren</button>
+    </section>
     <section id="home-sponsors" class="hidden" aria-label="Sponsoren"></section>
   </div>
 </MainLayout>
 <script>
   import { loadHome } from '../scripts/public';
-  import { loadClubNotices } from '../scripts/phase8';
+  import { loadClubNotices, initInstallPrompt } from '../scripts/phase8';
   loadHome();
   loadClubNotices();
+  initInstallPrompt();
 </script>
