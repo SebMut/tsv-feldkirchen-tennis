@@ -23,7 +23,7 @@ function fixture() {
   let position = 0;
   teams.forEach((team, teamIndex) => {
     lines.push(team + ' | Südliga');
-    const length = teamIndex < 3 ? 18 : 17;
+    const length = [49, 27, 27, 0, 23, 13, 12, 7, 7, 8][teamIndex];
     for (let rank = 1; rank <= length; rank++) {
       position++;
       const suffix = letters(position);
@@ -34,14 +34,15 @@ function fixture() {
   return lines.join('\n');
 }
 
-test('private roster plan assigns the verified six classes to existing TSV seasons', () => {
+test('private roster plan assigns the five non-empty classes to existing TSV seasons', () => {
   const parsed = parseBtvRosterPdfText(fixture());
   const plan = buildPrivateRosterPlan(parsed, SUMMER_2026_TEAM_SLUGS);
   assert.equal(parsed.diagnostics.numberedRows, 173);
   assert.equal(parsed.diagnostics.parsedRows, 172);
   assert.equal(plan.players.size, 172);
+  assert.equal(parsed.diagnostics.classCounts['Damen 40'], 0);
   assert.ok(plan.pairs.length > 300);
-  assert.deepEqual(new Set(plan.pairs.map(pair => pair.slug)).size, 13);
+  assert.deepEqual(new Set(plan.pairs.map(pair => pair.slug)).size, 12);
   assert.equal(new Set(plan.pairs.map(pair => pair.slug + '|' + pair.nameKey)).size, plan.pairs.length);
 });
 
