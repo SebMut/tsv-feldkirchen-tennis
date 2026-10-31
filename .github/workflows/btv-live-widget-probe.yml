@@ -1,0 +1,19 @@
+name: Read live BTV team-group widget
+on:
+  pull_request:
+    paths:
+      - 'scripts/btv-live-widget-probe.mjs'
+      - '.github/workflows/btv-live-widget-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --prefix /tmp/tsv-browser --no-save playwright-core@1.56.1
+      - run: node scripts/btv-live-widget-probe.mjs
