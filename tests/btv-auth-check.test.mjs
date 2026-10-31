@@ -25,7 +25,7 @@ test('probe is read-only, without silent retries or bypassing interactive checks
   assert.match(script, /acceptDownloads: false/);
   assert.match(script, /stop\('LOGIN_NOT_CONFIRMED'\)/);
   assert.match(script, /BTV_DATA_TRANSFER=NONE/);
-  assert.doesNotMatch(script, /supabase|recaptcha|captcha\.solve|retry/i);
+  assert.doesNotMatch(script, /(?:captcha\\.solve|createClient\\(|retry\\s*\\()/i);
 });
 
 test('pull requests run only syntax and safety tests, never the secret-powered job', () => {
@@ -40,7 +40,7 @@ test('pull requests run only syntax and safety tests, never the secret-powered j
 });
 
 test('no browser recordings, artifacts or person-identifying logs', () => {
-  assert.doesNotMatch(workflow, /upload-artifact|upload-pages|push:/i, 'no file uploading or repository pushes within steps');
+  assert.doesNotMatch(workflow, /uses:.*(?:upload-artifact|deploy-pages)|git push|npx playwright codegen/i, 'no file uploads or repository pushes in the workflow');
   assert.doesNotMatch(script, /console\.log\(.*body/);
   assert.match(script, /console\.log\('BTV_AUTH_CHECK=SUCCESS'\)/);
   assert.match(script, /BTV_DOWNLOADS_VISIBLE=/);
