@@ -1,6 +1,6 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
-import { COURTBOOKING_URL } from '../lib/supabase';
+import { COURTBOOKING_URL, mediaUrl } from '../lib/supabase';
 ---
 <MainLayout
   title="TSV Feldkirchen Tennis"
@@ -8,6 +8,7 @@ import { COURTBOOKING_URL } from '../lib/supabase';
   mainClass="main--flush"
 >
   <section class="premium-hero">
+    <div class="premium-hero__photo" aria-hidden="true" style={`background-image: url("${mediaUrl("news/platzaufbau.png")}")`}></div>
     <div class="container premium-hero__inner">
       <p class="eyebrow">Tennis TSV Feldkirchen</p>
       <h1>Tennis.<br />Teams.<br /><span>Gemeinschaft.</span></h1>
