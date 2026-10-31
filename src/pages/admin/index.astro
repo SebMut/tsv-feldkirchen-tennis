@@ -56,6 +56,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <button data-panel="players" data-editor-only>Kader</button>
           <button data-panel="matches" data-ticker-only>Spiele & Liveticker</button>
           <button data-panel="news" data-editor-only>News</button>
+          <button data-panel="notices" data-super-only>Vereinsbrett</button>
+          <button data-panel="audit" data-super-only>Änderungsverlauf</button>
           <button data-panel="events" data-editor-only>Termine</button>
           <button data-panel="galleries" data-editor-only>Bilder</button>
           <button data-panel="seasons" data-super-only>Saisons</button>
@@ -68,6 +70,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
 
         <div class="stack">
           <section id="panel-dashboard" class="admin-panel active">
+            <div id="phase8-my-next" class="card phase8-my-next" aria-live="polite"><p class="eyebrow">Mein TSV</p><h2>Mein nächster Spieltag</h2><p class="muted">Deine Mannschaft und der nächste Spieltag werden geladen …</p></div>
             <div id="dashboard-quickstart" class="card dashboard-quickstart">
               <p class="eyebrow">Schnellstart</p>
               <h2>Was möchtest du machen?</h2>
@@ -79,6 +82,35 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div><p class="eyebrow">Mein TSV</p><h2>Meine Mannschaften</h2></div>
               </div>
               <div id="dashboard-teams" class="dashboard-team-grid"></div>
+            </div>
+          </section>
+
+          <section id="panel-notices" class="admin-panel">
+            <div class="card">
+              <p class="eyebrow">Digitales Vereinsbrett</p><h2>Wichtige Mitteilungen</h2>
+              <p class="muted">Mitteilungen erscheinen öffentlich nur nach Freigabe und innerhalb des gewählten Zeitraums.</p>
+              <form id="notice-form" class="form-grid">
+                <input id="notice-id" type="hidden"/>
+                <div class="field full"><label for="notice-title">Überschrift</label><input id="notice-title" maxlength="160" required /></div>
+                <div class="field"><label for="notice-kind">Art</label><select id="notice-kind"><option value="info">Hinweis</option><option value="event">Aktion / Vereinsfest</option><option value="urgent">Wichtig</option></select></div>
+                <div class="field"><label for="notice-order">Sortierung</label><input id="notice-order" type="number" min="0" value="0"/></div>
+                <div class="field full"><label for="notice-message">Mitteilung</label><textarea id="notice-message" rows="4" maxlength="2500" required></textarea></div>
+                <div class="field"><label for="notice-start">Sichtbar ab</label><input id="notice-start" type="datetime-local" required/></div>
+                <div class="field"><label for="notice-end">Sichtbar bis (optional)</label><input id="notice-end" type="datetime-local"/></div>
+                <div class="field"><label><input id="notice-published" type="checkbox"/> Zur Veröffentlichung freigeben</label></div>
+                <div class="field"><button class="button" type="submit">Mitteilung speichern</button><button class="button ghost" type="button" id="notice-reset">Abbrechen / Neu</button></div>
+              </form>
+              <div id="notice-status" class="notice hidden" role="status"></div>
+              <div id="notice-admin-list" class="admin-edit-list" aria-live="polite"></div>
+            </div>
+          </section>
+
+          <section id="panel-audit" class="admin-panel">
+            <div class="card">
+              <p class="eyebrow">Sicherheit</p><h2>Änderungsverlauf</h2>
+              <p class="muted">Zeigt die letzten 80 Änderungen an Spielständen, Tickermeldungen, Terminen, News, Anlagenstatus und Vereinsmitteilungen. Aus Datenschutzgründen werden keine früheren Nachrichteninhalte oder Spielerprofile gespeichert.</p>
+              <button id="audit-refresh" class="button ghost" type="button">Aktualisieren</button>
+              <div id="audit-list" class="table-wrap" aria-live="polite"><p class="muted">Änderungen werden geladen …</p></div>
             </div>
           </section>
 
