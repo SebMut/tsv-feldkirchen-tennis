@@ -7,10 +7,14 @@ import {getWinterSchedule} from './btv-winter-schedule.mjs';
 const PROJECT='https://eaurnufdochjapfzqwvm.supabase.co';
 const SEASONS=[{code:'sommer-2026',expected:120,source:()=>getClubSchedule(2026)},
   {code:'winter-2026-2027',expected:15,source:getWinterSchedule}];
+// Regular checks are intentionally scoped to Sommer 2026; winter remains
+// available through the existing explicitly triggered importer.
+const ACTIVE_SEASONS=process.env.BTV_RESULTS_ONLY_SOMMER_2026==='true'
+  ? SEASONS.filter(s=>s.code==='sommer-2026'):SEASONS;
 const apply=process.argv.includes('--apply');
 if(apply && process.env.BTV_RESULTS_WRITE_ENABLED!=='true')throw Error('WRITE_FLAG_REQUIRED');
 const sources=[];
-for(const item of SEASONS) {
+for(const item of ACTIVE_SEASONS) {
   const report=await item.source();
   if(report.fixtures.length!==item.expected)throw Error('BTV_SOURCE_FIXTURE_COUNT_CHANGED');
   const published=report.fixtures.filter(f=>parseScore(f.score)).length;
@@ -28,7 +32,7 @@ const query=async (request,label)=>{
   return data;
 };
 const [seasons,teams,teamSeasons]=await Promise.all([
- query(db.from('seasons').select('id,code').in('code',SEASONS.map(s=>s.code)),'SEASONS'),
+ query(db.from('seasons').select('id,code').in('code',ACTIVE_SEASONS.map(s=>s.code)),'SEASONS'),
  query(db.from('teams').select('id,slug').limit(150),'TEAMS'),
  query(db.from('team_seasons').select('id,team_id,season_id').limit(200),'TEAM_SEASONS')
 ]);
