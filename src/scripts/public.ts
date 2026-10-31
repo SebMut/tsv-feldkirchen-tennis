@@ -487,7 +487,7 @@ export async function loadTeams() {
       const clubScore = featured ? (featured.is_home ? currentState?.home_score : currentState?.away_score) : null;
       const otherScore = featured ? (featured.is_home ? currentState?.away_score : currentState?.home_score) : null;
       const detailUrl = `/mannschaften/${encodeURIComponent(team.slug)}/?season=${encodeURIComponent(activeCode)}`;
-      const btvTarget = officialBtvTeamDestination(verifiedBtv.get(ts.id));
+      const btvTarget = officialBtvTeamDestination(verifiedBtv.get(ts.id) === ts.btv_url ? ts.btv_url : null);
       return `
         <article class="card team-card team-overview-card">
           <img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" />
@@ -580,7 +580,7 @@ export async function loadTeamDetail(slug: string) {
   }
 
   const tennisDePortraitUrl = officialTennisDePortraitUrl(current);
-  const btvTarget = officialBtvTeamDestination(verifiedBtv.get(current?.id));
+  const btvTarget = officialBtvTeamDestination(verifiedBtv.get(current?.id) === current?.btv_url ? current?.btv_url : null);
   const head = document.querySelector<HTMLElement>('#team-header');
   if (head) head.innerHTML = `
     <section class="hero">
