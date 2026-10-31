@@ -3,14 +3,20 @@ on:
   pull_request:
     paths:
       - scripts/btv-meeting-rubbers-parser.mjs
+      - scripts/btv-meeting-discovery-core.mjs
+      - scripts/btv-meeting-discovery.mjs
       - scripts/btv-meeting-rubbers-import-2026.mjs
+      - tests/btv-meeting-discovery.test.mjs
       - tests/btv-meeting-rubbers-parser.test.mjs
       - .github/workflows/btv-meeting-rubbers-sync.yml
   push:
     branches: [main]
     paths:
       - scripts/btv-meeting-rubbers-parser.mjs
+      - scripts/btv-meeting-discovery-core.mjs
+      - scripts/btv-meeting-discovery.mjs
       - scripts/btv-meeting-rubbers-import-2026.mjs
+      - tests/btv-meeting-discovery.test.mjs
       - tests/btv-meeting-rubbers-parser.test.mjs
       - .github/workflows/btv-meeting-rubbers-sync.yml
   workflow_dispatch:
@@ -32,12 +38,14 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/btv-meeting-rubbers-parser.test.mjs
+      - run: node --test tests/btv-meeting-discovery.test.mjs
+      - run: node --check scripts/btv-meeting-discovery.mjs
       - run: node --check scripts/btv-meeting-rubbers-import-2026.mjs
   import:
     if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,7 +53,21 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Install pinned browser tooling (without secrets)
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts playwright@1.64.1
+          npx --no-install playwright install --with-deps chromium
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Discover official meeting IDs from the authorized BTV cockpit
+        # A temporarily unavailable cockpit must not block revalidation of already known reports.
+        continue-on-error: true
+        env:
+          GITHUB_REF: ${{ github.ref }}
+          BTV_MEETING_DISCOVERY_WRITE_ENABLED: 'true'
+          BTV_LOGIN_USERNAME: ${{ secrets.BTV_LOGIN_USERNAME }}
+          BTV_LOGIN_PASSWORD: ${{ secrets.BTV_LOGIN_PASSWORD }}
+          BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: node scripts/btv-meeting-discovery.mjs --apply
       - name: Import only source-verified 2026 single and double results privately
         env:
           GITHUB_REF: ${{ github.ref }}
