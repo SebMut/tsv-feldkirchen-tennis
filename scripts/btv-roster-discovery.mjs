@@ -29,15 +29,48 @@ async function visiblePages(context) {
   }
   return results;
 }
+async function selectTsvIfRequired(page) {
+  // If several clubs are offered, select only an exact TSV Feldkirchen (01012) option.
+  for (const select of await page.locator('select').all()) {
+    const found = [];
+    for (const option of await select.locator('option').all()) {
+      const label = (await option.textContent()) || '';
+      if (CLUB.test(label) && CLUB_NUMBER.test(label)) {
+        const value = await option.getAttribute('value');
+        if (value) found.push(value);
+      }
+    }
+    if (found.length === 1) {
+      await select.selectOption(found[0]);
+      return true;
+    }
+  }
+  return false;
+}
 async function startClubProcesses(page) {
-  const start = page.getByRole('button', { name: /^start$/i }).first();
-  if (await start.count() === 1 && await start.isVisible()) {
-    await start.click();
+  const button = page.getByRole('button', { name: /^start$/i }).first();
+  const link = page.getByRole('link', { name: /^start$/i }).first();
+  const control = await button.count() === 1 ? button : link;
+  if (await control.count() === 1 && await control.isVisible()) {
+    await control.click();
     // BTV may open nuLiga in a new tab; let that tab finish loading.
     await page.waitForTimeout(1800);
+    return true;
   }
+  return false;
 }
-async function confirmClub(context) {
+async function reportScopeDiagnostics(context) {
+  const pages = await visiblePages(context);
+  const body = pages.map((row) => row.text).join('\n');
+  const yesNo = (value) => value ? 'YES' : 'NO';
+  console.log('BTV_DIAG_PAGE_COUNT=' + Math.min(pages.length, 9));
+  console.log('BTV_DIAG_TSV_NAME=' + yesNo(CLUB.test(body)));
+  console.log('BTV_DIAG_TSV_NUMBER=' + yesNo(CLUB_NUMBER.test(body)));
+  console.log('BTV_DIAG_NULIGA_PAGE=' + yesNo(pages.some(({ page }) => new URL(page.url()).hostname === 'btv.liga.nu')));
+  console.log('BTV_DIAG_DOWNLOADS_TEXT=' + yesNo(/Downloads/i.test(body)));
+  console.log('BTV_DIAG_START_TEXT=' + yesNo(/\bSTART\b/i.test(body)));
+}
+async function confirmClub(context, explicitlySelected) {
   let pages = await visiblePages(context);
   // If several clubs are offered, select only an explicit TSV Feldkirchen control.
   for (const { page, text } of pages) {
@@ -53,6 +86,11 @@ async function confirmClub(context) {
       if (chosen) return chosen.page;
     }
   }
+  if (explicitlySelected) {
+    const selected = pages.find(({ text }) => /Vereinsprozesse bearbeiten|Downloads/i.test(text));
+    if (selected) return selected.page;
+  }
+  await reportScopeDiagnostics(context);
   fail('TSV_SCOPE_NOT_CONFIRMED');
 }
 async function openDownloads(page) {
@@ -110,9 +148,11 @@ async function run() {
     if (!trusted(page)) fail('UNEXPECTED_REDIRECT');
     await page.goto(ENTRY, { waitUntil: 'domcontentloaded', timeout: 30000 });
     if (new URL(page.url()).hostname === LOGIN_HOST) fail('SESSION_NOT_CONFIRMED');
-    await startClubProcesses(page);
+    const explicitlySelected = await selectTsvIfRequired(page);
+    const startClicked = await startClubProcesses(page);
+    console.log('BTV_DIAG_START_CLICKED=' + (startClicked ? 'YES' : 'NO'));
 
-    const clubPage = await confirmClub(context);
+    const clubPage = await confirmClub(context, explicitlySelected && startClicked);
     if (!trusted(clubPage)) fail('UNEXPECTED_REDIRECT');
     console.log('BTV_TSV_SCOPE=CONFIRMED');
     await openDownloads(clubPage);
