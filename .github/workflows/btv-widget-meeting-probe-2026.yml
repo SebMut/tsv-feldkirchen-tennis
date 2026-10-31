@@ -1,0 +1,18 @@
+name: Inspect official BTV Sommer 2026 group widget meeting IDs
+on:
+  pull_request:
+    paths:
+      - scripts/btv-widget-meeting-probe-2026.mjs
+      - .github/workflows/btv-widget-meeting-probe-2026.yml
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: npm install --prefix /tmp/tsv-widget --no-save playwright-core@1.56.1
+      - run: node scripts/btv-widget-meeting-probe-2026.mjs
