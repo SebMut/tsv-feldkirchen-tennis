@@ -5,7 +5,7 @@ on:
     paths:
       - 'scripts/btv-withdrawal-*.mjs'
       - 'scripts/sql/match-withdrawal-flags.sql'
-      - 'tests/btv-withdrawal-detection.test.mjs'
+      - 'tests/btv-withdrawal-*.test.mjs'
       - '.github/workflows/btv-team-withdrawals.yml'
   push:
     branches: [main]
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/btv-withdrawal-detection.test.mjs
+      - run: node --test tests/btv-withdrawal-*.test.mjs
 
   detect:
     if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
