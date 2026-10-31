@@ -32,9 +32,9 @@ try {
   const info = execFileSync('pdfinfo',[file],{encoding:'utf8',timeout:10000});
   console.log('PDF PAGE INFO:',info.split('\n').filter(x=>/Pages:|Page size:/.test(x)).join(' | '));
   for (const region of [
-    ['page1-right',1,1,600,0,650,1000],
-    ['page2-left',2,2,0,0,600,1000],
-    ['page2-right',2,2,600,0,650,1000],
+    ['page1-right',1,1,420,0,421,600],
+    ['page2-left',2,2,0,0,420,600],
+    ['page2-right',2,2,420,0,421,600],
   ]) {
     const [label,first,last,x,y,width,height] = region;
     try {
