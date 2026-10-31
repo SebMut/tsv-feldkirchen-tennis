@@ -55,11 +55,9 @@ export function parseBtvRosterPdfText(text) {
       continue;
     }
     if (rankLast && rank < rankLast) {
-      // A reset may indicate a missing team heading. Do not silently
-      // assign this row to the previously parsed age class.
-      malformedRows++;
+      // nuLiga can restart numbering inside the same age-class block.
+      // Count resets and validate their frequency with the club PDF snapshot.
       rankResets++;
-      continue;
     }
     rankLast = rank;
     const fullName = (row[3] + ' ' + row[2]).normalize('NFKC').replace(/\s+/gu, ' ').trim();
@@ -110,6 +108,26 @@ export function assertCompleteSummerRoster(parsed) {
     || d.numberedRows < 60 || d.numberedRows > 800
     || knownClasses.some(label => !d.classCounts[label])) {
     throw Error('PDF_ROSTER_LAYOUT_INCOMPLETE');
+  }
+  return parsed;
+}
+
+
+// Exact one-time snapshot gate for the currently verified 7-page PDF.
+// Other clubs, seasons and unexpected changes cannot trigger a write.
+export const CONFIRMED_SUMMER_CLASSES = Object.freeze([
+  'Herren', 'Herren 40', 'Damen 40',
+  'Junioren 18', 'Knaben 15', 'Bambini 12',
+]);
+export function assertVerifiedSummerSnapshot(parsed) {
+  const d = parsed?.diagnostics;
+  const actual = Object.keys(d?.classCounts || {}).filter(name => d.classCounts[name] > 0);
+  if (!d || d.classCount !== 6 || d.headingCount !== 10 || d.numberedRows !== 173
+    || d.parsedRows !== 173 || d.unassignedRows !== 0 || d.malformedRows !== 0
+    || d.unrecognizedHeaders !== 0 || d.rankResets > 20
+    || actual.length !== CONFIRMED_SUMMER_CLASSES.length
+    || CONFIRMED_SUMMER_CLASSES.some(name => !actual.includes(name))) {
+    throw Error('UNVERIFIED_NMM_SNAPSHOT');
   }
   return parsed;
 }
