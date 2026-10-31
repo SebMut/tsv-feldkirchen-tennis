@@ -62,7 +62,22 @@ test('verified snapshot accepts only the ten confirmed squad sections and 173 ro
       report.push(n + ' Muster' + letters(i + 1) + letters(n) + ', ' + (i === 9 && n === 8 ? 'Alpha7' : 'Alpha' + letters(n)) + '  GER  12345678');
     }
   });
-  const parsed = assertVerifiedSummerSnapshot(parseBtvRosterPdfText(report.join('\n')));
+  const parsed = parseBtvRosterPdfText(report.join('\n'));
+  assert.deepEqual({
+    numberedRows: parsed.diagnostics.numberedRows,
+    parsedRows: parsed.diagnostics.parsedRows,
+    invalidName: parsed.diagnostics.invalidName,
+    malformedRows: parsed.diagnostics.malformedRows,
+    classCount: parsed.diagnostics.classCount,
+    headingCount: parsed.diagnostics.headingCount,
+    classCounts: Object.fromEntries(Object.entries(parsed.diagnostics.classCounts).filter(([,count]) => count)),
+  }, {
+    numberedRows: 173, parsedRows: 172, invalidName: 1, malformedRows: 1,
+    classCount: 6, headingCount: 10,
+    classCounts: { 'Herren': 49, 'Herren 40': 54, 'Junioren 18': 23,
+      'Knaben 15': 25, 'Bambini 12': 21 },
+  });
+  assertVerifiedSummerSnapshot(parsed);
   assert.equal(parsed.diagnostics.numberedRows, 173);
   assert.equal(parsed.diagnostics.parsedRows, 172);
   assert.equal(parsed.diagnostics.invalidName, 1);
