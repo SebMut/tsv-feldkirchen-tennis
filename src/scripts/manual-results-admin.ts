@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { setStatus } from '../lib/ui';
+import { officialBtvGroupUrl } from '../lib/btv-group-url';
 
 type Entry = {
   match_id: string;
@@ -111,7 +112,26 @@ function renderList() {
         ? 'Mannschaft zurückgezogen · durch BTV bestätigt' : 'Rückzug gemeldet · BTV-Bestätigung offen') : 'Ergebnis offen';
     button.append(heading, metadata, tag);
     button.addEventListener('click', () => selectMatch(m.match_id));
-    list.append(button);
+    const item = document.createElement('div');
+    item.className = 'manual-result-item-wrap';
+    item.append(button);
+    const officialUrl = officialBtvGroupUrl(m.btv_url);
+    if (officialUrl) {
+      const link = document.createElement('a');
+      link.href = officialUrl;
+      link.className = 'text-link';
+      link.textContent = 'BTV-Tabelle ' + m.team_name + ' ↗';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.setAttribute('aria-label', 'BTV-Tabelle und Spielplan ' + m.team_name + ' öffnen');
+      item.append(link);
+    } else {
+      const missing = document.createElement('span');
+      missing.className = 'muted';
+      missing.textContent = 'Offizieller Gruppenlink noch nicht bestätigt';
+      item.append(missing);
+    }
+    list.append(item);
   }
 }
 
@@ -154,10 +174,9 @@ function selectMatch(id: string) {
 
   const link = byId<HTMLAnchorElement>('manual-result-official-link');
   if (link) {
-    const href = selected.btv_url;
-    const valid = href && /^https:\/\//i.test(href);
-    link.classList.toggle('hidden', !valid);
-    if (valid && href) link.href = href; else link.removeAttribute('href');
+    const href = officialBtvGroupUrl(selected.btv_url);
+    link.classList.toggle('hidden', !href);
+    if (href) link.href = href; else link.removeAttribute('href');
   }
   if (isOfficial(selected)) showStatus('Ein offizielles BTV-Ergebnis ist bereits hinterlegt. Manuelle Änderungen sind für dieses Spiel gesperrt.', 'info');
   renderList();
