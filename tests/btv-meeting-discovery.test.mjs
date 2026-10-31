@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {meetingIdsFromLinks,matchOfficialReport,fiveSearchWays} from '../scripts/btv-meeting-discovery-core.mjs';
+import {meetingIdsFromLinks,meetingIdsFromDocuments,matchOfficialReport,fiveSearchWays} from '../scripts/btv-meeting-discovery-core.mjs';
 
 test('accepts only explicit official meeting links and deduplicates them',()=>{
  const found=meetingIdsFromLinks([
@@ -9,6 +9,13 @@ test('accepts only explicit official meeting links and deduplicates them',()=>{
   'https://evil.example/x?meeting=99999999','javascript:meeting=12345678']);
  assert.deepEqual(found.map(x=>x.meetingId),[12695005]);
  assert.match(found[0].reportUrl,/dokument=MeetingReportFOP&meeting=12695005/);
+});
+
+test('finds meeting IDs embedded in official DOM and JavaScript actions',()=>{
+ const found=meetingIdsFromDocuments([
+  '<button onclick="openReport(\'meeting=12702107\')">anzeigen</button>',
+  '{"meeting":12696831}', 'meeting%3D12742553']);
+ assert.deepEqual(found.map(x=>x.meetingId),[12696831,12702107,12742553]);
 });
 
 test('matches only one exact opponent, side, date and official score',()=>{

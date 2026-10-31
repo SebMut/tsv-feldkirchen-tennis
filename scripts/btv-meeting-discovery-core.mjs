@@ -20,6 +20,16 @@ export function meetingIdsFromLinks(links){
   return [...found].sort((a,b)=>a[0]-b[0]).map(([meetingId,reportUrl])=>({meetingId,reportUrl}));
 }
 
+export function meetingIdsFromDocuments(documents){
+  const links=[];
+  for(const document of documents){
+    for(const match of String(document||'').matchAll(/(?:meeting(?:%3D|=)|meeting["'\s:,]+)(\d{6,10})/gi)){
+      links.push('https://btv.liga.nu'+REPORT_PATH+'?dokument=MeetingReportFOP&meeting='+match[1]);
+    }
+  }
+  return meetingIdsFromLinks(links);
+}
+
 export function matchOfficialReport({title,date,score},matches){
   const titleNorm=normalized(title);
   const scoreNorm=String(score||'').replace(/\s+/g,'');

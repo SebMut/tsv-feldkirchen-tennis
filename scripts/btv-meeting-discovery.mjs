@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtempSync,rmSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {meetingIdsFromLinks,matchOfficialReport} from './btv-meeting-discovery-core.mjs';
+import {meetingIdsFromLinks,meetingIdsFromDocuments,matchOfficialReport} from './btv-meeting-discovery-core.mjs';
 
 const PROJECT_URL='https://eaurnufdochjapfzqwvm.supabase.co';
 const CLUB_COCKPIT='https://www.btv.de/de/mein-verein/vereins-cockpit.html';
@@ -59,8 +59,8 @@ try{
  await page.goto(CLUB_COCKPIT,{waitUntil:'domcontentloaded',timeout:30000});
  const start=page.getByRole('button',{name:/^start$/i}).first();if(await start.count()===1&&await start.isVisible())await start.click();
  for(const name of [/Ergebniserfassung/i,/Spielberichte suchen/i,/Spielberichte/i]){
-   const target=page.getByRole('link',{name}).or(page.getByRole('button',{name})).first();
-   if(await target.count()===1&&await target.isVisible()){await target.click();await page.waitForLoadState('domcontentloaded').catch(()=>{});}
+   const target=page.getByRole('link',{name}).or(page.getByRole('button',{name})).or(page.getByText(name)).first();
+   if(await target.count()>=1&&await target.isVisible()){await target.click();await page.waitForLoadState('domcontentloaded').catch(()=>{});}
  }
  // Expand the season window when matching date inputs are available. No form changes are saved.
  for(const frame of page.frames()){
@@ -73,9 +73,13 @@ try{
  }
  const search=page.getByRole('button',{name:/suchen|anzeigen|filtern/i}).first();
  if(await search.count()===1&&await search.isVisible()){await search.click();await page.waitForLoadState('domcontentloaded').catch(()=>{});}
- const links=[];
- for(const frame of page.frames())links.push(...await frame.locator('a').evaluateAll(as=>as.map(a=>a.href).filter(Boolean)).catch(()=>[]));
- const reports=meetingIdsFromLinks(links);discovered=reports.length;
+ const links=[],documents=[];
+ for(const frame of page.frames()){
+   links.push(...await frame.locator('a').evaluateAll(as=>as.map(a=>a.href).filter(Boolean)).catch(()=>[]));
+   documents.push(await frame.locator('html').evaluate(el=>el.outerHTML).catch(()=>''));
+ }
+ const byId=new Map([...meetingIdsFromLinks(links),...meetingIdsFromDocuments(documents)].map(x=>[x.meetingId,x]));
+ const reports=[...byId.values()].sort((a,b)=>a.meetingId-b.meetingId);discovered=reports.length;
  for(const report of reports){
    if(existingMeetings.has(report.meetingId))continue;
    try{
