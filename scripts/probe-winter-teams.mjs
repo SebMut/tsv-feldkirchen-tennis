@@ -23,7 +23,11 @@ try {
  await sleep(3200);
  console.log('COOKIE_CHOICE',JSON.stringify(await evaluate('Array.from(document.querySelectorAll("button")).filter(b=>/nur notwendige|ablehnen/i.test(b.innerText)).map(b=>({id:b.id,label:b.innerText.slice(0,80)}))')));
  await evaluate('Array.from(document.querySelectorAll("button")).find(b=>/nur notwendige|alle ablehnen/i.test(b.innerText))?.click()');
+ await sleep(3200);
+ console.log('TEAMS_TABS',JSON.stringify(await evaluate('Array.from(document.querySelectorAll("a,button")).filter(el=>el.textContent?.trim() === "Mannschaften").map(el=>({outer:el.outerHTML.slice(0,450)})).slice(0,12)')));
+ await evaluate('Array.from(document.querySelectorAll("a,button")).find(el=>el.textContent?.trim() === "Mannschaften")?.click()');
  await sleep(6000);
+ console.log('IFRAMES',JSON.stringify(await evaluate('Array.from(document.querySelectorAll("iframe")).map(el=>el.src).slice(0,12)')));
  const frames=await call('Page.getFrameTree');
  const flatten=(node)=>[node.frame,...(node.childFrames||[]).flatMap(flatten)];
  console.log('PUBLIC_FRAME_URLS',JSON.stringify(flatten(frames.frameTree).map(x=>x.url)));
