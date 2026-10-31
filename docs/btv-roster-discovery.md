@@ -43,7 +43,15 @@ werden nicht protokolliert.
 
 Bei Fehlern stehen ausschließlich feste Codes im Log, z. B.
 `TSV_SCOPE_NOT_CONFIRMED`, `DOWNLOADS_MENU_NOT_FOUND` oder
-`NMM_DOWNLOAD_NOT_DISCOVERED`. Ein Fehlschlag ist **kein Anlass** für
+`NMM_DOWNLOAD_NOT_DISCOVERED`.
+
+Falls der Account einen Verein zuerst auswählen muss, prüft der Browser ein
+explizites Auswahlfeld für **TSV Feldkirchen (01012)** vor dem Start-Klick.
+Für den Fall einer nicht erkannten Auswahl enthält der Lauf zusätzlich nur
+anonymisierte Strukturflags `BTV_DIAG_START_CLICKED`, `BTV_DIAG_TSV_NAME`,
+`BTV_DIAG_TSV_NUMBER`, `BTV_DIAG_NULIGA_PAGE`,
+`BTV_DIAG_DOWNLOADS_TEXT` und `BTV_DIAG_PAGE_COUNT`.
+Die vollständigen Seiteninhalte und Links bleiben immer unveröffentlicht. Ein Fehlschlag ist **kein Anlass** für
 automatisches Wiederholen oder Umgehen von Captcha/MFA.
 
 ## Freigabe vor einem späteren Datenimport
