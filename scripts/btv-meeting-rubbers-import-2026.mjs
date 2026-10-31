@@ -75,10 +75,10 @@ try{
    if(!title||!/\b2026\b/.test(text.slice(0,180))||
       !title.includes(m.opponent)||!/\bTSV Feldkirchen(?:\s+(?:II|III))?\s+\(01012\)/.test(title))
      throw Error('WRONG_TEAM_SEASON_OR_OPPONENT');
-   const clubs=title.split(' : ');
-   if(clubs.length!==2||
-      (m.is_home&&!clubs[0].includes('(01012)'))||
-      (!m.is_home&&!clubs[1].includes('(01012)')))
+   const clubs=title.match(/^\s*(.+?\(\d{5}\))\s*:\s*(.+?\(\d{5}\))\s+\d{1,2}\s*:\s*\d{1,2}\s*$/);
+   if(!clubs||
+      (m.is_home&&!clubs[1].includes('(01012)'))||
+      (!m.is_home&&!clubs[2].includes('(01012)')))
      throw Error('HOME_AWAY_IDENTITY_CONFLICT');
    const parsed=parseOfficialMeetingText(text,{
      expectedHomePoints:report.home_match_points,
@@ -103,6 +103,8 @@ try{
    if(countError||storedRows.length!==all.length)throw Error('RUBBER_COUNT_AFTER_WRITE_MISMATCH');
    const {error:headerError}=await db.from('official_meeting_reports')
      .update({source_sha256:sha,parser_version:'btv-meeting-rubbers-2026-v1',
+       home_team:clubs[1].replace(/\s*\(\d{5}\)$/,'').trim(),
+       away_team:clubs[2].replace(/\s*\(\d{5}\)$/,'').trim(),
        verification_status:'verified',verified_at:new Date().toISOString()})
      .eq('id',report.id);
    if(headerError)throw Error('REPORT_VERIFICATION_UPDATE_FAILED');
