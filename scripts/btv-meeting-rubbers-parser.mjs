@@ -17,9 +17,12 @@ function playerName(raw){
   return name;
 }
 function sets(raw){
-  return [...String(raw).matchAll(scoreRegex)].slice(0,3).map(m=>({
+  const values=[...String(raw).matchAll(scoreRegex)].slice(0,3).map(m=>({
     home:Number(m[1]),away:Number(m[2])
   }));
+  // BTV prints 0:0 for an unused 3rd-set column. It is not a played set.
+  while(values.length>0 && values.at(-1).home===0 && values.at(-1).away===0)values.pop();
+  return values;
 }
 function winnerOf(setsList){
   if(setsList.length<2||setsList.length>3)return null;
@@ -51,7 +54,11 @@ export function parseOfficialMeetingText(text,{expectedHomePoints,expectedAwayPo
     const scores=sets([m.groups.set1,m.groups.set2,m.groups.set3].filter(Boolean).join(' '));
     const winner=winnerOf(scores);
     if(!homeName||!awayName||!winner||position==='0'){
-      errors.push('SINGLE_UNPARSED');continue;
+      if(!homeName)errors.push('SINGLE_HOME_NAME_INVALID');
+      if(!awayName)errors.push('SINGLE_AWAY_NAME_INVALID');
+      if(!winner)errors.push('SINGLE_SET_WINNER_UNVERIFIED');
+      if(position==='0')errors.push('SINGLE_POSITION_INVALID');
+      continue;
     }
     const pos=Number(position);
     if(singles.some(x=>x.position===pos)){errors.push('DUPLICATE_SINGLE');continue;}
