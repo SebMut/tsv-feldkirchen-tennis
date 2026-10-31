@@ -311,6 +311,7 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   try {
     assertVerifiedSummerSnapshot(parsed);
     console.log('BTV_PARSE_VERIFIED_PARTIAL=YES');
+    return parsed;
   } catch {
     console.log('BTV_PARSE_VERIFIED_PARTIAL=NO');
     fail('PDF_ROSTER_LAYOUT_INCOMPLETE');
@@ -386,8 +387,24 @@ async function run() {
     console.log('BTV_NMM_DOWNLOAD=AVAILABLE');
     console.log('BTV_SUMMER_2026_LISTED=' + (/Sommer\s*2026/i.test(content) ? 'YES' : 'UNCONFIRMED'));
     console.log('BTV_WINTER_2026_27_LISTED=' + (/Winter\s*2026\s*\/\s*2027/i.test(content) ? 'YES' : 'UNCONFIRMED'));
-    await inspectVerifiedSummerPdf(context, downloadPage.page);
-    console.log('BTV_ROSTER_TRANSFER=NONE');
+    const verified = await inspectVerifiedSummerPdf(context, downloadPage.page);
+    if (process.argv.includes('--apply')) {
+      if (process.env.BTV_ROSTER_WRITE_ENABLED !== 'true') fail('ROSTER_WRITE_NOT_ENABLED');
+      try {
+        const { importVerifiedPrivateRosters } = await import('./btv-roster-supabase-import.mjs');
+        const summary = await importVerifiedPrivateRosters(verified, process.env.BTV_SUPABASE_SECRET_KEY);
+        console.log('BTV_ROSTER_IMPORT=SUCCESS');
+        console.log('BTV_ROSTER_IMPORTED_CLASSES=' + summary.ageClasses);
+        console.log('BTV_ROSTER_DISTINCT_NAMES=' + summary.distinctNames);
+        console.log('BTV_ROSTER_NEW_PLAYERS=' + summary.newPlayers);
+        console.log('BTV_ROSTER_NEW_TEAM_ASSIGNMENTS=' + summary.newMemberships);
+        console.log('BTV_ROSTER_PUBLIC_VISIBILITY=NONE_NEW');
+      } catch {
+        fail('ROSTER_DATABASE_IMPORT_FAILED');
+      }
+    } else {
+      console.log('BTV_ROSTER_TRANSFER=NONE');
+    }
     await context.close();
   } finally {
     await browser?.close().catch(() => {});
