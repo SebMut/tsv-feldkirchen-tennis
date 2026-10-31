@@ -263,10 +263,11 @@ export async function loadHome() {
       ? '<p class="muted">Spielplan momentan nicht abrufbar.</p>'
       : next.length ? next.slice(0, 8).map(m => matchRow(m, reference, scoreRows)).join('')
       : '<p class="muted">Keine weiteren Punktspiele angekündigt.</p>';
+    const finishedPast = past.filter(m => scoreRows.find(s => s.match_id === m.id)?.status === 'finished');
     if (recentTarget) recentTarget.innerHTML = recentResult.error
       ? '<p class="muted">Ergebnisse momentan nicht abrufbar.</p>'
-      : past.length ? past.map(m => matchRow(m, reference, scoreRows)).join('')
-      : '<p class="muted">Noch keine vergangenen Spiele vorhanden.</p>';
+      : finishedPast.length ? finishedPast.map(m => matchRow(m, reference, scoreRows)).join('')
+      : '<p class="muted">Noch keine bestätigten Spielergebnisse vorhanden.</p>';
     if (newsTarget) newsTarget.innerHTML = newsResult.error
       ? '<p class="muted">Neuigkeiten momentan nicht abrufbar.</p>'
       : newsResult.data?.length ? newsResult.data.map(item => `
@@ -282,7 +283,7 @@ export async function loadHome() {
     }
   } finally {
     window.clearTimeout(watchdog);
-    window.setTimeout(loadHome, document.hidden ? 120000 : 60000);
+    window.setTimeout(loadHome, document.hidden ? 120000 : liveCenter && !liveCenter.classList.contains('hidden') ? 20000 : 60000);
   }
 }
 
@@ -349,6 +350,9 @@ export async function loadTeams() {
 
 export async function loadTeamDetail(slug: string) {
   watchPublicContent('#team-header');
+  watchPublicContent('#team-roster');
+  watchPublicContent('#team-matches');
+  watchPublicContent('#team-season');
   const root = document.querySelector<HTMLElement>('[data-team-slug]');
   if (!root) return;
   const reference = await refs();
@@ -531,6 +535,10 @@ export async function loadTeamDetail(slug: string) {
 
 export async function loadMatchDetail(matchId: string | null) {
   watchPublicContent('#match-detail-head');
+  watchPublicContent('#match-detail-score');
+  watchPublicContent('#match-detail-encounters');
+  watchPublicContent('#match-detail-timeline');
+  watchPublicContent('#match-detail-gallery');
   const root = document.querySelector<HTMLElement>('#match-detail-root');
   const head = document.querySelector<HTMLElement>('#match-detail-head');
   const scoreTarget = document.querySelector<HTMLElement>('#match-detail-score');
@@ -671,6 +679,7 @@ export async function loadMatchDetail(matchId: string | null) {
 
 export async function loadCalendar() {
   watchPublicContent('#calendar-list');
+  watchPublicContent('#calendar-subscriptions');
   const list = document.querySelector<HTMLElement>('#calendar-list');
   const teamSelect = document.querySelector<HTMLSelectElement>('#calendar-team');
   const categorySelect = document.querySelector<HTMLSelectElement>('#calendar-category');
@@ -683,7 +692,7 @@ export async function loadCalendar() {
   categorySelect.innerHTML += reference.categories.map((c: Row) => `<option value="${c.id}" data-slug="${escapeHtml(c.slug)}">${escapeHtml(c.name)}</option>`).join('');
 
   const [{ data: matches }, { data: events }] = await Promise.all([
-    supabase.from('matches').select('*').order('starts_at'),
+    supabase.from('matches').select('*').eq('is_published', true).order('starts_at'),
     supabase.from('events').select('*').eq('status', 'published').order('starts_at'),
   ]);
   const liveStates = matches?.length ? (await supabase.from('match_live_state').select('*').in('match_id', matches.map((m: Row) => m.id))).data ?? [] : [];
@@ -751,7 +760,7 @@ export async function loadNews() {
       ${item.hero_image_path ? `<img src="${escapeHtml(mediaUrl(item.hero_image_path))}" alt="" loading="lazy" style="border-radius:14px;aspect-ratio:16/9;object-fit:cover;margin-bottom:16px">` : ''}
       <p class="eyebrow">${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : 'Aktuelles'}</p>
       <h2>${escapeHtml(item.title)}</h2>
-      <p class="muted">${escapeHtml(item.excerpt || item.body.slice(0, 220))}</p>
+      <p class="muted">${escapeHtml(item.excerpt || (item.body || '').slice(0, 220))}</p>
       <details><summary>Weiterlesen</summary><p style="white-space:pre-wrap">${escapeHtml(item.body)}</p></details>
     </article>
   `).join('') : `<p class="muted">${error ? 'Beiträge sind momentan nicht abrufbar.' : 'Noch keine Beiträge veröffentlicht.'}</p>`;
@@ -802,6 +811,9 @@ export async function loadOfficials() {
 
 export async function loadLiveTicker(matchId: string | null) {
   watchPublicContent('#live-match-head');
+  watchPublicContent('#live-score');
+  watchPublicContent('#live-encounters');
+  watchPublicContent('#live-timeline');
   const head = document.querySelector<HTMLElement>('#live-match-head');
   const score = document.querySelector<HTMLElement>('#live-score');
   const encountersTarget = document.querySelector<HTMLElement>('#live-encounters');
