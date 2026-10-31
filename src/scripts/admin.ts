@@ -695,6 +695,10 @@ async function refreshMatches() {
     const clubScore = match.is_home ? live.home_score : live.away_score;
     const opponentScore = match.is_home ? live.away_score : live.home_score;
     const format = match.lineup_format === '4_2' ? '4_2' : '6_3';
+    const expected = format === '4_2' ? 6 : 9;
+    const finished = rows.filter((row) => row.status === 'finished').length;
+    const active = rows.filter((row) => row.status === 'live').length;
+    const pct = Math.round((finished / expected) * 100);
 
     return `<article class="card flat match-admin-card" data-match-card="${match.id}">
       <div class="page-head">
@@ -709,6 +713,12 @@ async function refreshMatches() {
         </div>
       </div>
 
+      <div class="phase8-encounter-summary" role="status">
+        <p>${finished} von ${expected} Begegnungen abgeschlossen · ${active} laufen gerade
+        · ${singles.length || (format === '4_2' ? 4 : 6)} Einzel / ${doubles.length || (format === '4_2' ? 2 : 3)} Doppel</p>
+        <div class="phase8-progress" aria-label="${finished} von ${expected} Begegnungen abgeschlossen"><span style="width:${pct}%"></span></div>
+        <p>Spielstand TSV ${clubScore} : ${opponentScore} · Änderungen über die Begegnungskacheln speichern; einzelne Ergebnisse lassen sich mit „Zurücksetzen“ korrigieren.</p>
+      </div>
       <div class="actions match-admin-main-actions">
         <button class="button secondary" data-live-action="start" type="button">Spieltag live starten</button>
         <button class="button ghost" data-live-action="finish" type="button">Spieltag beenden</button>
