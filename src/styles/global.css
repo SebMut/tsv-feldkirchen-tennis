@@ -614,3 +614,8 @@ body{background:var(--sand);color:var(--text)}
   .match-detail-titleline h1{font-size:clamp(1.7rem,7vw,2.4rem)}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Vereinsbild als dezente, ausblendende Hero-Ebene. Die Grundgestaltung bleibt ohne Bild nutzbar. */
+.premium-hero__photo{position:absolute;inset:0 0 0 42%;z-index:0;background-size:cover;background-position:center 43%;opacity:.19;mask-image:linear-gradient(90deg,transparent,black 40%);pointer-events:none}
+.premium-hero__inner{position:relative;z-index:2}
+@media(max-width:760px){.premium-hero__photo{inset:26% 0 0 10%;opacity:.1;mask-image:linear-gradient(180deg,transparent,black 55%)}}
