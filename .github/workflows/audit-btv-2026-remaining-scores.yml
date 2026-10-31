@@ -1,0 +1,18 @@
+name: BTV Sommer 2026 final missing group report audit
+on:
+  pull_request:
+    paths:
+      - 'scripts/audit-btv-2026-remaining-scores.mjs'
+      - '.github/workflows/audit-btv-2026-remaining-scores.yml'
+permissions:
+  contents: read
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - run: node scripts/audit-btv-2026-remaining-scores.mjs
