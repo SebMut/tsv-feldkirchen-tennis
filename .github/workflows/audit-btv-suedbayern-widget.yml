@@ -1,0 +1,20 @@
+name: Audit official BTV Südbayern archive widget
+on:
+  pull_request:
+    paths:
+      - 'scripts/audit-btv-suedbayern-widget.mjs'
+      - '.github/workflows/audit-btv-suedbayern-widget.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --prefix /tmp/tsv-browser --no-save playwright-core@1.56.1
+      - run: node scripts/audit-btv-suedbayern-widget.mjs
