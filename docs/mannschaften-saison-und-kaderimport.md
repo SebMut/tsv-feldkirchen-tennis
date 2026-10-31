@@ -3,7 +3,7 @@
 ## Frontend (Entwicklungsbranch)
 Die öffentliche Übersicht `/mannschaften/` bietet drei direkt sichtbare Saison-Kacheln:
 - **Saison 2026**: bereits gemeldete 20 Sommermannschaften
-- **Winter 2026/2027**: getrennte Saison, bislang **0 offiziell zugeordnete Mannschaften**
+- **Winter 2026/2027**: getrennte Saison; die Wintermannschaften sind laut BTV-Vereinsseite bereits öffentlich einsehbar, aber noch **0 Mannschaften in Supabase dieser Saison zugeordnet**
 - **Sommer 2027**: getrennte Saison, Spielplan noch nicht veröffentlicht
 
 Saisons sind unter `seasons.code` eindeutig hinterlegt (`sommer-2026`, `winter-2026-2027`, `sommer-2027`); `year` ist aus Kompatibilitätsgründen erhalten, für die Winterrunde aktuell das Endjahr 2027. Die Saisons 2026 und 2027 dürfen nie ausschließlich per `year` gematcht werden. Zusätzliche Felder: `season_type`, `end_year`, `display_order`, `is_published`.
@@ -37,3 +37,7 @@ Die Datenbankfunktion `public.import_team_player_name(uuid,text)` prüft die Tea
 - Die bestehende GitHub-Actions-BTV-Sechsstundenprüfung auf `main` bleibt bis auf eine separate Freigabe unverändert und prüft ausschließlich Sommer 2026.
 - Sommer 2027 wird gemäß Auftrag erst ab Ende Februar 2027 auf eine offizielle Veröffentlichung geprüft.
 - Kein Merge nach `main`, keine Produktionsveröffentlichung.
+
+## Nachprüfung 31.10.2026 – BTV Winter bereits sichtbar
+
+Die Nutzeransicht der offiziellen [BTV-Vereinsseite](https://www.btv.de/de/mein-verein/vereinsseite/tsv-feldkirchen.html#Mannschaften) zeigt bereits Winterdaten für 2026/27. Der bisherige Hinweis, die BTV-Wintermannschaften seien nicht veröffentlicht, ist falsch und wurde im Frontend korrigiert. Im lokalen Import-Datensatz fehlen jedoch noch die **verifizierten Namen bzw. Vereins-Saison-IDs der Wintermannschaften**. Die offizielle BTV-Mannschaftsliste ist als dynamisch geladenes ZK-Widget eingebunden. Direkte serverseitige Testabrufe des öffentlichen Widgets ergaben nur die leere Standardansicht (kein verlässlicher Beleg für eine tatsächlich leere Winterrunde). Ohne vollständige Daten nicht aus Sommerteams raten und keine falschen Winterzuordnungen eintragen. Die Winter-Kachel verlinkt solange die offizielle BTV-Mannschaftsübersicht. Eine saisongetrennte Match-/Kaderübernahme ist weiterhin offen.
