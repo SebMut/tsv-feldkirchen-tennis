@@ -55,6 +55,5 @@ jobs:
       - name: Read only verified final scores and update matching TSV fixtures
         env:
           BTV_RESULTS_WRITE_ENABLED: 'true'
-          BTV_RESULTS_ONLY_SOMMER_2026: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
           BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
         run: node scripts/btv-results-import.mjs --apply

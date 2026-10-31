@@ -7,10 +7,9 @@ import {getWinterSchedule} from './btv-winter-schedule.mjs';
 const PROJECT='https://eaurnufdochjapfzqwvm.supabase.co';
 const SEASONS=[{code:'sommer-2026',expected:120,source:()=>getClubSchedule(2026)},
   {code:'winter-2026-2027',expected:15,source:getWinterSchedule}];
-// Regular checks are intentionally scoped to Sommer 2026; winter remains
-// available through the existing explicitly triggered importer.
-const ACTIVE_SEASONS=process.env.BTV_RESULTS_ONLY_SOMMER_2026==='true'
-  ? SEASONS.filter(s=>s.code==='sommer-2026'):SEASONS;
+// Every scheduled run checks both verified competitions. This keeps the
+// active winter round current while preserving the completed summer data.
+const ACTIVE_SEASONS=SEASONS;
 const apply=process.argv.includes('--apply');
 if(apply && process.env.BTV_RESULTS_WRITE_ENABLED!=='true')throw Error('WRITE_FLAG_REQUIRED');
 const sources=[];
