@@ -1,0 +1,58 @@
+name: BTV official team withdrawal detection
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/btv-withdrawal-*.mjs'
+      - 'scripts/sql/match-withdrawal-flags.sql'
+      - 'tests/btv-withdrawal-detection.test.mjs'
+      - '.github/workflows/btv-team-withdrawals.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/btv-withdrawal-*.mjs'
+      - 'scripts/sql/match-withdrawal-flags.sql'
+      - 'tests/btv-withdrawal-detection.test.mjs'
+      - '.github/workflows/btv-team-withdrawals.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '47 8 * * 0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btv-official-withdrawal-audit
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/btv-withdrawal-detection.test.mjs
+
+  detect:
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install public PDF extractor
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Read official BTV groups and record only explicit withdrawals
+        env:
+          GITHUB_REF: ${{ github.ref }}
+          BTV_WITHDRAWALS_WRITE_ENABLED: 'true'
+          BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: node scripts/btv-withdrawal-sync.mjs --apply
