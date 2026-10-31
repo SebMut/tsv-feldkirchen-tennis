@@ -473,25 +473,32 @@ export async function loadTeamDetail(slug: string) {
   }
 
   const teamSeasons = reference.teamSeasons
-    .filter((ts: Row) => ts.team_id === team.id && ts.is_published)
+    .filter((ts: Row) => ts.team_id === team.id && ts.is_published &&
+      reference.seasons.some((s: Row) => s.id === ts.season_id && s.is_published !== false))
     .sort((a: Row, b: Row) => {
-      const ay = reference.seasons.find((s: Row) => s.id === a.season_id)?.year ?? 0;
-      const by = reference.seasons.find((s: Row) => s.id === b.season_id)?.year ?? 0;
-      return by - ay;
+      const as = reference.seasons.find((s: Row) => s.id === a.season_id);
+      const bs = reference.seasons.find((s: Row) => s.id === b.season_id);
+      return (as?.display_order ?? 100) - (bs?.display_order ?? 100);
     });
   const requestedSeason = new URLSearchParams(window.location.search).get('season');
-  const current = teamSeasons.find((ts: Row) => ts.season_id === requestedSeason)
-    ?? teamSeasons.find((ts: Row) => reference.seasons.find((season: Row) => season.id === ts.season_id)?.is_current)
+  const current = teamSeasons.find((ts: Row) => {
+    const season = reference.seasons.find((s: Row) => s.id === ts.season_id);
+    return ts.season_id === requestedSeason || season?.code === requestedSeason;
+  }) ?? teamSeasons.find((ts: Row) =>
+    reference.seasons.find((season: Row) => season.id === ts.season_id)?.is_current)
     ?? teamSeasons[0];
-  const seasonSelect = document.querySelector<HTMLSelectElement>('#team-season-select');
-  if (seasonSelect) {
-    seasonSelect.innerHTML = teamSeasons.map((ts: Row) => {
+  const detailNav = document.querySelector<HTMLElement>('#team-season-nav');
+  if (detailNav) {
+    detailNav.innerHTML = teamSeasons.map((ts: Row) => {
       const season = reference.seasons.find((row: Row) => row.id === ts.season_id);
-      return `<option value="${ts.season_id}" ${ts.id === current?.id ? 'selected' : ''}>${escapeHtml(season?.name || 'Saison')}${season?.is_current ? ' · aktuell' : ' · Archiv'}</option>`;
-    }).join('');
-    seasonSelect.addEventListener('change', () => {
+      const active = ts.id === current?.id;
+      return `<button type="button" class="teams-category-chip ${active ? 'is-active' : ''}" data-detail-season="${escapeHtml(season?.code || season?.id || '')}" aria-pressed="${active}">${escapeHtml(season?.name || 'Saison')}</button>`;
+    }).join('') || '<p class="muted">Für dieses Team gibt es noch keine bestätigte Saison.</p>';
+    detailNav.addEventListener('click', (event: MouseEvent) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-detail-season]');
+      if (!button || !detailNav.contains(button)) return;
       const url = new URL(window.location.href);
-      url.searchParams.set('season', seasonSelect.value);
+      url.searchParams.set('season', button.dataset.detailSeason || '');
       window.location.assign(url.toString());
     });
   }
@@ -546,7 +553,7 @@ export async function loadTeamDetail(slug: string) {
     </div>`
     : '<p class="muted">Der öffentliche Kader wird noch gepflegt.</p>';
 
-  const allMatchesForTeam = requestedSeason ? (matches ?? []) : (allTeamMatches ?? matches ?? []);
+  const allMatchesForTeam = matches ?? []; // Never mix seasons in a single team's live/statistics views.
   const liveStates = allMatchesForTeam.length
     ? (await supabase.from('match_live_state').select('*').in('match_id', allMatchesForTeam.map((m: Row) => m.id))).data ?? []
     : [];
