@@ -263,6 +263,20 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   const headingRx = /^\s*(?:Junioren\s+18|Knaben\s+15|Mädchen\s+15|Bambini\s+12|Kleinfeld\s+U9|Herren(?:\s+(?:40|50))?|Damen(?:\s+(?:30|40|50))?)(?:\s+\(\d+er\))?\s*\|/iu;
   console.log('BTV_LAYOUT_TABLE_HEADINGS=' + lines.filter(line => headingRx.test(line)).length);
 
+  // Every letter and digit is redacted. Section labels themselves are public.
+  const sectionLines = lines.filter(line =>
+    line.includes('|') && /^\s*(?:Herren|Damen|Junioren|Knaben|Mädchen|Bambini|Kleinfeld)/iu.test(line));
+  console.log('BTV_LAYOUT_SECTION_CANDIDATES=' + sectionLines.length);
+  for (const [i, line] of sectionLines.slice(0, 30).entries()) {
+    const classified = ageClassFromPdfHeading(line);
+    const mask = line.slice(0, 100).replace(/\p{L}/gu, 'X')
+      .replace(/\d/g, '9').replace(/[^X9\s()|:;.,\/-]/g, '?')
+      .replace(/\s+/g, ' ').trim();
+    console.log('BTV_SECTION_' + (i + 1) + '_CLASS=' + (classified || 'UNMATCHED'));
+    console.log('BTV_SECTION_' + (i + 1) + '_SHAPE=' + mask);
+  }
+
+
   const headings = new Set();
   for (const line of text.split(/\r?\n/)) {
     const clean = line.replace(/\s+/g, ' ').trim();
@@ -284,6 +298,10 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   console.log('BTV_PARSE_AGE_CLASSES=' + d.classCount);
   console.log('BTV_PARSE_ROWS=' + d.parsedRows);
   console.log('BTV_PARSE_MALFORMED_ROWS=' + d.malformedRows);
+  console.log('BTV_PARSE_BAD_FORMAT=' + d.invalidFormat);
+  console.log('BTV_PARSE_BAD_RANK=' + d.invalidRank);
+  console.log('BTV_PARSE_RANK_RESETS=' + d.rankResets);
+  console.log('BTV_PARSE_BAD_NAME=' + d.invalidName);
   console.log('BTV_PARSE_UNASSIGNED_ROWS=' + d.unassignedRows);
   console.log('BTV_PARSE_UNKNOWN_HEADERS=' + d.unrecognizedHeaders);
   for (const [name, count] of Object.entries(d.classCounts)) {
