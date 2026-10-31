@@ -1237,39 +1237,94 @@ async function savePage(event: Event) {
   if (error) status(error.message, 'error'); else { status('Seite gespeichert.', 'success'); loadContent(); }
 }
 
-async function addSponsor(event: Event) {
-  event.preventDefault();
-  const { data: sponsor, error } = await supabase.from('sponsors').insert({
-    name: $<HTMLInputElement>('#sponsor-name')?.value.trim(),
-    url: $<HTMLInputElement>('#sponsor-url')?.value.trim() || null,
-    description: $<HTMLTextAreaElement>('#sponsor-description')?.value.trim() || null,
-    active: true,
-  }).select().single();
-  if (error || !sponsor) return status(error?.message || 'Sponsor konnte nicht gespeichert werden.', 'error');
-
-  const file = $<HTMLInputElement>('#sponsor-logo')?.files?.[0];
-  if (file) {
-    const image = await optimizeImage(file, 1400, 0.9);
-    const path = `site/sponsors/${sponsor.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
-    const { error: uploadError } = await supabase.storage.from('media').upload(path, image);
-    if (uploadError) return status(uploadError.message, 'error');
-    const { error: logoError } = await supabase.from('sponsors').update({ logo_path: path }).eq('id', sponsor.id);
-    if (logoError) return status(logoError.message, 'error');
-  }
-  ($<HTMLFormElement>('#sponsor-form'))?.reset();
-  status('Sponsor gespeichert.', 'success');
+async function loadClubEntries(){
+ if(!state.isSuper)return;
+ const [sr,or]=await Promise.all([
+  supabase.from('sponsors').select('*').order('sort_order'),
+  supabase.from('officials').select('*').order('sort_order')
+ ]);
+ const sponsorTarget=document.getElementById('sponsors-admin-list');
+ if(sponsorTarget){
+   if(sr.error){sponsorTarget.textContent='Sponsoren konnten nicht geladen werden.';}
+   else{
+     const rows=sr.data??[];
+     sponsorTarget.innerHTML=rows.length?rows.map(x=>`<div class="admin-edit-item" data-sponsor-id="${x.id}"><div><strong>${escapeHtml(x.name)}</strong><p class="match-meta">${x.active?'Aktiv':'Ausgeblendet'}</p></div><button class="button ghost" type="button" data-edit-sponsor>Bearbeiten</button></div>`).join(''):'<p class="muted">Noch keine Sponsoren vorhanden.</p>';
+     sponsorTarget.querySelectorAll('[data-edit-sponsor]').forEach(button=>button.addEventListener('click',()=>{
+       const x=rows.find(row=>row.id===button.closest('[data-sponsor-id]')?.getAttribute('data-sponsor-id'));if(!x)return;
+       for(const [id,val] of [['sponsor-edit-id',x.id],['sponsor-name',x.name],['sponsor-url',x.url||''],['sponsor-description',x.description||''],['sponsor-order',String(x.sort_order??0)]])editorialInput(id).value=val;
+       const active=document.getElementById('sponsor-active');if(active instanceof HTMLInputElement)active.checked=!!x.active;
+       document.getElementById('sponsor-cancel-edit')?.classList.remove('hidden');
+       document.getElementById('sponsor-form')?.scrollIntoView({block:'start'});
+     }));
+   }
+ }
+ const officialTarget=document.getElementById('officials-admin-list');
+ if(officialTarget){
+   if(or.error){officialTarget.textContent='Funktionäre konnten nicht geladen werden.';}
+   else{
+     const rows=or.data??[];
+     officialTarget.innerHTML=rows.length?rows.map(x=>`<div class="admin-edit-item" data-official-id="${x.id}"><div><strong>${escapeHtml(x.name)}</strong><p class="match-meta">${escapeHtml(x.title)} · ${x.published?'Öffentlich':'Nicht veröffentlicht'}</p></div><button class="button ghost" type="button" data-edit-official>Bearbeiten</button></div>`).join(''):'<p class="muted">Noch keine Funktionäre vorhanden.</p>';
+     officialTarget.querySelectorAll('[data-edit-official]').forEach(button=>button.addEventListener('click',()=>{
+       const x=rows.find(row=>row.id===button.closest('[data-official-id]')?.getAttribute('data-official-id'));if(!x)return;
+       for(const [id,val] of [['official-edit-id',x.id],['official-name',x.name],['official-title',x.title],['official-email',x.email||''],['official-phone',x.phone||''],['official-order',String(x.sort_order??0)]])editorialInput(id).value=val;
+       const published=document.getElementById('official-published');if(published instanceof HTMLInputElement)published.checked=!!x.published;
+       document.getElementById('official-cancel-edit')?.classList.remove('hidden');
+       document.getElementById('official-form')?.scrollIntoView({block:'start'});
+     }));
+   }
+ }
 }
 
-async function addOfficial(event: Event) {
-  event.preventDefault();
-  const { error } = await supabase.from('officials').insert({
-    name: $<HTMLInputElement>('#official-name')?.value.trim(),
-    title: $<HTMLInputElement>('#official-title')?.value.trim(),
-    email: $<HTMLInputElement>('#official-email')?.value.trim() || null,
-    phone: $<HTMLInputElement>('#official-phone')?.value.trim() || null,
-    published: true,
-  });
-  if (error) status(error.message, 'error'); else { ($<HTMLFormElement>('#official-form'))?.reset(); status('Funktionär gespeichert.', 'success'); }
+async function addSponsor(event: Event){
+ event.preventDefault();
+ if(!state.isSuper)return status('Keine Berechtigung.','error');
+ const editId=editorialInput('sponsor-edit-id').value||null;
+ const name=editorialInput('sponsor-name').value.trim();
+ if(!name)return status('Sponsorname erforderlich.','error');
+ const active=document.getElementById('sponsor-active');
+ const patch={name,url:editorialInput('sponsor-url').value.trim()||null,description:editorialInput('sponsor-description').value.trim()||null,sort_order:Number(editorialInput('sponsor-order').value)||0,active:active instanceof HTMLInputElement?active.checked:false};
+ const result=editId?await supabase.from('sponsors').update(patch).eq('id',editId).select('id').single():await supabase.from('sponsors').insert(patch).select('id').single();
+ if(result.error||!result.data)return status(result.error?.message||'Sponsor nicht gespeichert.','error');
+ const input=document.getElementById('sponsor-logo');
+ if(input instanceof HTMLInputElement&&input.files?.[0]){
+   let image;try{image=await optimizeImage(input.files[0],1400,0.9);}catch{return status('Sponsor gespeichert, Logo ungültig.','error');}
+   const path=`site/sponsors/${result.data.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
+   const upload=await supabase.storage.from('media').upload(path,image);
+   if(upload.error)return status('Sponsor gespeichert, Logo-Upload fehlgeschlagen: '+upload.error.message,'error');
+   const link=await supabase.from('sponsors').update({logo_path:path}).eq('id',result.data.id);
+   if(link.error)return status('Sponsor gespeichert, Logo nicht verknüpft: '+link.error.message,'error');
+ }
+ const form=document.getElementById('sponsor-form');if(form instanceof HTMLFormElement)form.reset();
+ editorialInput('sponsor-edit-id').value='';
+ document.getElementById('sponsor-cancel-edit')?.classList.add('hidden');
+ status(editId?'Sponsor aktualisiert.':'Sponsor angelegt.','success');
+ await loadClubEntries();
+}
+
+async function addOfficial(event: Event){
+ event.preventDefault();
+ if(!state.isSuper)return status('Keine Berechtigung.','error');
+ const editId=editorialInput('official-edit-id').value||null;
+ const name=editorialInput('official-name').value.trim(), title=editorialInput('official-title').value.trim();
+ if(!name||!title)return status('Name und Funktion erforderlich.','error');
+ const published=document.getElementById('official-published');
+ const patch={name,title,email:editorialInput('official-email').value.trim()||null,phone:editorialInput('official-phone').value.trim()||null,sort_order:Number(editorialInput('official-order').value)||0,published:published instanceof HTMLInputElement?published.checked:false};
+ const result=editId?await supabase.from('officials').update(patch).eq('id',editId).select('id').single():await supabase.from('officials').insert(patch).select('id').single();
+ if(result.error||!result.data)return status(result.error?.message||'Funktionär nicht gespeichert.','error');
+ const input=document.getElementById('official-photo');
+ if(input instanceof HTMLInputElement&&input.files?.[0]){
+   let image;try{image=await optimizeImage(input.files[0],1200,0.85);}catch{return status('Funktionär gespeichert, Bild ungültig.','error');}
+   const path=`site/officials/${result.data.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
+   const upload=await supabase.storage.from('media').upload(path,image);
+   if(upload.error)return status('Funktionär gespeichert, Bild-Upload fehlgeschlagen: '+upload.error.message,'error');
+   const link=await supabase.from('officials').update({photo_path:path}).eq('id',result.data.id);
+   if(link.error)return status('Funktionär gespeichert, Bild nicht verknüpft: '+link.error.message,'error');
+ }
+ const form=document.getElementById('official-form');if(form instanceof HTMLFormElement)form.reset();
+ editorialInput('official-edit-id').value='';
+ document.getElementById('official-cancel-edit')?.classList.add('hidden');
+ status(editId?'Funktionär aktualisiert.':'Funktionär angelegt.','success');
+ await loadClubEntries();
 }
 
 async function loadUsers() {
@@ -1410,6 +1465,16 @@ function bindForms() {
   $<HTMLFormElement>('#page-form')?.addEventListener('submit', savePage);
   $<HTMLFormElement>('#sponsor-form')?.addEventListener('submit', addSponsor);
   $<HTMLFormElement>('#official-form')?.addEventListener('submit', addOfficial);
+  $('#sponsor-cancel-edit')?.addEventListener('click', () => {
+    ($<HTMLFormElement>('#sponsor-form'))?.reset();
+    editorialInput('sponsor-edit-id').value = '';
+    $('#sponsor-cancel-edit')?.classList.add('hidden');
+  });
+  $('#official-cancel-edit')?.addEventListener('click', () => {
+    ($<HTMLFormElement>('#official-form'))?.reset();
+    editorialInput('official-edit-id').value = '';
+    $('#official-cancel-edit')?.classList.add('hidden');
+  });
   $<HTMLFormElement>('#invite-form')?.addEventListener('submit', inviteUser);
   $<HTMLSelectElement>('#invite-global-role')?.addEventListener('change', renderInviteTeamCards);
   $<HTMLFormElement>('#password-form')?.addEventListener('submit', async (event) => {
@@ -1449,7 +1514,7 @@ async function startApp(user: any) {
   bindNav();
   bindForms();
   await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshEvents(), refreshGalleries()]);
-  if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers()]);
+  if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
   await initAdvancedAdmin(state);
 }
 
