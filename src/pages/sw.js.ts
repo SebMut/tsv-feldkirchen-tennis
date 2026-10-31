@@ -17,7 +17,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== location.origin) return;
   // No private data, API requests or authenticated admin pages are cached.
-  if (!url.pathname.startsWith(BASE) || url.pathname.startsWith(BASE+'admin/')
+  if (!url.pathname.startsWith(BASE) || (url.pathname.startsWith(BASE+'admin/') || url.pathname.startsWith(BASE+'verwaltung/'))
       || url.search || request.mode !== 'navigate') return;
   event.respondWith(fetch(request).then(response => {
     if (response.ok && response.type === 'basic') {
