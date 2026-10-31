@@ -5,9 +5,9 @@ import MainLayout from '../../layouts/MainLayout.astro';
   <div class="container stack">
     <div class="page-head"><div><p class="eyebrow">Kalender</p><h1>Termine & Spielplan</h1></div></div>
     <div class="filters">
-      <select id="calendar-kind"><option value="all">Spiele & Veranstaltungen</option><option value="matches">Nur Punktspiele</option><option value="events">Nur Veranstaltungen</option></select>
-      <select id="calendar-team"><option value="">Alle Mannschaften</option></select>
-      <select id="calendar-category"><option value="">Alle Kategorien</option></select>
+      <select id="calendar-kind" aria-label="Art der Termine"><option value="all">Spiele & Veranstaltungen</option><option value="matches">Nur Punktspiele</option><option value="events">Nur Veranstaltungen</option></select>
+      <select id="calendar-team" aria-label="Mannschaft wählen"><option value="">Alle Mannschaften</option></select>
+      <select id="calendar-category" aria-label="Kategorie wählen"><option value="">Alle Kategorien</option></select>
     </div>
     <section class="card"><div id="calendar-list" class="match-list"><p class="muted">Termine werden geladen …</p></div></section>
     <section class="card" id="abos">
