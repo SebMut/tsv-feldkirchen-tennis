@@ -16,7 +16,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
     </div>
     <section class="calendar-filter-panel" aria-label="Kalender filtern">
       <div class="calendar-filter-heading"><span>Termine filtern</span><span class="muted">Die Markierungen im Kalender passen sich an.</span></div>
-      <div class="filters calendar-filters">
+      <div class="phase8-calendar-preferences"><label for="calendar-view">Ansicht</label><select id="calendar-view" aria-label="Kalenderansicht"><option value="month">Monat</option><option value="week">Woche</option></select><label for="calendar-favorite">Lieblingsmannschaft</label><select id="calendar-favorite" aria-label="Lieblingsmannschaft"><option value="">Keine / alle Mannschaften</option></select><button class="button ghost" type="button" id="calendar-save-favorite">Als Favorit speichern</button><span id="calendar-favorite-status" class="muted" role="status"></span></div><div class="filters calendar-filters">
         <select id="calendar-kind" aria-label="Art der Termine"><option value="all">Spiele & Veranstaltungen</option><option value="matches">Nur Punktspiele</option><option value="events">Nur Veranstaltungen</option></select>
         <select id="calendar-range" aria-label="Zeitraum"><option value="all">Alle Zeiträume</option><option value="upcoming">Nur zukünftige</option><option value="year">Aktuelles Kalenderjahr</option><option value="recent">Letzte 90 Tage</option></select>
         <select id="calendar-team" aria-label="Mannschaft wählen"><option value="">Alle Mannschaften</option></select>
@@ -37,7 +37,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <button class="calendar-icon-button" id="calendar-next" type="button" aria-label="Nächster Monat" title="Nächster Monat">›</button>
           </div>
         </div>
-        <div class="calendar-weekdays" aria-hidden="true">
+        <p id="calendar-week-range" class="muted hidden" aria-live="polite"></p><div class="calendar-weekdays" aria-hidden="true">
           <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
         </div>
         <div id="calendar-month-grid" class="calendar-month-grid" role="group" aria-label="Tage des Monats"></div>
