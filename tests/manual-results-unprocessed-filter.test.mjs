@@ -6,11 +6,11 @@ const script = readFileSync(new URL('../src/scripts/manual-results-admin.ts', im
 const admin = readFileSync(new URL('../src/pages/admin/index.astro', import.meta.url),'utf8');
 
 // Execute the actual pure filter expression from the TypeScript file.
-function activeFilter(manualIds, withdrawalIds = new Set()) {
+function activeFilter(manualIds, withdrawalIds = new Set(), externalIds = new Set()) {
   const match = script.match(/function isNotYetRecorded\(m: Entry\) \{ return ([^;]+); \}/);
   assert.ok(match, 'unprocessed-match filter must exist');
-  const actual = new Function('m','isOfficial','manual','withdrawalFlags','return ('+match[1]+');');
-  return m => actual(m, row => Boolean(row.btv_result_text?.trim()), new Map([...manualIds].map(id=>[id,true])), new Map([...withdrawalIds].map(id=>[id,true])));
+  const actual = new Function('m','isOfficial','manual','withdrawalFlags','externalReports','return ('+match[1]+');');
+  return m => actual(m, row => Boolean(row.btv_result_text?.trim()), new Map([...manualIds].map(id=>[id,true])), new Map([...withdrawalIds].map(id=>[id,true])), new Map([...externalIds].map(id=>[id,true])));
 }
 
 test('saved manual withdrawal is absent from outstanding task list', () => {
@@ -54,4 +54,14 @@ test('a specifically reported withdrawal is no longer an unresolved score task',
   assert.match(script, /from\('match_withdrawal_flags'\)/);
   assert.match(script, /offizielle Prüfung ausstehend|BTV-Bestätigung offen/);
   assert.match(admin, /id="manual-results-withdrawal"/);
+});
+
+test('externally documented 2026 result is counted as processed but still marked not official', () => {
+  const oberding = {match_id:'30261461-6e38-4835-ad37-06dc9691052a',btv_result_text:null};
+  assert.equal(activeFilter(new Set())(oberding), true);
+  assert.equal(activeFilter(new Set(),new Set(),new Set([oberding.match_id]))(oberding), false);
+  assert.match(script, /from\('external_match_result_reports'\)/);
+  assert.match(script, /BTV-Bestätigung offen/);
+  assert.match(script, /Externer Ergebnisnachweis/);
+  assert.match(script, /if \(save\) save.disabled = isOfficial\(selected\) \|\| !!external/);
 });
