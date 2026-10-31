@@ -11,6 +11,8 @@ export const GET: APIRoute = () => new Response(JSON.stringify({
   background_color: '#ffffff',
   theme_color: '#e30613',
   icons: [
-    { src: base + 'app-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+    { src: base + 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+    { src: base + 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+    { src: base + 'app-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
   ],
 }), { headers: { 'Content-Type': 'application/manifest+json; charset=utf-8', 'Cache-Control':'public, max-age=3600' } });
