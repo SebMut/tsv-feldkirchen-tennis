@@ -64,3 +64,10 @@ Der eigentliche Go-live ist **kein Bestandteil** der laufenden technischen Vorbe
 Der Entwicklungsbranch enthält jetzt Spieltags-Cockpit 2.0, personalisierte „Mein TSV“-Karte, Wochenkalender mit Favoriten, installierbare Web-App-Grundlage, Mannschaftsstatistik, Vereinsbrett, Änderungsprotokoll und erleichterte Spielberichte. Siehe `docs/phase-8-vereinskomfort.md` für den konkreten Umsetzungsstand und die **noch offenen Praxistests**.
 
 Die produktive Domain bleibt bis zur separaten ausdrücklichen Go-live-Freigabe unverändert.
+
+
+## BTV-Spielplan und automatische News zu Spielverlegungen
+
+Der offizielle Vereinsspielplan 01012 umfasst alle Mannschaften. Ein vorbereiteter Job prüft ihn viermal täglich mit einem einzigen PDF-Abruf und kann bestätigte künftige Spielverlegungen automatisch als News veröffentlichen. Nur im genehmigten Schreibbetrieb; der Entwicklungsbranch bleibt zunächst read-only.
+
+Technischer Ablauf, Aktivierungsbedingungen und Schutz manueller Spielstände: `docs/btv-6h-spielverlegungen.md`.
