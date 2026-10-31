@@ -8,6 +8,12 @@ import {tmpdir} from 'node:os';
 import {meetingIdsFromLinks,meetingIdsFromDocuments,matchOfficialReport} from './btv-meeting-discovery-core.mjs';
 
 const PROJECT_URL='https://eaurnufdochjapfzqwvm.supabase.co';
+const seasonCode=process.env.BTV_SEASON_CODE||'sommer-2026';
+const seasonMatch=seasonCode.match(/^(sommer|winter)-(20\d{2})(?:-(20\d{2}))?$/);
+if(!seasonMatch)throw Error('SEASON_CODE_INVALID');
+const startYear=Number(seasonMatch[2]),endYear=Number(seasonMatch[3]||seasonMatch[2]);
+const searchFrom=seasonMatch[1]==='sommer'?`${startYear}-04-01`:`${startYear}-09-01`;
+const searchUntil=seasonMatch[1]==='sommer'?`${endYear}-10-31`:`${endYear+(seasonMatch[3]?0:1)}-04-30`;
 const CLUB_COCKPIT='https://www.btv.de/de/mein-verein/vereins-cockpit.html';
 const AUTH_HOST='tende-id.liga.nu';
 const ALLOWED_HOSTS=new Set(['www.btv.de','btv.de','btv.liga.nu',AUTH_HOST]);
@@ -20,8 +26,8 @@ if(!username||!password||!key)throw Error('BTV_DISCOVERY_SECRETS_REQUIRED');
 const {chromium}=await import('playwright');
 const db=createClient(PROJECT_URL,key,{auth:{persistSession:false,autoRefreshToken:false}});
 const query=async(p,label)=>{const {data,error}=await p;if(error)throw Error(label+'_DB_ERROR');return data||[];};
-const [season]=await query(db.from('seasons').select('id,code').eq('code','sommer-2026').limit(1),'SEASON');
-if(!season)throw Error('SUMMER_2026_MISSING');
+const [season]=await query(db.from('seasons').select('id,code').eq('code',seasonCode).limit(1),'SEASON');
+if(!season)throw Error('SELECTED_SEASON_MISSING');
 const matches=await query(db.from('matches').select('id,team_season_id,opponent,is_home,starts_at,btv_result_text')
   .in('team_season_id',(await query(db.from('team_seasons').select('id').eq('season_id',season.id).limit(100),'TEAM_SEASONS')).map(x=>x.id)).limit(300),'MATCHES');
 const teamSeasons=await query(db.from('team_seasons').select('id,btv_url').eq('season_id',season.id).limit(100),'TEAM_REFS');
@@ -34,7 +40,7 @@ function reportMeta(text){
   const lines=text.split(/\r?\n/).slice(0,30);
   const title=lines.find(x=>/\(01012\)/.test(x)&&x.includes(' : '))||'';
   const score=title.match(/\b(\d{1,2}\s*:\s*\d{1,2})\s*$/)?.[1]||'';
-  const de=text.slice(0,2500).match(/\b(\d{2})\.(\d{2})\.(2026)\b/);
+  const de=text.slice(0,2500).match(/\b(\d{2})\.(\d{2})\.(20\d{2})\b/);
   return {title,score,date:de?`${de[3]}-${de[2]}-${de[1]}`:null};
 }
 
@@ -67,8 +73,8 @@ try{
    const inputs=frame.locator('input');
    for(let i=0;i<await inputs.count();i++){
      const input=inputs.nth(i);const hint=((await input.getAttribute('name'))||'')+' '+((await input.getAttribute('placeholder'))||'');
-     if(/von|start|beginn/i.test(hint))await input.fill((await input.getAttribute('type'))==='date'?'2026-04-01':'01.04.2026').catch(()=>{});
-     if(/bis|end/i.test(hint))await input.fill((await input.getAttribute('type'))==='date'?'2026-10-31':'31.10.2026').catch(()=>{});
+     if(/von|start|beginn/i.test(hint))await input.fill((await input.getAttribute('type'))==='date'?searchFrom:searchFrom.split('-').reverse().join('.')).catch(()=>{});
+     if(/bis|end/i.test(hint))await input.fill((await input.getAttribute('type'))==='date'?searchUntil:searchUntil.split('-').reverse().join('.')).catch(()=>{});
    }
  }
  const search=page.getByRole('button',{name:/suchen|anzeigen|filtern/i}).first();
@@ -104,6 +110,6 @@ try{
  }
  await context.close();
 }finally{rmSync(folder,{recursive:true,force:true});await browser?.close().catch(()=>{});}
-console.log('BTV_MEETING_DISCOVERY='+JSON.stringify({season:'sommer-2026',discovered,known:existingMeetings.size,inserted,ambiguous,unavailable,mode:apply?'apply':'dry-run'}));
+console.log('BTV_MEETING_DISCOVERY='+JSON.stringify({season:seasonCode,discovered,known:existingMeetings.size,inserted,ambiguous,unavailable,mode:apply?'apply':'dry-run'}));
 console.log('BTV_MEETING_DISCOVERY_PERSONAL_DATA_LOGGED=NO');
 
