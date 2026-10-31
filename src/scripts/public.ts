@@ -1,4 +1,4 @@
-import { calendarFeedUrl, mediaUrl, supabase } from '../lib/supabase';
+import { calendarFeedUrl, mediaUrl, supabase, COURTBOOKING_URL } from '../lib/supabase';
 import { escapeHtml, formatDateTime } from '../lib/ui';
 
 type Row = Record<string, any>;
@@ -148,90 +148,130 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
 }
 
 export async function loadHome() {
-  const facility = document.querySelector<HTMLElement>('#facility-card');
-  const liveCenter = document.querySelector<HTMLElement>('#live-center');
-  const todayTarget = document.querySelector<HTMLElement>('#today-matches');
-  const newsTarget = document.querySelector<HTMLElement>('#home-news');
-
-  const reference = await refs();
-  const now = new Date();
-  const start = new Date(now); start.setHours(0, 0, 0, 0);
-  const end = new Date(start); end.setDate(end.getDate() + 1);
-
-  const [
-    { data: facilityRows },
-    { data: courts },
-    { data: liveStates },
-    { data: todayMatches },
-    { data: news },
-    { data: settings },
-  ] = await Promise.all([
-    supabase.from('facility_status').select('*').limit(1),
-    supabase.from('courts').select('*').eq('active', true).order('sort_order'),
-    supabase.from('match_live_state').select('*').eq('status', 'live'),
-    supabase.from('matches').select('*').gte('starts_at', start.toISOString()).lt('starts_at', end.toISOString()).order('starts_at'),
-    supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(4),
-    supabase.from('site_settings').select('key,value').in('key', ['team_count', 'court_count']),
-  ]);
-
-  const settingsTarget = new Map((settings ?? []).map((row: Row) => [row.key, row.value]));
-  const teamCount = document.querySelector<HTMLElement>('#home-team-count');
-  const courtCount = document.querySelector<HTMLElement>('#home-court-count');
-  if (teamCount && settingsTarget.has('team_count')) {
-    const value = String(settingsTarget.get('team_count'));
-    teamCount.textContent = teamCount.dataset.countOnly === 'true' ? value : `${value} Mannschaften`;
-  }
-  if (courtCount && settingsTarget.has('court_count')) {
-    const value = String(settingsTarget.get('court_count'));
-    courtCount.textContent = courtCount.dataset.countOnly === 'true' ? value : `${value} Sandplätze`;
-  }
-
-  if (facility) {
-    const current = facilityRows?.[0];
-    const statusLabel = current?.status === 'closed' ? 'Plätze gesperrt' : current?.status === 'limited' ? 'Teilweise geöffnet' : 'Plätze geöffnet';
-    const statusClass = current?.status === 'closed' ? 'closed' : '';
-    const closedCourts = (courts ?? []).filter((court: Row) => court.status !== 'open');
-    facility.innerHTML = `
-      <p class="eyebrow">Anlagenstatus</p>
-      <div class="page-head">
-        <div><h2>${escapeHtml(statusLabel)}</h2><p class="muted">${escapeHtml(current?.message ?? 'Aktueller Status der Tennisanlage.')}</p></div>
-        <span class="status-pill ${statusClass}">${current?.status === 'open' ? '🟢 offen' : current?.status === 'closed' ? '🔴 gesperrt' : '🟡 eingeschränkt'}</span>
-      </div>
-      ${closedCourts.length ? `<p class="muted">${closedCourts.map((c: Row) => `${escapeHtml(c.name)}: ${escapeHtml(c.status_message || c.status)}`).join(' · ')}</p>` : ''}
-    `;
-  }
-
-  const activeLive = liveStates ?? [];
-  if (liveCenter && activeLive.length) {
-    const liveMatchesResult = await supabase.from('matches').select('*').in('id', activeLive.map((s: Row) => s.match_id));
-    const liveMatches = liveMatchesResult.data ?? [];
-    liveCenter.classList.remove('hidden');
-    liveCenter.innerHTML = `
-      <div class="live-badge"><span class="live-dot"></span>Live Center</div>
-      <h2>${activeLive.length === 1 ? 'Eine Begegnung läuft gerade' : `${activeLive.length} Begegnungen laufen gerade`}</h2>
-      <div class="match-list">${liveMatches.map((m: Row) => matchRow(m, reference, activeLive)).join('')}</div>
-    `;
-  } else if (liveCenter) {
-    liveCenter.classList.add('hidden');
-  }
-
-  if (todayTarget) {
-    todayTarget.innerHTML = (todayMatches?.length)
-      ? todayMatches.map((m: Row) => matchRow(m, reference, liveStates ?? [])).join('')
-      : '<p class="muted">Heute sind keine Punktspiele eingetragen.</p>';
-  }
-
-  if (newsTarget) {
-    newsTarget.innerHTML = (news?.length)
-      ? news.map((item: Row) => `
-          <div class="news-row">
-            <div><strong>${escapeHtml(item.title)}</strong><div class="match-meta">${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : ''}</div></div>
-          </div>`).join('')
+  const facility = document.querySelector('#facility-card');
+  const liveCenter = document.querySelector('#live-center');
+  const todayTarget = document.querySelector('#today-matches');
+  const upcomingTarget = document.querySelector('#upcoming-matches');
+  const recentTarget = document.querySelector('#recent-matches');
+  const newsTarget = document.querySelector('#home-news');
+  const errorText = (target, message) => {
+    if (target) target.innerHTML = `<p class="muted" role="status">${escapeHtml(message)}</p>`;
+  };
+  const watchdog = window.setTimeout(() => {
+    if (facility?.textContent?.includes('Wird geladen')) errorText(facility, 'Anlagenstatus momentan nicht abrufbar. Bitte Courtbooking prüfen.');
+    for (const target of [todayTarget, upcomingTarget, recentTarget, newsTarget]) {
+      if (target?.textContent?.includes('geladen')) errorText(target, 'Inhalte momentan nicht abrufbar. Bitte später erneut versuchen.');
+    }
+  }, 12000);
+  try {
+    const reference = await refs();
+    const now = new Date();
+    const start = new Date(now); start.setHours(0, 0, 0, 0);
+    const end = new Date(start); end.setDate(end.getDate() + 1);
+    const [facilityResult, courtsResult, activeResult, todayResult, upcomingResult, recentResult, newsResult, settingsResult] = await Promise.all([
+      supabase.from('facility_status').select('*').limit(1),
+      supabase.from('courts').select('*').eq('active', true).order('sort_order'),
+      supabase.from('match_live_state').select('*').eq('status', 'live'),
+      supabase.from('matches').select('*').eq('is_published', true).gte('starts_at', start.toISOString()).lt('starts_at', end.toISOString()).order('starts_at').limit(50),
+      supabase.from('matches').select('*').eq('is_published', true).gte('starts_at', now.toISOString()).order('starts_at').limit(15),
+      recentTarget ? supabase.from('matches').select('*').eq('is_published', true).lt('starts_at', start.toISOString()).order('starts_at', { ascending: false }).limit(8) : Promise.resolve({ data: [], error: null }),
+      supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(3),
+      supabase.from('site_settings').select('key,value').in('key', ['team_count', 'court_count']),
+    ]);
+    const settings = new Map((settingsResult.data ?? []).map(row => [row.key, row.value]));
+    for (const [selector, key] of [['#home-team-count', 'team_count'], ['#home-court-count', 'court_count']]) {
+      const target = document.querySelector(selector);
+      if (target && settings.has(key)) target.textContent = String(settings.get(key));
+    }
+    if (facility) {
+      const current = facilityResult.data?.[0];
+      const hasError = !!(facilityResult.error || courtsResult.error);
+      const label = hasError ? 'Anlagenstatus nicht verfügbar' : !current ? 'Status nicht gemeldet'
+        : current.status === 'closed' ? 'Plätze gesperrt' : current.status === 'limited' ? 'Teilweise geöffnet'
+        : current.status === 'open' ? 'Plätze geöffnet' : 'Status derzeit unklar';
+      const description = hasError ? 'Bitte prüfe die aktuelle Platzverfügbarkeit in Courtbooking.'
+        : current?.message || (!current ? 'Für heute liegt noch keine Statusmeldung vor.' : 'Aktuelle Meldung zur Tennisanlage.');
+      const state = !hasError && current?.status === 'closed' ? 'Gesperrt'
+        : !hasError && current?.status === 'open' ? 'Geöffnet'
+        : !hasError && current?.status === 'limited' ? 'Eingeschränkt' : 'Unbekannt';
+      const closed = (courtsResult.data ?? []).filter(c => c.status !== 'open');
+      facility.innerHTML = `
+        <p class="eyebrow">Anlagenstatus</p>
+        <div class="page-head">
+          <div><h2>${escapeHtml(label)}</h2><p class="muted">${escapeHtml(description)}</p></div>
+          <span class="status-pill ${state === 'Gesperrt' ? 'closed' : ''}">${escapeHtml(state)}</span>
+        </div>
+        ${!hasError && closed.length ? `<p class="muted">${closed.map(c => `${escapeHtml(c.name)}: ${escapeHtml(c.status_message || c.status)}`).join(' · ')}</p>` : ''}
+        <a class="text-link" href="${escapeHtml(COURTBOOKING_URL)}" target="_blank" rel="noreferrer">Platzverfügbarkeit prüfen ↗</a>`;
+    }
+    const liveStates = activeResult.data ?? [];
+    const liveIds = liveStates.map(s => s.match_id);
+    const rows = [...(todayResult.data ?? []), ...(upcomingResult.data ?? []), ...(recentResult.data ?? [])];
+    const knownIds = new Set(rows.map(m => m.id));
+    const missingIds = liveIds.filter(id => !knownIds.has(id));
+    if (missingIds.length) {
+      const extra = await supabase.from('matches').select('*').eq('is_published', true).in('id', missingIds);
+      rows.push(...(extra.data ?? []));
+    }
+    const byMatch = new Map(rows.map(m => [m.id, m]));
+    const liveMatches = liveIds.map(id => byMatch.get(id)).filter(Boolean);
+    const today = [...liveMatches, ...(todayResult.data ?? []).filter(m => !liveIds.includes(m.id))];
+    const next = (upcomingResult.data ?? []).filter(m => !liveIds.includes(m.id));
+    const past = (recentResult.data ?? []).slice(0, 6);
+    const focus = today.length ? today : next.slice(0, 3);
+    const scoreIds = [...new Set([...focus, ...next, ...past].map(m => m.id))];
+    const scoreResult = scoreIds.length
+      ? await supabase.from('match_live_state').select('*').in('match_id', scoreIds)
+      : { data: [], error: null };
+    const scoreRows = [...(scoreResult.data ?? []), ...liveStates];
+    if (liveCenter) {
+      if (liveMatches.length) {
+        const running = await supabase.from('match_encounters').select('match_id').in('match_id', liveMatches.map(m => m.id)).eq('status', 'live');
+        liveCenter.classList.remove('hidden');
+        liveCenter.innerHTML = `
+          <div class="live-badge"><span class="live-dot"></span>LIVE · TSV Feldkirchen Tennis</div>
+          <h2>${liveMatches.length === 1 ? 'Jetzt auf dem Platz' : `${liveMatches.length} Punktspiele laufen`}</h2>
+          <p class="muted">${running.data?.length ?? 0} laufende Einzel/Doppel</p>
+          <div class="match-list">${liveMatches.map(m => matchRow(m, reference, scoreRows)).join('')}</div>`;
+      } else {
+        liveCenter.classList.add('hidden');
+        liveCenter.innerHTML = '';
+      }
+    }
+    if (todayTarget) {
+      if (todayResult.error || upcomingResult.error || activeResult.error) {
+        errorText(todayTarget, 'Punktspiele sind momentan nicht abrufbar.');
+      } else {
+        todayTarget.innerHTML = focus.length
+          ? `<p class="match-section-note">${today.length ? 'Heute und LIVE' : 'Nächste Punktspiele'}</p>${focus.slice(0, 6).map(m => matchRow(m, reference, scoreRows)).join('')}`
+          : '<p class="muted">Momentan keine Punktspiele angekündigt.</p>';
+      }
+    }
+    if (upcomingTarget) upcomingTarget.innerHTML = upcomingResult.error
+      ? '<p class="muted">Spielplan momentan nicht abrufbar.</p>'
+      : next.length ? next.slice(0, 8).map(m => matchRow(m, reference, scoreRows)).join('')
+      : '<p class="muted">Keine weiteren Punktspiele angekündigt.</p>';
+    if (recentTarget) recentTarget.innerHTML = recentResult.error
+      ? '<p class="muted">Ergebnisse momentan nicht abrufbar.</p>'
+      : past.length ? past.map(m => matchRow(m, reference, scoreRows)).join('')
+      : '<p class="muted">Noch keine vergangenen Spiele vorhanden.</p>';
+    if (newsTarget) newsTarget.innerHTML = newsResult.error
+      ? '<p class="muted">Neuigkeiten momentan nicht abrufbar.</p>'
+      : newsResult.data?.length ? newsResult.data.map(item => `
+          <div class="news-row"><div><strong>${escapeHtml(item.title)}</strong>
+          <div class="match-meta">${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : ''}</div></div></div>`).join('')
       : '<p class="muted">Noch keine aktuellen Beiträge.</p>';
+    await renderSponsorPlacements('#home-sponsors', ['home']);
+  } catch (error) {
+    console.warn('Öffentliche Startseiten-Daten konnten nicht geladen werden:', error);
+    if (facility?.textContent?.includes('Wird geladen')) errorText(facility, 'Anlagenstatus momentan nicht abrufbar.');
+    for (const target of [todayTarget, upcomingTarget, recentTarget, newsTarget]) {
+      if (target?.textContent?.includes('geladen')) errorText(target, 'Inhalte momentan nicht abrufbar.');
+    }
+  } finally {
+    window.clearTimeout(watchdog);
+    window.setTimeout(loadHome, document.hidden ? 120000 : 60000);
   }
-
-  await renderSponsorPlacements('#home-sponsors', ['home']);
-  window.setTimeout(loadHome, 30000);
 }
 
 export async function loadTeams() {
