@@ -1,0 +1,63 @@
+name: BTV Sommer 2026 nMM Jugend- und Erwachsenen-Audit
+
+# One-time protected check. No periodic runs, no database imports, no raw files.
+# Only the trusted default branch can receive the BTV GitHub Secrets.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/btv-roster-pdf-audit.yml
+      - scripts/btv-roster-pdf-audit.mjs
+  pull_request:
+    paths:
+      - .github/workflows/btv-roster-pdf-audit.yml
+      - scripts/btv-roster-pdf-audit.mjs
+      - scripts/btv-roster-age-classes.mjs
+      - tests/btv-roster-age-classes.test.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btv-roster-pdf-audit
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: |
+          node --check scripts/btv-roster-age-classes.mjs
+          node --check scripts/btv-roster-pdf-audit.mjs
+      - name: Test strict adult and youth mapping and privacy controls
+        run: node --test tests/btv-roster-age-classes.test.mjs
+
+  pdf-audit:
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install PDF reader and pinned browser before injecting secrets
+        run: |
+          npm ci
+          npm install --no-save --no-package-lock --ignore-scripts playwright@1.64.1
+          sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+          npx --no-install playwright install --with-deps chromium
+      - name: Inspect authorized 2026 club roster PDF without logging or persisting names
+        env:
+          BTV_LOGIN_USERNAME: ${{ secrets.BTV_LOGIN_USERNAME }}
+          BTV_LOGIN_PASSWORD: ${{ secrets.BTV_LOGIN_PASSWORD }}
+        run: node scripts/btv-roster-pdf-audit.mjs
