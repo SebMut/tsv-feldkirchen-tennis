@@ -758,6 +758,24 @@ export async function loadCalendar() {
   let ready = false;
   let fetchError = false;
 
+  type CalendarMarker = 'men' | 'women' | 'youth' | 'event' | 'other';
+  const markerOrder: CalendarMarker[] = ['men', 'women', 'youth', 'event', 'other'];
+  const markerLabels: Record<CalendarMarker, string> = {
+    men: 'Herren',
+    women: 'Damen',
+    youth: 'Jugend',
+    event: 'Veranstaltung',
+    other: 'Weitere Punktspiele',
+  };
+  const matchMarker = (team: Row | undefined): CalendarMarker => {
+    const category = reference.categories.find((item: Row) => item.id === team?.category_id);
+    const kind = team?.gender || category?.slug;
+    if (kind === 'men' || kind === 'herren') return 'men';
+    if (kind === 'women' || kind === 'damen') return 'women';
+    if (kind === 'youth' || kind === 'jugend') return 'youth';
+    return 'other';
+  };
+
   const filteredEntries = () => {
     const teamId = teamSelect.value, categoryId = categorySelect.value, kind = kindSelect.value;
     const matchesFiltered = (kind === 'events' ? [] : matches).filter(m => {
@@ -766,7 +784,7 @@ export async function loadCalendar() {
     }).map(m => {
       const { team } = matchContext(m, reference);
       return {
-        at: m.starts_at, key: dateKey(m.starts_at), kind: 'match',
+        at: m.starts_at, key: dateKey(m.starts_at), kind: 'match', marker: matchMarker(team),
         title: `${team?.name || 'TSV Feldkirchen'} gegen ${m.opponent}`,
         href: `/spiel/?match=${encodeURIComponent(m.id)}`,
         html: matchRow(m, reference, liveStates),
@@ -780,7 +798,7 @@ export async function loadCalendar() {
       }
       return true;
     }).map(e => ({
-      at: e.starts_at, key: dateKey(e.starts_at), kind: 'event',
+      at: e.starts_at, key: dateKey(e.starts_at), kind: 'event', marker: 'event' as CalendarMarker,
       title: e.title,
       href: '',
       html: `<div class="calendar-event-detail">
@@ -811,24 +829,29 @@ export async function loadCalendar() {
     const daysInMonth = new Date(Date.UTC(viewYear, viewMonth, 0)).getUTCDate();
     const cellCount = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
     const monthStart = Date.UTC(viewYear, viewMonth - 1, 1);
-    const indexed = new Map<string, { match: number; event: number }>();
+    const indexed = new Map<string, Record<CalendarMarker, number>>();
     entries.forEach(item => {
-      const old = indexed.get(item.key) || { match: 0, event: 0 };
-      if (item.kind === 'match') old.match += 1; else old.event += 1;
-      indexed.set(item.key, old);
+      const counts = indexed.get(item.key) || { men: 0, women: 0, youth: 0, event: 0, other: 0 };
+      counts[item.marker] += 1;
+      indexed.set(item.key, counts);
     });
     const cells: string[] = [];
     for (let index = 0; index < cellCount; index++) {
       const cellDate = new Date(monthStart + (index - firstWeekday) * 86400000);
       const key = isoAt(cellDate);
-      const counts = indexed.get(key) || { match: 0, event: 0 };
-      const count = counts.match + counts.event;
+      const counts = indexed.get(key) || { men: 0, women: 0, youth: 0, event: 0, other: 0 };
+      const count = markerOrder.reduce((total, marker) => total + counts[marker], 0);
       const outside = cellDate.getUTCMonth() !== viewMonth - 1;
       const today = key === todayKey, selected = key === selectedDay;
       const fullLabel = fullDayFormatter.format(cellDate);
-      cells.push(`<button type="button" class="calendar-day${outside ? ' calendar-day--outside' : ''}${today ? ' calendar-day--today' : ''}${selected ? ' calendar-day--selected' : ''}${count ? ' calendar-day--busy' : ''}" data-calendar-day="${key}" tabindex="${selected ? '0' : '-1'}" aria-label="${escapeHtml(fullLabel)}${today ? ', heute' : ''}${count ? `, ${count} Termine` : ', keine Termine'}" aria-pressed="${selected ? 'true' : 'false'}" ${today ? 'aria-current="date"' : ''}>
+      const categoryDescription = markerOrder.filter(marker => counts[marker] > 0)
+        .map(marker => `${markerLabels[marker]}: ${counts[marker]}`).join(', ');
+      const dots = markerOrder.filter(marker => counts[marker] > 0)
+        .map(marker => `<i class="calendar-dot calendar-dot--${marker}"></i>`).join('');
+      const dayLabel = `${fullLabel}${today ? ', heute' : ''}, ${categoryDescription || 'keine Termine'}`;
+      cells.push(`<button type="button" class="calendar-day${outside ? ' calendar-day--outside' : ''}${today ? ' calendar-day--today' : ''}${selected ? ' calendar-day--selected' : ''}${count ? ' calendar-day--busy' : ''}" data-calendar-day="${key}" tabindex="${selected ? '0' : '-1'}" aria-label="${escapeHtml(dayLabel)}" aria-pressed="${selected ? 'true' : 'false'}" ${today ? 'aria-current="date"' : ''}>
         <span class="calendar-day__number">${cellDate.getUTCDate()}</span>
-        <span class="calendar-day__dots" aria-hidden="true">${counts.match ? '<i class="calendar-dot calendar-dot--match"></i>' : ''}${counts.event ? '<i class="calendar-dot calendar-dot--event"></i>' : ''}</span>
+        <span class="calendar-day__dots" aria-hidden="true">${dots}</span>
         ${count ? `<small class="calendar-day__count">${count} ${count === 1 ? 'Termin' : 'Termine'}</small>` : ''}
       </button>`);
     }
@@ -837,13 +860,13 @@ export async function loadCalendar() {
     dayHeading.textContent = `${selectedDay === todayKey ? 'Heute · ' : ''}${fullDayFormatter.format(dateAt(selectedDay))}`;
     dayCount.textContent = !ready ? 'Termine werden geladen …' : fetchError ? 'Einige Termine sind momentan nicht abrufbar.' : chosen.length ? `${chosen.length} ${chosen.length === 1 ? 'Termin' : 'Termine'} an diesem Tag` : 'Keine Termine für diesen Tag';
     dayList.innerHTML = !ready ? '<p class="muted">Die Termine werden ermittelt …</p>'
-      : chosen.length ? chosen.map(item => item.html).join('')
+      : chosen.length ? chosen.map(item => `<div class="calendar-day-entry"><span class="calendar-entry-type calendar-entry-type--${item.marker}"><i class="calendar-dot calendar-dot--${item.marker}" aria-hidden="true"></i>${escapeHtml(markerLabels[item.marker])}</span>${item.html}</div>`).join('')
       : `<div class="calendar-agenda-empty"><span aria-hidden="true">✦</span><strong>Hier ist noch nichts geplant.</strong><p class="muted">Wähle einen markierten Tag im Kalender oder entdecke die nächsten Termine.</p></div>`;
     const coming = entries.filter(item => item.key >= todayKey).slice(0, 4);
     nextList.innerHTML = !ready ? '<p class="muted">Nächste Termine werden geladen …</p>'
       : coming.length ? coming.map(item => {
           const day = shortFormatter.format(dateAt(item.key));
-          return `<div class="calendar-next-item"><span class="calendar-next-date">${escapeHtml(day)}</span><div>${item.href ? `<a href="${escapeHtml(item.href)}">${escapeHtml(item.title)}</a>` : `<strong>${escapeHtml(item.title)}</strong>`}<small>${item.kind === 'match' ? 'Punktspiel' : 'Vereinstermin'}</small></div></div>`;
+          return `<div class="calendar-next-item"><span class="calendar-next-date">${escapeHtml(day)}</span><div>${item.href ? `<a href="${escapeHtml(item.href)}">${escapeHtml(item.title)}</a>` : `<strong>${escapeHtml(item.title)}</strong>`}<small class="calendar-next-type"><i class="calendar-dot calendar-dot--${item.marker}" aria-hidden="true"></i>${escapeHtml(markerLabels[item.marker])}</small></div></div>`;
         }).join('')
       : '<p class="muted">Derzeit keine weiteren Termine angekündigt.</p>';
 
