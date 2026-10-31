@@ -1,0 +1,19 @@
+name: Audit BTV club archive 2022–2026
+on:
+  pull_request:
+    paths:
+      - 'scripts/audit-btv-club-seasons.mjs'
+      - '.github/workflows/audit-btv-club-seasons.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - run: node scripts/audit-btv-club-seasons.mjs
