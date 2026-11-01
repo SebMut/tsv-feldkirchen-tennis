@@ -368,7 +368,12 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <div class="card stack">
               <p class="eyebrow">Vereinsleben · Mitglieder-Rückmeldungen</p>
               <h2>Veranstaltungen &amp; Zusagen</h2>
-              <p class="muted">Sommerfest, Weihnachtsfeier oder Vereinsabend: Mitglieder wählen Ja / Vielleicht / Nein und geben bei einer Zusage die Gesamtzahl der Personen an. Namen sind ausschließlich hier sichtbar. Die Anmeldung ist ohne verifizierte Mitgliedsidentität möglich.</p>
+              <p class="muted">Vorlage nach der Einladung zum Sommerfest und den Jugendvereinsmeisterschaften von 2024: Ja / Vielleicht / Nein, Anzahl Erwachsene und Kinder, Beiträge zum Buffet, Auf- und Abbau sowie Jugendanmeldungen. Persönliche Angaben bleiben im geschützten Adminbereich.</p>
+              <details class="rsvp-template-reference">
+                <summary>Originalvorlage 2024 – Hinweise für die neue Einladung</summary>
+                <p>Die historische Einladung nannte: Sommerfest am 20.07.2024 ab 17:30 Uhr an der Olympiastraße; Aufbau ab 11:00 Uhr, Abbau am 21.07.2024 ab 11:00 Uhr; Rückmeldung bis 15.07.2024. Jugendvereinsmeisterschaften am 19./20.07.2024, Spiele überwiegend samstags ab 10:00 Uhr. Damalige Unkostenbeiträge: Erwachsene 20 €, Jugendliche 10 €, Kinder bis 10 Jahre frei.</p>
+                <p><strong>Diese Angaben sind ausschließlich ein Beispiel aus 2024.</strong> Lege für das neue Sommerfest Termin, Frist, Ort und Beiträge selbst fest.</p>
+              </details>
               <div class="actions">
                 <a href="/veranstaltung/?slug=sommerfest" class="button secondary" target="_blank" rel="noopener">Sommerfest-Beispiel ansehen ↗</a>
                 <button id="rsvp-admin-new" type="button" class="button ghost">Neue Veranstaltung</button>
@@ -381,15 +386,20 @@ import MainLayout from '../../layouts/MainLayout.astro';
               <form id="rsvp-admin-event-form" class="form-grid">
                 <div class="field"><label for="rsvp-admin-title">Titel</label><input id="rsvp-admin-title" maxlength="140" value="Sommerfest" required /></div>
                 <div class="field"><label for="rsvp-admin-slug">Kurzlink</label><input id="rsvp-admin-slug" pattern="[a-z0-9-]+" maxlength="70" value="sommerfest" required /></div>
-                <div class="field"><label for="rsvp-admin-start">Datum &amp; Uhrzeit</label><input id="rsvp-admin-start" type="datetime-local" required /></div>
+                <div class="field"><label for="rsvp-admin-start">Sommerfest: Datum &amp; Uhrzeit</label><input id="rsvp-admin-start" type="datetime-local" required /></div>
+                <div class="field"><label for="rsvp-admin-deadline">Anmeldeschluss (optional)</label><input id="rsvp-admin-deadline" type="datetime-local" /></div>
                 <div class="field"><label for="rsvp-admin-location">Veranstaltungsort</label><input id="rsvp-admin-location" placeholder="z. B. Vereinsanlage" maxlength="140" /></div>
-                <div class="field full"><label for="rsvp-admin-description">Beschreibung</label><textarea id="rsvp-admin-description" maxlength="1200" rows="3" placeholder="Wir freuen uns auf euch!"></textarea></div>
+                <div class="field full"><label for="rsvp-admin-description">Einladungstext</label><textarea id="rsvp-admin-description" maxlength="1200" rows="4" placeholder="Liebe Tennisfreunde, wir möchten gemeinsam mit euch feiern …"></textarea></div>
+                <div class="field full"><label for="rsvp-admin-fees">Essen, Getränke und Unkostenbeitrag</label><textarea id="rsvp-admin-fees" maxlength="600" rows="2" placeholder="Ggf. Beiträge für Erwachsene, Jugendliche und Kinder (neu festlegen!)"></textarea></div>
+                <div class="field"><label for="rsvp-admin-setup">Aufbau &amp; Vorbereitungen</label><input id="rsvp-admin-setup" maxlength="230" placeholder="Datum und Uhrzeit für den Aufbau" /></div>
+                <div class="field"><label for="rsvp-admin-cleanup">Abbau &amp; Aufräumen</label><input id="rsvp-admin-cleanup" maxlength="230" placeholder="Datum und Uhrzeit für den Abbau" /></div>
+                <div class="field full"><label for="rsvp-admin-youth-note">Jugendvereinsmeisterschaften</label><textarea id="rsvp-admin-youth-note" maxlength="700" rows="2" placeholder="Datum, Beginn, Kategorien, Teilnahmebeitrag, Turniermodus …"></textarea></div>
                 <div class="field"><label for="rsvp-admin-status">Freigabe</label><select id="rsvp-admin-status"><option value="draft">Entwurf – nicht öffentlich</option><option value="published">Veröffentlichen &amp; Anmeldung öffnen</option><option value="archived">Archiviert</option></select></div>
                 <div class="field"><label><input id="rsvp-admin-enabled" type="checkbox" checked /> Anmeldung aktivieren</label></div>
                 <div class="field full"><button type="submit" class="button" id="rsvp-admin-save">Veranstaltung speichern</button></div>
               </form>
               <div class="rsvp-admin-results">
-                <h3>Rückmeldungen</h3>
+                <h3>Rückmeldungen &amp; Helferplanung</h3>
                 <p id="rsvp-admin-summary" aria-live="polite" class="muted">Wähle eine gespeicherte Veranstaltung.</p>
                 <div class="table-wrap" id="rsvp-admin-list" aria-live="polite"></div>
               </div>
