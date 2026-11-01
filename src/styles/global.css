@@ -217,7 +217,7 @@ p{line-height:1.65}
 .facility-pill--limited{background:#b85e00}.facility-pill--limited::before{background:#ffd28c}
 .facility-pill--unknown{background:#43504c}
 .facility-pill:hover,.facility-pill:focus-visible{color:#fff;transform:translateY(-1px);outline:3px solid rgba(255,255,255,.75);outline-offset:3px}
-.home-intro-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(320px,1fr);gap:28px;align-items:stretch}
+.home-intro-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;align-items:stretch}
 .home-intro-grid>.card{min-width:0}
 .home-welcome{display:grid;align-content:start;gap:9px}.home-welcome h2,.home-welcome p{margin:0}.home-welcome p{max-width:1050px;line-height:1.65}
 .home-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;align-items:stretch}
