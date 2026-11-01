@@ -5,6 +5,7 @@ import { initPhase8Admin } from './phase8';
 import { initManualResultsPanel } from './manual-results-admin';
 import { initOfficialReportsPanel } from './official-reports-admin';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
+import { summarizeSetResult, homeAwaySetScore } from '../lib/tennis-score.mjs';
 
 type Row = Record<string, any>;
 const state: {
@@ -1055,6 +1056,8 @@ async function refreshMatches() {
   const renderEncounter = (match: Row, encounter: Row) => {
     const tsvSide = renderTsvSide(match, encounter);
     const opponentSide = renderOpponentSide(match, encounter);
+    const summary = summarizeSetResult(encounter.result_text);
+    const orientedSets = homeAwaySetScore(summary, !!match.is_home);
     const statusLabel = encounter.status === 'live' ? 'LIVE' : encounter.status === 'finished' ? 'Beendet' : 'Geplant';
 
     const isOpen = !mobileLayout || openMobileEncounterId === encounter.id
@@ -1085,18 +1088,28 @@ async function refreshMatches() {
               ${['1. Satz', '2. Satz', '3. Satz'].map((label, index) => `
                 <button class="encounter-set-button ${setScores[index] ? 'has-score' : ''}"
                   type="button" data-enc-set="${index}" aria-label="${label}${index === 2 ? ' Match-Tiebreak' : ''}: ${setScores[index] || 'noch kein Ergebnis'}"
-                  ${index > 0 && !setScores[index - 1] ? 'disabled title="Bitte zuerst den vorherigen Satz eintragen"' : ''}>
+                  ${(index > 0 && !setScores[index - 1]) || (index === 2 && summary.complete)
+                    ? 'disabled title="Dieser Satz wird nicht benötigt oder der vorherige Satz fehlt"' : ''}>
                   <span>${label}</span><strong>${setScores[index] || '–'}</strong>
                   ${index === 2 ? '<small>Match-Tiebreak</small>' : ''}
                 </button>`).join('')}
             </div>
             <input type="hidden" data-enc-result value="${escapeHtml(encounter.result_text || '')}" />
+            <p class="encounter-set-status" aria-live="polite">
+              ${summary.hasResult
+                ? `<strong>${encounter.status === 'finished' ? 'Endstand' : 'Zwischenstand'}: TSV ${summary.tsvSets} : ${summary.opponentSets} Gegner</strong>
+                   <span>Heim ${orientedSets.homeSets} : ${orientedSets.awaySets} Gast</span>`
+                : '<span>Noch kein Satz eingetragen.</span>'}
+              ${summary.winner && encounter.status === 'finished'
+                ? `<span class="encounter-set-status__winner">${summary.winner === 'tsv' ? 'TSV Feldkirchen' : escapeHtml(match.opponent)} gewinnt</span>`
+                : encounter.status === 'scheduled' && summary.hasResult ? '<span>Mit „Live anzeigen“ den Zwischenstand veröffentlichen.</span>' : ''}
+            </p>
             ${encounter.result_text && !setScores.some(Boolean) ? `<p class="encounter-set-legacy">Bisheriges Ergebnis: ${escapeHtml(encounter.result_text)}</p>` : ''}
           </div>
           <div class="encounter-actions">
-            ${encounter.status !== 'live' && encounter.status !== 'finished' ? '<button class="button secondary" type="button" data-enc-start>Starten</button>' : ''}
-            <button class="button" type="button" data-enc-winner="tsv">TSV gewinnt</button>
-            <button class="button ghost" type="button" data-enc-winner="opponent">Gegner gewinnt</button>
+            ${encounter.status === 'scheduled' ? '<button class="button button--hot" type="button" data-enc-live>Live anzeigen</button>' : ''}
+            ${encounter.status === 'live' ? '<span class="encounter-live-notice">● Live – Zwischenstände werden angezeigt</span>' : ''}
+            ${encounter.status === 'finished' ? '<span class="encounter-finished-notice">✓ Sieger automatisch ermittelt</span>' : ''}
             ${encounter.status !== 'scheduled' || encounter.winner || encounter.result_text ? '<button class="button ghost" type="button" data-enc-reset>Zurücksetzen</button>' : ''}
           </div>
         </div>
@@ -1453,17 +1466,32 @@ async function refreshMatches() {
               && !window.confirm('Wenn du diesen Satz löschst, werden auch die folgenden Sätze entfernt. Fortfahren?')) return;
             next[setIndex] = score;
             if (!score) next.splice(setIndex + 1, 2 - setIndex, ...Array(2 - setIndex).fill(''));
-            const resultText = formatEncounterSetScores(next);
+            const normalized = summarizeSetResult(formatEncounterSetScores(next));
+            const resultText = formatEncounterSetScores(normalized.scores);
             const buttons = dialog.querySelectorAll<HTMLButtonElement>('button');
             buttons.forEach((button) => { button.disabled = true; });
             feedback.classList.remove('hidden');
             feedback.textContent = 'Ergebnis wird gespeichert …';
             try {
-              if (await updateEncounter(encounterId, { result_text: resultText })) {
+              if ((normalized.complete || encounter.status === 'finished') && !(await ensureMatchLive())) {
+                feedback.textContent = 'Der Spieltag konnte nicht live geschaltet werden.';
+                return;
+              }
+              const now = new Date().toISOString();
+              const patch = {
+                result_text: resultText,
+                status: normalized.complete ? 'finished' : encounter.status === 'finished' ? 'live' : encounter.status,
+                winner: normalized.winner,
+                finished_at: normalized.complete ? now : null,
+                ...(normalized.complete ? { started_at: encounter.started_at || now } : {}),
+              };
+              if (await updateEncounter(encounterId, patch)) {
                 const hidden = encounterCard.querySelector<HTMLInputElement>('[data-enc-result]');
                 if (hidden) hidden.value = resultText || '';
                 dialog.close();
-                await refreshChangedEncounter(encounterId, 'Satz-Ergebnis gespeichert.');
+                await refreshChangedEncounter(encounterId, normalized.complete
+                  ? `Endstand ${normalized.tsvSets}:${normalized.opponentSets} – ${normalized.winner === 'tsv' ? 'TSV Feldkirchen' : 'Gegner'} gewinnt.`
+                  : 'Zwischenstand gespeichert.');
                 target.querySelector<HTMLButtonElement>(
                   `[data-encounter-id="${encounterId}"] [data-enc-set="${setIndex}"]`
                 )?.focus({ preventScroll: true });
@@ -1497,10 +1525,10 @@ async function refreshMatches() {
         });
       });
 
-      const startButton = encounterCard.querySelector<HTMLButtonElement>('[data-enc-start]');
-      startButton?.addEventListener('click', async () => {
-        if (startButton.disabled) return;
-        startButton.disabled = true;
+      const liveButton = encounterCard.querySelector<HTMLButtonElement>('[data-enc-live]');
+      liveButton?.addEventListener('click', async () => {
+        if (liveButton.disabled) return;
+        liveButton.disabled = true;
         try {
           if (!(await ensureMatchLive())) return;
           if (await updateEncounter(encounterId, {
@@ -1510,31 +1538,11 @@ async function refreshMatches() {
             winner: null,
           })) {
             await refreshChangedEncounter(encounterId,
-              `${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position} läuft jetzt.`);
+              'Begegnung ist jetzt live. Eingegebene Satzstände sind öffentlich sichtbar.');
           }
         } finally {
-          if (startButton.isConnected) startButton.disabled = false;
+          if (liveButton.isConnected) liveButton.disabled = false;
         }
-      });
-
-      encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-winner]').forEach((button) => {
-        button.addEventListener('click', async () => {
-          if (button.disabled) return;
-          button.disabled = true;
-          if (!(await ensureMatchLive())) { button.disabled = false; return; }
-          const winner = button.dataset.encWinner;
-          const resultText = encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.value.trim() || null;
-          if (await updateEncounter(encounterId, {
-            status: 'finished',
-            winner,
-            result_text: resultText,
-            finished_at: new Date().toISOString(),
-          })) {
-            clearMatchDraft(matchId, encounterId, 'data-enc-result');
-            await refreshChangedEncounter(encounterId,
-              winner === 'tsv' ? 'Punkt für TSV Feldkirchen gespeichert.' : 'Punkt für den Gegner gespeichert.');
-          } else button.disabled = false;
-        });
       });
 
       encounterCard.querySelector<HTMLButtonElement>('[data-enc-reset]')?.addEventListener('click', async () => {
