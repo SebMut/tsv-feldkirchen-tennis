@@ -46,6 +46,8 @@ test('homepage cards have consistent spacing between both rows and columns',()=>
   assert.match(css,/\.home-intro-grid\{[^}]*gap:28px;/);
   assert.match(css,/\.home-columns\{[^}]*gap:28px;/);
   assert.match(css,/\.home-columns\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:28px;align-items:stretch\}/);
+  assert.match(home, /class="home-columns home-columns--equal"/);
+  assert.match(css, /\.home-columns--equal\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
   const firstGrid = css.match(/\.home-intro-grid\{[^}]*grid-template-columns:([^;]+);/);
   const secondGrid = css.match(/\.home-columns\{[^}]*grid-template-columns:([^;]+);/);
   assert.ok(firstGrid && secondGrid);
