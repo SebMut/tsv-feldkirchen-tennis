@@ -164,3 +164,23 @@ test('RSVP base URL accepts only known canonical paths, never a copied label or 
     assert.ok(!allowed.includes(new URL(invalid).href),invalid);
   }
 });
+
+
+test('successful RSVP email submission highlights spam folder and sender above ordinary feedback',()=>{
+  const pageHtml=page;
+  const globalCss=r('src/styles/global.css');
+  const reminder='<div id="rsvp-spam-warning" class="rsvp-spam-warning" role="alert" hidden>';
+  assert.ok(pageHtml.includes(reminder));
+  assert.ok(pageHtml.includes('WICHTIG: Bitte auch den SPAM-Ordner prüfen!'));
+  assert.ok(pageHtml.includes('Die Bestätigungs-E-Mail kommt von'));
+  assert.ok(pageHtml.includes('tsvfeldkirchen.tennis@gmail.com'));
+  assert.ok(pageHtml.indexOf('id="rsvp-spam-warning"')<pageHtml.indexOf('id="rsvp-form-feedback"'));
+  assert.ok(publicCode.includes("const spamWarning = byId<HTMLElement>('rsvp-spam-warning')"));
+  assert.ok(publicCode.includes("if (spamWarning) spamWarning.hidden = true"));
+  const success=publicCode.indexOf("showFeedback('Prüfe jetzt dein E-Mail-Postfach:");
+  assert.ok(success>=0);
+  assert.ok(publicCode.indexOf('if (spamWarning) spamWarning.hidden = false',success)>success);
+  assert.ok(globalCss.includes('.rsvp-spam-warning[hidden]{display:none!important}'));
+  assert.ok(globalCss.includes('font-size:clamp(1.35rem,3vw,1.65rem)'));
+  assert.ok(globalCss.includes('border:3px solid #bb1026'));
+});
