@@ -438,14 +438,27 @@ export async function loadTeams() {
     : { data: [], error: null };
   const states = new Map((stateResult.data ?? []).map((s: Row) => [s.match_id, s]));
 
+  // Ein Kategorienlink aus dem Breadcrumb darf nicht in einer Saison ohne
+  // Mannschaften dieser Gruppe landen (z. B. Junioren in der Winterrunde).
+  const seasonForGroup = (groupId: string): string | undefined => {
+    const seasonsWithGroup = seasonCodes
+      .map((code) => seasonByCode.get(code))
+      .filter((season): season is Row => !!season && teamsForSeason(season)
+        .some((ts: Row) => groupForTeam(teamsById.get(ts.team_id)) === groupId));
+    return seasonsWithGroup.find((season: Row) => season.code === defaultSeason?.code)?.code
+      ?? seasonsWithGroup.sort((a: Row, b: Row) =>
+        String(b.starts_on || '').localeCompare(String(a.starts_on || '')))[0]?.code;
+  };
   const applyUrlState = () => {
     const params = new URLSearchParams(window.location.search);
+    const requestedGroup = params.get('category') || params.get('gruppe') || '';
+    activeCategory = knownCategories.some((category) => category.id === requestedGroup) ? requestedGroup : '';
     const code = params.get('season');
     const legacy = reference.seasons.find((s: Row) => s.id === code)?.code;
-    activeCode = seasonCodes.includes(code || '') ? code! :
-      legacy && seasonCodes.includes(legacy) ? legacy : defaultSeason?.code || 'sommer-2026';
-    const requestedGroup = params.get('gruppe') || params.get('category') || '';
-    activeCategory = knownCategories.some((category) => category.id === requestedGroup) ? requestedGroup : '';
+    const requestedCode = seasonCodes.includes(code || '') ? code :
+      legacy && seasonCodes.includes(legacy) ? legacy : '';
+    activeCode = requestedCode || (activeCategory ? seasonForGroup(activeCategory) : undefined)
+      || defaultSeason?.code || 'sommer-2026';
   };
   const setUrlState = () => {
     const url = new URL(window.location.href);
@@ -585,6 +598,15 @@ export async function loadTeamDetail(slug: string) {
   }) ?? teamSeasons.find((ts: Row) =>
     reference.seasons.find((season: Row) => season.id === ts.season_id)?.is_current)
     ?? teamSeasons[0];
+  // Der Gruppen-Breadcrumb führt zur Mannschaftsübersicht mit derselben
+  // Saison wie die gerade betrachtete Mannschaft.
+  const currentSeasonCode = reference.seasons.find((s: Row) => s.id === current?.season_id)?.code;
+  const groupBreadcrumb = root.querySelector<HTMLAnchorElement>('.breadcrumbs a[href*="category="]');
+  if (groupBreadcrumb && currentSeasonCode) {
+    const url = new URL(groupBreadcrumb.href);
+    url.searchParams.set('season', currentSeasonCode);
+    groupBreadcrumb.href = `${url.pathname}${url.search}${url.hash}`;
+  }
   const detailNav = document.querySelector<HTMLElement>('#team-season-nav');
   if (detailNav) {
     detailNav.innerHTML = teamSeasons.map((ts: Row) => {
