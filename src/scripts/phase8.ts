@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { escapeHtml, formatDateTime, setStatus } from '../lib/ui';
+import { escapeHtml, formatDateTime } from '../lib/ui';
 
 type Row = Record<string, any>;
 type AdminState = {
@@ -12,83 +12,6 @@ type AdminState = {
 };
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
-const localInput = (value: string | null) => {
-  if (!value) return '';
-  const d = new Date(value);
-  const n = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-  return n.toISOString().slice(0, 16);
-};
-const toIso = (value: string) => value ? new Date(value).toISOString() : null;
-
-export async function loadClubNotices() {
-  const root = el<HTMLElement>('club-notices');
-  if (!root) return;
-  try {
-    const { data, error } = await supabase.from('club_notices').select('*')
-      .eq('is_published', true).lte('starts_at', new Date().toISOString())
-      .order('sort_order').order('starts_at', { ascending: false }).limit(12);
-    if (error) throw error;
-    const now = Date.now();
-    const rows = (data ?? []).filter((row: Row) => !row.ends_at || new Date(row.ends_at).getTime() >= now).slice(0, 4);
-    if (!rows.length) { root.classList.add('hidden'); root.innerHTML = ''; return; }
-    root.classList.remove('hidden');
-    root.innerHTML = `<div class="phase8-notice-heading"><p class="eyebrow">Vereinsmitteilungen</p><h2>Aktuelles aus dem Verein</h2></div><div class="phase8-notice-grid">${rows.map((row: Row) => `
-      <article class="phase8-notice phase8-notice--${row.kind === 'urgent' ? 'urgent' : row.kind === 'event' ? 'event' : 'info'}">
-        <span class="phase8-notice-tag">${row.kind === 'urgent' ? 'Wichtige Information' : row.kind === 'event' ? 'Gemeinsam im Club' : 'Vereinsmitteilung'}</span>
-        <h3>${escapeHtml(row.title)}</h3><p>${escapeHtml(row.message)}</p>
-        ${row.ends_at ? `<small>Hinweis gültig bis ${escapeHtml(formatDateTime(row.ends_at))}</small>` : ''}
-      </article>`).join('')}</div>`;
-  } catch {
-    root.classList.add('hidden');
-  }
-}
-
-function showNoticeStatus(message: string, tone: 'info' | 'success' | 'error' = 'info') {
-  const target = el<HTMLElement>('notice-status');
-  if (!target) return;
-  target.classList.remove('hidden');
-  setStatus(target, message, tone);
-}
-
-async function renderNotices() {
-  const target = el<HTMLElement>('notice-admin-list');
-  if (!target) return;
-  const { data, error } = await supabase.from('club_notices').select('*').order('starts_at', { ascending: false }).limit(75);
-  if (error) { showNoticeStatus(error.message, 'error'); return; }
-  const notices = data ?? [];
-  target.innerHTML = notices.length ? notices.map((row: Row) => `
-    <article class="admin-edit-item" data-notice-id="${row.id}">
-      <div><strong>${escapeHtml(row.title)}</strong><p class="muted">${row.is_published ? 'Freigegeben' : 'Entwurf'} · ${escapeHtml(formatDateTime(row.starts_at))}${row.ends_at ? ' bis ' + escapeHtml(formatDateTime(row.ends_at)) : ''}</p></div>
-      <div class="actions"><button type="button" class="button ghost" data-notice-edit>Bearbeiten</button><button type="button" class="button ghost" data-notice-toggle>${row.is_published ? 'Ausblenden' : 'Freigeben'}</button></div>
-    </article>`).join('') : '<p class="muted">Noch keine Vereinsmitteilungen. Neue Mitteilungen beginnen als Entwurf.</p>';
-  target.querySelectorAll<HTMLElement>('[data-notice-id]').forEach(card => {
-    const row = notices.find((item: Row) => item.id === card.dataset.noticeId);
-    if (!row) return;
-    card.querySelector<HTMLButtonElement>('[data-notice-edit]')?.addEventListener('click', () => {
-      const ids: Record<string, string> = {
-        'notice-id': row.id, 'notice-title': row.title, 'notice-message': row.message,
-        'notice-kind': row.kind, 'notice-order': String(row.sort_order),
-        'notice-start': localInput(row.starts_at), 'notice-end': localInput(row.ends_at),
-      };
-      for (const [id, value] of Object.entries(ids)) {
-        const control = el<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id);
-        if (control) control.value = value || '';
-      }
-      const check = el<HTMLInputElement>('notice-published');
-      if (check) check.checked = !!row.is_published;
-      el<HTMLFormElement>('notice-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-    card.querySelector<HTMLButtonElement>('[data-notice-toggle]')?.addEventListener('click', async () => {
-      const { error: toggleError } = await supabase.from('club_notices')
-        .update({ is_published: !row.is_published, updated_by: (await supabase.auth.getUser()).data.user?.id, updated_at: new Date().toISOString() })
-        .eq('id', row.id);
-      if (toggleError) return showNoticeStatus(toggleError.message, 'error');
-      showNoticeStatus('Sichtbarkeit aktualisiert.', 'success');
-      await Promise.all([renderNotices(), renderAudit()]);
-    });
-  });
-}
-
 async function renderAudit() {
   const root = el<HTMLElement>('audit-list');
   if (!root) return;
@@ -101,7 +24,7 @@ async function renderAudit() {
   const labels: Record<string, string> = {
     matches: 'Spieltag', match_encounters: 'Einzel/Doppel', match_live_state: 'Spielstand',
     live_ticker_entries: 'Tickermeldung', events: 'Termin', news: 'Bericht/News',
-    facility_status: 'Anlage', club_notices: 'Vereinsbrett',
+    facility_status: 'Anlage',
   };
   root.innerHTML = rows.length ? `<table class="phase8-audit-table"><thead><tr><th>Zeitpunkt</th><th>Person</th><th>Bereich</th><th>Änderung</th></tr></thead><tbody>${rows.map((row: Row) => `
     <tr><td>${escapeHtml(formatDateTime(row.occurred_at))}</td><td>${escapeHtml(names.get(row.actor_id) || 'System / nicht zugeordnet')}</td>
@@ -180,42 +103,9 @@ async function renderBtvScheduleStatus() {
 export async function initPhase8Admin(base: AdminState) {
   renderPersonalNext(base);
   if (!base.isSuper) return;
-  const form = el<HTMLFormElement>('notice-form');
-  const reset = () => {
-    form?.reset();
-    if (el<HTMLInputElement>('notice-id')) el<HTMLInputElement>('notice-id')!.value = '';
-    if (el<HTMLInputElement>('notice-start')) el<HTMLInputElement>('notice-start')!.value = localInput(new Date().toISOString());
-    if (el<HTMLInputElement>('notice-published')) el<HTMLInputElement>('notice-published')!.checked = false;
-  };
-  reset();
-  el<HTMLButtonElement>('notice-reset')?.addEventListener('click', reset);
-  form?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const read = (id: string) => el<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id)?.value.trim() || '';
-    const title = read('notice-title');
-    const message = read('notice-message');
-    const start = read('notice-start');
-    const end = read('notice-end');
-    if (title.length < 3 || message.length < 3 || !start) return showNoticeStatus('Titel, Mitteilung und Beginn sind erforderlich.', 'error');
-    if (end && new Date(end).getTime() <= new Date(start).getTime()) return showNoticeStatus('Der Endzeitpunkt muss nach dem Beginn liegen.', 'error');
-    const patch = {
-      title, message, kind: read('notice-kind') || 'info',
-      sort_order: Number(read('notice-order')) || 0,
-      starts_at: toIso(start), ends_at: toIso(end),
-      is_published: !!el<HTMLInputElement>('notice-published')?.checked,
-      updated_at: new Date().toISOString(), updated_by: base.user?.id,
-    };
-    const id = read('notice-id');
-    const result = id ? await supabase.from('club_notices').update(patch).eq('id', id)
-      : await supabase.from('club_notices').insert({ ...patch, created_by: base.user?.id });
-    if (result.error) return showNoticeStatus(result.error.message, 'error');
-    reset();
-    showNoticeStatus('Mitteilung gespeichert.', 'success');
-    await Promise.all([renderNotices(), renderAudit()]);
-  });
   el<HTMLButtonElement>('audit-refresh')?.addEventListener('click', renderAudit);
   el<HTMLButtonElement>('btv-sync-refresh')?.addEventListener('click', renderBtvScheduleStatus);
-  await Promise.all([renderNotices(), renderAudit(), renderBtvScheduleStatus()]);
+  await Promise.all([renderAudit(), renderBtvScheduleStatus()]);
 }
 
 
