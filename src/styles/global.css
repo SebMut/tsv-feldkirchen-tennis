@@ -2022,3 +2022,39 @@ main.main--flush{padding:0}
   .ticker-running-encounter__result strong{font-size:1.22rem}
   .ticker-running-encounter__result>span{font-size:.61rem}
 }
+
+
+/* Liveticker: freie Zwischenstände für jeden Satz, ohne kleine Touch-Ziele */
+.encounter-set-dialog__manual{
+  margin-top:18px;border:1px solid #e2e8e1;border-radius:13px;background:#f8faf8;
+  overflow:hidden
+}
+.encounter-set-dialog__manual>summary{
+  display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;
+  padding:16px;min-height:50px;cursor:pointer;font-size:.88rem;font-weight:850;color:#27402e
+}
+.encounter-set-dialog__manual>summary span{font-size:.75rem;font-weight:600;color:#6a7c70}
+.encounter-set-dialog__manual[open]>summary{border-bottom:1px solid #e4ebe4}
+.encounter-set-dialog__manual>summary:hover{background:#eef4ef}
+.encounter-set-dialog__manual>summary:focus-visible{outline:3px solid #d73948;outline-offset:-3px}
+.encounter-set-dialog__manual-form{padding:15px;display:grid;gap:13px}
+.encounter-set-dialog__manual-form>.muted{margin:0;font-size:.8rem}
+.encounter-set-dialog__manual-inputs{display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);gap:8px;align-items:end}
+.encounter-set-dialog__manual-inputs label{display:grid;gap:7px;font-size:.77rem;font-weight:850;color:#4b5d4f;min-width:0}
+.encounter-set-dialog__manual-inputs input{
+  width:100%;min-width:0;min-height:55px;border:1px solid #ccd7ce;border-radius:10px;
+  padding:10px 12px;background:#fff;color:#213729;font-size:1.3rem;font-weight:850;
+  text-align:center;font-variant-numeric:tabular-nums
+}
+.encounter-set-dialog__manual-inputs>span{font-weight:950;color:#7b8a7e;font-size:1.4rem;text-align:center;line-height:55px}
+.encounter-set-dialog__manual-inputs input:focus-visible{
+  outline:3px solid #e56b77;outline-offset:2px;border-color:#c73340
+}
+.encounter-set-dialog__manual-error{margin:0;color:#b20b1e;font-weight:790;font-size:.8rem}
+.encounter-set-dialog__manual-form>.button{width:100%;min-height:49px}
+.encounter-set-button small{line-height:1.2;text-align:center}
+@media(max-width:450px){
+  .encounter-set-dialog__manual-form{padding:12px}
+  .encounter-set-dialog__manual>summary{padding:13px}
+  .encounter-set-dialog__manual-inputs input{min-height:54px;font-size:1.18rem}
+}
