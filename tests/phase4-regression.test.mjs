@@ -178,8 +178,9 @@ test('training page stays compact with school photos, logo and linked training t
   assert.match(training, /<ul class="training-simple__list">/);
   assert.match(training, /tennisschule-alexbraun\.de\/angebote\//);
   assert.match(training, /Trainingsangebote &amp; Anmeldung/);
-  assert.match(training, /data-managed-page="training"/);
-  assert.match(training, /loadManagedPage\('training'\)/);
+  assert.doesNotMatch(training, /data-managed-page="training"/);
+  assert.doesNotMatch(training, /Weitere organisatorische Informationen/);
+  assert.doesNotMatch(training, /loadManagedPage\('training'\)/);
   assert.match(training, /@media\(max-width:600px\)/);
   assert.doesNotMatch(training, /iframe/);
 });
