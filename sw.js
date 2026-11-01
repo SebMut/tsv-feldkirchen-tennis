@@ -1,5 +1,5 @@
 
-const BASE = "/tsv-feldkirchen-tennis/";
+const BASE = "/";
 const CACHE = 'tsv-tennis-public-v4';
 const SHELL = [BASE, BASE+'termine/', BASE+'mannschaften/', BASE+'spieltag/'];
 self.addEventListener('install', (event) => {
