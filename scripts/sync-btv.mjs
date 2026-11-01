@@ -37,6 +37,14 @@ const get = async (query, name) => {
 };
 const identity = (seasonId, home, opponent) =>
   [seasonId, home ? 'H' : 'A', normalizedName(opponent)].join('|');
+// Nur ein echtes, eindeutig verifiziertes BTV-Heim:Gast-Endergebnis wird
+// als offizieller Wert übernommen. "0:0" bleibt eine fehlende/unklare Wertung.
+const officialScore = (value) => {
+  const result = /^\s*(\d{1,2})\s*:\s*(\d{1,2})\s*$/.exec(String(value ?? ''));
+  if (!result) return null;
+  const home = Number(result[1]), away = Number(result[2]);
+  return home === 0 && away === 0 ? null : `${home}:${away}`;
+};
 const report = {
   source_fixture_count: schedule.fixtures.length,
   existing_count: 0, inserted_count: 0, updated_count: 0,
@@ -59,7 +67,7 @@ try {
 
   const ids = [...registered.values()].map(row => row.id);
   const existing = await get(db.from('matches')
-    .select('id,team_season_id,opponent,is_home,starts_at,btv_source_key,btv_imported')
+    .select('id,team_season_id,opponent,is_home,starts_at,btv_source_key,btv_imported,btv_result_text')
     .in('team_season_id', ids), 'Existing matches');
   const keyed = new Map(existing.filter(row => row.btv_source_key)
     .map(row => [row.btv_source_key, row]));
@@ -83,7 +91,7 @@ try {
     sourceIdentities.set(key, (sourceIdentities.get(key) || 0) + 1);
   }
 
-  const baselineRows = [], candidates = [], unresolved = [];
+  const baselineRows = [], candidates = [], unresolved = [], officialUpdates = [];
   for (const fixture of schedule.fixtures) {
     const teamId = teamsBySlug.get(fixture.slug).id;
     const season = registered.get(teamId);
@@ -114,14 +122,23 @@ try {
           is_published: true, external_url: isWinter ? 'https://www.btv.de/de/spielbetrieb/tabelle-spielplan.html?groupid=' + fixture.group : season.btv_url || null,
           btv_imported: true, btv_source_key: fixture.sourceKey,
           btv_last_synced_at: new Date().toISOString(),
-          btv_result_text: fixture.score,
+          btv_result_text: officialScore(fixture.score),
         });
       } else {
         unresolved.push(fixture.slug + ': ' + fixture.opponent + ' (manuell gepflegte Saison)');
         report.skipped_count++;
       }
     }
-    if (matched) report.existing_count++;
+    if (matched) {
+      report.existing_count++;
+      // Offizielle Ergebnisse dürfen auch nach einem abgeschlossenen
+      // Liveticker korrigiert werden. Niemals manuelle Einzel, Doppel,
+      // Spielberichte, Ticker-Einträge oder historische Sätze überschreiben.
+      const verified = officialScore(fixture.score);
+      if (verified && matched.btv_result_text !== verified) {
+        officialUpdates.push({ id: matched.id, score: verified, sourceKey: fixture.sourceKey });
+      }
+    }
     baselineRows.push({
       season_year: year, season_code: seasonCode, source_key: fixture.sourceKey,
       team_season_id: season.id, match_id: matched?.id || null,
@@ -152,6 +169,17 @@ try {
     if (row) row.match_id = inserted.id;
   }
 
+  // Vom BTV neu veröffentlichte/korrigierte Resultate sind maßgeblich.
+  // Nur beim eindeutig zugeordneten Match wird das separate BTV-Feld
+  // aktualisiert. Live-Daten bleiben für den Zeitverlauf erhalten.
+  for (const update of officialUpdates) {
+    const { data, error } = await db.from('matches').update({
+      btv_result_text: update.score, btv_last_synced_at: new Date().toISOString(),
+    }).eq('id', update.id).select('id').single();
+    if (error || !data) throw new Error('Official BTV result update failed for ' + update.sourceKey + ': ' + (error?.message || 'missing match'));
+    report.updated_count++;
+  }
+
   // First insert = baseline, no news; subsequent timestamp difference =
   // atomic Supabase trigger that updates only safe match dates and inserts
   // an independently published story linked to the affected match.
@@ -171,6 +199,7 @@ try {
   }).eq('id', runId);
   if (endError) throw new Error('Could not finalize schedule sync: ' + endError.message);
   console.log(`BTV 6H SUCCESS ${seasonCode}:`, JSON.stringify(report));
+  console.log('Offizielle Ergebnis-Korrekturen: ' + officialUpdates.length + '. Liveticker bleibt unverändert.');
   if (unresolved.length) console.log('Needs editorial review:', unresolved.slice(0, 15));
 } catch (error) {
   console.error('BTV SYNC FAILED:', String(error.message || error));
