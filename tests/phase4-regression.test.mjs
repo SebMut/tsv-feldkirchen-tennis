@@ -146,6 +146,19 @@ test('season management controls the initial Mannschaften season', () => {
   assert.match(publicJs, /activeCode = requestedCode \|\| \(activeCategory \? seasonForGroup\(activeCategory\)/);
 });
 
+test('public team navigation labels summer correctly and follows managed active season', () => {
+  const html = source('src/pages/mannschaften/index.astro');
+  const publicJs = source('src/scripts/public.ts');
+  assert.match(html, /<strong>Sommer 2026<\/strong>/);
+  assert.doesNotMatch(html, /<strong>Saison 2026<\/strong>/);
+  assert.match(publicJs, /const publishedSeasons = reference\.seasons\.filter/);
+  assert.match(publicJs, /const seasonCodes = \[\.\.\.new Set\(/);
+  assert.match(publicJs, /const defaultSeason = managedCurrentSeason \|\| byCurrentDate/);
+  assert.match(publicJs, /const requestedCode = seasonCodes\.includes/);
+  assert.match(publicJs, /activeCode = requestedCode \|\|/);
+  assert.match(source('src/pages/sw.js.ts'), /tsv-tennis-public-v2/);
+});
+
 test('news optionally creates one linked calendar appointment', () => {
   const js = source('src/scripts/admin.ts');
   const html = source('src/pages/admin/index.astro');
