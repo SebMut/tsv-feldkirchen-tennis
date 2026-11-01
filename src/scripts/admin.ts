@@ -939,6 +939,7 @@ function formatEncounterSetScores(scores: string[]) {
 }
 
 let openMobileEncounterId: string | null = null;
+let focusedEncounterId: string | null = null;
 
 async function refreshMatches() {
   const mobileLayout = window.matchMedia('(max-width: 760px)').matches;
@@ -1060,8 +1061,13 @@ async function refreshMatches() {
     const orientedSets = homeAwaySetScore(summary, !!match.is_home);
     const statusLabel = encounter.status === 'live' ? 'LIVE' : encounter.status === 'finished' ? 'Beendet' : 'Geplant';
 
-    const isOpen = !mobileLayout || openMobileEncounterId === encounter.id
-      || (!openMobileEncounterId && encounter.id === (encounters ?? []).find((row) => row.status === 'live')?.id);
+    const perMatchEncounters = encounterMap.get(match.id) ?? [];
+    const focusedByDefault = perMatchEncounters.find((row) => row.status === 'live')
+      ?? perMatchEncounters.find((row) => row.status === 'scheduled')
+      ?? perMatchEncounters[0];
+    const isOpen = focusedEncounterId
+      ? focusedEncounterId === encounter.id
+      : (openMobileEncounterId === encounter.id || focusedByDefault?.id === encounter.id);
     const playerLabel = [encounter.tsv_player_1_name, encounter.tsv_player_2_name].filter(Boolean).join(' / ');
     const setScores = parseEncounterSetScores(encounter.result_text);
     return `
@@ -1069,18 +1075,15 @@ async function refreshMatches() {
         <summary class="encounter-card__head">
           <span class="encounter-card__heading">
             <strong>${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position}</strong>
-            <small>${escapeHtml(playerLabel || 'TSV-Spieler eintragen')}${encounter.result_text ? ' · ' + escapeHtml(encounter.result_text) : ''}</small>
+            <small>${escapeHtml(playerLabel || 'TSV-Spieler noch nicht eingetragen')}</small>
+          </span>
+          <span class="encounter-card__score ${encounter.status === 'finished' ? 'is-finished' : ''}">
+            <small>${encounter.status === 'finished' ? 'Endstand' : 'Sätze'}</small>
+            <strong>${summary.hasResult ? `${summary.tsvSets} : ${summary.opponentSets}` : '– : –'}</strong>
           </span>
           <span class="status-pill ${encounter.status === 'live' ? 'live' : ''}">${statusLabel}</span>
         </summary>
         <div class="encounter-card__body">
-        <p class="muted">TSV-Spieler aus dem Kader wählen oder direkt mit Namen eintragen. Namen sind im öffentlichen Liveticker sichtbar.</p>
-        <div class="encounter-sides">
-          ${match.is_home ? tsvSide : opponentSide}
-          <span class="encounter-vs">VS</span>
-          ${match.is_home ? opponentSide : tsvSide}
-        </div>
-
         <div class="encounter-result-row">
           <div class="encounter-set-editor" role="group" aria-label="Satz-Ergebnisse für ${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position}">
             <div class="encounter-set-editor__heading"><strong>Ergebnis</strong><span>TSV : Gegner</span></div>
@@ -1113,6 +1116,15 @@ async function refreshMatches() {
             ${encounter.status !== 'scheduled' || encounter.winner || encounter.result_text ? '<button class="button ghost" type="button" data-enc-reset>Zurücksetzen</button>' : ''}
           </div>
         </div>
+        <details class="encounter-lineup" ${!playerLabel ? 'open' : ''}>
+          <summary>Aufstellung &amp; Gegner bearbeiten</summary>
+          <p class="muted">TSV-Spieler aus dem Kader auswählen oder den Namen direkt eintragen.</p>
+          <div class="encounter-sides">
+            ${match.is_home ? tsvSide : opponentSide}
+            <span class="encounter-vs">VS</span>
+            ${match.is_home ? opponentSide : tsvSide}
+          </div>
+        </details>
         <p data-enc-feedback class="encounter-feedback" role="status" aria-live="polite"></p>
         </div>
       </details>`;
@@ -1164,6 +1176,7 @@ async function refreshMatches() {
     const finished = rows.filter((row) => row.status === 'finished').length;
     const active = rows.filter((row) => row.status === 'live').length;
     const pct = Math.round((finished / expected) * 100);
+    const nextNumber = Math.max(0, expected - finished - active);
 
     return `<article class="card flat match-admin-card" data-match-card="${match.id}">
       <p class="match-draft-warning hidden" data-draft-warning role="status">Noch nicht gespeicherte Eingaben vorhanden – bitte Eingabefeld verlassen, bevor du die Seite schließt.</p>
@@ -1195,16 +1208,25 @@ async function refreshMatches() {
         <button type="button" class="button secondary" data-save-match-venue>Spielort speichern</button>
       </details>
       <div class="phase8-encounter-summary" role="status">
-        <p>${finished} von ${expected} Begegnungen abgeschlossen · ${active} laufen gerade
-        · ${singles.length || (format === '4_2' ? 4 : 6)} Einzel / ${doubles.length || (format === '4_2' ? 2 : 3)} Doppel</p>
+        <div class="match-admin-progress-head">
+          <strong>${finished} / ${expected} abgeschlossen</strong>
+          <span>${active ? `${active} LIVE · ` : ''}${nextNumber} noch offen</span>
+        </div>
         <div class="phase8-progress" aria-label="${finished} von ${expected} Begegnungen abgeschlossen"><span style="width:${pct}%"></span></div>
-        <p>Spielstand TSV ${clubScore} : ${opponentScore} · Änderungen über die Begegnungskacheln speichern; einzelne Ergebnisse lassen sich mit „Zurücksetzen“ korrigieren.</p>
+        <p>Satzergebnisse antippen – der Zwischenstand und der Sieger werden automatisch berechnet.</p>
       </div>
-      <div class="actions match-admin-main-actions">
-        <button class="button secondary" data-live-action="start" type="button" ${live.status === 'live' ? 'disabled' : ''}>Spieltag live starten</button>
-        <button class="button ghost" data-live-action="finish" type="button" ${live.status === 'finished' ? 'disabled' : ''}>Spieltag beenden</button>
-        ${live.status === 'live' ? '<button class="button danger" data-live-action="reset" type="button">Versehentlichen Start zurücksetzen</button>' : ''}
-        <a class="button ghost" href="/live/?match=${match.id}" target="_blank" rel="noopener noreferrer">Öffentlichen Ticker öffnen ↗</a>
+      <div class="match-admin-toolbar">
+        <div class="match-admin-toolbar__primary">
+          <button class="button button--hot" data-live-action="start" type="button" ${live.status === 'live' ? 'disabled' : ''}>${live.status === 'live' ? 'Spieltag ist live' : 'Spieltag live starten'}</button>
+          <a class="button secondary" href="/live/?match=${match.id}" target="_blank" rel="noopener noreferrer">Live-Seite ansehen ↗</a>
+        </div>
+        <details class="match-admin-more">
+          <summary>Weitere Spieltag-Aktionen</summary>
+          <div class="actions match-admin-main-actions">
+            <button class="button ghost" data-live-action="finish" type="button" ${live.status === 'finished' ? 'disabled' : ''}>Spieltag beenden</button>
+            ${live.status === 'live' ? '<button class="button danger" data-live-action="reset" type="button">Versehentlichen Start zurücksetzen</button>' : ''}
+          </div>
+        </details>
       </div>
 
       ${rows.length ? `
@@ -1236,12 +1258,15 @@ async function refreshMatches() {
         </div>
       `}
 
-      <div class="field match-ticker-message">
-        <label>Allgemeine Tickermeldung</label>
-        <textarea data-ticker-message placeholder="z. B. Nach den Einzeln steht es 4:2 für den TSV."></textarea>
-        <button class="button" data-publish-ticker type="button">Meldung veröffentlichen</button>
-        <p data-ticker-feedback class="encounter-feedback" role="status" aria-live="polite"></p>
-      </div>
+      <details class="match-ticker-message match-ticker-message--details">
+        <summary>Tickermeldung veröffentlichen <small>Optional: Infos vom Spieltag</small></summary>
+        <div class="match-ticker-message__content">
+          <label for="ticker-message-${match.id}">Meldungstext</label>
+          <textarea id="ticker-message-${match.id}" data-ticker-message placeholder="z. B. Nach den Einzeln steht es 4:2 für den TSV."></textarea>
+          <button class="button" data-publish-ticker type="button">Meldung veröffentlichen</button>
+          <p data-ticker-feedback class="encounter-feedback" role="status" aria-live="polite"></p>
+        </div>
+      </details>
     </article>`;
   }).join('') || '<p class="muted">In dieser Auswahl sind keine Spiele vorhanden. Wähle bei Bedarf „Alle Spiele“.</p>';
   trackMatchDrafts(target);
@@ -1264,6 +1289,7 @@ async function refreshMatches() {
 
   const refreshChangedEncounter = async (encounterId: string, message: string) => {
     openMobileEncounterId = encounterId;
+    focusedEncounterId = encounterId;
     await refreshMatches();
     const details = target.querySelector<HTMLDetailsElement>(`[data-encounter-id="${encounterId}"]`);
     if (details) {
@@ -1341,14 +1367,15 @@ async function refreshMatches() {
 
       if (encounterCard instanceof HTMLDetailsElement) {
         encounterCard.addEventListener('toggle', () => {
-          if (!mobileLayout || !encounterCard.isConnected) return;
+          if (!encounterCard.isConnected) return;
           if (encounterCard.open) {
+            focusedEncounterId = encounterId;
             openMobileEncounterId = encounterId;
-            card.querySelectorAll<HTMLDetailsElement>('details.encounter-card').forEach((other) => {
-              if (other !== encounterCard) other.open = false;
-            });
-          } else if (openMobileEncounterId === encounterId) {
-            openMobileEncounterId = null;
+            if (mobileLayout) {
+              card.querySelectorAll<HTMLDetailsElement>('details.encounter-card').forEach((other) => {
+                if (other !== encounterCard) other.open = false;
+              });
+            }
           }
         });
       }

@@ -1547,6 +1547,33 @@ export async function loadLiveTicker(matchId: string | null) {
   const encountersTarget = document.querySelector<HTMLElement>('#live-encounters');
   const timeline = document.querySelector<HTMLElement>('#live-timeline');
   if (!head || !score || !encountersTarget || !timeline) return;
+  let encounterView: 'all' | 'live' | 'finished' = 'all';
+
+  const applyEncounterView = () => {
+    encountersTarget.querySelectorAll<HTMLButtonElement>('[data-live-view]').forEach((button) => {
+      const selected = button.dataset.liveView === encounterView;
+      button.classList.toggle('is-active', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+    let visibleCount = 0;
+    encountersTarget.querySelectorAll<HTMLElement>('[data-live-encounter-status]').forEach((row) => {
+      const visible = encounterView === 'all' || row.dataset.liveEncounterStatus === encounterView;
+      row.hidden = !visible;
+      if (visible) visibleCount++;
+    });
+    encountersTarget.querySelectorAll<HTMLElement>('.live-encounter-group').forEach((group) => {
+      group.hidden = !group.querySelector('[data-live-encounter-status]:not([hidden])');
+    });
+    const empty = encountersTarget.querySelector<HTMLElement>('#live-view-empty');
+    if (empty) empty.hidden = visibleCount > 0;
+  };
+  encountersTarget.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const button = event.target.closest<HTMLButtonElement>('[data-live-view]');
+    if (!button) return;
+    encounterView = (button.dataset.liveView || 'all') as typeof encounterView;
+    applyEncounterView();
+  });
 
   if (!matchId) {
     head.innerHTML = '<div class="card"><h1>Kein Spiel ausgewählt</h1><p><a href="/termine/">Zum Spielplan</a></p></div>';
@@ -1601,13 +1628,24 @@ export async function loadLiveTicker(matchId: string | null) {
   const renderEncounter = (match: Row, encounter: Row) => {
     const tsvSide = renderEncounterSide(match, encounter, true);
     const opponentSide = renderEncounterSide(match, encounter, false);
-    const statusLabel = encounter.status === 'live' ? 'LIVE' : encounter.status === 'finished' ? 'Beendet' : 'Geplant';
+    const statusLabel = encounter.status === 'live' ? 'Läuft gerade' : encounter.status === 'finished' ? 'Abgeschlossen' : 'Noch offen';
+    const result = summarizeSetResult(encounter.result_text);
+    const leadingLabel = encounter.status === 'finished' && result.winner
+      ? (result.winner === 'tsv' ? 'TSV gewinnt' : 'Gegner gewinnt')
+      : encounter.status === 'live' && result.hasResult ? 'Zwischenstand' : '';
 
     return `
-      <article class="live-encounter-row ${encounter.status === 'live' ? 'is-live' : ''}">
+      <article class="live-encounter-row ${encounter.status === 'live' ? 'is-live' : ''} ${encounter.status === 'finished' ? 'is-finished' : ''}"
+        data-live-encounter-status="${escapeHtml(encounter.status)}">
         <div class="live-encounter-row__head">
-          <strong>${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position}</strong>
-          <span class="status-pill ${encounter.status === 'live' ? 'live' : ''}">${statusLabel}</span>
+          <div class="live-encounter-row__identity">
+            <span class="live-encounter-number">${encounter.discipline === 'singles' ? 'E' : 'D'}${encounter.position}</span>
+            <strong>${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position}</strong>
+          </div>
+          <div class="live-encounter-row__flags">
+            ${leadingLabel ? `<span class="live-result-note">${escapeHtml(leadingLabel)}</span>` : ''}
+            <span class="status-pill ${encounter.status === 'live' ? 'live' : ''}">${statusLabel}</span>
+          </div>
         </div>
         <div class="live-encounter-matchup">
           ${match.is_home ? tsvSide : opponentSide}
@@ -1638,11 +1676,16 @@ export async function loadLiveTicker(matchId: string | null) {
     const rightName = match.is_home ? match.opponent : clubName;
 
     head.innerHTML = `
-      <p class="eyebrow">Liveticker</p>
-      <h1>${escapeHtml(leftName)} <span>vs.</span> ${escapeHtml(rightName)}</h1>
-      <p class="muted">${escapeHtml(formatDateTime(match.starts_at))} · ${match.is_home ? 'Heimspiel' : 'Auswärtsspiel'}</p>
-      ${matchVenueInfo(match)}
-      ${matchRouteButton(match)}`;
+      <div class="live-match-heading">
+        <p class="eyebrow">Der Spieltag im Überblick</p>
+        <h1>${escapeHtml(leftName)} <span>gegen</span> ${escapeHtml(rightName)}</h1>
+        <p class="live-match-heading__meta">
+          <span>${escapeHtml(formatDateTime(match.starts_at))}</span>
+          <span class="live-match-heading__separator" aria-hidden="true">·</span>
+          <span>${match.is_home ? 'TSV mit Heimrecht' : 'TSV auswärts'}</span>
+        </p>
+        <div class="live-match-heading__venue">${matchVenueInfo(match)}${matchRouteButton(match)}</div>
+      </div>`;
 
     const homeScore = state?.home_score ?? 0;
     const awayScore = state?.away_score ?? 0;
@@ -1653,31 +1696,63 @@ export async function loadLiveTicker(matchId: string | null) {
       ? opponentTeamBlock('Auswärts', match.opponent)
       : tsvTeamBlock('Auswärts');
 
-    score.innerHTML = `
-      <div class="live-score-status">
-        <div class="live-badge"><span class="live-dot"></span>${state?.status === 'live' ? 'LIVE' : state?.status === 'finished' ? 'BEENDET' : 'SPIELTAG'}</div>
-      </div>
-      <div class="live-scoreboard">
-        ${homeBlock}
-        <div class="live-scoreboard__score"><strong>${homeScore} : ${awayScore}</strong></div>
-        ${awayBlock}
-      </div>`;
-
     const rows = encounters ?? [];
     const singles = rows.filter((row: Row) => row.discipline === 'singles');
     const doubles = rows.filter((row: Row) => row.discipline === 'doubles');
+    const finishedCount = rows.filter((row: Row) => row.status === 'finished').length;
+    const liveCount = rows.filter((row: Row) => row.status === 'live').length;
+    const progress = rows.length ? Math.round(finishedCount / rows.length * 100) : 0;
+
+    score.innerHTML = `
+      <div class="live-score-topline">
+        <div class="live-score-status">
+          <div class="live-badge ${state?.status === 'live' ? 'is-running' : ''}">
+            <span class="live-dot" aria-hidden="true"></span>
+            ${state?.status === 'live' ? 'Spieltag läuft' : state?.status === 'finished' ? 'Spieltag beendet' : 'Spieltag geplant'}
+          </div>
+          <span class="live-score-topline__hint">Mannschaftsstand · Heim : Gast</span>
+        </div>
+        <span class="live-score-topline__updated">Aktuelle Spielstände</span>
+      </div>
+      <div class="live-scoreboard">
+        ${homeBlock}
+        <div class="live-scoreboard__score" aria-label="Heim ${homeScore}, Gast ${awayScore}">
+          <span>Begegnungen</span>
+          <strong><b>${homeScore}</b><i aria-hidden="true">:</i><b>${awayScore}</b></strong>
+        </div>
+        ${awayBlock}
+      </div>
+      <div class="live-match-progress">
+        <div class="live-match-progress__info">
+          <span><strong>${finishedCount} von ${rows.length}</strong> Begegnungen beendet</span>
+          <span>${liveCount ? `<span class="live-inline-dot" aria-hidden="true"></span>${liveCount} gerade live` : 'Noch keine Begegnung läuft'}</span>
+        </div>
+        <div class="live-match-progress__track" role="progressbar" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100" aria-label="Abgeschlossene Begegnungen">
+          <span style="width:${progress}%"></span>
+        </div>
+      </div>`;
 
     encountersTarget.innerHTML = rows.length
       ? `
-        <section class="live-encounter-group">
-          <div class="live-encounter-group__title"><p class="matchday-kicker">Begegnungen</p><h2>Einzel</h2></div>
+        <div class="live-encounters__toolbar">
+          <div><p class="matchday-kicker">Alle Matches im Blick</p><h2>Einzel &amp; Doppel</h2></div>
+          <div class="live-encounters__filters" role="group" aria-label="Begegnungen filtern">
+            <button type="button" data-live-view="all" aria-pressed="true">Alle <span>${rows.length}</span></button>
+            <button type="button" data-live-view="live" aria-pressed="false">Live <span>${liveCount}</span></button>
+            <button type="button" data-live-view="finished" aria-pressed="false">Beendet <span>${finishedCount}</span></button>
+          </div>
+        </div>
+        ${singles.length ? `<section class="live-encounter-group">
+          <div class="live-encounter-group__title"><h3>Einzel</h3><span>${singles.length} Begegnungen</span></div>
           <div class="live-encounter-list">${singles.map((row: Row) => renderEncounter(match, row)).join('')}</div>
-        </section>
-        <section class="live-encounter-group">
-          <div class="live-encounter-group__title"><p class="matchday-kicker">Begegnungen</p><h2>Doppel</h2></div>
+        </section>` : ''}
+        ${doubles.length ? `<section class="live-encounter-group">
+          <div class="live-encounter-group__title"><h3>Doppel</h3><span>${doubles.length} Begegnungen</span></div>
           <div class="live-encounter-list">${doubles.map((row: Row) => renderEncounter(match, row)).join('')}</div>
-        </section>`
+        </section>` : ''}
+        <p class="live-encounter-empty" id="live-view-empty" hidden role="status">In dieser Auswahl gibt es aktuell keine Begegnungen.</p>`
       : '<div class="live-encounter-empty"><strong>Die Aufstellung wird noch vorbereitet.</strong><p class="muted">Sobald Einzel und Doppel eingetragen sind, erscheinen sie hier.</p></div>';
+    if (rows.length) applyEncounterView();
 
     timeline.innerHTML = entries?.length
       ? entries.map((entry: Row) => `
