@@ -876,7 +876,7 @@ async function savePlayer(event: Event) {
 // Keep only unsaved browser edits in memory; never upload drafts to GitHub.
 const pendingMatchDrafts = new Map<string, string>();
 const matchDraftKey = (matchId: string, encounterId: string, field: string) => [matchId, encounterId, field].join(':');
-const trackedMatchFields = ['data-enc-result', 'data-enc-name1', 'data-enc-name2',
+const trackedMatchFields = ['data-enc-name1', 'data-enc-name2',
   'data-ticker-message', 'data-match-venue-name', 'data-match-venue-address'];
 function clearMatchDraft(matchId: string, encounterId: string, field: string) {
   pendingMatchDrafts.delete(matchDraftKey(matchId, encounterId, field));
@@ -910,6 +910,32 @@ window.addEventListener('beforeunload', (event) => {
   if (!pendingMatchDrafts.size) return;
   event.preventDefault();
 });
+
+// Zulässige Satzstände aus Sicht TSV : Gegner. Der dritte Satz ist ein Match-Tiebreak.
+const regularSetScores = [
+  '6:0', '0:6', '6:1', '1:6', '6:2', '2:6', '6:3', '3:6',
+  '6:4', '4:6', '7:5', '5:7', '7:6', '6:7',
+] as const;
+const matchTieBreakScores = [
+  '10:0', '0:10', '10:1', '1:10', '10:2', '2:10', '10:3', '3:10',
+  '10:4', '4:10', '10:5', '5:10', '10:6', '6:10', '10:7', '7:10',
+  '10:8', '8:10', '11:9', '9:11', '12:10', '10:12', '13:11', '11:13',
+  '14:12', '12:14',
+] as const;
+
+function parseEncounterSetScores(resultText: string | null | undefined): string[] {
+  // Alte frei eingegebene Ergebnisse können Doppelpunkt oder Bindestrich verwenden.
+  const entries = String(resultText || '').match(/\b\d{1,2}\s*[:\-]\s*\d{1,2}\b/g) || [];
+  return [0, 1, 2].map((index) => {
+    const value = entries[index]?.replace(/\s/g, '').replace('-', ':') || '';
+    if (index === 2) return matchTieBreakScores.includes(value as typeof matchTieBreakScores[number]) ? value : '';
+    return regularSetScores.includes(value as typeof regularSetScores[number]) ? value : '';
+  });
+}
+
+function formatEncounterSetScores(scores: string[]) {
+  return scores.filter(Boolean).join(' ') || null;
+}
 
 let openMobileEncounterId: string | null = null;
 
@@ -1034,6 +1060,7 @@ async function refreshMatches() {
     const isOpen = !mobileLayout || openMobileEncounterId === encounter.id
       || (!openMobileEncounterId && encounter.id === (encounters ?? []).find((row) => row.status === 'live')?.id);
     const playerLabel = [encounter.tsv_player_1_name, encounter.tsv_player_2_name].filter(Boolean).join(' / ');
+    const setScores = parseEncounterSetScores(encounter.result_text);
     return `
       <details class="encounter-card ${encounter.status === 'live' ? 'is-live' : ''}" data-encounter-id="${encounter.id}" ${isOpen ? 'open' : ''}>
         <summary class="encounter-card__head">
@@ -1052,9 +1079,20 @@ async function refreshMatches() {
         </div>
 
         <div class="encounter-result-row">
-          <label>Ergebnis
-            <input data-enc-result value="${escapeHtml(encounter.result_text || '')}" placeholder="z. B. 6:3 4:6 10:8" />
-          </label>
+          <div class="encounter-set-editor" role="group" aria-label="Satz-Ergebnisse für ${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position}">
+            <div class="encounter-set-editor__heading"><strong>Ergebnis</strong><span>TSV : Gegner</span></div>
+            <div class="encounter-set-grid">
+              ${['1. Satz', '2. Satz', '3. Satz'].map((label, index) => `
+                <button class="encounter-set-button ${setScores[index] ? 'has-score' : ''}"
+                  type="button" data-enc-set="${index}" aria-label="${label}${index === 2 ? ' Match-Tiebreak' : ''}: ${setScores[index] || 'noch kein Ergebnis'}"
+                  ${index > 0 && !setScores[index - 1] ? 'disabled title="Bitte zuerst den vorherigen Satz eintragen"' : ''}>
+                  <span>${label}</span><strong>${setScores[index] || '–'}</strong>
+                  ${index === 2 ? '<small>Match-Tiebreak</small>' : ''}
+                </button>`).join('')}
+            </div>
+            <input type="hidden" data-enc-result value="${escapeHtml(encounter.result_text || '')}" />
+            ${encounter.result_text && !setScores.some(Boolean) ? `<p class="encounter-set-legacy">Bisheriges Ergebnis: ${escapeHtml(encounter.result_text)}</p>` : ''}
+          </div>
           <div class="encounter-actions">
             ${encounter.status !== 'live' && encounter.status !== 'finished' ? '<button class="button secondary" type="button" data-enc-start>Starten</button>' : ''}
             <button class="button" type="button" data-enc-winner="tsv">TSV gewinnt</button>
@@ -1382,12 +1420,81 @@ async function refreshMatches() {
         if (await updateEncounter(encounterId, { opponent_slot_2: value })) localFeedback('Gegner gespeichert.');
       });
 
-      encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.addEventListener('change', async (event) => {
-        const resultText = (event.currentTarget as HTMLInputElement).value.trim() || null;
-        if (await updateEncounter(encounterId, { result_text: resultText })) {
-          clearMatchDraft(matchId, encounterId, 'data-enc-result');
-          localFeedback('Ergebnis gespeichert.');
-        }
+      encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-set]').forEach((setButton) => {
+        setButton.addEventListener('click', () => {
+          const setIndex = Number(setButton.dataset.encSet);
+          const dialog = $<HTMLDialogElement>('#encounter-set-dialog');
+          const title = $('#encounter-set-dialog-title');
+          const subtitle = $('#encounter-set-dialog-subtitle');
+          const options = $('#encounter-set-dialog-options');
+          const feedback = $('#encounter-set-dialog-feedback');
+          if (!dialog || !title || !subtitle || !options || !feedback || !Number.isInteger(setIndex)) return;
+          if (dialog.open) dialog.close();
+
+          const initial = parseEncounterSetScores(encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.value);
+          const oldValue = initial[setIndex] || '';
+          const scores = setIndex === 2 ? matchTieBreakScores : regularSetScores;
+          title.textContent = setIndex === 2 ? '3. Satz · Match-Tiebreak' : `${setIndex + 1}. Satz auswählen`;
+          subtitle.textContent = `${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position} · Ergebnis aus Sicht TSV : Gegner`;
+          feedback.textContent = '';
+          feedback.classList.add('hidden');
+          options.innerHTML = scores.map((score) => `
+            <button type="button" class="encounter-set-option ${score === oldValue ? 'selected' : ''}"
+              data-set-score-choice="${score}" aria-pressed="${score === oldValue}">${score}</button>
+          `).join('');
+
+          const commitSetScore = async (score: string) => {
+            const next = [...initial];
+            if (score === oldValue) {
+              dialog.close();
+              return;
+            }
+            if (!score && next.slice(setIndex + 1).some(Boolean)
+              && !window.confirm('Wenn du diesen Satz löschst, werden auch die folgenden Sätze entfernt. Fortfahren?')) return;
+            next[setIndex] = score;
+            if (!score) next.splice(setIndex + 1, 2 - setIndex, ...Array(2 - setIndex).fill(''));
+            const resultText = formatEncounterSetScores(next);
+            const buttons = dialog.querySelectorAll<HTMLButtonElement>('button');
+            buttons.forEach((button) => { button.disabled = true; });
+            feedback.classList.remove('hidden');
+            feedback.textContent = 'Ergebnis wird gespeichert …';
+            try {
+              if (await updateEncounter(encounterId, { result_text: resultText })) {
+                const hidden = encounterCard.querySelector<HTMLInputElement>('[data-enc-result]');
+                if (hidden) hidden.value = resultText || '';
+                dialog.close();
+                await refreshChangedEncounter(encounterId, 'Satz-Ergebnis gespeichert.');
+                target.querySelector<HTMLButtonElement>(
+                  `[data-encounter-id="${encounterId}"] [data-enc-set="${setIndex}"]`
+                )?.focus({ preventScroll: true });
+              } else {
+                feedback.textContent = 'Speichern fehlgeschlagen. Bitte erneut versuchen.';
+              }
+            } finally {
+              if (dialog.open) buttons.forEach((button) => { button.disabled = false; });
+            }
+          };
+
+          dialog.onclick = (event) => {
+            if (!(event.target instanceof Element)) return;
+            if (event.target.closest('[data-set-score-close]')) {
+              dialog.close();
+              return;
+            }
+            if (event.target.closest('[data-set-score-clear]')) {
+              void commitSetScore('');
+              return;
+            }
+            const choice = event.target.closest<HTMLButtonElement>('[data-set-score-choice]');
+            if (choice && !choice.disabled) void commitSetScore(choice.dataset.setScoreChoice || '');
+          };
+          dialog.oncancel = (event) => {
+            if (dialog.querySelector<HTMLButtonElement>('[data-set-score-choice]:disabled')) event.preventDefault();
+          };
+          dialog.showModal();
+          (dialog.querySelector<HTMLButtonElement>('[data-set-score-choice].selected')
+            || dialog.querySelector<HTMLButtonElement>('[data-set-score-choice]'))?.focus();
+        });
       });
 
       const startButton = encounterCard.querySelector<HTMLButtonElement>('[data-enc-start]');
