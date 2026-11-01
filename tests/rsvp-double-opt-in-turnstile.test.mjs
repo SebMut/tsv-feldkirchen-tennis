@@ -51,12 +51,12 @@ test('Cloudflare Turnstile verified by remote Siteverify, hostname enforced and 
 });
 
 test('Gmail sends with the TSV Feldkirchen address only after Cloudflare verification',()=>{
-  assert.ok(edge.indexOf('siteverify') < edge.indexOf('const sent=await sendGmail('));
+  assert.ok(edge.indexOf('siteverify') < edge.indexOf('const delivery=await sendGmail('));
   assert.ok(edge.includes("GMAIL_SENDER = 'tsvfeldkirchen.tennis@gmail.com'"));
   assert.ok(edge.includes('https://oauth2.googleapis.com/token'));
   assert.ok(edge.includes('https://gmail.googleapis.com/gmail/v1/users/me/messages/send'));
   assert.ok(edge.includes("grant_type:'refresh_token'"));
-  assert.ok(edge.includes('authorization:\'Bearer \'+access.access_token'));
+  assert.ok(edge.includes('authorization:\'Bearer \'+auth.access_token'));
   assert.ok(edge.includes("['E-Mail',p.email]"));
   assert.ok(edge.includes("['Jugendmeisterschaften'"));
   assert.ok(edge.includes('confirmation.searchParams.set(\'token\',secret)'));
@@ -103,4 +103,27 @@ test('registration cannot be inflated before email verification; admin sees emai
   assert.ok(admin.includes(".not('verified_at','is',null)"));
   assert.ok(admin.includes('member_email'));
   assert.ok(sql.includes('verified_at=excluded.verified_at'));
+});
+
+
+test('Gmail provider errors are safe, distinguish bad client from expired grant and retain no pending row',()=>{
+  assert.ok(edge.includes("case 'invalid_client':"));
+  assert.ok(edge.includes("case 'invalid_grant':"));
+  assert.ok(edge.includes("code:'gmail_invalid_client'"));
+  assert.ok(edge.includes("code:'gmail_invalid_grant'"));
+  assert.ok(edge.includes("code:'gmail_api_disabled'"));
+  assert.ok(edge.includes("code:'gmail_insufficient_permission'"));
+  assert.ok(edge.includes("console.warn('rsvp_gmail_auth_failure'"));
+  assert.ok(edge.includes("console.warn('rsvp_gmail_send_failure'"));
+  assert.ok(edge.includes("return reply(503,{error:delivery.message,code:delivery.code},origin)"));
+  assert.ok(edge.includes("if(!delivery.sent){"));
+  assert.ok(edge.includes("db.from('event_rsvp_pending').delete().eq('id',pending.id)"));
+  assert.ok(!edge.includes("console.log(auth)"));
+  assert.ok(!edge.includes("console.log(access)"));
+});
+test('Browser displays safe provider error body even when HTTP status is 503',()=>{
+  assert.ok(publicCode.includes("error.context instanceof Response"));
+  assert.ok(publicCode.includes("error.context.clone().json()"));
+  assert.ok(publicCode.includes("typeof failure?.error === 'string'"));
+  assert.ok(publicCode.includes("showFeedback(reason ||"));
 });
