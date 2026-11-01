@@ -171,6 +171,12 @@ test('training page stays compact with school photos, logo and linked training t
   assert.match(training, /const schoolImages = 'https:\/\/www\.tennisschule-alexbraun\.de\/wp-content\/uploads'/);
   assert.match(training, /img\.addEventListener\('error', retry\)/);
   assert.match(training, /img\.complete && img\.naturalWidth === 0/);
+  assert.doesNotMatch(training, /knownPhoto/);
+  assert.match(training, /img\.hidden = true/);
+  assert.match(training, /angebote_1\.jpg/);
+  assert.match(training, /angebote_4\.jpg/);
+  assert.match(training, /angebote_2\.jpg/);
+  assert.match(training, /startseite_4\.jpg/);
   assert.match(training, /referrerpolicy="no-referrer"/);
   for (const offer of ['Sommertraining', 'Wintertraining', 'Einzeltraining', 'Gruppentraining', 'Mannschaftstraining', 'Tenniscamps']) {
     assert.ok(training.includes(offer), offer + ' fehlt');
