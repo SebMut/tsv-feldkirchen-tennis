@@ -65,18 +65,22 @@ test('mobile TSV dock offers five icon tabs, accessible more links and login',()
   const dockStart = header.indexOf('<nav class="mobile-dock"');
   const dockEnd = header.indexOf('</nav>', dockStart);
   const dockMarkup = header.slice(dockStart, dockEnd);
-  const primaryLabels = Array.from(dockMarkup.matchAll(/<span>(Live-Ticker|Aktuelles|Training|Kalender|Mehr)<\/span>/g), match => match[1]);
-  assert.deepEqual(primaryLabels, ['Live-Ticker', 'Aktuelles', 'Training', 'Kalender', 'Mehr']);
+  const primaryLabels = Array.from(dockMarkup.matchAll(/<span>(Startseite|Live-Ticker|Aktuelles|Kalender|Mehr)<\/span>/g), match => match[1]);
+  assert.deepEqual(primaryLabels, ['Startseite', 'Live-Ticker', 'Aktuelles', 'Kalender', 'Mehr']);
   const topLinks = dockMarkup.slice(0, dockMarkup.indexOf('<details class="mobile-dock__more">'));
   const primaryHrefs = Array.from(topLinks.matchAll(/href="([^"]+)"/g), match => match[1]);
-  assert.deepEqual(primaryHrefs, ['/spieltag/', '/aktuelles/', '/training/', '/termine/']);
-  assert.match(header, /const activeMore = !activePlay && !active\('\/aktuelles\/'\) && !active\('\/training\/'\) && !active\('\/termine\/'\);/);
+  assert.deepEqual(primaryHrefs, ['/', '/spieltag/', '/aktuelles/', '/termine/']);
+  assert.match(header, /const activeMore = !active\('\/'\) && !activePlay && !active\('\/aktuelles\/'\) && !active\('\/termine\/'\);/);
   for(const href of ['/', '/mannschaften/', '/spieltag/', '/termine/']) {
     assert.ok(header.includes('href="' + href + '"'), 'Missing mobile navigation route ' + href);
   }
   for(const href of ['/aktuelles/', '/training/', '/ueber-uns/', '/mitglied-werden/', '/sponsoren/', '/kontakt/', '/admin/']) {
     assert.ok(header.includes('href="' + href + '"'), 'Missing further menu route ' + href);
   }
+  const moreLinks = dockMarkup.slice(dockMarkup.indexOf('class="mobile-dock__panel"'));
+  assert.ok(moreLinks.includes('href="/mannschaften/"'));
+  assert.ok(moreLinks.includes('href="/training/"'));
+  assert.ok(!moreLinks.includes('href="/">Startseite'));
   assert.match(header, /class="mobile-dock__more"/);
   assert.match(header, /data-auth-link>Login/);
   assert.match(header, /aria-current=\{activePlay \? 'page' : undefined\}/);
@@ -213,4 +217,28 @@ test('long calendar event text is shortened only in the modal and reveals all de
   assert.ok(css.includes('.calendar-day-modal .calendar-event-excerpt{'));
   assert.ok(css.includes('-webkit-line-clamp:3'));
   assert.ok(css.includes('.calendar-day-modal .calendar-event-more>summary{'));
+});
+
+test('teams overview and detail fit phone width while wide standings scroll inside their card',()=>{
+  const page=readFileSync(new URL('../src/pages/mannschaften/index.astro',import.meta.url),'utf8');
+  const detail=readFileSync(new URL('../src/pages/mannschaften/[slug].astro',import.meta.url),'utf8');
+  const script=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
+  assert.ok(page.includes('class="container stack teams-page"'));
+  assert.ok(detail.includes('class="container stack team-detail-page"'));
+  assert.ok(css.includes('.teams-page,.team-detail-page{grid-template-columns:minmax(0,1fr);min-width:0;max-width:100%}'));
+  assert.ok(css.includes('.teams-page .team-overview-card{'));
+  assert.ok(css.includes('overflow-wrap:anywhere'));
+  assert.ok(css.includes('.teams-page .team-grid{grid-template-columns:minmax(0,1fr);gap:12px}'));
+  assert.ok(css.includes('.teams-page .team-overview-card>.actions{'));
+  assert.ok(css.includes('grid-template-columns:minmax(0,1fr)'));
+  assert.ok(css.includes('.team-detail-page .hero{grid-template-columns:minmax(0,1fr);gap:14px}'));
+  assert.ok(css.includes('.team-detail-page .grid.two,.team-detail-page #team-gallery{grid-template-columns:minmax(0,1fr)}'));
+  assert.ok(css.includes('.team-detail-page .table-wrap{'));
+  assert.ok(css.includes('overflow-x:auto'));
+  assert.ok(css.includes('.team-detail-page .team-standings-table{min-width:840px}'));
+  assert.ok(css.includes('.team-standings-scroll-hint{display:block;'));
+  assert.ok(script.includes('← Tabelle seitlich wischen →'));
+  assert.ok(script.includes('role="region" aria-label="BTV-Gruppentabelle seitlich scrollbar"'));
+  assert.ok(script.includes('Mannschaft öffnen'));
+  assert.ok(script.includes('tennis.de Team suchen ↗'));
 });
