@@ -18,12 +18,17 @@ function publicEncounterSetResult(match: Row, encounter: Row) {
     const [tsv, opponent] = value.split(':');
     return `${opponent}:${tsv}`;
   });
+  const currentIndex = result.inProgressSetIndex;
+  const currentRaw = currentIndex == null ? null : result.scores[currentIndex];
+  const currentScore = currentRaw && !match.is_home
+    ? currentRaw.split(':').reverse().join(':') : currentRaw;
   const final = encounter.status === 'finished' && result.complete;
   const winnerName = result.winner === 'tsv' ? 'TSV Feldkirchen' : match.opponent;
   return `
     <span>${final ? 'Endstand' : 'Zwischenstand'} · Heim : Gast</span>
     <strong>${homeSets} : ${awaySets}</strong>
     <small class="live-set-scores">Sätze: ${escapeHtml(scores.join(' · '))}</small>
+    ${currentScore ? `<small class="live-set-in-progress">Aktuell im ${currentIndex! + 1}. Satz: ${escapeHtml(currentScore)}</small>` : ''}
     ${final ? `<small class="live-set-winner">${escapeHtml(winnerName)} gewinnt</small>` : ''}
   `;
 }
@@ -50,6 +55,10 @@ function renderLiveEncounterPreview(match: Row, encounter: Row): string {
     const [tsv, opponent] = score.split(':');
     return `${opponent}:${tsv}`;
   });
+  const currentIndex = summary.inProgressSetIndex;
+  const currentSet = currentIndex == null ? null : summary.scores[currentIndex];
+  const currentScore = currentSet && !match.is_home
+    ? currentSet.split(':').reverse().join(':') : currentSet;
   const encounterType = encounter.discipline === 'singles' ? 'Einzel' : 'Doppel';
   const encounterNumber = Number(encounter.position) || 1;
   return `
@@ -70,6 +79,7 @@ function renderLiveEncounterPreview(match: Row, encounter: Row): string {
           <small>${summary.hasResult ? 'Satzstand' : 'Läuft gerade'}</small>
           <strong>${summary.hasResult ? `${oriented.homeSets} : ${oriented.awaySets}` : '– : –'}</strong>
           <span>${sets.length ? escapeHtml(sets.join(' · ')) : 'Noch kein Satz eingetragen'}</span>
+          ${currentScore ? `<small class="ticker-running-encounter__current">Aktuell Satz ${currentIndex! + 1}: ${escapeHtml(currentScore)}</small>` : ''}
         </div>
         <div class="ticker-running-encounter__player ticker-running-encounter__player--guest">
           <small>Gast</small>
