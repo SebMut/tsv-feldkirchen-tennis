@@ -1250,7 +1250,28 @@ export async function loadCalendar() {
     // Interactive actions are delegated in both containers to preserve their behavior.
     if (modalHeading) modalHeading.textContent = dayHeading.textContent;
     if (modalCount) modalCount.textContent = dayCount.textContent;
-    if (modalList) modalList.innerHTML = dayList.innerHTML;
+    if (modalList) {
+      modalList.innerHTML = dayList.innerHTML;
+      // Keep the complete description in the detailed view, but make long
+      // event descriptions compact in the modal with an accessible "Mehr →".
+      modalList.querySelectorAll<HTMLElement>('.calendar-event-detail p.muted').forEach(description => {
+        const fullText = description.textContent?.trim() || '';
+        if (fullText.length <= 180) return;
+        const excerpt = description.cloneNode(true) as HTMLElement;
+        excerpt.classList.add('calendar-event-excerpt');
+        const more = document.createElement('details');
+        more.className = 'calendar-event-more';
+        const toggle = document.createElement('summary');
+        toggle.textContent = 'Mehr →';
+        more.append(toggle);
+        description.replaceWith(excerpt, more);
+        more.append(description);
+        more.addEventListener('toggle', () => {
+          excerpt.hidden = more.open;
+          toggle.textContent = more.open ? 'Weniger ↑' : 'Mehr →';
+        });
+      });
+    }
     const coming = entries.filter(item => item.key >= todayKey).slice(0, 4);
     nextList.innerHTML = !ready ? '<p class="muted">Nächste Termine werden geladen …</p>'
       : coming.length ? coming.map(item => {
