@@ -104,3 +104,20 @@ test('Live-Ticker hero logo remains on desktop and is hidden only on mobile',()=
   assert.match(css,/@media\(max-width:760px\)\{\s*\.matchday-page \.matchday-hero__mark\{display:none\}/);
   assert.match(css,/\.matchday-page \.matchday-hero__grid\{grid-template-columns:minmax\(0,1fr\)\}/);
 });
+
+test('Spieltag "Heute" never falls back to a later match date',()=>{
+  const publicScript=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
+  const spieltag=readFileSync(new URL('../src/pages/spieltag/index.astro',import.meta.url),'utf8');
+  const startpage=readFileSync(new URL('../src/pages/index.astro',import.meta.url),'utf8');
+  assert.match(spieltag, /<p class="matchday-kicker">Heute<\/p>/);
+  assert.match(spieltag, /id="upcoming-matches"/);
+  assert.match(startpage, /id="today-matches"/);
+  assert.doesNotMatch(startpage, /id="upcoming-matches"/);
+  assert.match(publicScript, /timeZone: 'Europe\/Berlin', year: 'numeric'/);
+  assert.match(publicScript, /const todaysFixtures = \(todayResult\.data \?\? \[\]\)\.filter\(m => berlinDayKey\(m\.starts_at\) === currentDayKey\)/);
+  assert.match(publicScript, /const focus = today\.length \? today : \(upcomingTarget \? \[\] : next\.slice\(0, 3\)\)/);
+  assert.match(publicScript, /!liveIds\.includes\(m\.id\) && \(!upcomingTarget \|\| !todayIds\.has\(m\.id\)\)/);
+  assert.match(publicScript, /Heute finden keine Punktspiele statt/);
+  assert.match(publicScript, /Heutige Punktspiele/);
+  assert.match(publicScript, /const start = new Date\(midnightUtc - 2 \* 3600000\)/);
+});
