@@ -194,3 +194,23 @@ test('calendar date opens dismissible modal and retains full day navigation and 
   assert.ok(css.includes('.calendar-back-to-month{display:inline-flex'));
   assert.ok(css.includes('.calendar-board,.calendar-agenda{scroll-margin-top:20px}'));
 });
+
+
+test('long calendar event text is shortened only in the modal and reveals all details with Mehr',()=>{
+  const script=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
+  assert.ok(script.includes('modalList.innerHTML = dayList.innerHTML'));
+  assert.ok(script.includes("modalList.querySelectorAll<HTMLElement>('.calendar-event-detail p.muted')"));
+  assert.ok(script.includes('if (fullText.length <= 180) return'));
+  assert.ok(script.includes("excerpt.classList.add('calendar-event-excerpt')"));
+  assert.ok(script.includes("const more = document.createElement('details')"));
+  assert.ok(script.includes("more.className = 'calendar-event-more'"));
+  assert.ok(script.includes("toggle.textContent = 'Mehr →'"));
+  assert.ok(script.includes("toggle.textContent = more.open ? 'Weniger ↑' : 'Mehr →'"));
+  assert.ok(script.includes('excerpt.hidden = more.open'));
+  assert.ok(script.includes("more.append(description)"));
+  assert.ok(script.includes("modalList?.addEventListener('click', handleCalendarSave)"));
+  assert.ok(script.includes("dayList.addEventListener('click', handleCalendarSave)"));
+  assert.ok(css.includes('.calendar-day-modal .calendar-event-excerpt{'));
+  assert.ok(css.includes('-webkit-line-clamp:3'));
+  assert.ok(css.includes('.calendar-day-modal .calendar-event-more>summary{'));
+});
