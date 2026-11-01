@@ -112,6 +112,19 @@ test('roster administration separates summer, winter and future seasons', () => 
   assert.match(admin, /\['herren', 'herren-ii', 'herren-50'\]/);
 });
 
+test('team pages always show their navigation level', () => {
+  const overview = source('src/pages/mannschaften/index.astro');
+  const detail = source('src/pages/mannschaften/[slug].astro');
+  const component = source('src/components/Breadcrumbs.astro');
+
+  assert.match(overview, /label: 'Startseite'/);
+  assert.match(overview, /label: 'Mannschaften'/);
+  assert.match(detail, /label: 'Mannschaften', href: '\/mannschaften\/'/);
+  assert.match(detail, /label: teamName/);
+  assert.match(component, /aria-current="page"/);
+  assert.match(component, /aria-label="Brotkrümelnavigation"/);
+});
+
 test('news optionally creates one linked calendar appointment', () => {
   const js = source('src/scripts/admin.ts');
   const html = source('src/pages/admin/index.astro');
