@@ -379,10 +379,30 @@ export async function loadTeams() {
     return;
   }
 
-  const seasonCodes = ['sommer-2026', 'winter-2026-2027', 'sommer-2027'];
-  const seasonByCode = new Map<string, Row>(reference.seasons
-    .filter((s: Row) => s.is_published !== false && seasonCodes.includes(s.code))
+  // Auch später in der Saisonverwaltung angelegte und veröffentlichte
+  // Saisons berücksichtigen, statt die Auswahl auf drei Jahre zu begrenzen.
+  const publishedSeasons = reference.seasons.filter((s: Row) =>
+    s.is_published !== false && typeof s.code === 'string' && /^(sommer|winter)-20\\d{2}/.test(s.code));
+  const initialButtons = Array.from(nav.querySelectorAll<HTMLButtonElement>('[data-season]'));
+  const seasonCodes = [...new Set([
+    ...initialButtons.map(button => button.dataset.season || '').filter(Boolean),
+    ...publishedSeasons.map((season: Row) => season.code as string),
+  ])];
+  const seasonByCode = new Map<string, Row>(publishedSeasons
     .map((s: Row) => [s.code, s]));
+  for (const code of seasonCodes) {
+    if (initialButtons.some(button => button.dataset.season === code)) continue;
+    const season = seasonByCode.get(code);
+    if (!season) continue;
+    const isWinter = code.startsWith('winter-');
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'teams-season-card';
+    card.dataset.season = code;
+    card.setAttribute('aria-pressed', 'false');
+    card.innerHTML = `<span class="teams-season-card__top"><span class="teams-season-card__icon" aria-hidden="true">${isWinter ? '❄' : '☀'}</span><span class="teams-season-card__count" data-count="${escapeHtml(code)}">–</span></span><strong>${escapeHtml(season.name)}</strong><span class="teams-season-card__subtitle">${isWinter ? 'Winterrunde' : 'Sommerrunde'}</span>`;
+    nav.append(card);
+  }
   const teamsById = byId(reference.teams);
   const publishedTeamSeasons = reference.teamSeasons.filter((ts: Row) => ts.is_published && teamsById.has(ts.team_id));
   const teamGroups = [
