@@ -263,7 +263,7 @@ export async function loadHome() {
       recentTarget ? supabase.from('matches').select('*').eq('is_published', true).lt('starts_at', start.toISOString()).order('starts_at', { ascending: false }).limit(8) : Promise.resolve({ data: [], error: null }),
       supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(3),
       supabase.from('site_settings').select('key,value').in('key', ['team_count', 'court_count']),
-      fetch('https://api.open-meteo.com/v1/forecast?latitude=48.15&longitude=11.73&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=4').then(response => response.ok ? response.json() : Promise.reject(new Error('Wetterdienst nicht erreichbar'))).catch(() => null),
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=48.15&longitude=11.73&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=3').then(response => response.ok ? response.json() : Promise.reject(new Error('Wetterdienst nicht erreichbar'))).catch(() => null),
     ]);
     const settings = new Map((settingsResult.data ?? []).map(row => [row.key, row.value]));
     for (const [selector, key] of [['#home-team-count', 'team_count'], ['#home-court-count', 'court_count']]) {
@@ -285,9 +285,9 @@ export async function loadHome() {
       facility.title = description;
     }
     if (weatherTarget) {
-      const labels = ['Heute', 'Morgen', ...((weatherResult?.daily?.time ?? []).slice(2, 4).map((date: string) => new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(new Date(`${date}T12:00:00`))))];
+      const labels = ['Heute', 'Morgen', ...((weatherResult?.daily?.time ?? []).slice(2, 3).map((date: string) => new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(new Date(`${date}T12:00:00`))))];
       const codes: Record<number, string> = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️'};
-      weatherTarget.innerHTML = weatherResult?.daily?.time?.length ? weatherResult.daily.time.slice(0, 4).map((_: string, index: number) => `
+      weatherTarget.innerHTML = weatherResult?.daily?.time?.length ? weatherResult.daily.time.slice(0, 3).map((_: string, index: number) => `
         <div class="weather-day"><strong>${escapeHtml(labels[index] || '')}</strong><span class="weather-icon" aria-hidden="true">${codes[weatherResult.daily.weather_code[index]] || '🌤️'}</span><span>${Math.round(weatherResult.daily.temperature_2m_max[index])}° / ${Math.round(weatherResult.daily.temperature_2m_min[index])}°</span><small>${weatherResult.daily.precipitation_probability_max[index] ?? 0}% Regen</small></div>`).join('') : '<p class="muted">Wetter momentan nicht abrufbar.</p>';
     }
     const liveStates = activeResult.data ?? [];
