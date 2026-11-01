@@ -2058,3 +2058,11 @@ main.main--flush{padding:0}
   .encounter-set-dialog__manual>summary{padding:13px}
   .encounter-set-dialog__manual-inputs input{min-height:54px;font-size:1.18rem}
 }
+
+
+/* Live-Zwischenstand auch auf der öffentlichen Ticker-Detailseite */
+.live-set-in-progress,.ticker-running-encounter__current{
+  display:block;color:#b21c2a;font-size:.72rem;font-weight:830;line-height:1.35;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere
+}
+.ticker-running-encounter__current{font-size:.67rem}
