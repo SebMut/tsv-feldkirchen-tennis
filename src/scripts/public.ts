@@ -499,7 +499,7 @@ export async function loadTeams() {
         return rank(a.team) - rank(b.team) || (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0) || String(a.team.name).localeCompare(String(b.team.name), 'de');
       });
     const rows = allRows.filter(({ team }: {team: Row}) => !activeCategory || groupForTeam(team) === activeCategory);
-    const title = selectedSeason?.name || (activeCode === 'winter-2026-2027' ? 'Winter 2026/2027' : activeCode === 'sommer-2027' ? 'Sommer 2027' : 'Saison 2026');
+    const title = selectedSeason?.name || (activeCode === 'winter-2026-2027' ? 'Winter 2026/2027' : activeCode === 'sommer-2027' ? 'Sommer 2027' : 'Sommer 2026');
     heading.textContent = title;
     info.textContent = allRows.length > 0
       ? `${rows.length} ${rows.length === 1 ? 'Mannschaft' : 'Mannschaften'}${activeCategory ? ' in dieser Kategorie' : ' in dieser Runde'}`
