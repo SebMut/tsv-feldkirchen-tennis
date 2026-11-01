@@ -90,10 +90,14 @@ test('team administration separates summer, winter and future seasons', () => {
   const js = source('src/scripts/admin.ts');
   const html = source('src/pages/admin/index.astro');
   assert.match(html, /Mannschaft \/ Saison/);
-  assert.match(js, /teamSelect\.innerHTML = allowedTeamSeasons\('edit'\)/);
+  assert.match(js, /renderAdminTeamSeasonFilter\(\)/);
   assert.match(js, /state\.teamSeasons\.find\(\(row\) => row\.id === select\.value\)/);
   assert.match(js, /team_image_path: path/);
   assert.match(js, /Sommer \$\{String\(season\.code\)/);
+  assert.match(html, /data-team-season="sommer-2026"/);
+  assert.match(html, /data-team-season="winter-2026-2027"/);
+  assert.match(html, /data-team-season="sommer-2027"/);
+  assert.match(js, /ts\.season_id === season\?\.id/);
 });
 
 test('news optionally creates one linked calendar appointment', () => {
