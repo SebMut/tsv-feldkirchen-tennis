@@ -531,8 +531,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
         </div>
         <button class="encounter-set-dialog__close" type="button" data-set-score-close aria-label="Auswahl schließen">✕</button>
       </div>
-      <p class="encounter-set-dialog__hint">Wähle einen fertigen Satzstand oder gib den aktuellen Zwischenstand selbst ein.</p>
-      <div id="encounter-set-dialog-options" class="encounter-set-dialog__options" role="group" aria-label="Verfügbare Satzergebnisse"></div>
+      <p class="encounter-set-dialog__hint">Wähle einen fertigen Satzstand oder gib einen eigenen Zwischenstand ein.</p>
       <details id="encounter-set-dialog-manual" class="encounter-set-dialog__manual">
         <summary>Eigenen Zwischenstand eingeben <span>z. B. 3:2 oder 8:7</span></summary>
         <form id="encounter-set-dialog-manual-form" class="encounter-set-dialog__manual-form" novalidate>
@@ -550,6 +549,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <button class="button" type="submit" data-set-score-manual-save>Zwischenstand speichern</button>
         </form>
       </details>
+      <p class="encounter-set-dialog__quick-heading">Schnellauswahl fertiger Satzstände</p>
+      <div id="encounter-set-dialog-options" class="encounter-set-dialog__options" role="group" aria-label="Verfügbare Satzergebnisse"></div>
       <p id="encounter-set-dialog-feedback" class="encounter-set-dialog__feedback hidden" aria-live="polite"></p>
       <div class="encounter-set-dialog__footer">
         <button class="button ghost" type="button" data-set-score-clear>Ergebnis löschen</button>
