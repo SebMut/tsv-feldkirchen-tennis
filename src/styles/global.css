@@ -799,6 +799,34 @@ body:has(.calendar-day-modal[open]){overflow:hidden}
 .calendar-event-type{display:inline-block;padding:3px 9px;margin-bottom:8px;border-radius:999px;background:#e2f0ec;color:#22665c;font-size:.74rem;font-weight:850}
 .calendar-event-detail strong{display:block;font-size:1.05rem}
 .calendar-event-detail p{margin:.5rem 0 0;white-space:pre-wrap;font-size:.85rem}
+/* Long event details are previewed in the day modal; the agenda stays complete. */
+.calendar-day-modal .calendar-event-excerpt{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+  line-clamp:3;
+  overflow:hidden;
+}
+.calendar-day-modal .calendar-event-excerpt[hidden]{display:none}
+.calendar-day-modal .calendar-event-more{
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid #dce4de;
+}
+.calendar-day-modal .calendar-event-more>summary{
+  display:inline-flex;
+  align-items:center;
+  min-height:34px;
+  list-style:none;
+  cursor:pointer;
+  color:#a50b14;
+  font-size:.88rem;
+  font-weight:850;
+}
+.calendar-day-modal .calendar-event-more>summary::-webkit-details-marker{display:none}
+.calendar-day-modal .calendar-event-more>summary:hover{text-decoration:underline}
+.calendar-day-modal .calendar-event-more>summary:focus-visible{outline:2px solid #e30613;outline-offset:3px}
+.calendar-day-modal .calendar-event-more[open]>summary{margin-bottom:4px}
 .calendar-agenda-empty{text-align:center;border:1px dashed #d3dfd7;background:#fafbfa;border-radius:12px;padding:25px 15px}
 .calendar-agenda-empty>span{display:block;font-size:1.5rem;color:#e30613}
 .calendar-agenda-empty strong{display:block;margin:6px 0}
