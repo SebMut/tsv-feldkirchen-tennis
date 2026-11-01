@@ -24,7 +24,7 @@ test('official tennis.de widget shows current teams but TSV preserves historic s
 test('live TSV fixtures and route buttons never use the generic tennis.de club address',()=>{
   assert.match(publicScript,/const destination = address \|\| venue/);
   assert.match(publicScript,/match\.is_home \? 'Heim' : 'Auswärts'/);
-  assert.match(publicScript,/officialTennisDePortraitUrl\(current\)/);
+  assert.match(publicScript,/tennisDeTeamDestination\(current\)/);
 });
 
 test('documentation distinguishes verified summer rosters from unverified winter rosters',()=>{
