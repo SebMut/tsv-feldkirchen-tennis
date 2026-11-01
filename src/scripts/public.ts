@@ -137,6 +137,15 @@ async function renderSponsorPlacements(
 }
 
 // Portrait IDs identify a particular team and season, not the venue.
+// Without a verified ID, link to the official club-filtered tennis.de team search.
+const TENNIS_DE_CLUB_SEARCH_URL =
+  'https://www.tennis.de/spielen/spielbetrieb/mannschaftssuche.html?verband=btv&verein=01012';
+
+function tennisDeTeamDestination(teamSeason: Row | undefined): { href: string; isDirect: boolean } {
+  const portrait = officialTennisDePortraitUrl(teamSeason);
+  return { href: portrait || TENNIS_DE_CLUB_SEARCH_URL, isDirect: !!portrait };
+}
+
 function officialTennisDePortraitUrl(teamSeason: Row | undefined): string | null {
   const raw = teamSeason?.tennis_de_portrait_url;
   if (typeof raw !== 'string') return null;
@@ -571,6 +580,7 @@ export async function loadTeams() {
       const otherScore = featured ? (featured.is_home ? currentState?.away_score : currentState?.home_score) : null;
       const detailUrl = `/mannschaften/${encodeURIComponent(team.slug)}/?season=${encodeURIComponent(activeCode)}`;
       const btvTarget = officialBtvTeamDestination(verifiedBtv.get(ts.id) === ts.btv_url ? ts.btv_url : null);
+      const tennisDeTarget = tennisDeTeamDestination(ts);
       return `
         <article class="card team-card team-overview-card">
           <a href="${detailUrl}" class="team-card__image-link" aria-label="${escapeHtml(team.name)} öffnen"><img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" /></a>
@@ -591,7 +601,7 @@ export async function loadTeams() {
               ${matchRouteButton(featured)}
               ${isLive ? `<a href="/live/?match=${encodeURIComponent(featured.id)}">Zum Liveticker</a>` : ''}
             </div>` : '<p class="muted">Derzeit kein nächstes Punktspiel eingetragen.</p>'}
-          <div class="actions"><a class="button" href="${detailUrl}">Mannschaft öffnen</a><a class="button ghost" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Gruppe ↗' : 'BTV Verein ↗'}</a>${officialTennisDePortraitUrl(ts) ? `<a class="button ghost" href="${escapeHtml(officialTennisDePortraitUrl(ts)!)}" target="_blank" rel="noopener noreferrer">tennis.de Portrait ↗</a>` : ''}</div>
+          <div class="actions"><a class="button" href="${detailUrl}">Mannschaft öffnen</a><a class="button ghost" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Gruppe ↗' : 'BTV Verein ↗'}</a>${`<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer" aria-label="${tennisDeTarget.isDirect ? 'Offizielles tennis.de Mannschaftsporträt' : 'Offizielle tennis.de Mannschaftssuche für TSV Feldkirchen'} – ${escapeHtml(team.name)} – ${escapeHtml(activeCode)}">${tennisDeTarget.isDirect ? 'tennis.de Portrait ↗' : 'tennis.de Team suchen ↗'}</a>`}</div>
         </article>`;
     }).join('');
   };
@@ -672,12 +682,12 @@ export async function loadTeamDetail(slug: string) {
     });
   }
 
-  const tennisDePortraitUrl = officialTennisDePortraitUrl(current);
+  const tennisDeTarget = tennisDeTeamDestination(current);
   const btvTarget = officialBtvTeamDestination(verifiedBtv.get(current?.id) === current?.btv_url ? current?.btv_url : null);
   const head = document.querySelector<HTMLElement>('#team-header');
   if (head) head.innerHTML = `
     <section class="hero">
-      <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${tennisDePortraitUrl ? `<a class="button ghost" href="${escapeHtml(tennisDePortraitUrl)}" target="_blank" rel="noopener noreferrer">tennis.de Mannschaftsportrait ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarFeedUrl({team: slug}))}">Kalender abonnieren</a></div></div>
+      <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${current ? `<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer">${tennisDeTarget.isDirect ? 'tennis.de Mannschaftsporträt ↗' : 'tennis.de Mannschaftssuche ↗'}</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarFeedUrl({team: slug}))}">Kalender abonnieren</a></div></div>
       <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" /></div>
     </section>
   `;
