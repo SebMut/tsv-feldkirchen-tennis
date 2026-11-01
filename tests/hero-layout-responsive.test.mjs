@@ -45,11 +45,12 @@ test('homepage cards have consistent spacing between both rows and columns',()=>
   assert.match(css,/\.premium-content\{display:flex;flex-direction:column;gap:28px;/);
   assert.match(css,/\.home-intro-grid\{[^}]*gap:28px;/);
   assert.match(css,/\.home-columns\{[^}]*gap:28px;/);
-  assert.match(css,/\.home-columns\{display:grid;grid-template-columns:minmax\(0,1\.65fr\) minmax\(320px,1fr\);gap:28px;align-items:stretch\}/);
+  assert.match(css,/\.home-columns\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:28px;align-items:stretch\}/);
   const firstGrid = css.match(/\.home-intro-grid\{[^}]*grid-template-columns:([^;]+);/);
   const secondGrid = css.match(/\.home-columns\{[^}]*grid-template-columns:([^;]+);/);
   assert.ok(firstGrid && secondGrid);
-  assert.equal(secondGrid[1], firstGrid[1], 'Die Spaltenkanten aller vier Karten müssen exakt ausgerichtet sein');
+  assert.equal(secondGrid[1], 'repeat(2,minmax(0,1fr))', 'Aktuelles und Kommende Spiele müssen 50/50 aufgeteilt sein');
+  assert.notEqual(secondGrid[1], firstGrid[1], 'Die obere Reihe behält ihr eigenes Verhältnis');
 
   assert.match(css,/@media\(max-width:820px\)\{\.premium-content\{gap:22px\}/);
   assert.match(css,/@media\(max-width:520px\)\{\.premium-content,\.home-intro-grid,\.home-columns\{gap:18px\}/);
