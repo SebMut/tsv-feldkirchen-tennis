@@ -76,11 +76,20 @@ test('Gmail MIME is UTF-8 safe, includes text and HTML and a valid sender',()=>{
   assert.ok(edge.includes("'From: TSV Feldkirchen Tennis <'+GMAIL_SENDER+'>'"));
 });
 
-test('confirmation requires an active deliberate click, not email link previews',()=>{
-  assert.ok(confirmed.includes('id="rsvp-confirm-button"'));
-  assert.ok(confirmed.includes("button.addEventListener('click'"));
+test('one click in the email triggers automatic confirmation, no second button',()=>{
+  assert.ok(confirmed.includes("const confirmFromEmail=async()=>{"));
+  assert.ok(confirmed.includes("if(document.visibilityState==='visible')"));
+  assert.ok(confirmed.includes("document.addEventListener('visibilitychange',confirmWhenVisible)"));
+  assert.ok(confirmed.includes("void confirmFromEmail()"));
   assert.ok(confirmed.includes("action:'confirm'"));
-  assert.ok(confirmed.includes('window.history.replaceState'));
+  assert.ok(confirmed.includes("window.history.replaceState({},'',window.location.pathname)"));
+  assert.ok(confirmed.includes("let started=false"));
+  assert.ok(confirmed.includes("if(started) return"));
+  assert.ok(confirmed.includes("data?.confirmed!==true"));
+  assert.ok(confirmed.includes("Erfolgreich bestätigt!"));
+  assert.ok(confirmed.includes("error.context.clone().json()"));
+  assert.ok(!confirmed.includes('rsvp-confirm-button'));
+  assert.ok(!confirmed.includes("addEventListener('click'"));
   assert.ok(!confirmed.includes('supabase.rpc'));
 });
 
