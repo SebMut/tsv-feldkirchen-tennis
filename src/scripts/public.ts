@@ -366,7 +366,7 @@ export async function loadHome() {
       if (todayPanel) {
         todayPanel.classList.toggle('hidden', !!todayResult.error || !!activeResult.error || today.length === 0);
       }
-      if (todayResult.error || upcomingResult.error || activeResult.error) {
+      if (todayResult.error || activeResult.error || (!upcomingTarget && upcomingResult.error)) {
         errorText(todayTarget, 'Punktspiele sind momentan nicht abrufbar.');
       } else {
         todayTarget.innerHTML = focus.length
