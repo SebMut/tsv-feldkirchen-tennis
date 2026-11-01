@@ -165,6 +165,9 @@ test('training page stays compact with school photos, logo and linked training t
   assert.match(training, /logo-weiss_1pt_original-1\.png/);
   assert.match(training, /startseite_1\.jpg/);
   assert.match(training, /startseite_3\.jpg/);
+  assert.match(training, /startseite_4\.jpg/);
+  assert.match(training, /startseite_2\.jpg/);
+  assert.match(training, /background:#f28323/);
   for (const offer of ['Sommertraining', 'Wintertraining', 'Einzeltraining', 'Gruppentraining', 'Mannschaftstraining', 'Tenniscamps']) {
     assert.ok(training.includes(offer), offer + ' fehlt');
   }
