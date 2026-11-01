@@ -84,6 +84,10 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <div id="rsvp-turnstile-widget" role="group" aria-label="Cloudflare-Menschprüfung"></div>
             <small id="rsvp-turnstile-status" role="status">Die Menschprüfung wird geladen …</small>
           </div>
+          <div id="rsvp-spam-warning" class="rsvp-spam-warning" role="alert" hidden>
+            <strong>WICHTIG: Bitte auch den SPAM-Ordner prüfen!</strong>
+            <span>Die Bestätigungs-E-Mail kommt von <b>tsvfeldkirchen.tennis@gmail.com</b>.</span>
+          </div>
           <p id="rsvp-form-feedback" class="rsvp-form-feedback hidden" role="status" aria-live="polite"></p>
           <button id="rsvp-submit" type="submit" class="button rsvp-submit">Rückmeldung senden <span aria-hidden="true">›</span></button>
           <p class="rsvp-form__privacy">Die Angaben zu Erwachsenen, Kindern, Buffetspeisen, Helfern und Jugendanmeldungen sind nur für die Vereinsorganisation bestimmt. Öffentlich sind keine Namen sichtbar. Die E-Mail-Adresse wird ausschließlich zur Rückmeldung und Bestätigung verwendet. Änderungen lassen sich über eine neue Bestätigung an dieselbe Adresse vornehmen. Cloudflare Turnstile prüft, ob die Anfrage automatisiert ist; eine automatische Mitgliedschaftsprüfung besteht noch nicht.</p>

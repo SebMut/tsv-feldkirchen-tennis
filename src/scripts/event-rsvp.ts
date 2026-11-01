@@ -22,6 +22,7 @@ const YOUTH_CATEGORIES = [
 export async function initEventRsvp() {
   const form = byId<HTMLFormElement>('rsvp-form');
   const feedback = byId<HTMLElement>('rsvp-form-feedback');
+  const spamWarning = byId<HTMLElement>('rsvp-spam-warning');
   const nameInput = byId<HTMLInputElement>('rsvp-member-name');
   const emailInput = byId<HTMLInputElement>('rsvp-member-email');
   const adultsInput = byId<HTMLInputElement>('rsvp-adults-count');
@@ -135,6 +136,7 @@ export async function initEventRsvp() {
     reset: (id?: string | number) => void;
   } };
   const showFeedback = (text: string, error = false) => {
+    if (spamWarning) spamWarning.hidden = true;
     feedback.textContent = text;
     feedback.classList.remove('hidden');
     feedback.classList.toggle('is-error', error);
@@ -189,6 +191,7 @@ export async function initEventRsvp() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (spamWarning) spamWarning.hidden = true;
     const memberName = nameInput.value.trim();
     const memberEmail = emailInput.value.trim().toLowerCase();
     const selected = choice();
@@ -249,6 +252,7 @@ export async function initEventRsvp() {
         return;
       }
       showFeedback('Prüfe jetzt dein E-Mail-Postfach: Du erhältst alle Angaben und einen Bestätigungslink. Erst nach dem Klick darauf zählt deine Rückmeldung.');
+      if (spamWarning) spamWarning.hidden = false;
       submit.textContent = 'Bestätigungs-E-Mail angefordert';
       return;
     } catch {

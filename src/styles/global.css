@@ -2288,6 +2288,12 @@ main.main--flush{padding:0}
 .rsvp-submit:disabled{opacity:.58;cursor:default}
 .rsvp-form-feedback{padding:13px;border-radius:10px;background:#e5f5e9;color:#135a31;font-size:.83rem;font-weight:780;line-height:1.5}
 .rsvp-form-feedback.is-error{color:#ad1425;background:#fff0f1}
+/* Deutlich vor der gewöhnlichen Erfolgsmeldung: SPAM-Hinweis & Vereins-Absender */
+.rsvp-spam-warning{display:grid;gap:9px;padding:20px 22px;background:#fff2f3;border:3px solid #bb1026;border-left-width:8px;border-radius:12px;color:#a50a1e;overflow-wrap:anywhere}
+.rsvp-spam-warning[hidden]{display:none!important}
+.rsvp-spam-warning strong{display:block;font-size:clamp(1.35rem,3vw,1.65rem);font-weight:950;line-height:1.25;color:#a50a1e}
+.rsvp-spam-warning span{font-size:clamp(1rem,2.1vw,1.13rem);font-weight:730;line-height:1.48;color:#9f1124}
+.rsvp-spam-warning b{font-weight:900;color:#8d0016}
 .rsvp-form__privacy{margin:0;color:#6f8073;font-size:.73rem;line-height:1.6}
 .calendar-rsvp-link{margin-top:11px;display:inline-flex}
 .rsvp-admin-table{width:100%;border-collapse:collapse;font-size:.84rem}
