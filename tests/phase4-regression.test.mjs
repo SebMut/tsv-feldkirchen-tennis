@@ -68,6 +68,14 @@ test('mobile ticker must not double publish and keeps four- and six-player forma
   assert.match(js, /'6_3'/);
 });
 
+test('an accidentally started live ticker can return to scheduled without deleting results', () => {
+  const js = source('src/scripts/admin.ts');
+  assert.match(js, /data-live-action="reset"/);
+  assert.match(js, /Aufstellungen und gespeicherte Ergebnisse bleiben erhalten/);
+  assert.match(js, /status: 'scheduled', started_at: null, finished_at: null/);
+  assert.doesNotMatch(js, /action === 'reset'[\s\S]{0,300}match_encounters[^\n]*delete/);
+});
+
 test('the roster bulk import requires authorization and starts private', () => {
   const js = source('src/scripts/admin.ts');
   const html = source('src/pages/admin/index.astro');
