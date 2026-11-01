@@ -109,6 +109,7 @@ test('roster administration separates summer, winter and future seasons', () => 
   assert.match(html, /data-roster-season="sommer-2027"/);
   assert.match(admin, /rosterSeasonFilterCode/);
   assert.match(admin, /renderAdminRosterSeasonFilter/);
+  assert.match(admin, /\['herren', 'herren-ii', 'herren-50'\]/);
 });
 
 test('news optionally creates one linked calendar appointment', () => {
