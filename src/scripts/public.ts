@@ -734,7 +734,8 @@ export async function loadTeamDetail(slug: string) {
       return parts.length === 5 ? parts : ['–', '–', '–', '–', '–'];
     };
     standingsTarget.innerHTML = standings.length ? `
-      <div class="table-wrap">
+      <p class="team-standings-scroll-hint">← Tabelle seitlich wischen →</p>
+      <div class="table-wrap" tabindex="0" role="region" aria-label="BTV-Gruppentabelle seitlich scrollbar">
         <table class="data-table team-standings-table">
           <thead><tr><th scope="col">Rang</th><th scope="col">Mannschaft</th><th scope="col">Beg.</th><th scope="col">Punkte</th><th scope="col">Matches</th><th scope="col">Sätze</th><th scope="col">Spiele</th></tr></thead>
           <tbody>${standings.map((row: Row) => {
