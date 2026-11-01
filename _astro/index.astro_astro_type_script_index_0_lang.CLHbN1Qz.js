@@ -1,0 +1,1 @@
+import{u as e}from"./public.CMfi7o58.js";e();var t=document.querySelector(`#official-tennisde-widget`);t?.addEventListener(`toggle`,()=>{if(!t.open)return;let e=t.querySelector(`iframe[data-src]`);e?.dataset.src&&!e.src&&(e.src=e.dataset.src)});

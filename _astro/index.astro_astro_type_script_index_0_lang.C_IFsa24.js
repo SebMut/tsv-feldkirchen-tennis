@@ -1,0 +1,1 @@
+import{a as e}from"./public.CMfi7o58.js";var t=new URLSearchParams(location.search).get(`match`);e(t);
