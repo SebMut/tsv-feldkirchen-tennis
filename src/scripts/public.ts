@@ -1082,6 +1082,10 @@ export async function loadCalendar() {
   const dayHeading = document.querySelector<HTMLElement>('#calendar-day-heading');
   const dayCount = document.querySelector<HTMLElement>('#calendar-day-count');
   const dayList = document.querySelector<HTMLElement>('#calendar-day-list');
+  const dayModal = document.querySelector<HTMLDialogElement>('#calendar-day-modal');
+  const modalHeading = document.querySelector<HTMLElement>('#calendar-modal-heading');
+  const modalCount = document.querySelector<HTMLElement>('#calendar-modal-count');
+  const modalList = document.querySelector<HTMLElement>('#calendar-modal-list');
   const agenda = document.querySelector<HTMLElement>('#calendar-day-agenda');
   const monthBoard = document.querySelector<HTMLElement>('#calendar-month-board');
   const returnToMonth = document.querySelector<HTMLButtonElement>('#calendar-back-to-month');
@@ -1242,6 +1246,11 @@ export async function loadCalendar() {
     dayList.innerHTML = !ready ? '<p class="muted">Die Termine werden ermittelt …</p>'
       : chosen.length ? chosen.map((item, index) => `<div class="calendar-day-entry"><span class="calendar-entry-type calendar-entry-type--${item.marker}"><i class="calendar-dot calendar-dot--${item.marker}" aria-hidden="true"></i>${escapeHtml(markerLabels[item.marker])}</span>${item.html}<button type="button" class="button ghost" data-calendar-save="${index}">Diesen Termin zu meinem Kalender hinzufügen (.ics)</button></div>`).join('')
       : `<div class="calendar-agenda-empty"><span aria-hidden="true">✦</span><strong>Hier ist noch nichts geplant.</strong><p class="muted">Wähle einen markierten Tag im Kalender oder entdecke die nächsten Termine.</p></div>`;
+    // The modal reuses the same trusted, escaped match/event markup as the full agenda.
+    // Interactive actions are delegated in both containers to preserve their behavior.
+    if (modalHeading) modalHeading.textContent = dayHeading.textContent;
+    if (modalCount) modalCount.textContent = dayCount.textContent;
+    if (modalList) modalList.innerHTML = dayList.innerHTML;
     const coming = entries.filter(item => item.key >= todayKey).slice(0, 4);
     nextList.innerHTML = !ready ? '<p class="muted">Nächste Termine werden geladen …</p>'
       : coming.length ? coming.map(item => {
@@ -1269,20 +1278,22 @@ export async function loadCalendar() {
       <a class="button secondary" href="${escapeHtml(calendarFeedUrl({ type: 'events' }))}">Vereinstermine</a>`;
   };
 
-  // Clicking any day takes the visitor directly to that day's existing agenda.
-  // Keeping it on the page preserves all match links and the .ics export buttons.
+  // Clicking a day opens an accessible native dialog with the same working
+  // match, route and calendar-export actions as the expanded agenda.
   const scrollToCalendarElement = (element: HTMLElement | null) => {
     element?.scrollIntoView({
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
       block: 'start',
     });
   };
-  const chooseDay = (key: string, destination: 'agenda' | 'calendar' | 'none' = 'none') => {
+  const chooseDay = (key: string, destination: 'modal' | 'agenda' | 'calendar' | 'none' = 'none') => {
     selectedDay = key;
     [viewYear, viewMonth] = key.split('-').map(Number);
     render();
     if (destination === 'calendar') {
       grid.querySelector<HTMLButtonElement>(`[data-calendar-day="${key}"]`)?.focus();
+    } else if (destination === 'modal') {
+      if (dayModal && !dayModal.open) dayModal.showModal();
     } else if (destination === 'agenda') {
       dayHeading.focus({ preventScroll: true });
       scrollToCalendarElement(agenda);
@@ -1298,7 +1309,7 @@ export async function loadCalendar() {
   };
   const icsEscape = (text: string) => text.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
   const icsStamp = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-  dayList.addEventListener('click', (event) => {
+  const handleCalendarSave = (event: MouseEvent) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const button = target.closest<HTMLButtonElement>('[data-calendar-save]');
@@ -1319,10 +1330,24 @@ export async function loadCalendar() {
     const link = document.createElement('a');
     link.href = url; link.download = 'tsv-termin.ics'; document.body.append(link); link.click(); link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+  };
+  dayList.addEventListener('click', handleCalendarSave);
+  modalList?.addEventListener('click', handleCalendarSave);
+  // Built-in <dialog> also closes on Escape and restores keyboard focus.
+  const closeDayModal = () => { if (dayModal?.open) dayModal.close(); };
+  document.querySelector('#calendar-modal-close')?.addEventListener('click', closeDayModal);
+  document.querySelector('#calendar-modal-dismiss')?.addEventListener('click', closeDayModal);
+  document.querySelector('#calendar-modal-details')?.addEventListener('click', () => {
+    closeDayModal();
+    dayHeading.focus({ preventScroll: true });
+    scrollToCalendarElement(agenda);
+  });
+  dayModal?.addEventListener('click', (event) => {
+    if (event.target === dayModal) closeDayModal();
   });
   document.querySelector('#calendar-prev')?.addEventListener('click', () => moveMonth(-1));
   document.querySelector('#calendar-next')?.addEventListener('click', () => moveMonth(1));
-  document.querySelector('#calendar-today')?.addEventListener('click', () => chooseDay(dateKey(new Date()), 'agenda'));
+  document.querySelector('#calendar-today')?.addEventListener('click', () => chooseDay(dateKey(new Date()), 'modal'));
   returnToMonth?.addEventListener('click', () => {
     grid.querySelector<HTMLButtonElement>(`[data-calendar-day="${selectedDay}"]`)?.focus({ preventScroll: true });
     scrollToCalendarElement(monthBoard);
@@ -1331,7 +1356,7 @@ export async function loadCalendar() {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const button = target.closest<HTMLButtonElement>('button[data-calendar-day]');
-    if (button?.dataset.calendarDay) chooseDay(button.dataset.calendarDay, 'agenda');
+    if (button?.dataset.calendarDay) chooseDay(button.dataset.calendarDay, 'modal');
   });
   grid.addEventListener('keydown', event => {
     const target = event.target;
