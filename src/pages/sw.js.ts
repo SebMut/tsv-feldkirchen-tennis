@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 const base = import.meta.env.BASE_URL;
 const source = `
 const BASE = ${JSON.stringify(base)};
-const CACHE = 'tsv-tennis-public-v3';
+const CACHE = 'tsv-tennis-public-v4';
 const SHELL = [BASE, BASE+'termine/', BASE+'mannschaften/', BASE+'spieltag/'];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then(cache => Promise.allSettled(SHELL.map(path => cache.add(path)))));
@@ -19,7 +19,7 @@ self.addEventListener('fetch', (event) => {
   // No private data, API requests or authenticated admin pages are cached.
   if (!url.pathname.startsWith(BASE) || (url.pathname.startsWith(BASE+'admin/') || url.pathname.startsWith(BASE+'verwaltung/'))
       || url.search || request.mode !== 'navigate') return;
-  event.respondWith(fetch(request).then(response => {
+  event.respondWith(fetch(request, { cache: 'no-store' }).then(response => {
     if (response.ok && response.type === 'basic') {
       const copy = response.clone();
       caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
