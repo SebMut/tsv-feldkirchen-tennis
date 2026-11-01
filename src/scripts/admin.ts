@@ -83,6 +83,7 @@ function teamSeasonLabel(ts: Row) {
 }
 
 let teamSeasonFilterCode = 'sommer-2026';
+let rosterSeasonFilterCode = 'sommer-2026';
 
 function renderAdminTeamSeasonFilter(preferredId = '') {
   const select = $<HTMLSelectElement>('#team-select');
@@ -105,6 +106,20 @@ function renderAdminTeamSeasonFilter(preferredId = '') {
     const preview = $('#team-image-preview');
     if (preview) preview.innerHTML = '<p class="muted">Für diese Saison sind noch keine Mannschaften angelegt.</p>';
   }
+}
+
+function renderAdminRosterSeasonFilter(preferredId = '') {
+  const select = $<HTMLSelectElement>('#players-team-season');
+  if (!select) return;
+  const season = state.seasons.find((row) => row.code === rosterSeasonFilterCode);
+  const rows = allowedTeamSeasons('edit').filter((ts) => ts.season_id === season?.id);
+  select.innerHTML = rows.length ? rows.map((ts) => `<option value="${ts.id}">${escapeHtml(teamSeasonLabel(ts))}</option>`).join('') : '<option value="">Noch keine Mannschaften in dieser Saison</option>';
+  if (preferredId && rows.some((ts) => ts.id === preferredId)) select.value = preferredId;
+  document.querySelectorAll<HTMLButtonElement>('[data-roster-season]').forEach((button) => {
+    const active = button.dataset.rosterSeason === rosterSeasonFilterCode;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
 }
 
 function renderTeamOptions(selector: string, includeBlank = false, mode: 'tick' | 'edit' = 'edit') {
@@ -339,8 +354,9 @@ async function refreshDashboard() {
 
       if (teamId && panel === 'players') {
         const ts = currentTeamSeason(teamId);
-        const select = $<HTMLSelectElement>('#players-team-season');
-        if (select && ts) select.value = ts.id;
+        const season = state.seasons.find((row) => row.id === ts?.season_id);
+        if (season?.code) rosterSeasonFilterCode = season.code;
+        if (ts) renderAdminRosterSeasonFilter(ts.id);
         refreshPlayers();
       }
 
@@ -1777,7 +1793,7 @@ function renderSelectors() {
   renderTeamOptions('#news-team', state.isSuper, 'edit');
   renderTeamOptions('#gallery-team', false, 'edit');
   renderGalleryMatchOptions();
-  renderTeamSeasonOptions('#players-team-season', 'edit');
+  renderAdminRosterSeasonFilter();
   renderTeamSeasonOptions('#match-team-season', 'edit');
 
   renderInviteTeamCards();
@@ -1789,6 +1805,13 @@ function bindForms() {
   document.querySelectorAll<HTMLButtonElement>('[data-team-season]').forEach((button) => button.addEventListener('click', () => {
     teamSeasonFilterCode = button.dataset.teamSeason || 'sommer-2026';
     renderAdminTeamSeasonFilter();
+  }));
+  document.querySelectorAll<HTMLButtonElement>('[data-roster-season]').forEach((button) => button.addEventListener('click', () => {
+    rosterSeasonFilterCode = button.dataset.rosterSeason || 'sommer-2026';
+    renderAdminRosterSeasonFilter();
+    resetPlayerForm();
+    clearBulkRosterPreview();
+    void refreshPlayers();
   }));
   $<HTMLFormElement>('#team-form')?.addEventListener('submit', saveTeam);
   $<HTMLSelectElement>('#team-select')?.addEventListener('change', fillTeamForm);

@@ -100,6 +100,17 @@ test('team administration separates summer, winter and future seasons', () => {
   assert.match(js, /ts\.season_id === season\?\.id/);
 });
 
+test('roster administration separates summer, winter and future seasons', () => {
+  const html = source('src/pages/admin/index.astro');
+  const admin = source('src/scripts/admin.ts');
+
+  assert.match(html, /data-roster-season="sommer-2026"/);
+  assert.match(html, /data-roster-season="winter-2026-2027"/);
+  assert.match(html, /data-roster-season="sommer-2027"/);
+  assert.match(admin, /rosterSeasonFilterCode/);
+  assert.match(admin, /renderAdminRosterSeasonFilter/);
+});
+
 test('news optionally creates one linked calendar appointment', () => {
   const js = source('src/scripts/admin.ts');
   const html = source('src/pages/admin/index.astro');

@@ -219,6 +219,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <section id="panel-players" class="admin-panel">
             <div class="card">
               <h2>Kader</h2>
+              <div id="roster-season-filter" class="admin-season-pills" aria-label="Kadersaison auswählen">
+                <button type="button" class="admin-season-pill is-active" data-roster-season="sommer-2026" aria-pressed="true">Sommer 2026</button>
+                <button type="button" class="admin-season-pill" data-roster-season="winter-2026-2027" aria-pressed="false">Winter 2026/2027</button>
+                <button type="button" class="admin-season-pill" data-roster-season="sommer-2027" aria-pressed="false">Sommer 2027</button>
+              </div>
               <div class="field"><label>Mannschaft / Saison</label><select id="players-team-season"></select></div>
               <p id="players-season-context" class="admin-season-context" aria-live="polite"></p>
               <form id="player-form" class="form-grid">
