@@ -7,7 +7,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
       <div>
         <p class="eyebrow">TSV Feldkirchen Tennis</p>
         <h1>Unser Kalender.</h1>
-        <p class="muted">Alle Punktspiele und Vereinsevents auf einen Blick. Wähle einen Tag im Kalender – du gelangst direkt zu seinen Terminen.</p>
+        <p class="muted">Alle Punktspiele und Vereinsevents auf einen Blick. Tippe auf ein Datum, um die Tagesübersicht zu öffnen.</p>
       </div>
       <div class="calendar-heading-today" aria-label="Der Kalender startet mit dem heutigen Datum">
         <span>Dein Startpunkt</span>
@@ -63,6 +63,25 @@ import MainLayout from '../../layouts/MainLayout.astro';
         </div>
       </aside>
     </div>
+    <dialog id="calendar-day-modal" class="calendar-day-modal" aria-labelledby="calendar-modal-heading" aria-describedby="calendar-modal-count">
+      <div class="calendar-day-modal__inner">
+        <div class="calendar-day-modal__header">
+          <div>
+            <p class="eyebrow">Tagesübersicht</p>
+            <h2 id="calendar-modal-heading" tabindex="-1">Termine des Tages</h2>
+            <p id="calendar-modal-count" class="muted" aria-live="polite">Termine werden geladen …</p>
+          </div>
+          <button type="button" id="calendar-modal-close" class="calendar-day-modal__close" aria-label="Tagesübersicht schließen" title="Schließen">×</button>
+        </div>
+        <div id="calendar-modal-list" class="calendar-day-list calendar-day-modal__list">
+          <p class="muted">Tagesübersicht wird geladen …</p>
+        </div>
+        <div class="calendar-day-modal__footer">
+          <button type="button" id="calendar-modal-details" class="button">Alle Tagesdetails ansehen</button>
+          <button type="button" id="calendar-modal-dismiss" class="button ghost">Schließen</button>
+        </div>
+      </div>
+    </dialog>
     <section class="card calendar-all-section">
       <details id="calendar-all-details">
         <summary>Alle Termine als Liste anzeigen</summary>
