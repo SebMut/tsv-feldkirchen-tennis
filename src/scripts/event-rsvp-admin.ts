@@ -37,7 +37,12 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     field('rsvp-admin-title').value = 'Sommerfest';
     field('rsvp-admin-slug').value = 'sommerfest';
     field('rsvp-admin-start').value = '';
-    field('rsvp-admin-description').value = 'Wir freuen uns darauf, gemeinsam mit euch zu feiern!';
+    field('rsvp-admin-description').value = 'Liebe Tennisfreunde, zum Abschluss der Punktspielsaison möchten wir mit euch feiern und laden alle Mitglieder, Eltern, Partner und Freunde herzlich zum Sommerfest ein. Für Speis und Trank ist gesorgt!';
+    field('rsvp-admin-deadline').value = '';
+    field('rsvp-admin-fees').value = '';
+    field('rsvp-admin-setup').value = '';
+    field('rsvp-admin-cleanup').value = '';
+    field('rsvp-admin-youth-note').value = 'Wir planen Jugendvereinsmeisterschaften in den Klassen U10 gemischt, U12 männlich, U15 männlich, U18 männlich und U18 weiblich. Termine und Modus werden nach den Anmeldungen bekannt gegeben.';
     ($<HTMLSelectElement>('rsvp-admin-status')!).value = 'draft';
     field('rsvp-admin-enabled').checked = true;
     if (select) select.value = '';
@@ -48,7 +53,7 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
   const renderVotes = async () => {
     if (!selectedId || !list || !summary) return;
     const { data, error } = await supabase.from('event_rsvps')
-      .select('member_name,attendance,party_size,updated_at')
+      .select('member_name,attendance,party_size,adults_count,children_count,dessert_contribution,salad_contribution,help_setup,help_cleanup,youth_registrations,updated_at')
       .eq('event_id', selectedId).order('updated_at', { ascending: false });
     if (error) {
       list.textContent = 'Rückmeldungen konnten nicht geladen werden: ' + error.message;
@@ -59,11 +64,26 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     const no = rows.filter(r => r.attendance === 'no');
     const maybe = rows.filter(r => r.attendance === 'maybe');
     const people = yes.reduce((n, r) => n + Number(r.party_size), 0);
-    summary.textContent = `${yes.length} Zusagen · ${people} Personen · ${maybe.length} Vielleicht · ${no.length} Absagen`;
+    const adults = yes.reduce((n, r) => n + Number(r.adults_count || 0), 0);
+    const children = yes.reduce((n, r) => n + Number(r.children_count || 0), 0);
+    const setup = rows.filter(r => r.help_setup).length;
+    const cleanup = rows.filter(r => r.help_cleanup).length;
+    const youthCount = rows.reduce((n, r) => n + (Array.isArray(r.youth_registrations) ? r.youth_registrations.length : 0), 0);
+    summary.textContent = `${yes.length} Zusagen · ${people} Personen (${adults} Erwachsene, ${children} Kinder/Jugendliche) · ${maybe.length} Vielleicht · ${no.length} Absagen · ${setup} Aufbau · ${cleanup} Abbau · ${youthCount} Jugendanmeldungen`;
+    const classes: Record<string,string> = {
+      'u10-mixed':'U10 gemischt','u12-m':'U12 männlich','u15-m':'U15 männlich','u18-m':'U18 männlich','u18-w':'U18 weiblich',
+    };
     list.innerHTML = rows.length
-      ? `<table class="rsvp-admin-table"><thead><tr><th>Mitglied</th><th>Antwort</th><th>Personen</th><th>Aktualisiert</th></tr></thead><tbody>${rows.map(row =>
-          `<tr><td>${escapeHtml(row.member_name)}</td><td>${row.attendance === 'yes' ? 'Dabei' : row.attendance === 'maybe' ? 'Vielleicht' : 'Nicht dabei'}</td><td>${Number(row.party_size) || '–'}</td><td>${escapeHtml(formatDateTime(row.updated_at))}</td></tr>`
-        ).join('')}</tbody></table>`
+      ? `<table class="rsvp-admin-table"><thead><tr><th>Absender</th><th>Teilnahme</th><th>Erw. / Kinder</th><th>Kuchen / Salat</th><th>Helfer</th><th>Jugendmeisterschaften</th><th>Stand</th></tr></thead><tbody>${rows.map(row => {
+          const youth = Array.isArray(row.youth_registrations) ? row.youth_registrations : [];
+          const contribution = [row.dessert_contribution ? `Nachspeise: ${escapeHtml(row.dessert_contribution)}` : '',
+            row.salad_contribution ? `Vorspeise: ${escapeHtml(row.salad_contribution)}` : ''].filter(Boolean).join('<hr/>') || '–';
+          const helper = [row.help_setup ? 'Aufbau' : '',row.help_cleanup ? 'Abbau' : ''].filter(Boolean).join(' / ') || '–';
+          const young = youth.map((entry: Row) => `${escapeHtml(String(entry.name || ''))} (${escapeHtml(classes[String(entry.category)] || String(entry.category))})`).join('<hr/>') || '–';
+          return `<tr><td>${escapeHtml(row.member_name)}</td><td>${row.attendance === 'yes' ? 'Dabei' : row.attendance === 'maybe' ? 'Vielleicht' : 'Nicht dabei'}</td>
+          <td>${row.attendance === 'yes' ? `${Number(row.adults_count || 0)} / ${Number(row.children_count || 0)}` : '–'}</td>
+          <td>${contribution}</td><td>${helper}</td><td>${young}</td><td>${escapeHtml(formatDateTime(row.updated_at))}</td></tr>`;
+        }).join('')}</tbody></table>`
       : '<p class="muted">Für diese Veranstaltung liegen noch keine Rückmeldungen vor.</p>';
   };
 
@@ -76,8 +96,14 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     field('rsvp-admin-title').value = event.title || '';
     field('rsvp-admin-slug').value = event.slug || '';
     field('rsvp-admin-start').value = localDatetime(event.starts_at);
+    field('rsvp-admin-deadline').value = localDatetime(event.rsvp_deadline || '');
     field('rsvp-admin-location').value = event.location_name || '';
     field('rsvp-admin-description').value = event.description || '';
+    const details = event.rsvp_details || {};
+    field('rsvp-admin-fees').value = details.fee_note || '';
+    field('rsvp-admin-setup').value = details.setup_note || '';
+    field('rsvp-admin-cleanup').value = details.cleanup_note || '';
+    field('rsvp-admin-youth-note').value = details.youth_note || '';
     ($<HTMLSelectElement>('rsvp-admin-status')!).value = event.status || 'draft';
     field('rsvp-admin-enabled').checked = !!event.rsvp_enabled;
     void renderVotes();
@@ -106,6 +132,11 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     const slug = field('rsvp-admin-slug').value.trim().toLowerCase();
     const start = field('rsvp-admin-start').value;
     const status = ($<HTMLSelectElement>('rsvp-admin-status')!).value;
+    const deadline = field('rsvp-admin-deadline').value;
+    if (deadline && new Date(deadline).getTime() >= new Date(start).getTime()) {
+      message('Der Anmeldeschluss muss vor dem Veranstaltungsbeginn liegen.', true);
+      return;
+    }
     if (!title || !/^[a-z0-9-]{2,70}$/.test(slug) || !start) {
       message('Bitte Titel, Kurzlink (nur Kleinbuchstaben/Ziffern/Bindestriche) und Termin angeben.', true);
       return;
@@ -117,6 +148,13 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     const patch = {
       title, slug,
       starts_at: new Date(start).toISOString(),
+      rsvp_deadline: deadline ? new Date(deadline).toISOString() : null,
+      rsvp_details: {
+        fee_note: field('rsvp-admin-fees').value.trim(),
+        setup_note: field('rsvp-admin-setup').value.trim(),
+        cleanup_note: field('rsvp-admin-cleanup').value.trim(),
+        youth_note: field('rsvp-admin-youth-note').value.trim(),
+      },
       location_name: field('rsvp-admin-location').value.trim() || null,
       description: field('rsvp-admin-description').value.trim() || null,
       status, rsvp_enabled: field('rsvp-admin-enabled').checked,
