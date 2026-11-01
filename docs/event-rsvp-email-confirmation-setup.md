@@ -75,3 +75,15 @@ Diese **Veranstaltungsanmeldung** verwendet eine eigene Edge Function und kein S
 Zum Schutz der Jugendlichen und Teilnehmer müssen Datenschutztext, Archivierung und Löschfristen vor dem echten Vereinsbetrieb geprüft werden. Das Sommerfest bleibt eine unverbindliche Demo, bis ein Verantwortlicher einen echten Termin ausdrücklich veröffentlicht.
 
 **Bestehende Hauptdomain ist weiterhin nicht umgestellt.**
+
+## Fehlerbehebung: 404 beim Bestätigungslink
+
+Falls der E-Mail-Link einen Zusatz wie `/%20Wert/` vor `veranstaltung/bestaetigen/` enthält, wurde im Secret `RSVP_BASE_URL` zusätzlich zum URL-Wert ein Feldetikett oder anderes Zeichen gespeichert. **Den Wert im Supabase-Dashboard vollständig ersetzen** durch exakt:
+
+```text
+https://sebmut.github.io/tsv-feldkirchen-tennis/
+```
+
+Die Edge Function prüft seit der Korrektur die Basis-URL **bereits bei der Konfigurationsabfrage**. Sie lässt ausschließlich die exakten Vorschau-/Produktions-URLs zu und verschickt bei einer falschen URL **keine E-Mail mit defektem Link**. So wird der Eingabefehler vor der Anmeldung angezeigt.
+
+Bereits versandte Bestätigungslinks werden nicht automatisch umgeschrieben. Da im Support oder in Screenshots versehentlich öffentlich gewordene Bestätigungstokens einmalig und vertraulich sind, für solche Fälle eine **neue Testanmeldung** auslösen und nur den neuen Link in der eigenen Mailbox öffnen. Keine vollständigen Bestätigungslinks oder Token in Chats oder Issues posten.
