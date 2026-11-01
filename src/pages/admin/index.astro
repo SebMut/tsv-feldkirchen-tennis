@@ -393,13 +393,20 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field full"><label for="rsvp-admin-fees">Essen, Getränke und Unkostenbeitrag</label><textarea id="rsvp-admin-fees" maxlength="600" rows="2" placeholder="Ggf. Beiträge für Erwachsene, Jugendliche und Kinder (neu festlegen!)"></textarea></div>
                 <div class="field"><label for="rsvp-admin-setup">Aufbau &amp; Vorbereitungen</label><input id="rsvp-admin-setup" maxlength="230" placeholder="Datum und Uhrzeit für den Aufbau" /></div>
                 <div class="field"><label for="rsvp-admin-cleanup">Abbau &amp; Aufräumen</label><input id="rsvp-admin-cleanup" maxlength="230" placeholder="Datum und Uhrzeit für den Abbau" /></div>
-                <div class="field full"><label for="rsvp-admin-youth-note">Jugendvereinsmeisterschaften</label><textarea id="rsvp-admin-youth-note" maxlength="700" rows="2" placeholder="Datum, Beginn, Kategorien, Teilnahmebeitrag, Turniermodus …"></textarea></div>
+                <fieldset class="field full rsvp-admin-tournaments">
+                  <legend>Vereinsmeisterschaften für diese Veranstaltung</legend>
+                  <p class="muted">Nur aktivierte Turniere erscheinen im öffentlichen Anmeldeformular und in der PDF-Auswertung.</p>
+                  <label><input id="rsvp-admin-tournament-youth" type="checkbox" checked /> Jugendvereinsmeisterschaft anbieten</label>
+                  <label><input id="rsvp-admin-tournament-women" type="checkbox" /> Damenvereinsmeisterschaft anbieten</label>
+                  <label><input id="rsvp-admin-tournament-men" type="checkbox" /> Herrenvereinsmeisterschaft anbieten</label>
+                </fieldset>
+                <div class="field full"><label for="rsvp-admin-youth-note">Hinweise zur Jugendvereinsmeisterschaft</label><textarea id="rsvp-admin-youth-note" maxlength="700" rows="2" placeholder="Datum, Beginn, Kategorien, Teilnahmebeitrag, Turniermodus …"></textarea></div>
                 <div class="field"><label for="rsvp-admin-status">Freigabe</label><select id="rsvp-admin-status"><option value="draft">Entwurf – nicht öffentlich</option><option value="published">Veröffentlichen &amp; Anmeldung öffnen</option><option value="archived">Archiviert</option></select></div>
                 <div class="field"><label><input id="rsvp-admin-enabled" type="checkbox" checked /> Anmeldung aktivieren</label></div>
                 <div class="field full"><button type="submit" class="button" id="rsvp-admin-save">Veranstaltung speichern</button></div>
               </form>
               <div class="rsvp-admin-results">
-                <h3>Rückmeldungen &amp; Helferplanung</h3>
+                <div class="rsvp-admin-results-heading"><h3>Rückmeldungen &amp; Helferplanung</h3><button id="rsvp-admin-pdf" type="button" class="button secondary" disabled>PDF erstellen</button></div>
                 <p id="rsvp-admin-summary" aria-live="polite" class="muted">Wähle eine gespeicherte Veranstaltung.</p>
                 <div class="table-wrap" id="rsvp-admin-list" aria-live="polite"></div>
               </div>

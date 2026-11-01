@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { escapeHtml, formatDateTime } from '../lib/ui';
+import { downloadRsvpPdf, type RsvpPdfRow } from './rsvp-report-pdf';
 
 type Row = Record<string, any>;
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
@@ -24,6 +25,8 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
   form.noValidate = true;
   let events: Row[] = [];
   let selectedId = '';
+  let verifiedResponses: RsvpPdfRow[] = [];
+  const pdfButton = $<HTMLButtonElement>('rsvp-admin-pdf');
 
   const localDatetime = (date: string) => {
     if (!date) return '';
@@ -48,6 +51,11 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     field('rsvp-admin-youth-note').value = 'Wir planen Jugendvereinsmeisterschaften in den Klassen U10 gemischt, U12 männlich, U15 männlich, U18 männlich und U18 weiblich. Termine und Modus werden nach den Anmeldungen bekannt gegeben.';
     ($<HTMLSelectElement>('rsvp-admin-status')!).value = 'draft';
     field('rsvp-admin-enabled').checked = true;
+    field('rsvp-admin-tournament-youth').checked = true;
+    field('rsvp-admin-tournament-women').checked = false;
+    field('rsvp-admin-tournament-men').checked = false;
+    verifiedResponses = [];
+    if (pdfButton) pdfButton.disabled = true;
     if (select) select.value = '';
     if (list) list.innerHTML = '<p class="muted">Noch keine Rückmeldungen – zuerst einen Termin speichern.</p>';
     if (summary) summary.textContent = 'Beispielveranstaltung – noch keine verbindliche Anmeldung.';
@@ -55,14 +63,20 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
 
   const renderVotes = async () => {
     if (!selectedId || !list || !summary) return;
+    const fetchingId=selectedId;
+    if(pdfButton)pdfButton.disabled=true;
+    verifiedResponses=[];
     const { data, error } = await supabase.from('event_rsvps')
-      .select('member_name,member_email,attendance,party_size,adults_count,children_count,dessert_contribution,salad_contribution,help_setup,help_cleanup,youth_registrations,updated_at')
+      .select('member_name,member_email,attendance,party_size,adults_count,children_count,dessert_contribution,salad_contribution,help_setup,help_cleanup,youth_registrations,women_registrations,men_registrations,updated_at')
       .eq('event_id', selectedId).not('verified_at','is',null).order('updated_at', { ascending: false });
+    if (fetchingId!==selectedId) return;
     if (error) {
       list.textContent = 'Rückmeldungen konnten nicht geladen werden: ' + error.message;
       return;
     }
     const rows = data ?? [];
+    verifiedResponses = rows as RsvpPdfRow[];
+    if(pdfButton)pdfButton.disabled = false;
     const yes = rows.filter(r => r.attendance === 'yes');
     const no = rows.filter(r => r.attendance === 'no');
     const maybe = rows.filter(r => r.attendance === 'maybe');
@@ -72,20 +86,24 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     const setup = rows.filter(r => r.help_setup).length;
     const cleanup = rows.filter(r => r.help_cleanup).length;
     const youthCount = rows.reduce((n, r) => n + (Array.isArray(r.youth_registrations) ? r.youth_registrations.length : 0), 0);
-    summary.textContent = `${yes.length} Zusagen · ${people} Personen (${adults} Erwachsene, ${children} Kinder/Jugendliche) · ${maybe.length} Vielleicht · ${no.length} Absagen · ${setup} Aufbau · ${cleanup} Abbau · ${youthCount} Jugendanmeldungen`;
+    const womenCount = rows.reduce((n, r) => n + (Array.isArray(r.women_registrations) ? r.women_registrations.length : 0), 0);
+    const menCount = rows.reduce((n, r) => n + (Array.isArray(r.men_registrations) ? r.men_registrations.length : 0), 0);
+    summary.textContent = `${yes.length} Zusagen · ${people} Personen (${adults} Erwachsene, ${children} Kinder/Jugendliche) · ${maybe.length} Vielleicht · ${no.length} Absagen · ${setup} Aufbau · ${cleanup} Abbau · ${youthCount} Jugend-, ${womenCount} Damen-, ${menCount} Herrenanmeldungen`;
     const classes: Record<string,string> = {
       'u10-mixed':'U10 gemischt','u12-m':'U12 männlich','u15-m':'U15 männlich','u18-m':'U18 männlich','u18-w':'U18 weiblich',
     };
     list.innerHTML = rows.length
-      ? `<table class="rsvp-admin-table"><thead><tr><th>Absender / bestätigte E-Mail</th><th>Teilnahme</th><th>Erw. / Kinder</th><th>Kuchen / Salat</th><th>Helfer</th><th>Jugendmeisterschaften</th><th>Stand</th></tr></thead><tbody>${rows.map(row => {
+      ? `<table class="rsvp-admin-table"><thead><tr><th>Absender / bestätigte E-Mail</th><th>Teilnahme</th><th>Erw. / Kinder</th><th>Kuchen / Salat</th><th>Helfer</th><th>Jugendmeisterschaften</th><th>Damen / Herren</th><th>Stand</th></tr></thead><tbody>${rows.map(row => {
           const youth = Array.isArray(row.youth_registrations) ? row.youth_registrations : [];
           const contribution = [row.dessert_contribution ? `Nachspeise: ${escapeHtml(row.dessert_contribution)}` : '',
             row.salad_contribution ? `Vorspeise: ${escapeHtml(row.salad_contribution)}` : ''].filter(Boolean).join('<hr/>') || '–';
           const helper = [row.help_setup ? 'Aufbau' : '',row.help_cleanup ? 'Abbau' : ''].filter(Boolean).join(' / ') || '–';
           const young = youth.map((entry: Row) => `${escapeHtml(String(entry.name || ''))} (${escapeHtml(classes[String(entry.category)] || String(entry.category))})`).join('<hr/>') || '–';
+          const women = Array.isArray(row.women_registrations) ? row.women_registrations.map((name:string)=>escapeHtml(String(name))).join('<hr/>') : '';
+          const men = Array.isArray(row.men_registrations) ? row.men_registrations.map((name:string)=>escapeHtml(String(name))).join('<hr/>') : '';
           return `<tr><td>${escapeHtml(row.member_name)}<br/><small>${escapeHtml(row.member_email || 'Altbestand ohne E-Mail')}</small></td><td>${row.attendance === 'yes' ? 'Dabei' : row.attendance === 'maybe' ? 'Vielleicht' : 'Nicht dabei'}</td>
           <td>${row.attendance === 'yes' ? `${Number(row.adults_count || 0)} / ${Number(row.children_count || 0)}` : '–'}</td>
-          <td>${contribution}</td><td>${helper}</td><td>${young}</td><td>${escapeHtml(formatDateTime(row.updated_at))}</td></tr>`;
+          <td>${contribution}</td><td>${helper}</td><td>${young}</td><td>${women ? 'Damen: '+women : ''}${women&&men ? '<hr/>' : ''}${men ? 'Herren: '+men : ''}${!women&&!men ? '–' : ''}</td><td>${escapeHtml(formatDateTime(row.updated_at))}</td></tr>`;
         }).join('')}</tbody></table>`
       : '<p class="muted">Für diese Veranstaltung liegen noch keine Rückmeldungen vor.</p>';
   };
@@ -107,6 +125,9 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     field('rsvp-admin-setup').value = details.setup_note || '';
     field('rsvp-admin-cleanup').value = details.cleanup_note || '';
     field('rsvp-admin-youth-note').value = details.youth_note || '';
+    field('rsvp-admin-tournament-youth').checked = details.tournament_youth_enabled !== false;
+    field('rsvp-admin-tournament-women').checked = details.tournament_women_enabled === true;
+    field('rsvp-admin-tournament-men').checked = details.tournament_men_enabled === true;
     ($<HTMLSelectElement>('rsvp-admin-status')!).value = event.status || 'draft';
     field('rsvp-admin-enabled').checked = !!event.rsvp_enabled;
     void renderVotes();
@@ -127,6 +148,20 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     fill();
   };
 
+  pdfButton?.addEventListener('click', () => {
+    const event = events.find(row => row.id === selectedId);
+    if(!event){message('Bitte zuerst eine Veranstaltung auswählen.',true);return}
+    if(pdfButton.disabled) return;
+    try {
+      downloadRsvpPdf({
+        title:String(event.title),slug:String(event.slug),starts_at:String(event.starts_at),
+        rsvp_details:event.rsvp_details||{},
+      },verifiedResponses);
+      message('PDF mit den bestätigten Rückmeldungen wurde erstellt.');
+    } catch (error) {
+      message('PDF konnte nicht erstellt werden: '+(error instanceof Error ? error.message : 'Unbekannter Fehler'),true);
+    }
+  });
   $<HTMLButtonElement>('rsvp-admin-new')?.addEventListener('click', reset);
   select.addEventListener('change', fill);
   form.addEventListener('submit', async (evt) => {
@@ -164,6 +199,9 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
         setup_note: field('rsvp-admin-setup').value.trim(),
         cleanup_note: field('rsvp-admin-cleanup').value.trim(),
         youth_note: field('rsvp-admin-youth-note').value.trim(),
+        tournament_youth_enabled:field('rsvp-admin-tournament-youth').checked,
+        tournament_women_enabled:field('rsvp-admin-tournament-women').checked,
+        tournament_men_enabled:field('rsvp-admin-tournament-men').checked,
       },
       location_name: field('rsvp-admin-location').value.trim() || null,
       description: field('rsvp-admin-description').value.trim() || null,

@@ -184,3 +184,60 @@ test('successful RSVP email submission highlights spam folder and sender above o
   assert.ok(globalCss.includes('font-size:clamp(1.35rem,3vw,1.65rem)'));
   assert.ok(globalCss.includes('border:3px solid #bb1026'));
 });
+
+
+test('admin controls youth, women and men independently and PDF export exists',()=>{
+  const adminPage=r('src/pages/admin/index.astro');
+  const report=r('src/scripts/rsvp-report-pdf.ts');
+  for (const key of ['youth','women','men']) {
+    assert.ok(adminPage.includes('id="rsvp-admin-tournament-'+key+'"'));
+    assert.ok(admin.includes("field('rsvp-admin-tournament-"+key+"').checked"));
+    assert.ok(admin.includes('tournament_'+key+'_enabled:'));
+  }
+  assert.ok(adminPage.includes('id="rsvp-admin-pdf"'));
+  assert.ok(adminPage.includes('PDF erstellen'));
+  assert.ok(admin.includes("downloadRsvpPdf({"));
+  assert.ok(admin.includes("},verifiedResponses)"));
+  assert.ok(report.includes('export function downloadRsvpPdf('));
+  assert.ok(report.includes("new Blob([toBytes(pdf)],{type:'application/pdf'})"));
+  assert.ok(report.includes("a.download='tsv-feldkirchen-'"));
+  assert.ok(report.includes("const pages:string[][]=[[]]"));
+  assert.ok(report.includes('7. Teilnehmer alphabetisch'));
+  assert.ok(report.includes('6. Helfer'));
+  assert.ok(report.includes('2. Buffet: Salate, Vorspeisen und Nachspeisen'));
+  assert.ok(report.includes("localeCompare(b,'de'"));
+  assert.ok(report.includes("r.attendance==='yes'"));
+});
+
+test('public RSVP disables individual tournament sections according to admin flags',()=>{
+  for(const key of ['youth','women','men']){
+    assert.ok(publicCode.includes('tournament_'+key+'_enabled'));
+  }
+  assert.ok(page.includes('id="rsvp-youth-section"'));
+  assert.ok(page.includes('id="rsvp-women-section"'));
+  assert.ok(page.includes('id="rsvp-men-section"'));
+  assert.ok(publicCode.includes("const adultRoster = (id: string): string[] | null =>"));
+  assert.ok(publicCode.includes('women,men,turnstileToken'));
+  const css=r('src/styles/global.css');
+  assert.ok(css.includes('.rsvp-adult-tournament[hidden],.rsvp-youth-section[hidden]{display:none!important}'));
+});
+
+test('email duplicates blocked by server and concurrent confirmations cannot overwrite existing response',()=>{
+  const migration=r('supabase/migrations/20261101233000_rsvp_tournament_options_prevent_duplicate_email.sql');
+  assert.ok(edge.includes("code:'rsvp_duplicate_email'"));
+  assert.ok(edge.includes("eq('member_email',p.email)"));
+  assert.ok(edge.includes(".not('verified_at','is',null).limit(1)"));
+  assert.ok(edge.indexOf("const cf=await fetch('https://challenges.cloudflare.com/turnstile") <
+    edge.indexOf("const existing=await db.from('event_rsvps')"));
+  assert.ok(edge.includes('tournament_youth_enabled===false'));
+  assert.ok(edge.includes('tournament_women_enabled!==true'));
+  assert.ok(edge.includes('tournament_men_enabled!==true'));
+  assert.ok(edge.includes("['Damenmeisterschaft',p.women.length"));
+  assert.ok(edge.includes("['Herrenmeisterschaft',p.men.length"));
+  assert.ok(migration.includes('women_registrations jsonb not null'));
+  assert.ok(migration.includes('men_registrations jsonb not null'));
+  assert.ok(migration.includes('on conflict(event_id,member_email) do nothing'));
+  assert.ok(migration.includes('get diagnostics v_inserted = row_count'));
+  assert.ok(migration.includes('if v_inserted=0 then return false'));
+  assert.ok(!migration.includes('do update set'));
+});

@@ -71,12 +71,22 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <label class="rsvp-check"><input id="rsvp-help-setup" type="checkbox" /> Ich kann beim Aufbau / bei den Vorbereitungen helfen.</label>
             <label class="rsvp-check"><input id="rsvp-help-cleanup" type="checkbox" /> Ich kann beim Abbau / Aufräumen helfen.</label>
           </fieldset>
-          <section class="rsvp-youth-section" aria-labelledby="rsvp-youth-heading">
+          <section class="rsvp-youth-section" id="rsvp-youth-section" aria-labelledby="rsvp-youth-heading">
             <h3 id="rsvp-youth-heading">Jugendvereinsmeisterschaften</h3>
             <p class="muted">Melde die Jugendlichen für eine Altersklasse an – unabhängig davon, ob ihr zum Sommerfest kommt. Die Einteilung kann sich je nach Anmeldungen ändern.</p>
             <div class="rsvp-youth-rows" id="rsvp-youth-rows"></div>
             <button type="button" id="rsvp-add-youth" class="button ghost">+ Jugendliche Person anmelden</button>
             <p class="rsvp-youth-consent">Bitte nur mit Zustimmung der Erziehungsberechtigten Namen von Kindern und Jugendlichen eintragen.</p>
+          </section>
+          <section class="rsvp-adult-tournament" id="rsvp-women-section" aria-labelledby="rsvp-women-heading" hidden>
+            <h3 id="rsvp-women-heading">Damenvereinsmeisterschaft</h3>
+            <p class="muted">Optional: Melde Spielerinnen zur Damenvereinsmeisterschaft an – unabhängig von der Teilnahme am Sommerfest.</p>
+            <div class="rsvp-field"><label for="rsvp-women-names">Namen der Spielerinnen (eine Person pro Zeile)</label><textarea id="rsvp-women-names" rows="3" maxlength="1300" placeholder="Vorname Nachname"></textarea></div>
+          </section>
+          <section class="rsvp-adult-tournament" id="rsvp-men-section" aria-labelledby="rsvp-men-heading" hidden>
+            <h3 id="rsvp-men-heading">Herrenvereinsmeisterschaft</h3>
+            <p class="muted">Optional: Melde Spieler zur Herrenvereinsmeisterschaft an – unabhängig von der Teilnahme am Sommerfest.</p>
+            <div class="rsvp-field"><label for="rsvp-men-names">Namen der Spieler (eine Person pro Zeile)</label><textarea id="rsvp-men-names" rows="3" maxlength="1300" placeholder="Vorname Nachname"></textarea></div>
           </section>
           <div class="rsvp-turnstile" id="rsvp-turnstile-wrap" hidden>
             <strong>Ich bin ein Mensch</strong>

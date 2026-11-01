@@ -2360,3 +2360,18 @@ main.main--flush{padding:0}
 .rsvp-admin-results{overflow-x:auto}
 #rsvp-admin-feedback:not(.hidden){padding:13px 16px;border-radius:9px;background:#e8f3ec;color:#16562d}
 #rsvp-admin-feedback.is-error{background:#fff0f1;color:#a10d1c}
+
+/* Admin-Schalter und Turnierfelder der TSV-Veranstaltungen */
+.rsvp-admin-tournaments{display:grid;gap:12px;padding:16px;border:1px solid #dbe6df;border-radius:12px;min-width:0}
+.rsvp-admin-tournaments legend{font-weight:850;color:#22422d;padding:0 8px}
+.rsvp-admin-tournaments label{display:flex;align-items:center;gap:10px;font-weight:700;color:#294a33;cursor:pointer}
+.rsvp-admin-tournaments label input{width:20px;height:20px;accent-color:#b50d21;flex:0 0 auto}
+.rsvp-adult-tournament{display:grid;gap:10px;border:1px solid #dbe7df;background:#f9fcfa;padding:16px;border-radius:12px}
+.rsvp-adult-tournament[hidden],.rsvp-youth-section[hidden]{display:none!important}
+.rsvp-adult-tournament h3{margin:0;font-size:1.05rem;color:#1b3c28}
+.rsvp-adult-tournament .muted{margin:0}
+.rsvp-adult-tournament textarea{display:block;width:100%;min-width:0;min-height:94px;resize:vertical;padding:12px;border:1px solid #cddbd0;border-radius:9px;background:white;color:#203c29;font-size:16px}
+.rsvp-admin-results-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:10px}
+.rsvp-admin-results-heading h3{margin:0}
+.rsvp-admin-results-heading .button{min-width:135px}
+@media(max-width:540px){.rsvp-admin-results-heading .button{width:100%;justify-content:center}}

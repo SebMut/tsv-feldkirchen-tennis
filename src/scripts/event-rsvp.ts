@@ -5,7 +5,8 @@ type RsvpChoice = 'yes' | 'no' | 'maybe';
 type EventRow = {
   id: string; slug: string; title: string; description: string | null;
   starts_at: string; location_name: string | null; rsvp_deadline: string | null;
-  rsvp_details: { fee_note?: string; setup_note?: string; cleanup_note?: string; youth_note?: string } | null;
+  rsvp_details: { fee_note?: string; setup_note?: string; cleanup_note?: string; youth_note?: string;
+    tournament_youth_enabled?: boolean; tournament_women_enabled?: boolean; tournament_men_enabled?: boolean } | null;
 };
 type Summary = { yes: number; no: number; maybe: number; persons: number; adults: number; children: number };
 type YouthRegistration = { name: string; category: string };
@@ -77,6 +78,16 @@ export async function initEventRsvp() {
     return values;
   };
 
+  const adultRoster = (id: string): string[] | null => {
+    const sectionId = id === 'rsvp-women-names' ? 'rsvp-women-section' : 'rsvp-men-section';
+    if (byId<HTMLElement>(sectionId)?.hidden) return [];
+    const raw = byId<HTMLTextAreaElement>(id)?.value.trim() || '';
+    if (!raw) return [];
+    const names = raw.split(/\r?\n/).map(name => name.trim());
+    return names.length <= 12 && names.every(name => name.length >= 2 && name.length <= 100)
+      ? names : null;
+  };
+
   const slug = new URLSearchParams(window.location.search).get('slug')?.trim() || 'sommerfest';
   let active: EventRow | null = null;
   const response = await supabase.from('events')
@@ -99,6 +110,15 @@ export async function initEventRsvp() {
       byId<HTMLElement>('rsvp-helper-note')!.textContent = [details.setup_note, details.cleanup_note].filter(Boolean).join(' ');
     }
     if (details.youth_note) byId<HTMLElement>('rsvp-youth-note')!.textContent = details.youth_note;
+    const youthEnabled = details.tournament_youth_enabled !== false;
+    const womenEnabled = details.tournament_women_enabled === true;
+    const menEnabled = details.tournament_men_enabled === true;
+    byId<HTMLElement>('rsvp-youth-section')!.hidden = !youthEnabled;
+    byId<HTMLElement>('rsvp-women-section')!.hidden = !womenEnabled;
+    byId<HTMLElement>('rsvp-men-section')!.hidden = !menEnabled;
+    if (!youthEnabled) youthRows.replaceChildren();
+    if (!womenEnabled) byId<HTMLTextAreaElement>('rsvp-women-names')!.value = '';
+    if (!menEnabled) byId<HTMLTextAreaElement>('rsvp-men-names')!.value = '';
   } else {
     byId<HTMLElement>('rsvp-mode-label')!.textContent = 'Vorlage 2024 · Demo';
     byId<HTMLElement>('rsvp-demo-note')!.textContent = response.error
@@ -198,7 +218,9 @@ export async function initEventRsvp() {
     const adults = selected === 'yes' ? Number(adultsInput.value) : 0;
     const children = selected === 'yes' ? Number(childrenInput.value) : 0;
     const partySize = adults + children;
-    const youth = youthValues();
+    const youth = byId<HTMLElement>('rsvp-youth-section')?.hidden ? [] : youthValues();
+    const women = adultRoster('rsvp-women-names');
+    const men = adultRoster('rsvp-men-names');
     feedback.classList.remove('hidden', 'is-error');
     if (memberName.length < 2 || memberName.length > 100
       || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(memberEmail) || memberEmail.length > 254
@@ -212,6 +234,10 @@ export async function initEventRsvp() {
       showFeedback('Bitte für jede Jugendanmeldung einen vollständigen Namen und eine Altersklasse auswählen.',true);
       return;
     }
+    if (!women || !men) {
+      showFeedback('Bitte für die Damen- und Herrenmeisterschaften vollständige Namen eingeben (eine Person pro Zeile, maximal 12).',true);
+      return;
+    }
     const dessert = byId<HTMLInputElement>('rsvp-dessert')?.value.trim() || '';
     const salad = byId<HTMLInputElement>('rsvp-salad')?.value.trim() || '';
     if (dessert.length > 180 || salad.length > 180) {
@@ -219,7 +245,7 @@ export async function initEventRsvp() {
       return;
     }
     if (!event) {
-      showFeedback(`Demo: ${selected === 'yes' ? `${adults} Erwachsene und ${children} Kinder/Jugendliche` : selected === 'maybe' ? 'Vielleicht' : 'Absage'}, ${youth.length} Jugendanmeldungen. Keine E-Mail versendet, nichts gespeichert.`);
+      showFeedback(`Demo: ${selected === 'yes' ? `${adults} Erwachsene und ${children} Kinder/Jugendliche` : selected === 'maybe' ? 'Vielleicht' : 'Absage'}, ${youth.length} Jugend-, ${women.length} Damen-, ${men.length} Herrenanmeldungen. Keine E-Mail versendet, nichts gespeichert.`);
       return;
     }
     if (!enabled) {
@@ -238,7 +264,7 @@ export async function initEventRsvp() {
         attendance:selected, adults,children,dessert,salad,
         help_setup:!!byId<HTMLInputElement>('rsvp-help-setup')?.checked,
         help_cleanup:!!byId<HTMLInputElement>('rsvp-help-cleanup')?.checked,
-        youth,turnstileToken,
+        youth,women,men,turnstileToken,
       }});
       if (error || !data?.pending) {
         // supabase.functions.invoke puts a JSON body from 4xx/5xx responses
