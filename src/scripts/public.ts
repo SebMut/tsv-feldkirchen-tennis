@@ -1,5 +1,5 @@
 import { calendarFeedUrl, mediaUrl, supabase } from '../lib/supabase';
-import { escapeHtml, formatDateTime, slugify } from '../lib/ui';
+import { escapeHtml, formatDateTime } from '../lib/ui';
 import { officialBtvTeamDestination } from '../lib/btv-group-url';
 
 type Row = Record<string, any>;
@@ -385,6 +385,20 @@ export async function loadTeams() {
     .map((s: Row) => [s.code, s]));
   const teamsById = byId(reference.teams);
   const publishedTeamSeasons = reference.teamSeasons.filter((ts: Row) => ts.is_published && teamsById.has(ts.team_id));
+  const teamGroups = [
+    { id: 'herren', name: 'Herren' },
+    { id: 'damen', name: 'Damen' },
+    { id: 'junioren', name: 'Junioren' },
+    { id: 'juniorinnen', name: 'Juniorinnen' },
+    { id: 'knaben', name: 'Knaben' },
+    { id: 'maedchen', name: 'Mädchen' },
+    { id: 'bambini', name: 'Bambini' },
+    { id: 'kleinfeld', name: 'Kleinfeld' },
+  ];
+  const groupForTeam = (team: Row | undefined) => {
+    const value = `${team?.slug || ''} ${team?.name || ''}`.toLocaleLowerCase('de-DE');
+    return teamGroups.find((group) => value.includes(group.id) || (group.id === 'maedchen' && value.includes('mädchen')))?.id || '';
+  };
   const teamsForSeason = (season: Row | undefined) => season
     ? publishedTeamSeasons.filter((ts: Row) => ts.season_id === season.id) : [];
   const seasonCounts = new Map<string, number>(seasonCodes.map((code) => [code, teamsForSeason(seasonByCode.get(code)).length]));
@@ -406,8 +420,8 @@ export async function loadTeams() {
     || seasonByCode.get('sommer-2026');
   let activeCode = defaultSeason?.code || 'sommer-2026';
   let activeCategory = '';
-  const knownCategories = reference.categories.filter((category: Row) =>
-    publishedTeamSeasons.some((ts: Row) => teamsById.get(ts.team_id)?.category_id === category.id));
+  const knownCategories = teamGroups.filter((category) =>
+    publishedTeamSeasons.some((ts: Row) => groupForTeam(teamsById.get(ts.team_id)) === category.id));
   categoryTarget.innerHTML = [
     '<button type="button" class="teams-category-chip is-active" data-category="" aria-pressed="true">Alle Teams</button>',
     ...knownCategories.map((category: Row) =>
@@ -430,10 +444,8 @@ export async function loadTeams() {
     const legacy = reference.seasons.find((s: Row) => s.id === code)?.code;
     activeCode = seasonCodes.includes(code || '') ? code! :
       legacy && seasonCodes.includes(legacy) ? legacy : defaultSeason?.code || 'sommer-2026';
-    const category = params.get('category') || '';
-    const requestedGroup = params.get('gruppe') || '';
-    const groupedCategory = knownCategories.find((c: Row) => slugify(String(c.name || '')) === requestedGroup);
-    activeCategory = knownCategories.some((c: Row) => c.id === category) ? category : groupedCategory?.id || '';
+    const requestedGroup = params.get('gruppe') || params.get('category') || '';
+    activeCategory = knownCategories.some((category) => category.id === requestedGroup) ? requestedGroup : '';
   };
   const setUrlState = () => {
     const url = new URL(window.location.href);
@@ -468,7 +480,7 @@ export async function loadTeams() {
         };
         return rank(a.team) - rank(b.team) || (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0) || String(a.team.name).localeCompare(String(b.team.name), 'de');
       });
-    const rows = allRows.filter(({ team }: {team: Row}) => !activeCategory || team.category_id === activeCategory);
+    const rows = allRows.filter(({ team }: {team: Row}) => !activeCategory || groupForTeam(team) === activeCategory);
     const title = selectedSeason?.name || (activeCode === 'winter-2026-2027' ? 'Winter 2026/2027' : activeCode === 'sommer-2027' ? 'Sommer 2027' : 'Saison 2026');
     heading.textContent = title;
     info.textContent = allRows.length > 0
