@@ -2,8 +2,10 @@ import { createClient } from 'npm:@supabase/supabase-js@2.75.0';
 
 // Public Edge endpoint: no user login is required; all writes go through
 // verified Cloudflare Turnstile and a single-use e-mail confirmation token.
-// Never expose RESEND_API_KEY, TURNSTILE_SECRET_KEY or service_role to browser.
+// Never expose Gmail OAuth credentials, TURNSTILE_SECRET_KEY or service_role to browser.
+// Only the account granted Gmail API gmail.send may send confirmation emails.
 const env = (key: string) => Deno.env.get(key)?.trim() || '';
+const GMAIL_SENDER = 'tsvfeldkirchen.tennis@gmail.com';
 const allowedOrigins = new Set([
   'https://sebmut.github.io',
   'https://www.tennis-tsvfeldkirchen.de',
@@ -76,6 +78,71 @@ function describe(p:ReturnType<typeof validate>,event:{title:string;starts_at:st
   ] as [string,string][];
 }
 
+/**
+ * Gmail API accepts RFC 5322 MIME encoded as base64url. Both plain text and
+ * HTML must be UTF-8 safe; authentication is restricted to gmail.send.
+ */
+function base64Utf8(value:string):string {
+  const bytes=new TextEncoder().encode(value);
+  let binary='';
+  for(let i=0;i<bytes.length;i+=8192){
+    binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+  }
+  return btoa(binary);
+}
+function wrapBase64(value:string):string {
+  return base64Utf8(value).match(/.{1,76}/g)?.join('\r\n') || '';
+}
+function mimeMessage(to:string,plain:string,html:string):string {
+  const boundary='tsv-rsvp-'+crypto.randomUUID().replaceAll('-','');
+  const lines=[
+    'From: TSV Feldkirchen Tennis <'+GMAIL_SENDER+'>',
+    'To: <'+to+'>',
+    'Subject: TSV Feldkirchen: Anmeldung bitte bestaetigen',
+    'Date: '+new Date().toUTCString(),
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/alternative; boundary="'+boundary+'"',
+    '',
+    '--'+boundary,
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    wrapBase64(plain),
+    '--'+boundary,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    wrapBase64(html),
+    '--'+boundary+'--','',
+  ];
+  return base64Utf8(lines.join('\r\n')).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
+}
+async function sendGmail(to:string,plain:string,html:string):Promise<boolean> {
+  // Refresh only on the server; never store or return an OAuth access token.
+  const tokenResponse=await fetch('https://oauth2.googleapis.com/token',{
+    method:'POST',
+    headers:{'content-type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({
+      client_id:env('GMAIL_CLIENT_ID'),
+      client_secret:env('GMAIL_CLIENT_SECRET'),
+      refresh_token:env('GMAIL_REFRESH_TOKEN'),
+      grant_type:'refresh_token',
+    }),
+  }).catch(()=>null);
+  if(!tokenResponse?.ok) return false;
+  const access=await tokenResponse.json().catch(()=>null);
+  if(typeof access?.access_token!=='string'||!access.access_token) return false;
+  const sent=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
+    method:'POST',
+    headers:{
+      authorization:'Bearer '+access.access_token,
+      'content-type':'application/json',
+    },
+    body:JSON.stringify({raw:mimeMessage(to,plain,html)}),
+  }).catch(()=>null);
+  return !!sent?.ok;
+}
+
 Deno.serve(async request=>{
   const origin=request.headers.get('origin');
   if (request.method==='OPTIONS') return new Response(null,{status:204,headers:headers(origin)});
@@ -87,11 +154,12 @@ Deno.serve(async request=>{
   try {body=JSON.parse(raw);} catch {return reply(400,{error:'Ungültige Anfrage'},origin);}
   const action=body.action;
   const configured=!!(env('TURNSTILE_SITE_KEY')&&env('TURNSTILE_SECRET_KEY')
-    &&env('RESEND_API_KEY')&&env('RESEND_FROM_EMAIL')&&env('RSVP_BASE_URL')
-    &&env('SUPABASE_URL')&&env('SUPABASE_SERVICE_ROLE_KEY'));
+    &&env('GMAIL_CLIENT_ID')&&env('GMAIL_CLIENT_SECRET')&&env('GMAIL_REFRESH_TOKEN')
+    &&env('RSVP_BASE_URL')&&env('SUPABASE_URL')&&env('SUPABASE_SERVICE_ROLE_KEY'));
   if(action==='config') {
-    return reply(200,configured?{enabled:true,siteKey:env('TURNSTILE_SITE_KEY')}
-      :{enabled:false,message:'Der E-Mail-Versand und die Cloudflare-Menschprüfung müssen noch vom Verein eingerichtet werden.'},origin);
+    return reply(200,configured?{
+      enabled:true,siteKey:env('TURNSTILE_SITE_KEY'),sender:GMAIL_SENDER,
+    }:{enabled:false,message:'Gmail-Zugriff und Cloudflare-Menschprüfung müssen vor der Anmeldung noch vom Verein freigegeben werden.'},origin);
   }
   if (!configured) return reply(503,{error:'Anmeldung derzeit nicht verfügbar. E-Mail-Versand und Cloudflare Turnstile sind noch nicht eingerichtet.'},origin);
   const db=createClient(env('SUPABASE_URL'),env('SUPABASE_SERVICE_ROLE_KEY'),{
@@ -183,15 +251,12 @@ Deno.serve(async request=>{
     +rows.map(([k,v])=>k+': '+v).join('\n')
     +'\n\nErst nach deiner Bestätigung zählt die Rückmeldung.\nBestätigen: '+link
     +'\n\nDer Link ist 24 Stunden gültig. Falls du das nicht angefordert hast, ignoriere diese Nachricht.';
-  const mail=await fetch('https://api.resend.com/emails',{
-    method:'POST',headers:{Authorization:'Bearer '+env('RESEND_API_KEY'),'content-type':'application/json'},
-    body:JSON.stringify({from:env('RESEND_FROM_EMAIL'),to:[p.email],
-      subject:'Bitte bestätige deine Rückmeldung: '+event.title,
-      html,text:textContent}),
-  }).catch(()=>null);
-  if(!mail?.ok){
+  // E-Mail geht tatsächlich vom verknüpften Vereins-Gmail-Konto aus.
+  // Die Adresse gehört nicht einem externen Domain-Sender wie Resend.
+  const sent=await sendGmail(p.email,textContent,html);
+  if(!sent){
     await db.from('event_rsvp_pending').delete().eq('id',pending.id);
-    return reply(503,{error:'Die E-Mail konnte nicht versendet werden. Bitte Adresse prüfen oder später erneut versuchen.'},origin);
+    return reply(503,{error:'Gmail konnte die E-Mail nicht versenden. Bitte Google-Freigabe prüfen oder später erneut versuchen.'},origin);
   }
   return reply(200,{pending:true,message:'Bitte öffne die E-Mail und bestätige deine Rückmeldung über den Link. Erst dann zählt deine Antwort.'},origin);
 });

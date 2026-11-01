@@ -31,7 +31,7 @@ test('public email address is required and confirmation required before counting
 });
 
 test('server fails closed if Turnstile or e-mail settings not installed',()=>{
-  for(const secret of ['TURNSTILE_SITE_KEY','TURNSTILE_SECRET_KEY','RESEND_API_KEY','RESEND_FROM_EMAIL','RSVP_BASE_URL'])
+  for(const secret of ['TURNSTILE_SITE_KEY','TURNSTILE_SECRET_KEY','GMAIL_CLIENT_ID','GMAIL_CLIENT_SECRET','GMAIL_REFRESH_TOKEN','RSVP_BASE_URL'])
     assert.ok(edge.includes("env('"+secret+"')"),secret);
   assert.ok(edge.includes('if (!configured) return reply(503'));
   assert.ok(edge.includes("action==='config'"));
@@ -50,15 +50,30 @@ test('Cloudflare Turnstile verified by remote Siteverify, hostname enforced and 
   assert.ok(publicCode.includes('resetChallenge()'));
 });
 
-test('resend confirmation includes all details, secure link, and is only sent after CAPTCHA',()=>{
-  assert.ok(edge.indexOf('siteverify') < edge.indexOf("const mail=await fetch('https://api.resend.com/emails'"));
-  assert.ok(edge.includes('https://api.resend.com/emails'));
-  assert.ok(edge.includes('rows.map(([k,v])'));
-  assert.ok(edge.includes('escapeHtml(v)'));
+test('Gmail sends with the TSV Feldkirchen address only after Cloudflare verification',()=>{
+  assert.ok(edge.indexOf('siteverify') < edge.indexOf('const sent=await sendGmail('));
+  assert.ok(edge.includes("GMAIL_SENDER = 'tsvfeldkirchen.tennis@gmail.com'"));
+  assert.ok(edge.includes('https://oauth2.googleapis.com/token'));
+  assert.ok(edge.includes('https://gmail.googleapis.com/gmail/v1/users/me/messages/send'));
+  assert.ok(edge.includes("grant_type:'refresh_token'"));
+  assert.ok(edge.includes('authorization:\'Bearer \'+access.access_token'));
   assert.ok(edge.includes("['E-Mail',p.email]"));
   assert.ok(edge.includes("['Jugendmeisterschaften'"));
   assert.ok(edge.includes('confirmation.searchParams.set(\'token\',secret)'));
   assert.ok(edge.includes('crypto.getRandomValues(new Uint8Array(32))'));
+  assert.ok(!edge.includes('api.resend.com'));
+  assert.ok(!edge.includes('RESEND_API_KEY'));
+});
+
+test('Gmail MIME is UTF-8 safe, includes text and HTML and a valid sender',()=>{
+  assert.ok(edge.includes('function base64Utf8(value:string)'));
+  assert.ok(edge.includes("new TextEncoder().encode(value)"));
+  assert.ok(edge.includes('Content-Type: multipart/alternative'));
+  assert.ok(edge.includes('Content-Type: text/html; charset=UTF-8'));
+  assert.ok(edge.includes('Content-Type: text/plain; charset=UTF-8'));
+  assert.ok(edge.includes("base64Utf8(lines.join("));
+  assert.ok(edge.includes('raw:mimeMessage(to,plain,html)'));
+  assert.ok(edge.includes("'From: TSV Feldkirchen Tennis <'+GMAIL_SENDER+'>'"));
 });
 
 test('confirmation requires an active deliberate click, not email link previews',()=>{
