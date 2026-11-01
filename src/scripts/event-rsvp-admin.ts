@@ -153,7 +153,10 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     if(!event){message('Bitte zuerst eine Veranstaltung auswählen.',true);return}
     if(pdfButton.disabled) return;
     try {
-      downloadRsvpPdf(event, verifiedResponses);
+      downloadRsvpPdf({
+        title:String(event.title),slug:String(event.slug),starts_at:String(event.starts_at),
+        rsvp_details:event.rsvp_details||{},
+      },verifiedResponses);
       message('PDF mit den bestätigten Rückmeldungen wurde erstellt.');
     } catch (error) {
       message('PDF konnte nicht erstellt werden: '+(error instanceof Error ? error.message : 'Unbekannter Fehler'),true);
