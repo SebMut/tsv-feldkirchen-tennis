@@ -123,9 +123,12 @@ test('team pages always show their navigation level', () => {
   assert.match(detail, /label: 'Herren', key: 'herren'/);
   assert.match(detail, /label: 'Damen', key: 'damen'/);
   assert.match(detail, /label: 'Junioren', key: 'junioren'/);
-  assert.match(detail, /mannschaften\/\?gruppe=\$\{teamGroup\.key\}/);
+  assert.match(detail, /mannschaften\/\?category=\$\{teamGroup\.key\}/);
   assert.match(detail, /label: teamName/);
-  assert.match(source('src/scripts/public.ts'), /params\.get\('gruppe'\)/);
+  const publicJs = source('src/scripts/public.ts');
+  assert.match(publicJs, /params\.get\('category'\) \|\| params\.get\('gruppe'\)/);
+  assert.match(publicJs, /seasonForGroup\(activeCategory\)/);
+  assert.match(publicJs, /url\.searchParams\.set\('season', currentSeasonCode\)/);
   assert.match(source('src/scripts/public.ts'), /\{ id: 'junioren', name: 'Junioren' \}/);
   assert.match(source('src/scripts/public.ts'), /groupForTeam\(team\) === activeCategory/);
   assert.match(component, /aria-current="page"/);
