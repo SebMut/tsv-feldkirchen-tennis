@@ -127,3 +127,31 @@ test('Browser displays safe provider error body even when HTTP status is 503',()
   assert.ok(publicCode.includes("typeof failure?.error === 'string'"));
   assert.ok(publicCode.includes("showFeedback(reason ||"));
 });
+
+test('RSVP base URL accepts only known canonical paths, never a copied label or arbitrary path',()=>{
+  const allowed = [
+    'https://sebmut.github.io/tsv-feldkirchen-tennis/',
+    'https://www.tennis-tsvfeldkirchen.de/',
+    'https://tennis-tsvfeldkirchen.de/',
+  ];
+  assert.ok(edge.includes("const allowedRsvpBases = new Set(["));
+  assert.ok(edge.includes("function validatedRsvpBase(): URL | null"));
+  assert.ok(edge.includes("allowedRsvpBases.has(base.href)"));
+  assert.ok(edge.includes("const base=validatedRsvpBase();"));
+  assert.ok(edge.includes("&&base&&env('SUPABASE_URL')"));
+  assert.ok(edge.includes("const confirmation=new URL('veranstaltung/bestaetigen/',base)"));
+  assert.ok(edge.includes("Die Supabase-Einstellung RSVP_BASE_URL ist ungültig."));
+  for(const url of allowed) {
+    assert.ok(edge.includes("'"+url+"'"));
+    assert.ok(new URL('veranstaltung/bestaetigen/',url).pathname.endsWith('/veranstaltung/bestaetigen/'));
+  }
+  for(const invalid of [
+    'https://sebmut.github.io/tsv-feldkirchen-tennis/%20Wert/',
+    'https://sebmut.github.io/tsv-feldkirchen-tennis/ Wert/',
+    'https://sebmut.github.io/',
+    'https://attacker.example/tsv-feldkirchen-tennis/',
+    'http://sebmut.github.io/tsv-feldkirchen-tennis/',
+  ]) {
+    assert.ok(!allowed.includes(new URL(invalid).href),invalid);
+  }
+});
