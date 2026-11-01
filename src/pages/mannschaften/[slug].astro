@@ -21,10 +21,23 @@ const teamNames: Record<string, string> = {
   'bambini-12-iii': 'Bambini 12 III', 'kleinfeld-u9': 'Kleinfeld U9'
 };
 const teamName = teamNames[slug ?? ''] ?? 'Mannschaft';
+const teamGroup = slug?.startsWith('herren') ? { label: 'Herren', key: 'herren' }
+  : slug?.startsWith('damen') ? { label: 'Damen', key: 'damen' }
+  : slug?.startsWith('junioren') ? { label: 'Junioren', key: 'junioren' }
+  : slug?.startsWith('knaben') ? { label: 'Knaben', key: 'knaben' }
+  : slug?.startsWith('maedchen') ? { label: 'Mädchen', key: 'maedchen' }
+  : slug?.startsWith('bambini') ? { label: 'Bambini', key: 'bambini' }
+  : { label: 'Kleinfeld', key: 'kleinfeld' };
+const breadcrumbItems = [
+  { label: 'Startseite', href: '/' },
+  { label: 'Mannschaften', href: '/mannschaften/' },
+  ...(teamName === teamGroup.label ? [] : [{ label: teamGroup.label, href: `/mannschaften/?gruppe=${teamGroup.key}` }]),
+  { label: teamName }
+];
 ---
 <MainLayout title="Mannschaft | TSV Feldkirchen Tennis">
   <div class="container stack" data-team-slug={slug}>
-    <Breadcrumbs items={[{ label: 'Startseite', href: '/' }, { label: 'Mannschaften', href: '/mannschaften/' }, { label: teamName }]} />
+    <Breadcrumbs items={breadcrumbItems} />
     <div id="team-header"><p class="muted">Mannschaft wird geladen …</p></div>
     <section id="team-next-match" class="hidden" aria-live="polite"></section>
     <section class="grid two">

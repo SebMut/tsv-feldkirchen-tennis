@@ -120,7 +120,12 @@ test('team pages always show their navigation level', () => {
   assert.match(overview, /label: 'Startseite'/);
   assert.match(overview, /label: 'Mannschaften'/);
   assert.match(detail, /label: 'Mannschaften', href: '\/mannschaften\/'/);
+  assert.match(detail, /label: 'Herren', key: 'herren'/);
+  assert.match(detail, /label: 'Damen', key: 'damen'/);
+  assert.match(detail, /label: 'Junioren', key: 'junioren'/);
+  assert.match(detail, /mannschaften\/\?gruppe=\$\{teamGroup\.key\}/);
   assert.match(detail, /label: teamName/);
+  assert.match(source('src/scripts/public.ts'), /params\.get\('gruppe'\)/);
   assert.match(component, /aria-current="page"/);
   assert.match(component, /aria-label="Brotkrümelnavigation"/);
 });
