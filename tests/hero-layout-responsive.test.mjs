@@ -242,3 +242,17 @@ test('teams overview and detail fit phone width while wide standings scroll insi
   assert.ok(script.includes('Mannschaft öffnen'));
   assert.ok(script.includes('tennis.de Team suchen ↗'));
 });
+
+test('team squad roster is collapsed initially and can be expanded by its native details control',()=>{
+  const detail=readFileSync(new URL('../src/pages/mannschaften/[slug].astro',import.meta.url),'utf8');
+  const publicScript=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
+  assert.match(detail,/<details class="card team-roster-disclosure" id="team-roster-details">/);
+  assert.doesNotMatch(detail,/<details class="card team-roster-disclosure" id="team-roster-details" open/);
+  assert.match(detail,/<summary class="team-roster-disclosure__summary">/);
+  assert.match(detail,/id="team-roster" class="team-roster-disclosure__content"/);
+  assert.match(css,/\.team-roster-disclosure__action::after\{content:"Kader anzeigen \+"\}/);
+  assert.match(css,/\.team-roster-disclosure\[open\] \.team-roster-disclosure__action::after\{content:"Kader schließen −"\}/);
+  assert.match(css,/\.team-roster-disclosure__summary:focus-visible/);
+  assert.match(publicScript,/const roster = document\.querySelector<HTMLElement>\('#team-roster'\)/);
+  assert.match(publicScript,/class="roster-grid"/);
+});
