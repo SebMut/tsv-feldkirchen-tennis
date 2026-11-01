@@ -194,19 +194,19 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <div class="card">
               <h2>Mannschaft pflegen</h2>
               <form id="team-form" class="form-grid">
-                <div class="field full"><label>Mannschaft</label><select id="team-select" required></select></div>
-                <div class="field"><label>Name</label><input id="team-name" required /></div>
-                <div class="field"><label>Kurzname</label><input id="team-short-name" /></div>
-                <div class="field full"><label>Beschreibung</label><textarea id="team-description"></textarea></div>
-                <div class="field"><label>Liga</label><input id="team-league" /></div>
-                <div class="field"><label>Gruppe</label><input id="team-group" /></div>
-                <div class="field full"><label>BTV-Link</label><input id="team-btv-url" type="url" /></div>
+                <div class="field full"><label>Mannschaft / Saison</label><select id="team-select" required></select><p class="muted">Sommer, Winter und kommende Spielzeiten werden getrennt verwaltet.</p></div>
+                <div class="field"><label>Mannschaftsname (saisonübergreifend)</label><input id="team-name" required /></div>
+                <div class="field"><label>Kurzname (saisonübergreifend)</label><input id="team-short-name" /></div>
+                <div class="field full"><label>Beschreibung (saisonübergreifend)</label><textarea id="team-description"></textarea></div>
+                <div class="field"><label>Liga dieser Saison</label><input id="team-league" /></div>
+                <div class="field"><label>Gruppe dieser Saison</label><input id="team-group" /></div>
+                <div class="field full"><label>BTV-Link dieser Saison</label><input id="team-btv-url" type="url" /></div>
                 <div class="field full">
-                  <label>Aktuelles Mannschaftsbild</label>
+                  <label>Mannschaftsbild dieser Saison</label>
                   <div id="team-image-preview" class="team-image-preview"></div>
                 </div>
                 <div class="field"><label>Neues Mannschaftsbild</label><input id="team-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
-                <div class="field"><button id="team-image-reset" class="button ghost" type="button">Auf Standardbild zurücksetzen</button></div>
+                <div class="field"><button id="team-image-reset" class="button ghost" type="button">Saisonbild entfernen</button></div>
                 <div class="field"><button class="button" type="submit">Mannschaft speichern</button></div>
               </form>
             </div>

@@ -74,7 +74,12 @@ function defaultTeamImagePath(team: Row) {
 function teamSeasonLabel(ts: Row) {
   const team = state.teams.find((t) => t.id === ts.team_id);
   const season = state.seasons.find((s) => s.id === ts.season_id);
-  return `${team?.name ?? 'Team'} · ${season?.name ?? ''}`;
+  const seasonLabel = season?.code?.startsWith('sommer-')
+    ? `Sommer ${String(season.code).replace('sommer-', '')}`
+    : season?.code?.startsWith('winter-')
+      ? `Winter ${String(season.code).replace('winter-', '').replace('-', '/')}`
+      : season?.name ?? '';
+  return `${team?.name ?? 'Team'} · ${seasonLabel}`;
 }
 
 function renderTeamOptions(selector: string, includeBlank = false, mode: 'tick' | 'edit' = 'edit') {
@@ -301,7 +306,8 @@ async function refreshDashboard() {
 
       if (teamId && panel === 'teams') {
         const select = $<HTMLSelectElement>('#team-select');
-        if (select) select.value = teamId;
+        const ts = currentTeamSeason(teamId);
+        if (select && ts) select.value = ts.id;
         fillTeamForm();
       }
 
@@ -326,9 +332,10 @@ async function refreshDashboard() {
 function fillTeamForm() {
   const select = $<HTMLSelectElement>('#team-select');
   if (!select) return;
-  const team = state.teams.find((t) => t.id === select.value);
-  if (!team) return;
-  const ts = currentTeamSeason(team.id);
+  const ts = state.teamSeasons.find((row) => row.id === select.value);
+  const team = state.teams.find((t) => t.id === ts?.team_id);
+  if (!team || !ts) return;
+  const season = state.seasons.find((row) => row.id === ts.season_id);
   ($<HTMLInputElement>('#team-name')!).value = team.name ?? '';
   ($<HTMLInputElement>('#team-short-name')!).value = team.short_name ?? '';
   ($<HTMLTextAreaElement>('#team-description')!).value = team.description ?? '';
@@ -337,21 +344,22 @@ function fillTeamForm() {
   ($<HTMLInputElement>('#team-btv-url')!).value = ts?.btv_url ?? '';
   const preview = $('#team-image-preview');
   if (preview) {
-    const path = team.image_path || defaultTeamImagePath(team);
+    const path = ts.team_image_path || team.image_path || defaultTeamImagePath(team);
+    const isSeasonImage = !!ts.team_image_path;
     const isDefault = path === defaultTeamImagePath(team);
     preview.innerHTML = path
-      ? `<img src="${escapeHtml(mediaUrl(path))}" alt="Aktuelles Mannschaftsbild ${escapeHtml(team.name)}" /><div><strong>${isDefault ? 'Standardbild' : 'Individuelles Mannschaftsfoto'}</strong><p class="muted">${isDefault ? 'Bis ein echtes Mannschaftsfoto hochgeladen wird.' : 'Dieses Bild wird öffentlich angezeigt.'}</p></div>`
+      ? `<img src="${escapeHtml(mediaUrl(path))}" alt="Mannschaftsbild ${escapeHtml(team.name)} ${escapeHtml(season?.name || '')}" /><div><strong>${isSeasonImage ? `Saisonbild · ${escapeHtml(season?.name || '')}` : isDefault ? 'Standardbild' : 'Saisonübergreifendes Bild'}</strong><p class="muted">${isSeasonImage ? 'Dieses Bild gilt ausschließlich für die ausgewählte Saison.' : 'Für diese Saison ist noch kein eigenes Bild hinterlegt.'}</p></div>`
       : '<p class="muted">Noch kein Mannschaftsbild vorhanden.</p>';
   }
 }
 
 async function saveTeam(event: Event) {
   event.preventDefault();
-  const teamId = $<HTMLSelectElement>('#team-select')?.value;
-  if (!teamId) return;
-  const ts = currentTeamSeason(teamId);
-  const existingTeam = state.teams.find((row) => row.id === teamId);
-  const oldImagePath = existingTeam?.image_path || null;
+  const teamSeasonId = $<HTMLSelectElement>('#team-select')?.value;
+  const ts = state.teamSeasons.find((row) => row.id === teamSeasonId);
+  const teamId = ts?.team_id;
+  if (!teamId || !ts) return;
+  const oldImagePath = ts.team_image_path || null;
   const teamUpdate = {
     name: $<HTMLInputElement>('#team-name')?.value.trim(),
     short_name: $<HTMLInputElement>('#team-short-name')?.value.trim() || null,
@@ -360,55 +368,55 @@ async function saveTeam(event: Event) {
   const { error: teamError } = await supabase.from('teams').update(teamUpdate).eq('id', teamId);
   if (teamError) return status(teamError.message, 'error');
 
-  if (ts) {
-    const { error: seasonError } = await supabase.from('team_seasons').update({
-      league: $<HTMLInputElement>('#team-league')?.value.trim() || null,
-      group_name: $<HTMLInputElement>('#team-group')?.value.trim() || null,
-      btv_url: $<HTMLInputElement>('#team-btv-url')?.value.trim() || null,
-    }).eq('id', ts.id);
-    if (seasonError) return status(seasonError.message, 'error');
-  }
+  const { error: seasonError } = await supabase.from('team_seasons').update({
+    league: $<HTMLInputElement>('#team-league')?.value.trim() || null,
+    group_name: $<HTMLInputElement>('#team-group')?.value.trim() || null,
+    btv_url: $<HTMLInputElement>('#team-btv-url')?.value.trim() || null,
+  }).eq('id', ts.id);
+  if (seasonError) return status(seasonError.message, 'error');
 
   const file = $<HTMLInputElement>('#team-image')?.files?.[0];
   if (file) {
     const image = await optimizeImage(file);
-    const path = `teams/${teamId}/team/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+    const path = `teams/${teamId}/seasons/${ts.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
     const { error: uploadError } = await supabase.storage.from('media').upload(path, image, { upsert: false });
     if (uploadError) return status(uploadError.message, 'error');
-    const { error: imageError } = await supabase.from('teams').update({ image_path: path }).eq('id', teamId);
+    const { error: imageError } = await supabase.from('team_seasons').update({ team_image_path: path }).eq('id', ts.id);
     if (imageError) return status(imageError.message, 'error');
 
-    if (oldImagePath && oldImagePath !== path && oldImagePath.startsWith(`teams/${teamId}/team/`)) {
+    if (oldImagePath && oldImagePath !== path && oldImagePath.startsWith(`teams/${teamId}/seasons/${ts.id}/`)) {
       await supabase.storage.from('media').remove([oldImagePath]);
     }
   }
 
   await loadCore();
   renderSelectors();
+  const teamSelect = $<HTMLSelectElement>('#team-select');
+  if (teamSelect) teamSelect.value = ts.id;
   fillTeamForm();
   await refreshDashboard();
   status('Mannschaft gespeichert.', 'success');
 }
 
 async function resetTeamImage() {
-  const teamId = $<HTMLSelectElement>('#team-select')?.value;
-  const team = state.teams.find((row) => row.id === teamId);
-  if (!teamId || !team) return;
-  const fallback = defaultTeamImagePath(team);
-  if (!fallback) return status('Für diese Mannschaft ist kein Standardbild definiert.', 'error');
-
-  const currentPath = team.image_path;
-  const { error } = await supabase.from('teams').update({ image_path: fallback }).eq('id', teamId);
+  const teamSeasonId = $<HTMLSelectElement>('#team-select')?.value;
+  const ts = state.teamSeasons.find((row) => row.id === teamSeasonId);
+  const team = state.teams.find((row) => row.id === ts?.team_id);
+  if (!ts || !team) return;
+  const currentPath = ts.team_image_path;
+  const { error } = await supabase.from('team_seasons').update({ team_image_path: null }).eq('id', ts.id);
   if (error) return status(error.message, 'error');
 
-  if (currentPath && currentPath !== fallback && currentPath.startsWith(`teams/${teamId}/team/`)) {
+  if (currentPath && currentPath.startsWith(`teams/${team.id}/seasons/${ts.id}/`)) {
     await supabase.storage.from('media').remove([currentPath]);
   }
 
   await loadCore();
   renderSelectors();
+  const teamSelect = $<HTMLSelectElement>('#team-select');
+  if (teamSelect) teamSelect.value = ts.id;
   fillTeamForm();
-  status('Standardbild wiederhergestellt.', 'success');
+  status('Saisonbild entfernt. Das allgemeine Mannschaftsbild wird wieder verwendet.', 'success');
 }
 
 async function refreshPlayers() {
@@ -1774,9 +1782,8 @@ function renderInviteTeamCards() {
 }
 
 function renderSelectors() {
-  const teamOptions = allowedTeams('edit').map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
   const teamSelect = $<HTMLSelectElement>('#team-select');
-  if (teamSelect) teamSelect.innerHTML = teamOptions;
+  if (teamSelect) teamSelect.innerHTML = allowedTeamSeasons('edit').map((ts) => `<option value="${ts.id}">${escapeHtml(teamSeasonLabel(ts))}</option>`).join('');
   renderTeamOptions('#news-team', state.isSuper, 'edit');
   renderTeamOptions('#event-team', state.isSuper, 'edit');
   renderTeamOptions('#gallery-team', false, 'edit');

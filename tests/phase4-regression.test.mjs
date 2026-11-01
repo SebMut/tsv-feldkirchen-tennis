@@ -86,6 +86,16 @@ test('the roster bulk import requires authorization and starts private', () => {
   assert.match(html, /öffentliche Freigabe erfolgt bei jeder Person separat/);
 });
 
+test('team administration separates summer, winter and future seasons', () => {
+  const js = source('src/scripts/admin.ts');
+  const html = source('src/pages/admin/index.astro');
+  assert.match(html, /Mannschaft \/ Saison/);
+  assert.match(js, /teamSelect\.innerHTML = allowedTeamSeasons\('edit'\)/);
+  assert.match(js, /state\.teamSeasons\.find\(\(row\) => row\.id === select\.value\)/);
+  assert.match(js, /team_image_path: path/);
+  assert.match(js, /Sommer \$\{String\(season\.code\)/);
+});
+
 test('only the BTV cron supports both seasons and remains write-protected', () => {
   const yaml = source('.github/workflows/btv-club-sync.yml');
   assert.match(yaml, /cron: '17 \*\/6 \* \* \*'/);
