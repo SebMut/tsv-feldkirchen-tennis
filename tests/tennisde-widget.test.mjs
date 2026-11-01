@@ -50,6 +50,7 @@ test('verified portraits are direct while other teams use club-filtered tennis.d
   assert.ok(publicJs.includes("url.origin !== 'https://www.tennis.de'"));
   assert.ok(publicJs.includes("url.searchParams.get('verein') !== '01012'"));
   assert.ok(publicJs.includes('teamSeason?.tennis_de_portrait_url'));
+  assert.ok(publicJs.includes('https://www.tennis.de/spielen/spielbetrieb/mannschaftssuche.html?verband=btv&verein=01012#teamview/23391'));
   assert.ok(publicJs.includes('function tennisDeTeamDestination(teamSeason: Row | undefined)'));
   assert.ok(publicJs.includes('href: portrait || TENNIS_DE_CLUB_SEARCH_URL, isDirect: !!portrait'));
   assert.ok(publicJs.includes('tennis.de Mannschaftsporträt ↗'));
