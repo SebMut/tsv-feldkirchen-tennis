@@ -377,7 +377,10 @@ function decorateMatchCards(base: BaseState) {
           if (excerpt) excerpt.value = '';
           if (body) body.value = '';
           const teamField = $<HTMLSelectElement>('#news-team');
-          if (teamField && team) teamField.value = team.id;
+          if (teamField && team) {
+            teamField.value = team.id;
+            teamField.dispatchEvent(new Event('change'));
+          }
           const matchField = $<HTMLSelectElement>('#news-match');
           if (matchField) {
             matchField.value = matchId;
@@ -440,7 +443,7 @@ function decorateMatchCards(base: BaseState) {
 
 async function prefillReport(base: BaseState) {
   const matchId = $<HTMLSelectElement>('#news-match')?.value;
-  if (!matchId) return;
+  if (!matchId || matchId.startsWith('event:')) return;
   const match = base.matches.find((row) => row.id === matchId) ?? (await supabase.from('matches').select('*').eq('id', matchId).maybeSingle()).data;
   if (!match) return;
   const team = matchTeam(base, match);
