@@ -34,7 +34,7 @@ test('welcome and three-day tennis weather share a responsive homepage row',()=>
   const close=home.indexOf('    </div>',weather);
   assert.ok(intro>=0 && weather>intro && close>weather);
   assert.match(css,/\.home-intro-grid\{display:grid;grid-template-columns:minmax\(0,1\.65fr\) minmax\(320px,1fr\)/);
-  assert.match(css,/@media\(max-width:820px\)\{\.home-intro-grid,\.home-columns\{grid-template-columns:1fr\}/);
+  assert.match(css,/@media\(max-width:820px\)\{\.premium-content\{gap:22px\}\.home-intro-grid,\.home-columns\{grid-template-columns:1fr;gap:22px\}/);
   assert.match(css,/\.weather-grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(script,/forecast_days=3/);
   assert.match(script,/weatherResult\.daily\.time\.slice\(0, 3\)/);
