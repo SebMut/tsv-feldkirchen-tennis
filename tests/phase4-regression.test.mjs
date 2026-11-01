@@ -159,22 +159,12 @@ test('public team navigation labels summer correctly and follows managed active 
   assert.match(source('src/pages/sw.js.ts'), /tsv-tennis-public-v2/);
 });
 
-test('training page stays compact with school photos, logo and linked training types', () => {
+test('training page shows only logo from school contact page without photo gallery', () => {
   const training = source('src/pages/training/index.astro');
   assert.match(training, /Tennisschule Alex Braun/);
   assert.match(training, /logo-weiss_1pt_original-1\.png/);
-  assert.match(training, /startseite_4\.jpg/);
-  assert.match(training, /startseite_2\.jpg/);
   assert.match(training, /background:#f28323/);
-  assert.match(training, /const schoolImages = 'https:\/\/www\.tennisschule-alexbraun\.de\/wp-content\/uploads'/);
-  assert.match(training, /img\.addEventListener\('error', retry\)/);
-  assert.match(training, /img\.complete && img\.naturalWidth === 0/);
-  assert.doesNotMatch(training, /knownPhoto/);
-  assert.match(training, /img\.hidden = true/);
-  assert.match(training, /angebote_1\.jpg/);
-  assert.match(training, /angebote_4\.jpg/);
-  assert.match(training, /angebote_2\.jpg/);
-  assert.match(training, /startseite_4\.jpg/);
+  assert.match(training, /tennisschule-alexbraun\.de\/kontakt\//);
   assert.match(training, /referrerpolicy="no-referrer"/);
   for (const offer of ['Sommertraining', 'Wintertraining', 'Einzeltraining', 'Gruppentraining', 'Mannschaftstraining', 'Tenniscamps']) {
     assert.ok(training.includes(offer), offer + ' fehlt');
@@ -182,9 +172,10 @@ test('training page stays compact with school photos, logo and linked training t
   assert.match(training, /<ul class="training-simple__list">/);
   assert.match(training, /tennisschule-alexbraun\.de\/angebote\//);
   assert.match(training, /Trainingsangebote &amp; Anmeldung/);
+  assert.doesNotMatch(training, /training-simple__photos/);
+  assert.doesNotMatch(training, /training-simple__photo-strip/);
+  assert.doesNotMatch(training, /const coachPhoto/);
   assert.doesNotMatch(training, /data-managed-page="training"/);
-  assert.doesNotMatch(training, /Weitere organisatorische Informationen/);
-  assert.doesNotMatch(training, /loadManagedPage\('training'\)/);
   assert.match(training, /@media\(max-width:600px\)/);
   assert.doesNotMatch(training, /iframe/);
 });
