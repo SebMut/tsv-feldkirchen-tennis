@@ -19,7 +19,7 @@ test('admin uses task-based navigation without removing existing panels', () => 
     assert.match(markup, new RegExp('data-panel="' + panel + '"'));
     assert.match(markup, new RegExp('id="panel-' + panel + '"'));
   }
-  assert.match(behavior, /activeButton\.classList\.contains\('hidden'\)/);
+  assert.match(behavior, /button\.classList\.contains\('hidden'\)/);
   assert.match(behavior, /target\.classList\.contains\('hidden'\)/);
   assert.match(behavior, /setAttribute\('aria-current', 'page'\)/);
 });
