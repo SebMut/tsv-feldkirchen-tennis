@@ -1929,3 +1929,96 @@ main.main--flush{padding:0}
   .ticker-overview-feature__action{width:100%;min-width:0;font-size:.82rem;text-align:center;padding:12px 9px}
 }
 @media(prefers-reduced-motion:reduce){.ticker-overview-feature__action{transition:none}}
+
+
+/* Live-Ticker Übersicht: jedes Punktspiel zeigt alle aktuell laufenden Einzel/Doppel */
+.ticker-overview-match-list{display:grid;gap:22px;min-width:0}
+.ticker-overview-match-list>.ticker-overview-feature{
+  min-width:0;padding:clamp(14px,2.3vw,22px);
+  background:#fff;border:1px solid #e8e9e6;border-radius:18px;
+  box-shadow:0 4px 18px rgb(33 41 29 / .035)
+}
+.ticker-overview-feature__match-title{
+  display:flex;align-items:center;justify-content:space-between;gap:10px 20px;flex-wrap:wrap
+}
+.ticker-overview-feature__match-title h3{
+  margin:0 0 5px;font-size:clamp(1.05rem,2vw,1.4rem);line-height:1.23;
+  color:#192d20;overflow-wrap:anywhere;letter-spacing:-.025em
+}
+.ticker-overview-feature__match-title h3 span{color:#77887b;font-weight:500}
+.ticker-overview-feature__match-title p{margin:0;color:#718077;font-size:.8rem}
+.ticker-overview-feature__match-count{
+  display:inline-flex;align-items:center;justify-content:center;min-height:34px;
+  padding:7px 11px;border-radius:999px;background:#fff0f1;color:#b21929;
+  font-size:.74rem;font-weight:850;white-space:normal
+}
+.ticker-running-encounters{display:grid;gap:11px;min-width:0}
+.ticker-running-encounters__title{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ticker-running-encounters__title h4{margin:0;color:#243e2b;font-size:1.02rem}
+.ticker-running-encounters__title>span{color:#b10f20;font-size:.76rem;font-weight:900;white-space:nowrap}
+.ticker-running-encounters__list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:12px;min-width:0}
+.ticker-running-encounter{
+  min-width:0;display:grid;gap:12px;border:1px solid #e7dbdb;
+  border-left:4px solid #dd1b2d;border-radius:13px;padding:13px;
+  background:linear-gradient(130deg,#fff 75%,#fff8f8 100%)
+}
+.ticker-running-encounter__heading{display:flex;align-items:center;gap:10px;min-width:0}
+.ticker-running-encounter__heading>strong{color:#213429;font-size:.91rem;flex:1}
+.ticker-running-encounter__number{
+  display:grid;place-items:center;width:32px;height:32px;flex:0 0 32px;
+  border-radius:9px;background:#fff0f2;color:#b50b1d;font-weight:950;font-size:.8rem
+}
+.ticker-running-encounter__live{
+  display:inline-flex;align-items:center;gap:5px;min-height:29px;border-radius:99px;
+  padding:5px 9px;background:#fcecef;color:#af0e20;font-size:.7rem;font-weight:900;
+  letter-spacing:.04em;white-space:nowrap
+}
+.ticker-running-encounter__live>span{font-size:.6rem}
+.ticker-running-encounter__line{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(95px,.72fr) minmax(0,1fr);
+  align-items:stretch;gap:9px;min-width:0
+}
+.ticker-running-encounter__player{
+  min-width:0;display:grid;align-content:center;gap:5px;
+  padding:10px 11px;background:#f6f9f6;border-radius:10px
+}
+.ticker-running-encounter__player--guest{background:#faf9f8}
+.ticker-running-encounter__player small,.ticker-running-encounter__result small{
+  color:#7a887c;text-transform:uppercase;letter-spacing:.055em;font-size:.63rem;font-weight:850
+}
+.ticker-running-encounter__player strong{
+  font-size:clamp(.74rem,1.12vw,.93rem);line-height:1.32;color:#233a2b;overflow-wrap:anywhere
+}
+.ticker-running-encounter__result{
+  display:grid;align-content:center;justify-items:center;gap:4px;text-align:center;min-width:0;
+  padding:8px 5px;border:1px solid #eed4d8;border-radius:10px;background:#fff5f6
+}
+.ticker-running-encounter__result strong{
+  font-size:clamp(1.3rem,2.2vw,1.8rem);line-height:1.1;letter-spacing:-.045em;
+  white-space:nowrap;color:#ac1020;font-weight:950;font-variant-numeric:tabular-nums
+}
+.ticker-running-encounter__result>span{
+  color:#66736b;font-size:.71rem;font-weight:730;line-height:1.35;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere
+}
+.ticker-running-encounters__empty{
+  margin:0;padding:14px 16px;background:#f7f9f7;border:1px dashed #d8e0d9;
+  border-radius:10px;color:#64766b;font-size:.84rem
+}
+.ticker-overview-match-list .ticker-overview-feature__footer{padding-top:13px;border-top:1px solid #ecefed}
+@media(max-width:760px){
+  .ticker-overview-match-list>.ticker-overview-feature{padding:12px;border-radius:15px}
+  .ticker-running-encounters__list{grid-template-columns:minmax(0,1fr)}
+  .ticker-running-encounter__line{grid-template-columns:minmax(0,1fr) minmax(90px,.8fr) minmax(0,1fr);gap:6px}
+  .ticker-running-encounter__player{padding:8px 6px}
+  .ticker-running-encounter__player strong{font-size:clamp(.72rem,2.4vw,.85rem)}
+  .ticker-running-encounter__result strong{font-size:clamp(1.26rem,5vw,1.65rem)}
+  .ticker-running-encounter__result>span{font-size:.67rem}
+}
+@media(max-width:380px){
+  .ticker-running-encounter{padding:10px}
+  .ticker-running-encounter__line{grid-template-columns:minmax(0,1fr) 84px minmax(0,1fr);gap:4px}
+  .ticker-running-encounter__player strong{font-size:.7rem}
+  .ticker-running-encounter__result strong{font-size:1.22rem}
+  .ticker-running-encounter__result>span{font-size:.61rem}
+}
