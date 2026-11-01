@@ -33,7 +33,7 @@ test('welcome and three-day tennis weather share a responsive homepage row',()=>
   const weather=home.indexOf('class="card home-weather"',intro);
   const close=home.indexOf('    </div>',weather);
   assert.ok(intro>=0 && weather>intro && close>weather);
-  assert.match(css,/\.home-intro-grid\{display:grid;grid-template-columns:minmax\(0,1\.65fr\) minmax\(320px,1fr\)/);
+  assert.match(css,/\.home-intro-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css,/@media\(max-width:820px\)\{\.premium-content\{gap:22px\}\.home-intro-grid,\.home-columns\{grid-template-columns:1fr;gap:22px\}/);
   assert.match(css,/\.weather-grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(script,/forecast_days=3/);
@@ -52,7 +52,7 @@ test('homepage cards have consistent spacing between both rows and columns',()=>
   const secondGrid = css.match(/\.home-columns\{[^}]*grid-template-columns:([^;]+);/);
   assert.ok(firstGrid && secondGrid);
   assert.equal(secondGrid[1], 'repeat(2,minmax(0,1fr))', 'Aktuelles und Kommende Spiele müssen 50/50 aufgeteilt sein');
-  assert.notEqual(secondGrid[1], firstGrid[1], 'Die obere Reihe behält ihr eigenes Verhältnis');
+  assert.equal(firstGrid[1], secondGrid[1], 'Willkommen/Wetter und Aktuelles/Spiele müssen alle dieselben 50/50-Spalten haben');
 
   assert.match(css,/@media\(max-width:820px\)\{\.premium-content\{gap:22px\}/);
   assert.match(css,/@media\(max-width:520px\)\{\.premium-content,\.home-intro-grid,\.home-columns\{gap:18px\}/);
