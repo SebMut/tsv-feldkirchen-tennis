@@ -3,17 +3,18 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const code=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
 
-test('read official BTV results only when the live ticker is scheduled',()=>{
+test('prefer official BTV scores irrespective of the manual live ticker status',()=>{
   assert.match(code,/function officialBtvScore\(match: Row\)/);
   assert.match(code,/match\.btv_result_text/);
   assert.match(code,/home === 0 && away === 0/);
-  assert.match(code,/status === 'scheduled' \? officialBtvScore\(match\) : null/);
-  assert.match(code,/official \? '<span class="status-pill">BTV-Ergebnis/);
+  assert.doesNotMatch(code,/status === 'scheduled' \? officialBtvScore\(match\) : null/);
+  assert.match(code,/const official = officialBtvScore\(match\)/);
+  assert.match(code,/official \? '<span class="status-pill btv-official">Offizielles BTV-Ergebnis/);
 });
 
 test('match page distinguishes BTV official result from live ticker status',()=>{
   assert.match(code,/Offizielles BTV-Ergebnis/);
-  assert.match(code,/Kein offizieller Endstand vorhanden/);
+  assert.match(code,/Noch kein Ergebnis vorhanden/);
   assert.match(code,/const clubScore = match\.is_home \? homeScore : awayScore/);
   assert.match(code,/const opponentScore = match\.is_home \? awayScore : homeScore/);
   assert.match(code,/matchRouteButton\(match\)/);
