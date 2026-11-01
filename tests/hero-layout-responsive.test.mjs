@@ -136,3 +136,27 @@ test('every listed team and detail offers tennis.de access without invented port
   assert.ok(script.includes('tennis.de Mannschaftsporträt ↗'));
   assert.ok(script.includes('tennis.de Mannschaftssuche ↗'));
 });
+
+test('Live-Ticker focuses on encounters and hides the Heute block without actual today fixtures',()=>{
+  const page=readFileSync(new URL('../src/pages/spieltag/index.astro',import.meta.url),'utf8');
+  const header=readFileSync(new URL('../src/components/SiteHeader.astro',import.meta.url),'utf8');
+  const homepage=readFileSync(new URL('../src/pages/index.astro',import.meta.url),'utf8');
+  const script=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
+  assert.match(page,/title="Live-Ticker \| TSV Feldkirchen Tennis"/);
+  assert.match(page,/class="matchday-page matchday-page--ticker"/);
+  assert.match(page,/id="live-center"/);
+  assert.match(page,/id="today-fixtures-panel" class="matchday-panel matchday-today-panel hidden"/);
+  assert.match(page,/id="today-matches"/);
+  assert.match(page,/id="upcoming-matches"/);
+  assert.match(page,/id="recent-matches"/);
+  for (const removed of ['facility-card','home-court-count','home-team-count','home-news','matchday-newsgrid','phase8-install']) {
+    assert.ok(!page.includes(removed), 'Unrelated card still present: '+removed);
+  }
+  assert.match(script,/const todayPanel = document\.querySelector<HTMLElement>\('#today-fixtures-panel'\)/);
+  assert.match(script,/todayPanel\.classList\.toggle\('hidden', !!todayResult\.error \|\| !!activeResult\.error \|\| today\.length === 0\)/);
+  assert.match(script,/const todaysFixtures = \(todayResult\.data \?\? \[\]\)\.filter\(m => berlinDayKey\(m\.starts_at\) === currentDayKey\)/);
+  assert.match(header,/<a href="\/spieltag\/">Live-Ticker<\/a>/);
+  assert.match(homepage,/href="\/spieltag\/">Zum Live-Ticker<\/a>/);
+  assert.match(homepage,/href="\/spieltag\/">Live-Ticker öffnen →<\/a>/);
+  assert.match(css,/\.matchday-page--ticker \.matchday-fixture-grid\{margin:0;gap:18px;align-items:start\}/);
+});
