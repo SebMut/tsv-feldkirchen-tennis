@@ -8,6 +8,8 @@ const coachesUrl = 'https://www.tennisschule-alexbraun.de/trainerteam/';
 const logoUrl = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/09/logo-weiss_1pt_original-1.png?fit=789%2C802&ssl=1';
 const coachPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/startseite_1.jpg?fit=675%2C981&ssl=1';
 const trainingPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/startseite_3.jpg?fit=500%2C331&ssl=1';
+const winterPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/startseite_4.jpg?fit=500%2C333&ssl=1';
+const campPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/startseite_2.jpg?fit=750%2C500&ssl=1';
 ---
 <MainLayout
   title="Training | TSV Feldkirchen Tennis"
@@ -44,9 +46,13 @@ const trainingPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-conten
           <img src={logoUrl} alt="Logo Tennisschule Alex Braun" width="130" height="130" loading="eager" decoding="async" />
           <span>Tennisschule<br /><strong>Alex Braun</strong></span>
         </a>
-        <div class="training-simple__photos">
-          <img src={coachPhoto} alt="Alex Braun beim Tennistraining – Foto: Tennisschule Alex Braun" width="675" height="981" loading="lazy" decoding="async" />
-          <img src={trainingPhoto} alt="Tennistraining – Foto: Tennisschule Alex Braun" width="500" height="331" loading="lazy" decoding="async" />
+        <div class="training-simple__photos" aria-label="Bilder aus der Tennisschule Alex Braun">
+          <img class="training-simple__coach-photo" src={coachPhoto} alt="Einblick in die Tennisschule Alex Braun" width="675" height="981" loading="lazy" decoding="async" />
+          <div class="training-simple__photo-strip">
+            <img src={trainingPhoto} alt="Sommertraining bei der Tennisschule Alex Braun" width="500" height="331" loading="lazy" decoding="async" />
+            <img src={winterPhoto} alt="Wintertraining bei der Tennisschule Alex Braun" width="500" height="333" loading="lazy" decoding="async" />
+            <img src={campPhoto} alt="Tenniscamps bei der Tennisschule Alex Braun" width="750" height="500" loading="lazy" decoding="async" />
+          </div>
         </div>
         <p>Fotos und Logo: <a href={schoolUrl} target="_blank" rel="noopener noreferrer">Tennisschule Alex Braun</a></p>
       </aside>
@@ -83,19 +89,22 @@ const trainingPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-conten
   .training-simple__text-link:hover{text-decoration:underline}
   .training-simple__hint{font-size:.81rem;margin:15px 0 0;color:#66756b}
   .training-simple__partner{min-width:0}
-  .training-simple__brand{display:flex;align-items:center;gap:14px;min-height:118px;padding:12px 16px;background:#18322a;color:#fff;border-radius:10px 10px 0 0;text-decoration:none}
+  /* Orange der Tennisschule als Partnerfarbe; TSV-Akzente bleiben Rot. */
+  .training-simple__brand{display:flex;align-items:center;gap:14px;min-height:118px;padding:12px 16px;background:#f28323;color:#fff;border-radius:10px 10px 0 0;text-decoration:none}
   .training-simple__brand img{width:92px;height:92px;object-fit:contain;flex:0 0 auto}
   .training-simple__brand>span{font-size:.9rem;line-height:1.3}
   .training-simple__brand strong{font-size:1.28rem}
-  .training-simple__photos{display:grid;grid-template-columns:1fr 1fr;gap:7px;background:#eff2ed;padding:7px;border-radius:0 0 10px 10px}
-  .training-simple__photos img{width:100%;height:252px;object-fit:cover;background:#dde7dc;border-radius:5px}
-  .training-simple__photos img:first-child{object-position:center 27%}
+  .training-simple__photos{display:grid;gap:7px;background:#fff6e9;padding:7px;border-radius:0 0 10px 10px}
+  .training-simple__photos img{display:block;width:100%;object-fit:cover;background:#ead9c9;border-radius:5px}
+  .training-simple__coach-photo{height:180px;object-position:center 32%}
+  .training-simple__photo-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .training-simple__photo-strip img{height:112px}
   .training-simple__partner>p{color:#78857b;font-size:.72rem;margin:8px 0 0}
   .training-simple__partner>p a{color:#697b70}
   .training-simple__more{background:#fff;border:1px solid #e0e5df;border-radius:10px;padding:13px 19px}
   .training-simple__more summary{cursor:pointer;font-size:.87rem;font-weight:800;color:#3c5144}
   .training-simple__more>div{white-space:pre-line;padding-top:14px;color:#58695c;font-size:.87rem;overflow-wrap:anywhere}
   .training-simple a:focus-visible,.training-simple summary:focus-visible{outline:3px solid #e30613;outline-offset:3px}
-  @media(max-width:900px){.training-simple__panel{grid-template-columns:1fr}.training-simple__partner{max-width:630px}.training-simple__photos img{height:190px}}
-  @media(max-width:600px){.training-simple__panel{padding:21px 17px}.training-simple__intro{font-size:.95rem}.training-simple__list{font-size:.91rem}.training-simple__links{align-items:stretch;flex-direction:column}.training-simple__button{width:100%}.training-simple__brand{min-height:100px}.training-simple__brand img{width:76px;height:76px}.training-simple__photos img{height:150px}}
+  @media(max-width:900px){.training-simple__panel{grid-template-columns:1fr}.training-simple__partner{max-width:630px}.training-simple__coach-photo{height:230px}.training-simple__photo-strip img{height:140px}}
+  @media(max-width:600px){.training-simple__panel{padding:21px 17px}.training-simple__intro{font-size:.95rem}.training-simple__list{font-size:.91rem}.training-simple__links{align-items:stretch;flex-direction:column}.training-simple__button{width:100%}.training-simple__brand{min-height:100px}.training-simple__brand img{width:76px;height:76px}.training-simple__coach-photo{height:170px}.training-simple__photo-strip img{height:98px}}
 </style>
