@@ -105,7 +105,7 @@ p{line-height:1.65}
 .premium-metrics{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#10211e}
 .premium-metrics>div{padding:32px max(28px,5vw);border-right:1px solid var(--line)}
 .premium-metrics>div:last-child{border-right:0}.premium-metrics strong{font-size:2.6rem;color:var(--accent);display:block;line-height:1}.premium-metrics span{display:block;margin-top:7px;color:#d9e1dd}
-.premium-content{padding-top:80px;padding-bottom:80px}
+.premium-content{display:flex;flex-direction:column;gap:28px;padding-top:80px;padding-bottom:80px}
 .premium-editorial{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:start}
 .premium-editorial>div>h2{font-size:clamp(2.8rem,5vw,4rem);margin-bottom:30px}
 .premium-feature{min-height:520px;position:relative;overflow:hidden;border-radius:8px;padding:30px;border:1px solid var(--line);background:
@@ -217,17 +217,17 @@ p{line-height:1.65}
 .facility-pill--limited{background:#b85e00}.facility-pill--limited::before{background:#ffd28c}
 .facility-pill--unknown{background:#43504c}
 .facility-pill:hover,.facility-pill:focus-visible{color:#fff;transform:translateY(-1px);outline:3px solid rgba(255,255,255,.75);outline-offset:3px}
-.home-intro-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(320px,1fr);gap:20px;align-items:stretch}
+.home-intro-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(320px,1fr);gap:28px;align-items:stretch}
 .home-intro-grid>.card{min-width:0}
 .home-welcome{display:grid;align-content:start;gap:9px}.home-welcome h2,.home-welcome p{margin:0}.home-welcome p{max-width:1050px;line-height:1.65}
-.home-columns{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:22px;align-items:start}.home-columns>article{min-width:0}.home-columns h2{margin-top:0}.home-games-column .match-row{grid-template-columns:1fr}.home-games-column .match-row .actions{justify-content:flex-start}
+.home-columns{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:28px;align-items:start}.home-columns>article{min-width:0}.home-columns h2{margin-top:0}.home-games-column .match-row{grid-template-columns:1fr}.home-games-column .match-row .actions{justify-content:flex-start}
 .home-weather{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:22px}.home-weather h2{margin:0}.weather-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%}.weather-day{display:grid;justify-items:center;align-content:center;gap:6px;min-width:0;padding:12px 4px;border-left:1px solid var(--line);text-align:center;font-size:.9rem}.weather-day strong,.weather-day span{white-space:nowrap}.weather-icon{font-size:1.7rem}.weather-day small{color:var(--muted);font-size:.75rem;white-space:nowrap}
 .team-card__image-link{display:block;overflow:hidden;border-radius:inherit}.team-card__image-link img{width:100%;transition:transform .2s ease}.team-card__image-link:hover img{transform:scale(1.025)}
 .official-placeholder{display:grid;place-items:center;align-content:center;gap:6px;min-height:210px;background:linear-gradient(145deg,#f1f3f0,#dfe6df);color:#9e0b15;font-size:1.2rem}.official-placeholder span{font-size:2.4rem}.official-placeholder strong{letter-spacing:.12em}
 .membership-fees{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.membership-fees>div{padding:18px;border:1px solid var(--line);border-radius:14px;background:#fafbf9}.admin-season-context{padding:10px 13px;border-left:4px solid var(--accent);background:#f7f3ed}
 .admin-season-pills{display:flex;flex-wrap:wrap;gap:9px;margin:14px 0 22px}.admin-season-pill{min-height:42px;padding:9px 16px;border:1px solid #d6dfd8;border-radius:999px;background:#fff;color:#34453a;font-weight:800}.admin-season-pill:hover{border-color:#e30613}.admin-season-pill.is-active{border-color:#1a2721;background:#1a2721;color:#fff}.admin-season-pill:focus-visible{outline:3px solid #e30613;outline-offset:3px}
-@media(max-width:820px){.home-intro-grid,.home-columns{grid-template-columns:1fr}.home-weather{gap:14px}.weather-grid{width:100%}.membership-fees{grid-template-columns:1fr}}
-@media(max-width:520px){.weather-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.weather-day{border:1px solid var(--line);border-radius:10px;padding:10px 2px;font-size:.8rem}.weather-day small{font-size:.7rem}}
+@media(max-width:820px){.premium-content{gap:22px}.home-intro-grid,.home-columns{grid-template-columns:1fr;gap:22px}.home-weather{gap:14px}.weather-grid{width:100%}.membership-fees{grid-template-columns:1fr}}
+@media(max-width:520px){.premium-content,.home-intro-grid,.home-columns{gap:18px}.weather-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.weather-day{border:1px solid var(--line);border-radius:10px;padding:10px 2px;font-size:.8rem}.weather-day small{font-size:.7rem}}
 
 .team-image-preview{display:flex;align-items:center;gap:16px;padding:14px;border:1px solid var(--line);border-radius:12px;background:rgb(255 255 255 / .03)}
 .team-image-preview img{width:180px;max-width:38vw;aspect-ratio:16/9;object-fit:cover;border-radius:10px}
