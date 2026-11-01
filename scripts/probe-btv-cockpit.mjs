@@ -39,7 +39,11 @@ try{
     .map((link)=>({text:link.text.slice(0,120),url:new URL(link.href,finalUrl).href.replace(/([?&](?:code|state|token|session)=[^&]+)/gi,'')}));
   const frames=[...page.matchAll(/<iframe\b[^>]*src="([^"]+)"/gi)].map((match)=>new URL(decode(match[1]),finalUrl).href);
   const forms=[...page.matchAll(/<form\b[^>]*action="([^"]+)"/gi)].map((match)=>new URL(decode(match[1]),finalUrl).href);
-  console.log(JSON.stringify({authenticated:true,host:new URL(finalUrl).host,path:new URL(finalUrl).pathname,frames,forms,links:links.slice(0,40)},null,2));
+  const portalTargets=[...new Set([...page.matchAll(/https?:\\?\/\\?\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+/gi)]
+    .map((match)=>decode(match[0].replace(/\\\//g,'/')))
+    .filter((url)=>/(liga\.nu|nuLiga|portal)/i.test(url))
+    .map((url)=>url.replace(/([?&](?:code|state|token|session)=[^&]+)/gi,'')))];
+  console.log(JSON.stringify({authenticated:true,host:new URL(finalUrl).host,path:new URL(finalUrl).pathname,frames,forms,portalTargets,links:links.slice(0,40)},null,2));
 }finally{
   rmSync(work,{recursive:true,force:true});
 }
