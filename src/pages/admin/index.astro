@@ -531,8 +531,25 @@ import MainLayout from '../../layouts/MainLayout.astro';
         </div>
         <button class="encounter-set-dialog__close" type="button" data-set-score-close aria-label="Auswahl schließen">✕</button>
       </div>
-      <p class="encounter-set-dialog__hint">Tippe auf das Satzergebnis. Die Auswahl wird direkt gespeichert.</p>
+      <p class="encounter-set-dialog__hint">Wähle einen fertigen Satzstand oder gib den aktuellen Zwischenstand selbst ein.</p>
       <div id="encounter-set-dialog-options" class="encounter-set-dialog__options" role="group" aria-label="Verfügbare Satzergebnisse"></div>
+      <details id="encounter-set-dialog-manual" class="encounter-set-dialog__manual">
+        <summary>Eigenen Zwischenstand eingeben <span>z. B. 3:2 oder 8:7</span></summary>
+        <form id="encounter-set-dialog-manual-form" class="encounter-set-dialog__manual-form" novalidate>
+          <p id="encounter-set-dialog-manual-hint" class="muted">Die erste Zahl ist immer für den TSV Feldkirchen.</p>
+          <div class="encounter-set-dialog__manual-inputs">
+            <label for="encounter-set-manual-tsv">TSV Feldkirchen
+              <input id="encounter-set-manual-tsv" name="tsv" type="number" inputmode="numeric" min="0" max="7" step="1" required placeholder="3" />
+            </label>
+            <span aria-hidden="true">:</span>
+            <label for="encounter-set-manual-opponent">Gegner
+              <input id="encounter-set-manual-opponent" name="opponent" type="number" inputmode="numeric" min="0" max="7" step="1" required placeholder="2" />
+            </label>
+          </div>
+          <p id="encounter-set-dialog-manual-error" class="encounter-set-dialog__manual-error hidden" role="alert"></p>
+          <button class="button" type="submit" data-set-score-manual-save>Zwischenstand speichern</button>
+        </form>
+      </details>
       <p id="encounter-set-dialog-feedback" class="encounter-set-dialog__feedback hidden" aria-live="polite"></p>
       <div class="encounter-set-dialog__footer">
         <button class="button ghost" type="button" data-set-score-clear>Ergebnis löschen</button>
