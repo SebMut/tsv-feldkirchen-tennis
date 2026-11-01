@@ -411,12 +411,17 @@ export async function loadTeams() {
     }
   }
 
-  // Prefer an actually populated current round, never an empty placeholder season.
+  // Die Saisonverwaltung ist maßgeblich für die initiale Auswahl.
+  // Eine ausdrücklich als aktuell markierte Saison gewinnt auch dann,
+  // wenn ihre Termine außerhalb des heutigen Datums liegen oder noch keine
+  // Mannschaften veröffentlicht sind. URL-Parameter bleiben vorrangig.
+  const managedCurrentSeason = seasonCodes.map(code => seasonByCode.get(code))
+    .find((s: Row | undefined) => s?.is_current && !s.archived_at);
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
   const byCurrentDate = seasonCodes.map(code => seasonByCode.get(code)).find((s: Row | undefined) =>
     s && (seasonCounts.get(s.code) || 0) > 0 && s.starts_on <= today && s.ends_on >= today);
-  const defaultSeason = byCurrentDate
-    || seasonCodes.map(code => seasonByCode.get(code)).find((s: Row | undefined) => s?.is_current && (seasonCounts.get(s.code) || 0) > 0)
+  const defaultSeason = managedCurrentSeason || byCurrentDate
+    || seasonCodes.map(code => seasonByCode.get(code)).find((s: Row | undefined) => s && (seasonCounts.get(s.code) || 0) > 0)
     || seasonByCode.get('sommer-2026');
   let activeCode = defaultSeason?.code || 'sommer-2026';
   let activeCategory = '';
