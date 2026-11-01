@@ -1588,3 +1588,63 @@ main.main--flush{padding:0}
 .admin-logout-button{cursor:pointer;color:#52615a;border-color:#dce4dd}
 .admin-logout-button:hover,.admin-logout-button:focus-visible{color:#a50b14;border-color:#dcadb1}
 .admin-logout-button:disabled{cursor:wait;opacity:.65}
+
+
+/* Liveticker: drei eindeutig anklickbare Satzstände mit zugänglichem Modal */
+.encounter-result-row{grid-template-columns:minmax(260px,1.15fr) minmax(260px,1fr);align-items:end}
+.encounter-set-editor{display:grid;gap:10px;min-width:0}
+.encounter-set-editor__heading{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.encounter-set-editor__heading strong{font-size:.88rem;color:#20322a}
+.encounter-set-editor__heading span{color:#68786f;font-size:.74rem;font-weight:650}
+.encounter-set-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.encounter-set-button{
+  appearance:none;min-width:0;min-height:78px;display:grid;align-content:center;justify-items:center;gap:5px;
+  padding:10px 6px;border:1px solid #dce4df;border-radius:12px;background:#f8faf9;
+  color:#243229;text-align:center;transition:background .15s,border-color .15s;
+}
+.encounter-set-button>span{font-size:.76rem;font-weight:800;color:#66756c}
+.encounter-set-button>strong{font-size:1.35rem;line-height:1.15;font-variant-numeric:tabular-nums}
+.encounter-set-button>small{font-size:.65rem;font-weight:750;color:#64746b}
+.encounter-set-button.has-score{background:#fff1f2;border-color:#e7b9be}
+.encounter-set-button.has-score>strong{color:#b0121e}
+.encounter-set-button:not(:disabled):hover{background:#ffeaec;border-color:#cb7b84}
+.encounter-set-button:disabled{opacity:.52;cursor:not-allowed}
+.encounter-set-button:focus-visible,.encounter-set-option:focus-visible,.encounter-set-dialog button:focus-visible{outline:3px solid #e30613;outline-offset:2px}
+.encounter-set-legacy{margin:0;color:#8a5617;font-size:.79rem;overflow-wrap:anywhere}
+.encounter-set-dialog{
+  position:fixed;inset:0;margin:auto;padding:clamp(18px,3vw,28px);
+  width:min(570px,calc(100vw - 26px));max-width:100%;
+  max-height:min(90dvh,780px);overflow-y:auto;overscroll-behavior:contain;
+  border:1px solid #dce2de;border-radius:20px;background:#fff;color:#1e3026;
+  box-shadow:0 24px 80px rgb(0 0 0 / .24)
+}
+.encounter-set-dialog::backdrop{background:rgb(10 19 15 / .67);backdrop-filter:blur(3px)}
+.encounter-set-dialog__header{display:flex;justify-content:space-between;align-items:start;gap:15px}
+.encounter-set-dialog__header h2{font-size:clamp(1.35rem,3vw,1.9rem);margin:0 0 8px}
+.encounter-set-dialog__header .muted{margin:0;font-size:.83rem;line-height:1.5}
+.encounter-set-dialog__close{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:1px solid #dbe0dc;background:#f6f8f7;border-radius:12px;font-size:1rem}
+.encounter-set-dialog__hint{font-size:.87rem;color:#4e5f54;margin:16px 0 13px}
+.encounter-set-dialog__options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.encounter-set-option{
+  min-height:56px;border:1px solid #d7dfd9;border-radius:11px;padding:12px 6px;background:#f9fbfa;
+  font-size:1.05rem;font-weight:850;color:#203227;font-variant-numeric:tabular-nums
+}
+.encounter-set-option:hover,.encounter-set-option.selected{background:#fff0f1;border-color:#df8189;color:#ac1121}
+.encounter-set-option.selected{box-shadow:inset 0 0 0 1px #d34d59}
+.encounter-set-option:disabled{opacity:.55;cursor:wait}
+.encounter-set-dialog__feedback{margin:12px 0 0;font-size:.86rem;font-weight:750;color:#8a2a23}
+.encounter-set-dialog__footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid #e8ede9}
+.encounter-set-dialog__footer .button{min-height:46px}
+@media(max-width:860px){.encounter-result-row{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:440px){
+  .encounter-set-grid{gap:6px}
+  .encounter-set-button{min-height:72px;padding:8px 4px}
+  .encounter-set-button>strong{font-size:1.18rem}
+  .encounter-set-button>small{font-size:.6rem}
+  .encounter-set-dialog{padding:15px;border-radius:15px}
+  .encounter-set-dialog__options{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .encounter-set-option{min-height:53px}
+  .encounter-set-dialog__footer{flex-wrap:wrap}
+  .encounter-set-dialog__footer .button{flex:1 1 130px}
+}
+@media(prefers-reduced-motion:reduce){.encounter-set-button{transition:none}}

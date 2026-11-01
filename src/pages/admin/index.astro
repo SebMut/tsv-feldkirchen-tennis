@@ -522,6 +522,23 @@ import MainLayout from '../../layouts/MainLayout.astro';
         </div>
       </div>
     </section>
+    <dialog id="encounter-set-dialog" class="encounter-set-dialog" aria-labelledby="encounter-set-dialog-title" aria-describedby="encounter-set-dialog-subtitle">
+      <div class="encounter-set-dialog__header">
+        <div>
+          <p class="eyebrow">Liveticker · Ergebnis</p>
+          <h2 id="encounter-set-dialog-title">Satz auswählen</h2>
+          <p id="encounter-set-dialog-subtitle" class="muted"></p>
+        </div>
+        <button class="encounter-set-dialog__close" type="button" data-set-score-close aria-label="Auswahl schließen">✕</button>
+      </div>
+      <p class="encounter-set-dialog__hint">Tippe auf das Satzergebnis. Die Auswahl wird direkt gespeichert.</p>
+      <div id="encounter-set-dialog-options" class="encounter-set-dialog__options" role="group" aria-label="Verfügbare Satzergebnisse"></div>
+      <p id="encounter-set-dialog-feedback" class="encounter-set-dialog__feedback hidden" aria-live="polite"></p>
+      <div class="encounter-set-dialog__footer">
+        <button class="button ghost" type="button" data-set-score-clear>Ergebnis löschen</button>
+        <button class="button secondary" type="button" data-set-score-close>Abbrechen</button>
+      </div>
+    </dialog>
   </div>
 </MainLayout>
 <script>
