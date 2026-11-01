@@ -1648,3 +1648,20 @@ main.main--flush{padding:0}
   .encounter-set-dialog__footer .button{flex:1 1 130px}
 }
 @media(prefers-reduced-motion:reduce){.encounter-set-button{transition:none}}
+
+
+/* Liveticker: Live-Freigabe und automatisch erkannter Satzsieger */
+.encounter-set-status{display:flex;flex-wrap:wrap;align-items:center;gap:7px 15px;margin:3px 0 0;padding:12px 13px;border-radius:11px;background:#f6f8f7;color:#506257;line-height:1.4;font-size:.78rem}
+.encounter-set-status strong{color:#203528;font-size:.88rem;font-variant-numeric:tabular-nums}
+.encounter-set-status__winner{color:#0f663a;font-weight:850}
+.encounter-live-notice,.encounter-finished-notice{display:inline-flex;align-items:center;min-height:44px;padding:9px 12px;border-radius:10px;font-size:.81rem;line-height:1.35;font-weight:800}
+.encounter-live-notice{background:#fff0f1;color:#ba1020}
+.encounter-finished-notice{background:#e7f4eb;color:#14743e}
+.live-set-scores,.live-set-winner{display:block;line-height:1.45;overflow-wrap:anywhere}
+.live-set-scores{font-size:.75rem;color:#60746a;font-variant-numeric:tabular-nums}
+.live-set-winner{font-size:.76rem;color:#14683b;font-weight:850}
+.live-encounter-result strong,.match-detail-encounter__result strong{font-size:1.43rem;font-variant-numeric:tabular-nums}
+@media(max-width:600px){
+  .encounter-set-status{display:grid;gap:5px}
+  .live-encounter-result strong,.match-detail-encounter__result strong{font-size:1.3rem}
+}
