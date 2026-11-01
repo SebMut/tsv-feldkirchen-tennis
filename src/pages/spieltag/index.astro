@@ -1,6 +1,6 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
-import { COURTBOOKING_URL } from '../../lib/supabase';
+import { COURTBOOKING_URL, mediaUrl } from '../../lib/supabase';
 ---
 <MainLayout
   title="Spieltag | TSV Feldkirchen Tennis"
@@ -10,11 +10,14 @@ import { COURTBOOKING_URL } from '../../lib/supabase';
 >
   <div class="matchday-page" id="home">
     <section class="matchday-hero">
-      <div class="container matchday-hero__grid matchday-hero__grid--single">
+      <div class="container matchday-hero__grid">
         <div>
           <span class="matchday-badge">VEREINSZENTRALE</span>
           <h1>Alles Wichtige.<br /><span>Auf einen Blick.</span></h1>
           <p>Live-Ticker, heutige Begegnungen, Anlagenstatus und direkter Zugang zur Platzbuchung – optimiert für den Spieltag.</p>
+        </div>
+        <div class="matchday-hero__mark" aria-hidden="true">
+          <img src={mediaUrl("branding/tennis-logo.png")} alt="" width="116" height="116" />
         </div>
       </div>
     </section>
