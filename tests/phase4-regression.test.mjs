@@ -96,6 +96,16 @@ test('team administration separates summer, winter and future seasons', () => {
   assert.match(js, /Sommer \$\{String\(season\.code\)/);
 });
 
+test('news optionally creates one linked calendar appointment', () => {
+  const js = source('src/scripts/admin.ts');
+  const html = source('src/pages/admin/index.astro');
+  assert.match(html, /id="news-event-start" type="datetime-local"/);
+  assert.doesNotMatch(html, /id="panel-events"/);
+  assert.match(js, /external_url:`news:\$\{newsId\}`/);
+  assert.match(js, /if\(eventStart\)/);
+  assert.match(js, /else if\(linked\.data\)/);
+});
+
 test('only the BTV cron supports both seasons and remains write-protected', () => {
   const yaml = source('.github/workflows/btv-club-sync.yml');
   assert.match(yaml, /cron: '17 \*\/6 \* \* \*'/);

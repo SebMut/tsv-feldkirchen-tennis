@@ -60,7 +60,6 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <button data-panel="manual-results" data-super-only class="hidden">Ergebnisse nachtragen</button>
           <button data-panel="official-rubbers" data-super-only class="hidden">Einzel &amp; Doppel 2026</button>
           <button data-panel="audit" data-super-only>Änderungsverlauf</button>
-          <button data-panel="events" data-editor-only>Termine</button>
           <button data-panel="galleries" data-editor-only>Bilder</button>
           <button data-panel="seasons" data-super-only>Saisons</button>
           <button data-panel="facility" data-super-only>Anlage</button>
@@ -297,28 +296,15 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field full"><label>Titel</label><input id="news-title" required /></div>
                 <div class="field full"><label>Kurztext</label><textarea id="news-excerpt"></textarea></div>
                 <div class="field full"><label>Text</label><textarea id="news-body" required></textarea></div>
+                <div class="field full"><p class="muted"><strong>Optionaler Termin:</strong> Nur ausfüllen, wenn dieser Beitrag zusätzlich im Kalender erscheinen soll.</p></div>
+                <div class="field"><label>Datum und Uhrzeit (optional)</label><input id="news-event-start" type="datetime-local" /></div>
+                <div class="field"><label>Ende (optional)</label><input id="news-event-end" type="datetime-local" /></div>
+                <div class="field full"><label>Ort (optional)</label><input id="news-event-location" /></div>
                 <div class="field"><label>Status</label><select id="news-status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="archived">Archiviert</option></select></div>
                 <div class="field"><label>Beitragsbild</label><input id="news-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
                 <div class="field"><button class="button" type="submit">Beitrag speichern</button><button id="news-cancel-edit" class="button ghost hidden" type="button">Bearbeiten abbrechen</button></div><div class="field full"><button id="news-preview-button" class="button ghost" type="button">Vorschau anzeigen</button><div id="news-preview" class="card flat hidden" aria-live="polite"></div></div>
               </form>
               <div id="news-admin-list" class="table-wrap"></div>
-            </div>
-          </section>
-
-          <section id="panel-events" class="admin-panel">
-            <div class="card">
-              <h2>Veranstaltung</h2>
-              <form id="event-form" class="form-grid"><input id="event-edit-id" type="hidden" />
-                <div class="field"><label>Mannschaft optional</label><select id="event-team"></select></div>
-                <div class="field"><label>Kategorie</label><input id="event-category" value="club" /></div>
-                <div class="field full"><label>Titel</label><input id="event-title" required /></div>
-                <div class="field"><label>Beginn</label><input id="event-start" type="datetime-local" required /></div>
-                <div class="field"><label>Ende</label><input id="event-end" type="datetime-local" /></div>
-                <div class="field full"><label>Beschreibung</label><textarea id="event-description"></textarea></div>
-                <div class="field"><label>Ort</label><input id="event-location" /></div>
-                <div class="field"><label>Status</label><select id="event-status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="cancelled">Abgesagt</option><option value="archived">Archiviert</option></select></div><div class="field"><button class="button" type="submit">Termin speichern</button><button class="button ghost hidden" id="event-cancel-edit" type="button">Bearbeiten abbrechen</button></div>
-              </form>
-              <div id="events-admin-list" class="table-wrap"></div>
             </div>
           </section>
 

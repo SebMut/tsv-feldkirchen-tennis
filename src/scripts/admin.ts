@@ -1304,7 +1304,10 @@ async function refreshNews(){
  const {data,error}=await query;
  if(error){target.textContent='Beiträge derzeit nicht abrufbar.';status(error.message,'error');return;}
  const rows=data??[];
- target.innerHTML=rows.length?`<div class="admin-edit-list">${rows.map(row=>`<div class="admin-edit-item" data-news-id="${row.id}"><div><strong>${escapeHtml(row.title)}</strong><p class="muted">${escapeHtml(row.status)} · ${escapeHtml(state.teams.find(t=>t.id===row.team_id)?.name||'Verein')}</p></div><div class="actions"><button type="button" class="button ghost" data-edit-news>Bearbeiten</button><button type="button" class="button danger" data-delete-news>Löschen</button></div></div>`).join('')}</div>`:'<p class="muted">Noch keine Beiträge vorhanden.</p>';
+ const eventResult=rows.length?await supabase.from('events').select('*').in('external_url',rows.map(row=>`news:${row.id}`)):{data:[],error:null};
+ const eventMap=new Map((eventResult.data??[]).map(row=>[String(row.external_url).replace('news:',''),row]));
+ const local=(stamp: string | null)=>{if(!stamp)return'';const d=new Date(stamp);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
+ target.innerHTML=rows.length?`<div class="admin-edit-list">${rows.map(row=>{const appointment=eventMap.get(row.id);return `<div class="admin-edit-item" data-news-id="${row.id}"><div><strong>${escapeHtml(row.title)}</strong><p class="muted">${escapeHtml(row.status)} · ${escapeHtml(state.teams.find(t=>t.id===row.team_id)?.name||'Verein')}${appointment?` · Termin: ${escapeHtml(formatDateTime(appointment.starts_at))}`:''}</p></div><div class="actions"><button type="button" class="button ghost" data-edit-news>Bearbeiten</button><button type="button" class="button danger" data-delete-news>Löschen</button></div></div>`}).join('')}</div>`:'<p class="muted">Noch keine Beiträge vorhanden.</p>';
  target.querySelectorAll('[data-edit-news]').forEach(button=>button.addEventListener('click',()=>{
    const item=rows.find(row=>row.id===button.closest('[data-news-id]')?.getAttribute('data-news-id'));if(!item)return;
    editorialInput('news-edit-id').value=item.id;
@@ -1314,6 +1317,10 @@ async function refreshNews(){
    editorialInput('news-team').value=item.team_id||'';
    editorialInput('news-match').value=item.match_id||'';
    editorialInput('news-status').value=item.status||'draft';
+   const appointment=eventMap.get(item.id);
+   editorialInput('news-event-start').value=local(appointment?.starts_at||null);
+   editorialInput('news-event-end').value=local(appointment?.ends_at||null);
+   editorialInput('news-event-location').value=appointment?.location_name||'';
    document.getElementById('news-cancel-edit')?.classList.remove('hidden');
    document.getElementById('news-form')?.scrollIntoView({block:'start'});
    status('Beitrag zur Bearbeitung geladen.','info');
@@ -1322,6 +1329,8 @@ async function refreshNews(){
    const id=button.closest('[data-news-id]')?.getAttribute('data-news-id');
    const item=rows.find(row=>row.id===id);if(!id||!item)return;
    if(!window.confirm(`Beitrag „${item.title}“ wirklich löschen?`))return;
+   const appointment=eventMap.get(id);
+   if(appointment){const removed=await supabase.from('events').delete().eq('id',appointment.id);if(removed.error)return status(removed.error.message,'error');}
    const {error}=await supabase.from('news').delete().eq('id',id);
    if(error)return status(error.message,'error');
    status('Beitrag gelöscht.','success');await refreshNews();
@@ -1336,7 +1345,11 @@ async function addNews(event: Event){
  const matchId=editorialInput('news-match')?.value||null;
  const publication=editorialInput('news-status')?.value||'draft';
  const body=editorialInput('news-body')?.value.trim()||'';
+ const eventStart=editorialInput('news-event-start')?.value||'';
+ const eventEnd=editorialInput('news-event-end')?.value||'';
  if(!title||!body)return status('Titel und Text fehlen.','error');
+ if(eventEnd&&!eventStart)return status('Für ein Ende muss auch ein Beginn eingetragen sein.','error');
+ if(eventStart&&eventEnd&&new Date(eventEnd).getTime()<new Date(eventStart).getTime())return status('Das Terminende darf nicht vor dem Beginn liegen.','error');
  if(!state.isSuper&&(!teamId||!canEditTeamId(teamId)))return status('Keine Redaktionsberechtigung.','error');
  if(matchId){
    const match=state.matches.find(m=>m.id===matchId);
@@ -1352,6 +1365,17 @@ async function addNews(event: Event){
  const patch={title,body,excerpt:editorialInput('news-excerpt')?.value.trim()||null,team_id:teamId,match_id:matchId,status:publication,published_at:publication==='published'?(originalPublishDate||new Date().toISOString()):null};
  const result=editId?await supabase.from('news').update(patch).eq('id',editId).select('id').single():await supabase.from('news').insert({...patch,slug:`${slugify(title)}-${Date.now().toString(36)}`,author_id:state.user.id}).select('id').single();
  if(result.error||!result.data)return status(result.error?.message||'Speichern fehlgeschlagen.','error');
+ const newsId=result.data.id;
+ const linked=await supabase.from('events').select('id').eq('external_url',`news:${newsId}`).maybeSingle();
+ if(linked.error)return status(`Beitrag gespeichert, Termin konnte nicht geprüft werden: ${linked.error.message}`,'error');
+ if(eventStart){
+   const eventPatch={title,description:body,category:'club',starts_at:new Date(eventStart).toISOString(),ends_at:eventEnd?new Date(eventEnd).toISOString():null,location_name:editorialInput('news-event-location')?.value.trim()||null,team_id:teamId,status:publication==='published'?'published':publication==='archived'?'archived':'draft',external_url:`news:${newsId}`};
+   const eventResult=linked.data?await supabase.from('events').update(eventPatch).eq('id',linked.data.id):await supabase.from('events').insert({...eventPatch,slug:`news-${newsId}`,created_by:state.user.id});
+   if(eventResult.error)return status(`Beitrag gespeichert, Kalendertermin fehlgeschlagen: ${eventResult.error.message}`,'error');
+ }else if(linked.data){
+   const removed=await supabase.from('events').delete().eq('id',linked.data.id);
+   if(removed.error)return status(`Beitrag gespeichert, alter Kalendertermin konnte nicht entfernt werden: ${removed.error.message}`,'error');
+ }
  const photo=document.getElementById('news-image');
  if(photo instanceof HTMLInputElement&&photo.files?.[0]){
    let image;try{image=await optimizeImage(photo.files[0]);}catch{return status('Text gespeichert, Bildverarbeitung fehlgeschlagen.','error');}
@@ -1368,65 +1392,6 @@ async function addNews(event: Event){
  document.getElementById('news-preview')?.classList.add('hidden');
  status(editId?'Beitrag aktualisiert.':'Beitrag erstellt.','success');
  await refreshNews();
-}
-
-async function refreshEvents(){
- const target=document.getElementById('events-admin-list');if(!target)return;
- const ids=allowedTeamIds('edit');
- if(!state.isSuper&&!ids.length){target.textContent='Keine Berechtigung für Termine.';return;}
- let query=supabase.from('events').select('*').order('starts_at',{ascending:false});
- if(!state.isSuper)query=query.in('team_id',ids);
- const {data,error}=await query;
- if(error){target.textContent='Termine sind momentan nicht abrufbar.';status(error.message,'error');return;}
- const rows=data??[];
- target.innerHTML=rows.length?`<div class="admin-edit-list">${rows.map(row=>`<div class="admin-edit-item" data-event-id="${row.id}"><div><strong>${escapeHtml(row.title)}</strong><p class="muted">${escapeHtml(formatDateTime(row.starts_at))} · ${escapeHtml(row.status)} · ${escapeHtml(state.teams.find(t=>t.id===row.team_id)?.name||'Verein')}</p></div><button type="button" class="button ghost" data-edit-event>Bearbeiten</button></div>`).join('')}</div>`:'<p class="muted">Noch keine Termine vorhanden.</p>';
- target.querySelectorAll('[data-edit-event]').forEach(button=>button.addEventListener('click',()=>{
-   const item=rows.find(row=>row.id===button.closest('[data-event-id]')?.getAttribute('data-event-id'));if(!item)return;
-   editorialInput('event-edit-id').value=item.id;
-   editorialInput('event-team').value=item.team_id||'';
-   editorialInput('event-category').value=item.category||'club';
-   editorialInput('event-title').value=item.title||'';
-   const local=(stamp: string | null)=>{if(!stamp)return'';const d=new Date(stamp);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
-   editorialInput('event-start').value=local(item.starts_at);
-   editorialInput('event-end').value=local(item.ends_at);
-   editorialInput('event-description').value=item.description||'';
-   editorialInput('event-location').value=item.location_name||'';
-   editorialInput('event-status').value=item.status||'draft';
-   document.getElementById('event-cancel-edit')?.classList.remove('hidden');
-   document.getElementById('event-form')?.scrollIntoView({block:'start'});
-   status('Termin zur Bearbeitung geladen.','info');
- }));
-}
-
-async function addEvent(event: Event){
- event.preventDefault();
- const editId=editorialInput('event-edit-id')?.value||null;
- const title=editorialInput('event-title')?.value.trim()||'';
- const start=editorialInput('event-start')?.value||'';
- const end=editorialInput('event-end')?.value||'';
- const teamId=editorialInput('event-team')?.value||null;
- if(!title||!start)return status('Titel und Beginn sind erforderlich.','error');
- if(end&&new Date(end).getTime()<new Date(start).getTime())return status('Das Ende darf nicht vor dem Beginn liegen.','error');
- if(!state.isSuper&&(!teamId||!canEditTeamId(teamId)))return status('Keine Berechtigung für diese Mannschaft.','error');
- const patch={
-   title,description:editorialInput('event-description')?.value.trim()||null,
-   category:editorialInput('event-category')?.value.trim()||'club',
-   starts_at:new Date(start).toISOString(),ends_at:end?new Date(end).toISOString():null,
-   location_name:editorialInput('event-location')?.value.trim()||null,
-   team_id:teamId,status:editorialInput('event-status')?.value||'draft'
- };
- if(!editId){
-   const duplicate=await supabase.from('events').select('id').eq('title',title).eq('starts_at',patch.starts_at).limit(1);
-   if(duplicate.data?.length)return status('Ein Termin mit diesem Titel und Beginn existiert bereits.','error');
- }
- const result=editId?await supabase.from('events').update(patch).eq('id',editId).select('id').single():await supabase.from('events').insert({...patch,slug:`${slugify(title)}-${Date.now().toString(36)}`,created_by:state.user.id}).select('id').single();
- if(result.error||!result.data)return status(result.error?.message||'Termin konnte nicht gespeichert werden.','error');
- const form=document.getElementById('event-form');if(form instanceof HTMLFormElement)form.reset();
- editorialInput('event-edit-id').value='';
- editorialInput('event-status').value='draft';
- document.getElementById('event-cancel-edit')?.classList.add('hidden');
- status(editId?'Termin aktualisiert.':'Termin erstellt.','success');
- await refreshEvents();
 }
 
 async function refreshGalleries() {
@@ -1785,7 +1750,6 @@ function renderSelectors() {
   const teamSelect = $<HTMLSelectElement>('#team-select');
   if (teamSelect) teamSelect.innerHTML = allowedTeamSeasons('edit').map((ts) => `<option value="${ts.id}">${escapeHtml(teamSeasonLabel(ts))}</option>`).join('');
   renderTeamOptions('#news-team', state.isSuper, 'edit');
-  renderTeamOptions('#event-team', state.isSuper, 'edit');
   renderTeamOptions('#gallery-team', false, 'edit');
   renderGalleryMatchOptions();
   renderTeamSeasonOptions('#players-team-season', 'edit');
@@ -1814,7 +1778,6 @@ function bindForms() {
     void refreshMatches();
   });
   $<HTMLFormElement>('#news-form')?.addEventListener('submit', addNews);
-  $<HTMLFormElement>('#event-form')?.addEventListener('submit', addEvent);
   $('#news-cancel-edit')?.addEventListener('click', () => {
     ($<HTMLFormElement>('#news-form'))?.reset();
     editorialInput('news-edit-id').value = '';
@@ -1827,12 +1790,6 @@ function bindForms() {
     if (!preview) return;
     preview.classList.remove('hidden');
     preview.textContent = ['news-title', 'news-excerpt', 'news-body'].map((id) => editorialInput(id).value).filter(Boolean).join('\n\n');
-  });
-  $('#event-cancel-edit')?.addEventListener('click', () => {
-    ($<HTMLFormElement>('#event-form'))?.reset();
-    editorialInput('event-edit-id').value = '';
-    editorialInput('event-status').value = 'draft';
-    $('#event-cancel-edit')?.classList.add('hidden');
   });
   $<HTMLFormElement>('#gallery-form')?.addEventListener('submit', addGallery);
   $<HTMLSelectElement>('#gallery-team')?.addEventListener('change', renderGalleryMatchOptions);
@@ -1889,7 +1846,7 @@ async function startApp(user: any) {
   renderSelectors();
   bindNav();
   bindForms();
-  await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshEvents(), refreshGalleries()]);
+  await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshGalleries()]);
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
   await initAdvancedAdmin(state);
   await initPhase8Admin(state);
