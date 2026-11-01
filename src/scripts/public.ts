@@ -1082,6 +1082,9 @@ export async function loadCalendar() {
   const dayHeading = document.querySelector<HTMLElement>('#calendar-day-heading');
   const dayCount = document.querySelector<HTMLElement>('#calendar-day-count');
   const dayList = document.querySelector<HTMLElement>('#calendar-day-list');
+  const agenda = document.querySelector<HTMLElement>('#calendar-day-agenda');
+  const monthBoard = document.querySelector<HTMLElement>('#calendar-month-board');
+  const returnToMonth = document.querySelector<HTMLButtonElement>('#calendar-back-to-month');
   const nextList = document.querySelector<HTMLElement>('#calendar-next-list');
   const statusTarget = document.querySelector<HTMLElement>('#calendar-data-status');
   const teamSelect = document.querySelector<HTMLSelectElement>('#calendar-team');
@@ -1266,11 +1269,24 @@ export async function loadCalendar() {
       <a class="button secondary" href="${escapeHtml(calendarFeedUrl({ type: 'events' }))}">Vereinstermine</a>`;
   };
 
-  const chooseDay = (key: string, focus = false) => {
+  // Clicking any day takes the visitor directly to that day's existing agenda.
+  // Keeping it on the page preserves all match links and the .ics export buttons.
+  const scrollToCalendarElement = (element: HTMLElement | null) => {
+    element?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  };
+  const chooseDay = (key: string, destination: 'agenda' | 'calendar' | 'none' = 'none') => {
     selectedDay = key;
     [viewYear, viewMonth] = key.split('-').map(Number);
     render();
-    if (focus) grid.querySelector<HTMLButtonElement>(`[data-calendar-day="${key}"]`)?.focus();
+    if (destination === 'calendar') {
+      grid.querySelector<HTMLButtonElement>(`[data-calendar-day="${key}"]`)?.focus();
+    } else if (destination === 'agenda') {
+      dayHeading.focus({ preventScroll: true });
+      scrollToCalendarElement(agenda);
+    }
   };
   const moveMonth = (amount: number) => {
     if (viewSelect?.value === 'week') {
@@ -1306,12 +1322,16 @@ export async function loadCalendar() {
   });
   document.querySelector('#calendar-prev')?.addEventListener('click', () => moveMonth(-1));
   document.querySelector('#calendar-next')?.addEventListener('click', () => moveMonth(1));
-  document.querySelector('#calendar-today')?.addEventListener('click', () => chooseDay(dateKey(new Date()), true));
+  document.querySelector('#calendar-today')?.addEventListener('click', () => chooseDay(dateKey(new Date()), 'agenda'));
+  returnToMonth?.addEventListener('click', () => {
+    grid.querySelector<HTMLButtonElement>(`[data-calendar-day="${selectedDay}"]`)?.focus({ preventScroll: true });
+    scrollToCalendarElement(monthBoard);
+  });
   grid.addEventListener('click', event => {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const button = target.closest<HTMLButtonElement>('button[data-calendar-day]');
-    if (button?.dataset.calendarDay) chooseDay(button.dataset.calendarDay, true);
+    if (button?.dataset.calendarDay) chooseDay(button.dataset.calendarDay, 'agenda');
   });
   grid.addEventListener('keydown', event => {
     const target = event.target;
@@ -1321,7 +1341,7 @@ export async function loadCalendar() {
     if (offset === undefined) return;
     event.preventDefault();
     const key = isoAt(new Date(dateAt(target.dataset.calendarDay).getTime() + offset * 86400000));
-    chooseDay(key, true);
+    chooseDay(key, 'calendar');
   });
   [teamSelect, categorySelect, kindSelect, rangeSelect, viewSelect].filter((el): el is HTMLSelectElement => !!el).forEach(el => el.addEventListener('change', render));
   favoriteSelect?.addEventListener('change', () => {
