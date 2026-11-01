@@ -43,7 +43,8 @@ try{
     .map((match)=>decode(match[0].replace(/\\\//g,'/')))
     .filter((url)=>/(liga\.nu|nuLiga|portal)/i.test(url))
     .map((url)=>url.replace(/([?&](?:code|state|token|session)=[^&]+)/gi,'')))];
-  console.log(JSON.stringify({authenticated:true,host:new URL(finalUrl).host,path:new URL(finalUrl).pathname,frames,forms,portalTargets,links:links.slice(0,40)},null,2));
+  const scripts=[...new Set([...page.matchAll(/<script\b[^>]*src="([^"]+)"/gi)].map((match)=>new URL(decode(match[1]),finalUrl).href))];
+  console.log(JSON.stringify({authenticated:true,host:new URL(finalUrl).host,path:new URL(finalUrl).pathname,frames,forms,portalTargets,scripts,links:links.slice(0,40)},null,2));
 }finally{
   rmSync(work,{recursive:true,force:true});
 }
