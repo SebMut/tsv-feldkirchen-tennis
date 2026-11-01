@@ -2,17 +2,11 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 
-const schoolUrl = 'https://www.tennisschule-alexbraun.de/';
+const schoolUrl = 'https://www.tennisschule-alexbraun.de/kontakt/';
 const offersUrl = 'https://www.tennisschule-alexbraun.de/angebote/';
 const coachesUrl = 'https://www.tennisschule-alexbraun.de/trainerteam/';
-// Bilder von den Originalseiten der Tennisschule (Angebote / Startseite).
-// Alle vier Motive sind absichtlich unterschiedlich.
-const schoolImages = 'https://www.tennisschule-alexbraun.de/wp-content/uploads';
-const logoUrl = `${schoolImages}/2025/09/logo-weiss_1pt_original-1.png`;
-const coachPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/angebote_1.jpg?fit=500%2C333&ssl=1';
-const trainingPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/angebote_4.jpg?fit=500%2C333&ssl=1';
-const winterPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/startseite_4.jpg?fit=500%2C333&ssl=1';
-const campPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/angebote_2.jpg?fit=500%2C333&ssl=1';
+// Das Logo ist das einzige auf der Kontaktseite eindeutig referenzierte Bild.
+const logoUrl = 'https://www.tennisschule-alexbraun.de/wp-content/uploads/2025/09/logo-weiss_1pt_original-1.png';
 ---
 <MainLayout
   title="Training | TSV Feldkirchen Tennis"
@@ -49,15 +43,7 @@ const campPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/up
           <img src={logoUrl} data-school-image="logo" alt="Logo Tennisschule Alex Braun" referrerpolicy="no-referrer" width="130" height="130" loading="eager" decoding="async" />
           <span>Tennisschule<br /><strong>Alex Braun</strong></span>
         </a>
-        <div class="training-simple__photos" aria-label="Bilder aus der Tennisschule Alex Braun">
-          <img class="training-simple__coach-photo" src={coachPhoto} data-school-image="coach" alt="Einblick in die Tennisschule Alex Braun" referrerpolicy="no-referrer" width="675" height="981" loading="lazy" decoding="async" />
-          <div class="training-simple__photo-strip">
-            <img src={trainingPhoto} data-school-image="summer" alt="Sommertraining bei der Tennisschule Alex Braun" referrerpolicy="no-referrer" width="500" height="331" loading="lazy" decoding="async" />
-            <img src={winterPhoto} data-school-image="winter" alt="Wintertraining bei der Tennisschule Alex Braun" referrerpolicy="no-referrer" width="500" height="333" loading="lazy" decoding="async" />
-            <img src={campPhoto} data-school-image="camp" alt="Tenniscamps bei der Tennisschule Alex Braun" referrerpolicy="no-referrer" width="750" height="500" loading="lazy" decoding="async" />
-          </div>
-        </div>
-        <p>Fotos und Logo: <a href={schoolUrl} target="_blank" rel="noopener noreferrer">Tennisschule Alex Braun</a></p>
+        <p>Logo: <a href={schoolUrl} target="_blank" rel="noopener noreferrer">Tennisschule Alex Braun</a></p>
       </aside>
     </section>
 
@@ -65,53 +51,14 @@ const campPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/up
 </MainLayout>
 
 <script>
-  // Jeder Bildplatz hat nur eigene, andere Motive als mögliche Ersatzbilder.
-  // Keine einheitliche Winterfoto-Ersatzadresse mehr: das hat alle
-  // Vorschaubilder identisch gemacht. Bilder bleiben extern verlinkt.
-  const base = 'https://www.tennisschule-alexbraun.de/wp-content/uploads/2025/07';
-  const photon = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07';
-  const photos: Record<string, string[]> = {
-    coach: [
-      `${base}/angebote_1.jpg`,
-      `${photon}/angebote_5.jpg?fit=500%2C333&ssl=1`,
-      `${base}/angebote_5.jpg`,
-    ],
-    summer: [
-      `${base}/angebote_4.jpg`,
-      `${photon}/angebote_3.jpg?fit=500%2C331&ssl=1`,
-      `${base}/angebote_3.jpg`,
-    ],
-    winter: [
-      `${base}/startseite_4.jpg`,
-      `${photon}/angebote_6.jpg?fit=500%2C333&ssl=1`,
-      `${base}/angebote_6.jpg`,
-    ],
-    camp: [
-      `${base}/angebote_2.jpg`,
-      `${photon}/startseite_2.jpg?fit=750%2C500&ssl=1`,
-      `${base}/startseite_2.jpg`,
-    ],
-  };
-  for (const img of document.querySelectorAll<HTMLImageElement>('img[data-school-image]')) {
-    const kind = img.dataset.schoolImage || '';
-    const alternatives = kind === 'logo'
-      ? ['https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/09/logo-weiss_1pt_original-1.png?fit=789%2C802&ssl=1']
-      : photos[kind] || [];
-    let next = 0;
-    const retry = () => {
-      if (next < alternatives.length) {
-        img.src = alternatives[next++];
-      } else {
-        // Kein Motiv aus einem anderen Bildplatz wiederverwenden.
-        img.hidden = true;
-        const strip = img.closest('.training-simple__photo-strip');
-        if (strip && Array.from(strip.querySelectorAll('img')).every(photo => photo.hidden)) {
-          strip.setAttribute('hidden', '');
-        }
-      }
-    };
-    img.addEventListener('error', retry);
-    if (img.complete && img.naturalWidth === 0) retry();
+  // Das einzige externe Motiv bleibt das Logo der Tennisschule.
+  const logo = document.querySelector<HTMLImageElement>('.training-simple__brand img');
+  if (logo) {
+    logo.addEventListener('error', () => {
+      if (logo.dataset.fallbackAttempted) return;
+      logo.dataset.fallbackAttempted = 'true';
+      logo.src = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/09/logo-weiss_1pt_original-1.png?fit=789%2C802&ssl=1';
+    });
   }
 </script>
 
@@ -135,19 +82,13 @@ const campPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/up
   .training-simple__hint{font-size:.81rem;margin:15px 0 0;color:#66756b}
   .training-simple__partner{min-width:0}
   /* Orange der Tennisschule als Partnerfarbe; TSV-Akzente bleiben Rot. */
-  .training-simple__brand{display:flex;align-items:center;gap:14px;min-height:118px;padding:12px 16px;background:#f28323;color:#fff;border-radius:10px 10px 0 0;text-decoration:none}
+  .training-simple__brand{display:flex;align-items:center;gap:14px;min-height:118px;padding:12px 16px;background:#f28323;color:#fff;border-radius:10px;text-decoration:none}
   .training-simple__brand img{width:92px;height:92px;object-fit:contain;flex:0 0 auto}
   .training-simple__brand>span{font-size:.9rem;line-height:1.3}
   .training-simple__brand strong{font-size:1.28rem}
-  .training-simple__photos{display:grid;gap:7px;background:#fff6e9;padding:7px;border-radius:0 0 10px 10px}
-  .training-simple__photos img{display:block;width:100%;object-fit:cover;background:#ead9c9;border-radius:5px}
-  .training-simple__photos img[hidden],.training-simple__photo-strip[hidden]{display:none}
-  .training-simple__coach-photo{height:220px;object-fit:cover;object-position:center 20%}
-  .training-simple__photo-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
-  .training-simple__photo-strip img{height:112px}
   .training-simple__partner>p{color:#78857b;font-size:.72rem;margin:8px 0 0}
   .training-simple__partner>p a{color:#697b70}
   .training-simple a:focus-visible,.training-simple summary:focus-visible{outline:3px solid #e30613;outline-offset:3px}
-  @media(max-width:900px){.training-simple__panel{grid-template-columns:1fr}.training-simple__partner{max-width:630px}.training-simple__coach-photo{height:210px;object-position:center 18%}.training-simple__photo-strip img{height:140px}}
-  @media(max-width:600px){.training-simple__panel{padding:21px 17px}.training-simple__intro{font-size:.95rem}.training-simple__list{font-size:.91rem}.training-simple__links{align-items:stretch;flex-direction:column}.training-simple__button{width:100%}.training-simple__brand{min-height:100px}.training-simple__brand img{width:76px;height:76px}.training-simple__coach-photo{height:170px;object-position:center 16%}.training-simple__photo-strip img{height:98px}}
+  @media(max-width:900px){.training-simple__panel{grid-template-columns:1fr}.training-simple__partner{max-width:630px}}
+  @media(max-width:600px){.training-simple__panel{padding:21px 17px}.training-simple__intro{font-size:.95rem}.training-simple__list{font-size:.91rem}.training-simple__links{align-items:stretch;flex-direction:column}.training-simple__button{width:100%}.training-simple__brand{min-height:100px}.training-simple__brand img{width:76px;height:76px}}
 </style>
