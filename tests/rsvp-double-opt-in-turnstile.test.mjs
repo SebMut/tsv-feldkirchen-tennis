@@ -196,7 +196,8 @@ test('admin controls youth, women and men independently and PDF export exists',(
   }
   assert.ok(adminPage.includes('id="rsvp-admin-pdf"'));
   assert.ok(adminPage.includes('PDF erstellen'));
-  assert.ok(admin.includes("downloadRsvpPdf(event, verifiedResponses)"));
+  assert.ok(admin.includes("downloadRsvpPdf({"));
+  assert.ok(admin.includes("},verifiedResponses)"));
   assert.ok(report.includes('export function downloadRsvpPdf('));
   assert.ok(report.includes("new Blob([toBytes(pdf)],{type:'application/pdf'})"));
   assert.ok(report.includes("a.download='tsv-feldkirchen-'"));
