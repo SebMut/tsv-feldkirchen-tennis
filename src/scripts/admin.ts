@@ -928,6 +928,7 @@ async function refreshMatches() {
       <div class="actions match-admin-main-actions">
         <button class="button secondary" data-live-action="start" type="button" ${live.status === 'live' ? 'disabled' : ''}>Spieltag live starten</button>
         <button class="button ghost" data-live-action="finish" type="button" ${live.status === 'finished' ? 'disabled' : ''}>Spieltag beenden</button>
+        ${live.status === 'live' ? '<button class="button danger" data-live-action="reset" type="button">Versehentlichen Start zurücksetzen</button>' : ''}
         <a class="button ghost" href="/live/?match=${match.id}" target="_blank" rel="noopener noreferrer">Öffentlichen Ticker öffnen ↗</a>
       </div>
 
@@ -1041,16 +1042,19 @@ async function refreshMatches() {
       const action = button.dataset.liveAction;
       if (button.disabled) return;
       if (action === 'finish' && !window.confirm('Den ganzen Spieltag wirklich beenden?')) return;
+      if (action === 'reset' && !window.confirm('Den Liveticker wirklich auf „Geplant“ zurücksetzen? Aufstellungen und gespeicherte Ergebnisse bleiben erhalten.')) return;
       button.disabled = true;
       const patch = action === 'start'
         ? { status: 'live', started_at: live.started_at || new Date().toISOString(), finished_at: null, updated_by: state.user.id }
-        : { status: 'finished', finished_at: new Date().toISOString(), updated_by: state.user.id };
+        : action === 'reset'
+          ? { status: 'scheduled', started_at: null, finished_at: null, updated_by: state.user.id }
+          : { status: 'finished', finished_at: new Date().toISOString(), updated_by: state.user.id };
       const { error } = await supabase.from('match_live_state').update(patch).eq('match_id', matchId);
       if (error) {
         status(error.message, 'error');
         button.disabled = false;
       } else {
-        status(action === 'start' ? 'Spieltag ist jetzt live.' : 'Spieltag beendet.', 'success');
+        status(action === 'start' ? 'Spieltag ist jetzt live.' : action === 'reset' ? 'Liveticker wurde auf „Geplant“ zurückgesetzt.' : 'Spieltag beendet.', 'success');
         await refreshMatches();
       }
     }));
