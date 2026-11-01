@@ -29,6 +29,56 @@ function publicEncounterSetResult(match: Row, encounter: Row) {
 }
 
 
+/**
+ * Kompakte, öffentliche Begegnungskarte der Spieltagsübersicht.
+ * Nur Begegnungen mit status=live werden hier übergeben; vorbereitete
+ * Ergebnisse sind vor der expliziten Live-Freigabe niemals sichtbar.
+ */
+function renderLiveEncounterPreview(match: Row, encounter: Row): string {
+  const summary = summarizeSetResult(encounter.result_text);
+  const oriented = homeAwaySetScore(summary, !!match.is_home);
+  const tsvNames = [encounter.tsv_player_1_name, encounter.tsv_player_2_name]
+    .filter(Boolean).join(' / ') || 'TSV-Spieler noch offen';
+  const opponentSlots = [encounter.opponent_slot_1, encounter.opponent_slot_2]
+    .filter((slot: unknown) => slot != null).map((slot: unknown) => `Gegner ${slot}`);
+  const opponentNames = opponentSlots.join(' / ')
+    || (encounter.discipline === 'singles' ? `Gegner ${encounter.position}` : 'Doppelgegner noch offen');
+  const homePlayers = match.is_home ? tsvNames : opponentNames;
+  const guestPlayers = match.is_home ? opponentNames : tsvNames;
+  const sets = summary.scores.filter(Boolean).map((score: string) => {
+    if (match.is_home) return score;
+    const [tsv, opponent] = score.split(':');
+    return `${opponent}:${tsv}`;
+  });
+  const encounterType = encounter.discipline === 'singles' ? 'Einzel' : 'Doppel';
+  const encounterNumber = Number(encounter.position) || 1;
+  return `
+    <article class="ticker-running-encounter">
+      <header class="ticker-running-encounter__heading">
+        <span class="ticker-running-encounter__number">${encounter.discipline === 'singles' ? 'E' : 'D'}${encounterNumber}</span>
+        <strong>${encounterType} ${encounterNumber}</strong>
+        <span class="ticker-running-encounter__live"><span aria-hidden="true">●</span> LIVE</span>
+      </header>
+      <div class="ticker-running-encounter__line">
+        <div class="ticker-running-encounter__player">
+          <small>Heim</small>
+          <strong>${escapeHtml(homePlayers)}</strong>
+        </div>
+        <div class="ticker-running-encounter__result" aria-label="${summary.hasResult
+          ? `Zwischenstand: Heim ${oriented.homeSets}, Gast ${oriented.awaySets}`
+          : 'Noch kein Satz eingetragen'}">
+          <small>${summary.hasResult ? 'Satzstand' : 'Läuft gerade'}</small>
+          <strong>${summary.hasResult ? `${oriented.homeSets} : ${oriented.awaySets}` : '– : –'}</strong>
+          <span>${sets.length ? escapeHtml(sets.join(' · ')) : 'Noch kein Satz eingetragen'}</span>
+        </div>
+        <div class="ticker-running-encounter__player ticker-running-encounter__player--guest">
+          <small>Gast</small>
+          <strong>${escapeHtml(guestPlayers)}</strong>
+        </div>
+      </div>
+    </article>`;
+}
+
 const fallbackImage =
   'data:image/svg+xml;charset=UTF-8,' +
   encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540"><rect width="100%" height="100%" fill="#e7f0ed"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="38" fill="#216052">TSV Feldkirchen Tennis</text></svg>');
@@ -373,44 +423,73 @@ export async function loadHome() {
     const scoreRows = [...(scoreResult.data ?? []), ...liveStates];
     if (liveCenter) {
       if (liveMatches.length) {
-        const running = await supabase.from('match_encounters').select('match_id').in('match_id', liveMatches.map(m => m.id)).eq('status', 'live');
-        const featuredLive = liveMatches[0];
-        const currentLiveState = scoreRows.find(s => s.match_id === featuredLive.id);
-        const { team: liveTeam } = matchContext(featuredLive, reference);
-        const clubLabel = liveTeam?.name ? `TSV Feldkirchen ${liveTeam.name}` : 'TSV Feldkirchen';
-        const homeLabel = featuredLive.is_home ? clubLabel : featuredLive.opponent;
-        const guestLabel = featuredLive.is_home ? featuredLive.opponent : clubLabel;
-        const currentHomeScore = Number(currentLiveState?.home_score ?? 0);
-        const currentAwayScore = Number(currentLiveState?.away_score ?? 0);
-        const detailHref = `/live/?match=${encodeURIComponent(featuredLive.id)}`;
+        const running = await supabase.from('match_encounters')
+          .select('match_id,discipline,position,status,sort_order,tsv_player_1_name,tsv_player_2_name,opponent_slot_1,opponent_slot_2,result_text')
+          .in('match_id', liveMatches.map((match: Row) => match.id))
+          .eq('status', 'live')
+          .order('sort_order')
+          .order('position');
+        const activeEncounters = running.data ?? [];
+
         liveCenter.classList.remove('hidden');
         liveCenter.innerHTML = `
-          <div class="ticker-overview-feature">
-            <div class="ticker-overview-feature__intro">
-              <span class="live-badge"><span class="live-dot"></span>LIVE · TSV Feldkirchen Tennis</span>
-              <h2>${liveMatches.length === 1 ? 'Jetzt live dabei' : `${liveMatches.length} Punktspiele laufen`}</h2>
-              <p>Alle Satzstände, Einzel und Doppel in der neuen Live-Ansicht verfolgen.</p>
-            </div>
-            <div class="ticker-overview-feature__score" aria-label="Heim ${currentHomeScore}, Gast ${currentAwayScore}">
-              <div class="ticker-overview-feature__team">
-                <small>Heim</small>
-                <strong>${escapeHtml(homeLabel)}</strong>
-              </div>
-              <div class="ticker-overview-feature__number">
-                <span>Begegnungen</span>
-                <strong>${currentHomeScore} <i aria-hidden="true">:</i> ${currentAwayScore}</strong>
-              </div>
-              <div class="ticker-overview-feature__team">
-                <small>Gast</small>
-                <strong>${escapeHtml(guestLabel)}</strong>
-              </div>
-            </div>
-            <div class="ticker-overview-feature__footer">
-              <span>${running.data?.length ?? 0} laufende Einzel/Doppel</span>
-              <a class="ticker-overview-feature__action" href="${detailHref}">Live-Ergebnisse &amp; alle Sätze ansehen <span aria-hidden="true">↗</span></a>
-            </div>
+          <div class="ticker-overview-feature__intro">
+            <span class="live-badge"><span class="live-dot"></span>LIVE · TSV Feldkirchen Tennis</span>
+            <h2>${liveMatches.length === 1 ? 'Jetzt live dabei' : `${liveMatches.length} Punktspiele laufen`}</h2>
+            <p>Alle gerade laufenden Einzel und Doppel – direkt mit ihren Zwischenständen.</p>
           </div>
-          ${liveMatches.length > 1 ? `<details class="ticker-overview-feature__more"><summary>Weitere laufende Punktspiele (${liveMatches.length - 1})</summary><div class="match-list">${liveMatches.slice(1).map(m => matchRow(m, reference, scoreRows)).join('')}</div></details>` : ''}`;
+          <div class="ticker-overview-match-list">
+            ${liveMatches.map((match: Row) => {
+              const { team } = matchContext(match, reference);
+              const clubLabel = team?.name ? `TSV Feldkirchen ${team.name}` : 'TSV Feldkirchen';
+              const homeLabel = match.is_home ? clubLabel : match.opponent;
+              const guestLabel = match.is_home ? match.opponent : clubLabel;
+              const currentLiveState = scoreRows.find((state: Row) => state.match_id === match.id);
+              const currentHomeScore = Number(currentLiveState?.home_score ?? 0);
+              const currentAwayScore = Number(currentLiveState?.away_score ?? 0);
+              const detailHref = `/live/?match=${encodeURIComponent(match.id)}`;
+              const matchEncounters = activeEncounters.filter((row: Row) => row.match_id === match.id);
+              return `
+                <article class="ticker-overview-feature">
+                  <div class="ticker-overview-feature__match-title">
+                    <div>
+                      <h3>${escapeHtml(team?.name || 'TSV Feldkirchen')} <span>gegen</span> ${escapeHtml(match.opponent)}</h3>
+                      <p>${escapeHtml(formatDateTime(match.starts_at))} · ${match.is_home ? 'Heimspiel' : 'Auswärtsspiel'}</p>
+                    </div>
+                    <span class="ticker-overview-feature__match-count">${matchEncounters.length} ${matchEncounters.length === 1 ? 'Begegnung läuft' : 'Begegnungen laufen'}</span>
+                  </div>
+                  <div class="ticker-overview-feature__score" aria-label="Heim ${currentHomeScore}, Gast ${currentAwayScore}">
+                    <div class="ticker-overview-feature__team">
+                      <small>Heim</small>
+                      <strong>${escapeHtml(homeLabel)}</strong>
+                    </div>
+                    <div class="ticker-overview-feature__number">
+                      <span>Begegnungen</span>
+                      <strong>${currentHomeScore} <i aria-hidden="true">:</i> ${currentAwayScore}</strong>
+                    </div>
+                    <div class="ticker-overview-feature__team">
+                      <small>Gast</small>
+                      <strong>${escapeHtml(guestLabel)}</strong>
+                    </div>
+                  </div>
+                  <section class="ticker-running-encounters" aria-label="Aktuell laufende Einzel und Doppel">
+                    <div class="ticker-running-encounters__title">
+                      <h4>Gerade auf dem Platz</h4>
+                      <span>${matchEncounters.length} LIVE</span>
+                    </div>
+                    ${running.error
+                      ? '<p class="ticker-running-encounters__empty">Die laufenden Begegnungen sind momentan nicht abrufbar.</p>'
+                      : matchEncounters.length
+                        ? `<div class="ticker-running-encounters__list">${matchEncounters.map((encounter: Row) => renderLiveEncounterPreview(match, encounter)).join('')}</div>`
+                        : '<p class="ticker-running-encounters__empty">Noch kein Einzel oder Doppel live geschaltet.</p>'}
+                  </section>
+                  <div class="ticker-overview-feature__footer">
+                    <span>Weitere Begegnungen und alle Satzdetails</span>
+                    <a class="ticker-overview-feature__action" href="${detailHref}">Live-Ergebnisse &amp; alle Sätze ansehen <span aria-hidden="true">↗</span></a>
+                  </div>
+                </article>`;
+            }).join('')}
+          </div>`;
       } else {
         liveCenter.classList.add('hidden');
         liveCenter.innerHTML = '';
