@@ -4,6 +4,7 @@ import { initAdvancedAdmin, loadAdvancedUsers } from './admin-advanced';
 import { initPhase8Admin } from './phase8';
 import { initManualResultsPanel } from './manual-results-admin';
 import { initOfficialReportsPanel } from './official-reports-admin';
+import { initEventRsvpAdmin } from './event-rsvp-admin';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
 import { summarizeSetResult, homeAwaySetScore, validateSetScore } from '../lib/tennis-score.mjs';
 
@@ -242,6 +243,7 @@ const panelDescriptions: Record<string, string> = {
   'manual-results': 'Fehlende Mannschaftsergebnisse geschützt nachtragen.',
   'official-rubbers': 'Verifizierte Einzel- und Doppelberichte ansehen.',
   news: 'Neuigkeiten und Spielberichte erstellen und aktualisieren.',
+  'rsvp-events': 'Veranstaltungen organisieren, Zusagen und Personenanzahl überblicken.',
   galleries: 'Fotos und Bilder für deine Mannschaft verwalten.',
   content: 'Seiten, Sponsoren und Vereinsinformationen pflegen.',
   facility: 'Den aktuellen Anlagenstatus ändern.',
@@ -260,6 +262,7 @@ function panelButtonLabel(button: HTMLButtonElement) {
 function showPanel(name: string) {
   if (name === 'manual-results' && !state.isSuper) return;
   if (name === 'official-rubbers' && !state.isSuper) return;
+  if (name === 'rsvp-events' && !state.isSuper) return;
   const activeButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]'))
     .find((button) => button.dataset.panel === name && !button.classList.contains('hidden'));
   const target = document.getElementById(`panel-${name}`);
@@ -2369,6 +2372,7 @@ async function startApp(user: any) {
   await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshNewsReferenceEvents(), refreshGalleries()]);
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
   await initAdvancedAdmin(state);
+  if (state.isSuper) initEventRsvpAdmin({ isSuper: true, user: state.user });
   await initPhase8Admin(state);
   if (state.isSuper) {
     initManualResultsPanel();

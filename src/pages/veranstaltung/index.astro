@@ -1,0 +1,55 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Sommerfest & Anmeldung | TSV Feldkirchen Tennis" description="Zu unseren Vereinsveranstaltungen anmelden: Zusage, Absage oder vielleicht – mit Anzahl der teilnehmenden Personen.">
+  <div class="container rsvp-page">
+    <nav class="rsvp-breadcrumb" aria-label="Brotkrumen"><a href="/termine/">Kalender</a><span aria-hidden="true">›</span><span>Veranstaltungsanmeldung</span></nav>
+    <div class="rsvp-page__grid">
+      <section class="rsvp-intro" aria-labelledby="rsvp-heading">
+        <p class="eyebrow">TSV Feldkirchen · Vereinsleben</p>
+        <span id="rsvp-mode-label" class="rsvp-mode-label">Beispielansicht</span>
+        <h1 id="rsvp-heading">Sommerfest beim TSV Feldkirchen</h1>
+        <p id="rsvp-description" class="rsvp-intro__lead">Gemeinsam feiern, miteinander ins Gespräch kommen und die Tennissaison genießen.</p>
+        <div class="rsvp-event-facts">
+          <div><span aria-hidden="true">▦</span><div><small>Termin</small><strong id="rsvp-date">Wird noch bekannt gegeben</strong></div></div>
+          <div><span aria-hidden="true">⌖</span><div><small>Ort</small><strong id="rsvp-location">TSV Feldkirchen · Ort folgt</strong></div></div>
+        </div>
+        <div class="rsvp-summary" id="rsvp-summary" aria-live="polite">
+          <p class="rsvp-summary__label">Gemeinsam planen</p>
+          <div class="rsvp-summary__stats">
+            <div><strong id="rsvp-stat-yes">–</strong><span>Zusagen</span></div>
+            <div><strong id="rsvp-stat-people">–</strong><span>Personen</span></div>
+            <div><strong id="rsvp-stat-maybe">–</strong><span>Vielleicht</span></div>
+          </div>
+          <p class="muted">Es werden nur Summen veröffentlicht, niemals Namen einzelner Mitglieder.</p>
+        </div>
+      </section>
+      <section class="rsvp-form-panel" aria-labelledby="rsvp-form-title">
+        <div class="rsvp-form-panel__heading">
+          <span aria-hidden="true" class="rsvp-form-panel__mark">✓</span>
+          <div><p class="eyebrow">Rückmeldung</p><h2 id="rsvp-form-title">Bist du dabei?</h2><p>Antworte in wenigen Sekunden.</p></div>
+        </div>
+        <div class="rsvp-demo-note" id="rsvp-demo-note" role="status">Dies ist eine Beispielveranstaltung ohne festes Datum. Antworten werden hier noch nicht gespeichert.</div>
+        <form id="rsvp-form" class="rsvp-form" novalidate>
+          <fieldset class="rsvp-choice-group">
+            <legend>Deine Rückmeldung <span aria-hidden="true">*</span></legend>
+            <label class="rsvp-choice"><input type="radio" name="attendance" value="yes" required checked /><span aria-hidden="true" class="rsvp-choice__icon">✓</span><span><strong>Ja, ich bin dabei</strong><small>Super, ich komme!</small></span></label>
+            <label class="rsvp-choice"><input type="radio" name="attendance" value="maybe" /><span aria-hidden="true" class="rsvp-choice__icon">?</span><span><strong>Vielleicht</strong><small>Ich weiß es noch nicht sicher.</small></span></label>
+            <label class="rsvp-choice"><input type="radio" name="attendance" value="no" /><span aria-hidden="true" class="rsvp-choice__icon">×</span><span><strong>Nein, diesmal nicht</strong><small>Danke für deine Rückmeldung.</small></span></label>
+          </fieldset>
+          <div class="rsvp-field"><label for="rsvp-member-name">Dein Name <span aria-hidden="true">*</span></label><input id="rsvp-member-name" name="member_name" type="text" autocomplete="name" minlength="2" maxlength="100" placeholder="Vor- und Nachname" required /><small>Nur im geschützten Adminbereich sichtbar.</small></div>
+          <div class="rsvp-field" id="rsvp-count-wrap"><label for="rsvp-person-count">Mit wie vielen Personen kommst du?</label><div class="rsvp-stepper"><button id="rsvp-count-minus" type="button" aria-label="Eine Person weniger">−</button><input type="number" id="rsvp-person-count" name="party_size" min="1" max="20" step="1" value="1" inputmode="numeric" required /><button id="rsvp-count-plus" type="button" aria-label="Eine Person mehr">+</button></div><small>Inklusive dir selbst. Weitere Familienmitglieder und Gäste mitzählen.</small></div>
+          <p id="rsvp-form-feedback" class="rsvp-form-feedback hidden" role="status" aria-live="polite"></p>
+          <button id="rsvp-submit" type="submit" class="button rsvp-submit">Rückmeldung senden <span aria-hidden="true">›</span></button>
+          <p class="rsvp-form__privacy">Deine Rückmeldung wird nur zur Planung der Veranstaltung genutzt. Auf dem verwendeten Gerät kannst du sie später mit derselben Kennung ändern. Die Anmeldung prüft noch keine Vereinsmitgliedschaft.</p>
+        </form>
+      </section>
+    </div>
+  </div>
+</MainLayout>
+
+<script>
+  import { initEventRsvp } from '../../scripts/event-rsvp';
+  initEventRsvp();
+</script>

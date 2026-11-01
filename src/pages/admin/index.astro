@@ -77,6 +77,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <div class="admin-nav__group" data-admin-nav-group="inhalte">
             <p class="admin-nav__label">Inhalte &amp; Verein</p>
             <button type="button" data-panel="news" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">✎</span> News</button>
+            <button type="button" data-panel="rsvp-events" data-super-only><span aria-hidden="true" class="admin-nav__symbol">✦</span> Veranstaltungen &amp; Zusagen</button>
             <button type="button" data-panel="galleries" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">▧</span> Bilder</button>
             <button type="button" data-panel="content" data-super-only><span aria-hidden="true" class="admin-nav__symbol">☷</span> Website-Inhalte</button>
             <button type="button" data-panel="facility" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⌂</span> Anlage</button>
@@ -360,6 +361,38 @@ import MainLayout from '../../layouts/MainLayout.astro';
               </div>
               <p id="matches-filter-summary" class="muted" role="status" aria-live="polite"></p>
               <div id="matches-admin-list" class="stack"></div>
+            </div>
+          </section>
+
+          <section id="panel-rsvp-events" class="admin-panel" data-super-only>
+            <div class="card stack">
+              <p class="eyebrow">Vereinsleben · Mitglieder-Rückmeldungen</p>
+              <h2>Veranstaltungen &amp; Zusagen</h2>
+              <p class="muted">Sommerfest, Weihnachtsfeier oder Vereinsabend: Mitglieder wählen Ja / Vielleicht / Nein und geben bei einer Zusage die Gesamtzahl der Personen an. Namen sind ausschließlich hier sichtbar. Die Anmeldung ist ohne verifizierte Mitgliedsidentität möglich.</p>
+              <div class="actions">
+                <a href="/veranstaltung/?slug=sommerfest" class="button secondary" target="_blank" rel="noopener">Sommerfest-Beispiel ansehen ↗</a>
+                <button id="rsvp-admin-new" type="button" class="button ghost">Neue Veranstaltung</button>
+              </div>
+              <div id="rsvp-admin-feedback" class="notice hidden" role="status" aria-live="polite"></div>
+              <div class="field">
+                <label for="rsvp-admin-select">Veranstaltung auswählen</label>
+                <select id="rsvp-admin-select"><option value="">Neue Veranstaltung</option></select>
+              </div>
+              <form id="rsvp-admin-event-form" class="form-grid">
+                <div class="field"><label for="rsvp-admin-title">Titel</label><input id="rsvp-admin-title" maxlength="140" value="Sommerfest" required /></div>
+                <div class="field"><label for="rsvp-admin-slug">Kurzlink</label><input id="rsvp-admin-slug" pattern="[a-z0-9-]+" maxlength="70" value="sommerfest" required /></div>
+                <div class="field"><label for="rsvp-admin-start">Datum &amp; Uhrzeit</label><input id="rsvp-admin-start" type="datetime-local" required /></div>
+                <div class="field"><label for="rsvp-admin-location">Veranstaltungsort</label><input id="rsvp-admin-location" placeholder="z. B. Vereinsanlage" maxlength="140" /></div>
+                <div class="field full"><label for="rsvp-admin-description">Beschreibung</label><textarea id="rsvp-admin-description" maxlength="1200" rows="3" placeholder="Wir freuen uns auf euch!"></textarea></div>
+                <div class="field"><label for="rsvp-admin-status">Freigabe</label><select id="rsvp-admin-status"><option value="draft">Entwurf – nicht öffentlich</option><option value="published">Veröffentlichen &amp; Anmeldung öffnen</option><option value="archived">Archiviert</option></select></div>
+                <div class="field"><label><input id="rsvp-admin-enabled" type="checkbox" checked /> Anmeldung aktivieren</label></div>
+                <div class="field full"><button type="submit" class="button" id="rsvp-admin-save">Veranstaltung speichern</button></div>
+              </form>
+              <div class="rsvp-admin-results">
+                <h3>Rückmeldungen</h3>
+                <p id="rsvp-admin-summary" aria-live="polite" class="muted">Wähle eine gespeicherte Veranstaltung.</p>
+                <div class="table-wrap" id="rsvp-admin-list" aria-live="polite"></div>
+              </div>
             </div>
           </section>
 
