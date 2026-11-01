@@ -34,7 +34,7 @@ test('official status has priority in both ticker view and match detail',()=>{
 
 test('verified BTV final result is updated without mutating any live ticker data',()=>{
   assert.match(sync,/btv_result_text: officialScore\(fixture\.score\)/);
-  assert.match(sync,/const officialUpdates = \[\]/);
+  assert.match(sync,/officialUpdates = \[\]/);
   assert.match(sync,/verified && matched\.btv_result_text !== verified/);
   assert.match(sync,/officialUpdates\.push\(\{ id: matched\.id/);
   assert.match(sync,/for \(const update of officialUpdates\)/);
