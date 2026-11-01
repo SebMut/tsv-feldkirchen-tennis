@@ -17,7 +17,7 @@ const campPhoto = `${schoolImages}/2025/07/startseite_2.jpg`;
   title="Training | TSV Feldkirchen Tennis"
   description="Tennistraining beim TSV Feldkirchen mit der Tennisschule Alex Braun: Sommertraining, Wintertraining, Einzel- und Gruppentraining sowie Tenniscamps."
 >
-  <div class="container training-simple" data-managed-page="training">
+  <div class="container training-simple">
     <Breadcrumbs items={[{ label: 'Startseite', href: '/' }, { label: 'Training' }]} />
 
     <section class="training-simple__panel" aria-labelledby="training-heading">
@@ -60,17 +60,10 @@ const campPhoto = `${schoolImages}/2025/07/startseite_2.jpg`;
       </aside>
     </section>
 
-    <details class="training-simple__more">
-      <summary>Weitere organisatorische Informationen</summary>
-      <div id="managed-page-content" aria-live="polite">Informationen werden geladen …</div>
-    </details>
   </div>
 </MainLayout>
 
 <script>
-  import { loadManagedPage } from '../../scripts/public';
-  loadManagedPage('training');
-
   // Externe Fotos bleiben auf der Website der Tennisschule. Falls ein
   // Original-Pfad gesperrt/verschoben ist, weitere dort gehostete Varianten
   // probieren. Keine eigenen Kopien, keine dauerhaft kaputten Platzhalter.
@@ -151,9 +144,6 @@ const campPhoto = `${schoolImages}/2025/07/startseite_2.jpg`;
   .training-simple__photo-strip img{height:112px}
   .training-simple__partner>p{color:#78857b;font-size:.72rem;margin:8px 0 0}
   .training-simple__partner>p a{color:#697b70}
-  .training-simple__more{background:#fff;border:1px solid #e0e5df;border-radius:10px;padding:13px 19px}
-  .training-simple__more summary{cursor:pointer;font-size:.87rem;font-weight:800;color:#3c5144}
-  .training-simple__more>div{white-space:pre-line;padding-top:14px;color:#58695c;font-size:.87rem;overflow-wrap:anywhere}
   .training-simple a:focus-visible,.training-simple summary:focus-visible{outline:3px solid #e30613;outline-offset:3px}
   @media(max-width:900px){.training-simple__panel{grid-template-columns:1fr}.training-simple__partner{max-width:630px}.training-simple__coach-photo{height:230px}.training-simple__photo-strip img{height:140px}}
   @media(max-width:600px){.training-simple__panel{padding:21px 17px}.training-simple__intro{font-size:.95rem}.training-simple__list{font-size:.91rem}.training-simple__links{align-items:stretch;flex-direction:column}.training-simple__button{width:100%}.training-simple__brand{min-height:100px}.training-simple__brand img{width:76px;height:76px}.training-simple__coach-photo{height:170px}.training-simple__photo-strip img{height:98px}}
