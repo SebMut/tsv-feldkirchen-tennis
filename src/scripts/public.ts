@@ -253,8 +253,22 @@ export async function loadHome() {
   try {
     const reference = await refs();
     const now = new Date();
-    const start = new Date(now); start.setHours(0, 0, 0, 0);
-    const end = new Date(start); end.setDate(end.getDate() + 1);
+    // A fixture belongs to "Heute" by the club's local date, not the visitor's time zone.
+    // Query a slightly wider UTC interval and then filter by the Europe/Berlin calendar day.
+    // This also covers both CET and CEST, including daylight-saving changes.
+    const berlinDayFormatter = new Intl.DateTimeFormat('de-DE', {
+      timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',
+    });
+    const berlinDayKey = (value: string | Date) => {
+      const parts = berlinDayFormatter.formatToParts(new Date(value));
+      const get = (type: string) => parts.find(part => part.type === type)?.value || '';
+      return `${get('year')}-${get('month')}-${get('day')}`;
+    };
+    const currentDayKey = berlinDayKey(now);
+    const [year, month, day] = currentDayKey.split('-').map(Number);
+    const midnightUtc = Date.UTC(year, month - 1, day);
+    const start = new Date(midnightUtc - 2 * 3600000);
+    const end = new Date(midnightUtc + 26 * 3600000);
     const [facilityResult, activeResult, todayResult, upcomingResult, recentResult, newsResult, settingsResult, weatherResult] = await Promise.all([
       supabase.from('facility_status').select('*').limit(1),
       supabase.from('match_live_state').select('*').eq('status', 'live'),
@@ -301,10 +315,18 @@ export async function loadHome() {
     }
     const byMatch = new Map(rows.map(m => [m.id, m]));
     const liveMatches = liveIds.map(id => byMatch.get(id)).filter(Boolean);
-    const today = [...liveMatches, ...(todayResult.data ?? []).filter(m => !liveIds.includes(m.id))];
-    const next = (upcomingResult.data ?? []).filter(m => !liveIds.includes(m.id));
+    const todaysFixtures = (todayResult.data ?? []).filter(m => berlinDayKey(m.starts_at) === currentDayKey);
+    const todayIds = new Set(todaysFixtures.map(m => m.id));
+    const today = [
+      ...liveMatches.filter(m => berlinDayKey(m.starts_at) === currentDayKey),
+      ...todaysFixtures.filter(m => !liveIds.includes(m.id)),
+    ];
+    // On the dedicated Spieltag page, don't repeat today's fixtures under "Demnächst".
+    const next = (upcomingResult.data ?? []).filter(m =>
+      !liveIds.includes(m.id) && (!upcomingTarget || !todayIds.has(m.id)));
     const past = (recentResult.data ?? []).slice(0, 6);
-    const focus = today.length ? today : next.slice(0, 3);
+    // The homepage still previews future fixtures, while "Heute" on Spieltag stays literal.
+    const focus = today.length ? today : (upcomingTarget ? [] : next.slice(0, 3));
     const scoreIds = [...new Set([...focus, ...next, ...past].map(m => m.id))];
     const scoreResult = scoreIds.length
       ? await supabase.from('match_live_state').select('*').in('match_id', scoreIds)
@@ -329,8 +351,10 @@ export async function loadHome() {
         errorText(todayTarget, 'Punktspiele sind momentan nicht abrufbar.');
       } else {
         todayTarget.innerHTML = focus.length
-          ? `<p class="match-section-note">${today.length ? 'Heute und LIVE' : 'Nächste Punktspiele'}</p>${focus.slice(0, 6).map(m => matchRow(m, reference, scoreRows)).join('')}`
-          : '<p class="muted">Momentan keine Punktspiele angekündigt.</p>';
+          ? `<p class="match-section-note">${today.length ? (today.some(m => liveIds.includes(m.id)) ? 'Heute und LIVE' : 'Heutige Punktspiele') : 'Nächste Punktspiele'}</p>${focus.slice(0, 6).map(m => matchRow(m, reference, scoreRows)).join('')}`
+          : upcomingTarget
+            ? '<p class="muted">Heute finden keine Punktspiele statt. Die nächsten Begegnungen stehen unten unter „Demnächst“.</p>'
+            : '<p class="muted">Momentan keine Punktspiele angekündigt.</p>';
       }
     }
     if (upcomingTarget) upcomingTarget.innerHTML = upcomingResult.error
