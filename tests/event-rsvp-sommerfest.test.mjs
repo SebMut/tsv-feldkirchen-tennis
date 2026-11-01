@@ -16,7 +16,7 @@ test('Sommerfest example is visibly marked as a demo until published',()=>{
   assert.ok(page.includes('Beispielansicht'));
   assert.ok(page.includes('Antworten werden hier noch nicht gespeichert'));
   assert.ok(script.includes('if (!event) {'));
-  assert.ok(script.includes('Nichts gespeichert.'));
+  assert.ok(script.includes('nichts gespeichert.'));
   assert.ok(!sql.includes('insert into public.events'));
 });
 
@@ -31,14 +31,13 @@ test('three participation choices and count only for yes, self counted',()=>{
   assert.ok(page.includes('einschließlich dir selbst'));
 });
 
-test('public writes via scoped RPC and retains private edit key on same device',()=>{
-  assert.ok(script.includes("supabase.rpc('submit_event_rsvp'"));
-  assert.ok(script.includes('p_edit_key: editKey'));
-  assert.ok(script.includes('p_adults: adults'));
-  assert.ok(script.includes('p_children: children'));
-  assert.ok(script.includes('p_youth: youth'));
-  assert.ok(script.includes('crypto.randomUUID()'));
-  assert.ok(script.includes('localStorage.setItem(keyName, editKey)'));
+test('public requires verified email and uses a secure Edge endpoint',()=>{
+  assert.ok(script.includes("supabase.functions.invoke('event-rsvp-email'"));
+  assert.ok(script.includes("turnstileToken"));
+  assert.ok(script.includes("event_id:event.id"));
+  assert.ok(script.includes("email:memberEmail"));
+  assert.ok(script.includes("adults,children,dessert,salad"));
+  assert.ok(!script.includes('localStorage.setItem'));
   assert.ok(script.includes(".eq('status', 'published').eq('rsvp_enabled', true)"));
   assert.ok(script.includes(".rpc('event_rsvp_summary'"));
   assert.ok(!script.includes(".from('event_rsvps')"));
