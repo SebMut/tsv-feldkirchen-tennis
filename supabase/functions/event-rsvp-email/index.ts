@@ -6,6 +6,21 @@ import { createClient } from 'npm:@supabase/supabase-js@2.75.0';
 // Only the account granted Gmail API gmail.send may send confirmation emails.
 const env = (key: string) => Deno.env.get(key)?.trim() || '';
 const GMAIL_SENDER = 'tsvfeldkirchen.tennis@gmail.com';
+// Require an exact base URL: a stray word or slash must never enter
+// a confirmation link that is already delivered by email.
+const allowedRsvpBases = new Set([
+  'https://sebmut.github.io/tsv-feldkirchen-tennis/',
+  'https://www.tennis-tsvfeldkirchen.de/',
+  'https://tennis-tsvfeldkirchen.de/',
+]);
+function validatedRsvpBase(): URL | null {
+  try {
+    const base=new URL(env('RSVP_BASE_URL'));
+    return base.protocol==='https:' && allowedRsvpBases.has(base.href) ? base : null;
+  } catch {
+    return null;
+  }
+}
 const allowedOrigins = new Set([
   'https://sebmut.github.io',
   'https://www.tennis-tsvfeldkirchen.de',
@@ -190,13 +205,16 @@ Deno.serve(async request=>{
   let body:Record<string,unknown>;
   try {body=JSON.parse(raw);} catch {return reply(400,{error:'Ungültige Anfrage'},origin);}
   const action=body.action;
+  const base=validatedRsvpBase();
   const configured=!!(env('TURNSTILE_SITE_KEY')&&env('TURNSTILE_SECRET_KEY')
     &&env('GMAIL_CLIENT_ID')&&env('GMAIL_CLIENT_SECRET')&&env('GMAIL_REFRESH_TOKEN')
-    &&env('RSVP_BASE_URL')&&env('SUPABASE_URL')&&env('SUPABASE_SERVICE_ROLE_KEY'));
+    &&base&&env('SUPABASE_URL')&&env('SUPABASE_SERVICE_ROLE_KEY'));
   if(action==='config') {
     return reply(200,configured?{
       enabled:true,siteKey:env('TURNSTILE_SITE_KEY'),sender:GMAIL_SENDER,
-    }:{enabled:false,message:'Gmail-Zugriff und Cloudflare-Menschprüfung müssen vor der Anmeldung noch vom Verein freigegeben werden.'},origin);
+    }:{enabled:false,message:!base
+      ? 'Die Supabase-Einstellung RSVP_BASE_URL ist ungültig. Bitte genau https://sebmut.github.io/tsv-feldkirchen-tennis/ eintragen, ohne weitere Zeichen.'
+      : 'Gmail-Zugriff und Cloudflare-Menschprüfung müssen vor der Anmeldung noch vom Verein freigegeben werden.'},origin);
   }
   if (!configured) return reply(503,{error:'Anmeldung derzeit nicht verfügbar. E-Mail-Versand und Cloudflare Turnstile sind noch nicht eingerichtet.'},origin);
   const db=createClient(env('SUPABASE_URL'),env('SUPABASE_SERVICE_ROLE_KEY'),{
@@ -262,18 +280,15 @@ Deno.serve(async request=>{
     .select('id').single();
   if(pendingError||!pending) return reply(503,{error:'Rückmeldung konnte nicht vorbereitet werden.'},origin);
 
-  let confirmation:URL;
-  try {
-    const base=new URL(env('RSVP_BASE_URL'));
-    if(base.protocol!=='https:' || !allowedHost.has(base.hostname)) throw new Error('Unzulässige Basis-URL');
-    const prefix=base.pathname.endsWith('/')?base.pathname:base.pathname+'/';
-    confirmation=new URL(prefix+'veranstaltung/bestaetigen/',base.origin);
-    confirmation.searchParams.set('request',pending.id);
-    confirmation.searchParams.set('token',secret);
-  } catch {
+  // The configuration is checked before any signup can start.
+  // An exact allowlisted path also prevents accidental /%20Wert/ in emails.
+  if(!base) {
     await db.from('event_rsvp_pending').delete().eq('id',pending.id);
-    return reply(503,{error:'Die Bestätigungsseite ist noch nicht konfiguriert.'},origin);
+    return reply(503,{error:'Die Basis-URL der Bestätigungsseite ist ungültig.'},origin);
   }
+  const confirmation=new URL('veranstaltung/bestaetigen/',base);
+  confirmation.searchParams.set('request',pending.id);
+  confirmation.searchParams.set('token',secret);
   const rows=describe(p,event);
   const rowsHtml=rows.map(([k,v])=>'<tr><th style="text-align:left;padding:7px;border-bottom:1px solid #eee">'+escapeHtml(k)+'</th><td style="padding:7px;border-bottom:1px solid #eee">'+escapeHtml(v)+'</td></tr>').join('');
   const link=confirmation.toString();
