@@ -159,6 +159,22 @@ test('public team navigation labels summer correctly and follows managed active 
   assert.match(source('src/pages/sw.js.ts'), /tsv-tennis-public-v2/);
 });
 
+test('training page has real TSV media, partner course links and mobile layout', () => {
+  const training = source('src/pages/training/index.astro');
+  assert.match(training, /tsv-feldkirchen-tennisanlage-hero\.avif/);
+  assert.match(training, /Tennisschule Alex Braun/);
+  assert.match(training, /Sommertraining/);
+  assert.match(training, /Wintertraining/);
+  assert.match(training, /Tenniscamps/);
+  assert.match(training, /tennisschule-alexbraun\.de\/angebote\//);
+  assert.match(training, /tennisschule-alexbraun\.de\/trainerteam\//);
+  assert.match(training, /data-managed-page="training"/);
+  assert.match(training, /loadManagedPage\('training'\)/);
+  assert.match(training, /@media\(max-width:680px\)/);
+  assert.match(training, /aria-labelledby="training-title"/);
+  assert.doesNotMatch(training, /iframe/);
+});
+
 test('news optionally creates one linked calendar appointment', () => {
   const js = source('src/scripts/admin.ts');
   const html = source('src/pages/admin/index.astro');
