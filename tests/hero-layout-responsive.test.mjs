@@ -161,23 +161,36 @@ test('Live-Ticker focuses on encounters and hides the Heute block without actual
   assert.match(css,/\.matchday-page--ticker \.matchday-fixture-grid\{margin:0;gap:18px;align-items:start\}/);
 });
 
-test('calendar day click jumps to agenda while keeping detailed controls and keyboard access',()=>{
+test('calendar date opens dismissible modal and retains full day navigation and buttons',()=>{
   const calendar=readFileSync(new URL('../src/pages/termine/index.astro',import.meta.url),'utf8');
   const script=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
+  assert.ok(calendar.includes('id="calendar-day-modal"'));
+  assert.ok(calendar.includes('aria-labelledby="calendar-modal-heading"'));
+  assert.ok(calendar.includes('id="calendar-modal-list"'));
+  assert.ok(calendar.includes('id="calendar-modal-close"'));
+  assert.ok(calendar.includes('id="calendar-modal-dismiss"'));
+  assert.ok(calendar.includes('id="calendar-modal-details"'));
   assert.ok(calendar.includes('id="calendar-day-agenda"'));
   assert.ok(calendar.includes('id="calendar-month-board"'));
   assert.ok(calendar.includes('id="calendar-back-to-month"'));
   assert.ok(calendar.includes('id="calendar-day-heading" tabindex="-1"'));
-  assert.ok(script.includes("chooseDay(button.dataset.calendarDay, 'agenda')"));
-  assert.ok(script.includes("chooseDay(dateKey(new Date()), 'agenda')"));
+  assert.ok(script.includes("chooseDay(button.dataset.calendarDay, 'modal')"));
+  assert.ok(script.includes("chooseDay(dateKey(new Date()), 'modal')"));
   assert.ok(script.includes("chooseDay(key, 'calendar')"));
-  assert.ok(script.includes("dayHeading.focus({ preventScroll: true })"));
+  assert.ok(script.includes('if (dayModal && !dayModal.open) dayModal.showModal()'));
+  assert.ok(script.includes('if (event.target === dayModal) closeDayModal()'));
+  assert.ok(script.includes("document.querySelector('#calendar-modal-close')?.addEventListener('click', closeDayModal)"));
+  assert.ok(script.includes("document.querySelector('#calendar-modal-dismiss')?.addEventListener('click', closeDayModal)"));
+  assert.ok(script.includes("document.querySelector('#calendar-modal-details')?.addEventListener('click'"));
   assert.ok(script.includes('scrollToCalendarElement(agenda)'));
   assert.ok(script.includes('scrollToCalendarElement(monthBoard)'));
-  assert.ok(script.includes("prefers-reduced-motion: reduce"));
-  assert.ok(script.includes("const button = target.closest<HTMLButtonElement>('[data-calendar-save]')"));
+  assert.ok(script.includes('modalList.innerHTML = dayList.innerHTML'));
+  assert.ok(script.includes("modalList?.addEventListener('click', handleCalendarSave)"));
+  assert.ok(script.includes("dayList.addEventListener('click', handleCalendarSave)"));
   assert.ok(script.includes("link.download = 'tsv-termin.ics'"));
   assert.ok(script.includes('href: `/spiel/?match='));
+  assert.ok(css.includes('.calendar-day-modal::backdrop'));
+  assert.ok(css.includes('body:has(.calendar-day-modal[open])'));
   assert.ok(css.includes('.calendar-back-to-month{display:inline-flex'));
   assert.ok(css.includes('.calendar-board,.calendar-agenda{scroll-margin-top:20px}'));
 });
