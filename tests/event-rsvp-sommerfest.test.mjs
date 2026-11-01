@@ -16,7 +16,7 @@ test('Sommerfest example is visibly marked as a demo until published',()=>{
   assert.ok(page.includes('Beispielansicht'));
   assert.ok(page.includes('Antworten werden hier noch nicht gespeichert'));
   assert.ok(script.includes('if (!event) {'));
-  assert.ok(script.includes('diese Demo-Antwort wurde nicht gespeichert'));
+  assert.ok(script.includes('Nichts gespeichert.'));
   assert.ok(!sql.includes('insert into public.events'));
 });
 
