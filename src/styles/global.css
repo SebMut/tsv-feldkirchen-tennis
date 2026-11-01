@@ -813,6 +813,13 @@ body{background:var(--sand);color:var(--text)}
 
 /* Public squads / season switcher: independent from site-global selects */
 .teams-page{--team-ink:#19221f;--team-subtle:#60706b;color:var(--team-ink);gap:32px}
+.breadcrumbs{padding-top:10px;font-size:.86rem;color:#66736e}
+.breadcrumbs ol{display:flex;align-items:center;flex-wrap:wrap;gap:0;margin:0;padding:0;list-style:none}
+.breadcrumbs li{display:flex;align-items:center;min-width:0}
+.breadcrumbs a{color:#53645d;text-decoration:none;font-weight:700}
+.breadcrumbs a:hover,.breadcrumbs a:focus-visible{color:#e30613;text-decoration:underline}
+.breadcrumbs [aria-current="page"]{color:#18231f;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32ch}
+.breadcrumbs__separator{margin:0 8px;color:#9aa49f}
 .teams-page__intro{padding:12px 0 0}
 .teams-page__intro h1{margin:0;font-size:clamp(2.4rem,5.5vw,4.6rem);letter-spacing:-.055em}
 .teams-page__intro h1 span{color:#e30613}

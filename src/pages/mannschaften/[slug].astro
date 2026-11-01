@@ -1,5 +1,6 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
 
 export function getStaticPaths() {
   const slugs = [
@@ -11,9 +12,19 @@ export function getStaticPaths() {
   return slugs.map((slug) => ({ params: { slug } }));
 }
 const { slug } = Astro.params;
+const teamNames: Record<string, string> = {
+  'herren': 'Herren', 'herren-ii': 'Herren II', 'herren-iii': 'Herren III',
+  'herren-40': 'Herren 40', 'herren-40-ii': 'Herren 40 II', 'herren-50': 'Herren 50', 'herren-50-ii': 'Herren 50 II',
+  'damen': 'Damen', 'damen-30': 'Damen 30', 'damen-40': 'Damen 40', 'damen-50': 'Damen 50',
+  'junioren-18': 'Junioren 18', 'junioren-18-ii': 'Junioren 18 II', 'knaben-15': 'Knaben 15', 'knaben-15-ii': 'Knaben 15 II',
+  'maedchen-15': 'Mädchen 15', 'bambini-12': 'Bambini 12', 'bambini-12-ii': 'Bambini 12 II',
+  'bambini-12-iii': 'Bambini 12 III', 'kleinfeld-u9': 'Kleinfeld U9'
+};
+const teamName = teamNames[slug ?? ''] ?? 'Mannschaft';
 ---
 <MainLayout title="Mannschaft | TSV Feldkirchen Tennis">
   <div class="container stack" data-team-slug={slug}>
+    <Breadcrumbs items={[{ label: 'Startseite', href: '/' }, { label: 'Mannschaften', href: '/mannschaften/' }, { label: teamName }]} />
     <div id="team-header"><p class="muted">Mannschaft wird geladen …</p></div>
     <section id="team-next-match" class="hidden" aria-live="polite"></section>
     <section class="grid two">
