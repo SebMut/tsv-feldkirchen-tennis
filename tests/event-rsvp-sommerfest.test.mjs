@@ -12,7 +12,7 @@ const sql=read('supabase/migrations/20261101190000_event_rsvp_sommerfest.sql');
 const css=read('src/styles/global.css');
 
 test('Sommerfest example is visibly marked as a demo until published',()=>{
-  assert.ok(page.includes('Sommerfest beim TSV Feldkirchen'));
+  assert.ok(page.includes('Sommerfest &amp; Jugendvereinsmeisterschaften'));
   assert.ok(page.includes('Beispielansicht'));
   assert.ok(page.includes('Antworten werden hier noch nicht gespeichert'));
   assert.ok(script.includes('if (!event) {'));
@@ -22,16 +22,21 @@ test('Sommerfest example is visibly marked as a demo until published',()=>{
 
 test('three participation choices and count only for yes, self counted',()=>{
   for(const v of ['yes','maybe','no'])assert.ok(page.includes('value="'+v+'"'));
-  assert.ok(page.includes('name="party_size" min="1" max="20"'));
+  assert.ok(page.includes('name="adults_count" min="0" max="20"'));
+  assert.ok(page.includes('name="children_count" min="0" max="20"'));
   assert.ok(script.includes("countWrap.hidden = choice() !== 'yes'"));
-  assert.ok(script.includes("selected === 'yes' ? Number(countInput.value) : 0"));
-  assert.ok(script.includes('Math.min(20'));
-  assert.ok(page.includes('Inklusive dir selbst'));
+  assert.ok(script.includes("selected === 'yes' ? Number(adultsInput.value) : 0"));
+  assert.ok(script.includes("selected === 'yes' ? Number(childrenInput.value) : 0"));
+  assert.ok(script.includes('partySize > 20'));
+  assert.ok(page.includes('einschließlich dir selbst'));
 });
 
 test('public writes via scoped RPC and retains private edit key on same device',()=>{
   assert.ok(script.includes("supabase.rpc('submit_event_rsvp'"));
   assert.ok(script.includes('p_edit_key: editKey'));
+  assert.ok(script.includes('p_adults: adults'));
+  assert.ok(script.includes('p_children: children'));
+  assert.ok(script.includes('p_youth: youth'));
   assert.ok(script.includes('crypto.randomUUID()'));
   assert.ok(script.includes('localStorage.setItem(keyName, editKey)'));
   assert.ok(script.includes(".eq('status', 'published').eq('rsvp_enabled', true)"));
