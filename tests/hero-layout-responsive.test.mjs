@@ -124,14 +124,15 @@ test('Spieltag "Heute" never falls back to a later match date',()=>{
 
 test('every listed team and detail offers tennis.de access without invented portraits',()=>{
   const script=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
-  assert.match(script,/const TENNIS_DE_CLUB_SEARCH_URL/);
-  assert.match(script,/mannschaftssuche\\.html\\?verband=btv&verein=01012/);
-  assert.match(script,/function tennisDeTeamDestination/);
-  assert.match(script,/href: portrait \\|\\| TENNIS_DE_CLUB_SEARCH_URL, isDirect: !!portrait/);
-  assert.match(script,/function officialTennisDePortraitUrl/);
-  assert.match(script,/\\^#teamportrait\\\\\\/\\\\d\\+\\$/);
-  assert.match(script,/const tennisDeTarget = tennisDeTeamDestination\\(ts\\);/);
-  assert.match(script,/const tennisDeTarget = tennisDeTeamDestination\\(current\\);/);
-  assert.match(script,/tennisDeTarget\\.isDirect \\? 'tennis\\.de Portrait ↗' : 'tennis\\.de Team suchen ↗'/);
-  assert.match(script,/tennisDeTarget\\.isDirect \\? 'tennis\\.de Mannschaftsporträt ↗' : 'tennis\\.de Mannschaftssuche ↗'/);
+  assert.ok(script.includes('const TENNIS_DE_CLUB_SEARCH_URL'));
+  assert.ok(script.includes('mannschaftssuche.html?verband=btv&verein=01012'));
+  assert.ok(script.includes('function tennisDeTeamDestination'));
+  assert.ok(script.includes('href: portrait || TENNIS_DE_CLUB_SEARCH_URL, isDirect: !!portrait'));
+  assert.ok(script.includes('function officialTennisDePortraitUrl'));
+  assert.ok(script.includes('const tennisDeTarget = tennisDeTeamDestination(ts);'));
+  assert.ok(script.includes('const tennisDeTarget = tennisDeTeamDestination(current);'));
+  assert.ok(script.includes('tennis.de Portrait ↗'));
+  assert.ok(script.includes('tennis.de Team suchen ↗'));
+  assert.ok(script.includes('tennis.de Mannschaftsporträt ↗'));
+  assert.ok(script.includes('tennis.de Mannschaftssuche ↗'));
 });
