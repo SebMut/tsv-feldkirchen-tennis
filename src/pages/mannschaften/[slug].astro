@@ -41,7 +41,13 @@ const breadcrumbItems = [
     <div id="team-header"><p class="muted">Mannschaft wird geladen …</p></div>
     <section id="team-next-match" class="hidden" aria-live="polite"></section>
     <section class="grid two">
-      <article class="card"><p class="eyebrow">Kader</p><div id="team-roster"></div></article>
+      <details class="card team-roster-disclosure" id="team-roster-details">
+        <summary class="team-roster-disclosure__summary">
+          <span class="team-roster-disclosure__title">Kader</span>
+          <span class="team-roster-disclosure__action" aria-hidden="true"></span>
+        </summary>
+        <div id="team-roster" class="team-roster-disclosure__content"></div>
+      </details>
       <article class="card"><p class="eyebrow">Saison</p><div id="team-season"></div><div class="field"><p class="eyebrow">Saison auswählen</p><nav id="team-season-nav" class="teams-category-chips" aria-label="Mannschaftssaison auswählen"></nav></div></article>
     </section>
     <section class="phase8-stats" aria-labelledby="team-stats-heading"><p class="eyebrow">Saison im Überblick</p><h2 id="team-stats-heading">Unsere Saisonbilanz</h2><div id="team-stats"><p class="muted">Statistik wird ermittelt …</p></div></section>
