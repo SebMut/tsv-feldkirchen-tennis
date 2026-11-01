@@ -125,7 +125,7 @@ test('Spieltag "Heute" never falls back to a later match date',()=>{
 test('every listed team and detail offers tennis.de access without invented portraits',()=>{
   const script=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
   assert.ok(script.includes('const TENNIS_DE_CLUB_SEARCH_URL'));
-  assert.ok(script.includes('mannschaftssuche.html?verband=btv&verein=01012'));
+  assert.ok(script.includes('mannschaftssuche.html?verband=btv&verein=01012#teamview/23391'));
   assert.ok(script.includes('function tennisDeTeamDestination'));
   assert.ok(script.includes('href: portrait || TENNIS_DE_CLUB_SEARCH_URL, isDirect: !!portrait'));
   assert.ok(script.includes('function officialTennisDePortraitUrl'));
