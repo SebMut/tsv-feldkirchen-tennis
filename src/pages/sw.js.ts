@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 const base = import.meta.env.BASE_URL;
 const source = `
 const BASE = ${JSON.stringify(base)};
-const CACHE = 'tsv-tennis-public-v2';
+const CACHE = 'tsv-tennis-public-v3';
 const SHELL = [BASE, BASE+'termine/', BASE+'mannschaften/', BASE+'spieltag/'];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then(cache => Promise.allSettled(SHELL.map(path => cache.add(path)))));
