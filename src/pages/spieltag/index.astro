@@ -1,20 +1,20 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
-import { COURTBOOKING_URL, mediaUrl } from '../../lib/supabase';
+import { mediaUrl } from '../../lib/supabase';
 ---
 <MainLayout
-  title="Spieltag | TSV Feldkirchen Tennis"
-  description="Die Spieltagszentrale des TSV Feldkirchen Tennis mit Live-Tickern, heutigen Begegnungen und Anlagenstatus."
+  title="Live-Ticker | TSV Feldkirchen Tennis"
+  description="Live-Ticker des TSV Feldkirchen Tennis: laufende Begegnungen, heutige und kommende Punktspiele sowie letzte Ergebnisse."
   headerVariant="light"
   mainClass="main--flush"
 >
-  <div class="matchday-page" id="home">
+  <div class="matchday-page matchday-page--ticker" id="home">
     <section class="matchday-hero">
       <div class="container matchday-hero__grid">
         <div>
-          <span class="matchday-badge">VEREINSZENTRALE</span>
-          <h1>Alles Wichtige.<br /><span>Auf einen Blick.</span></h1>
-          <p>Live-Ticker, heutige Begegnungen, Anlagenstatus und direkter Zugang zur Platzbuchung – optimiert für den Spieltag.</p>
+          <span class="matchday-badge">TSV Feldkirchen Tennis</span>
+          <h1>Live-Ticker.<br /><span>Alle Begegnungen.</span></h1>
+          <p>Laufende Punktspiele, die nächsten Begegnungen und die letzten Ergebnisse – direkt aus dem Spielbetrieb.</p>
         </div>
         <div class="matchday-hero__mark" aria-hidden="true">
           <img src={mediaUrl("branding/tennis-logo.png")} alt="" width="116" height="116" />
@@ -25,78 +25,32 @@ import { COURTBOOKING_URL, mediaUrl } from '../../lib/supabase';
     <div class="container matchday-dashboard">
       <section id="live-center" class="matchday-panel matchday-live-center hidden" aria-live="polite"></section>
 
-      <div class="matchday-topgrid">
-        <section class="matchday-panel">
-          <p class="matchday-kicker">Heute</p>
-          <h2>Begegnungen</h2>
-          <div id="today-matches" class="match-list"><p class="muted">Aktuelle Spiele werden ermittelt …</p></div>
-          <a class="matchday-action" href="/termine/">Gesamten Kalender öffnen</a>
-        </section>
-
-        <section id="facility-card" class="matchday-panel" aria-live="polite">
-          <p class="matchday-kicker">Anlage</p>
-          <h2>Status wird ermittelt</h2><p class="muted">Für die Platzverfügbarkeit bitte Courtbooking prüfen.</p>
-        </section>
-
-        <section class="matchday-panel">
-          <p class="matchday-kicker">Plätze</p>
-          <div class="matchday-metric" id="home-court-count" data-count-only="true">8</div>
-          <p class="matchday-sub">Sandplätze auf der Anlage</p>
-          <a class="matchday-action matchday-action--red" href={COURTBOOKING_URL} target="_blank" rel="noreferrer">Jetzt buchen</a>
-        </section>
-
-        <section class="matchday-panel">
-          <p class="matchday-kicker">Verein</p>
-          <div class="matchday-metric" id="home-team-count" data-count-only="true">20</div>
-          <p class="matchday-sub">Mannschaften · Herren, Damen & Jugend</p>
-          <a class="matchday-action" href="/mannschaften/">Teams ansehen</a>
-        </section>
-      </div>
+      <section id="today-fixtures-panel" class="matchday-panel matchday-today-panel hidden" aria-labelledby="today-fixtures-title">
+        <p class="matchday-kicker">Heute</p>
+        <h2 id="today-fixtures-title">Heutige Begegnungen</h2>
+        <div id="today-matches" class="match-list" aria-live="polite"></div>
+      </section>
 
       <div class="matchday-fixture-grid">
-        <section class="matchday-panel">
+        <section class="matchday-panel" aria-labelledby="upcoming-fixtures-title">
           <p class="matchday-kicker">Demnächst</p>
-          <h2>Die nächsten Punktspiele</h2>
-          <div id="upcoming-matches" class="match-list"><p class="muted">Weitere Spiele werden geladen …</p></div>
+          <h2 id="upcoming-fixtures-title">Die nächsten Punktspiele</h2>
+          <div id="upcoming-matches" class="match-list" aria-live="polite">
+            <p class="muted">Weitere Spiele werden geladen …</p>
+          </div>
         </section>
-        <section class="matchday-panel">
+        <section class="matchday-panel" aria-labelledby="recent-fixtures-title">
           <p class="matchday-kicker">Ergebnisse</p>
-          <h2>Zuletzt gespielt</h2>
-          <div id="recent-matches" class="match-list"><p class="muted">Ergebnisse werden geladen …</p></div>
-        </section>
-      </div>
-      <div class="matchday-newsgrid">
-        <section class="matchday-panel">
-          <p class="matchday-kicker">Aktuell im Verein</p>
-          <h2>Neuigkeiten</h2>
-          <div id="home-news" class="news-list"><p class="muted">News werden geladen …</p></div>
-          <a class="matchday-action" href="/aktuelles/">Alle News</a>
-        </section>
-
-        <section class="matchday-panel">
-          <p class="matchday-kicker">Direktzugriff</p>
-          <h2>Am Spieltag wichtig</h2>
-          <div class="matchday-linklist">
-            <a href="/mannschaften/">Mannschaften & Kader</a>
-            <a href="/termine/">Termine & Kalender-Abos</a>
-            <a href="/training/">Training</a>
-            <a href="/mitglied-werden/">Mitglied werden</a>
+          <h2 id="recent-fixtures-title">Zuletzt gespielt</h2>
+          <div id="recent-matches" class="match-list" aria-live="polite">
+            <p class="muted">Ergebnisse werden geladen …</p>
           </div>
         </section>
       </div>
-
-    <section class="card phase8-install" id="phase8-install" aria-label="TSV Tennis als App installieren">
-      <div><p class="eyebrow">TSV auf dem Smartphone</p><h2>Die Tennis-Homepage als App</h2>
-      <p class="muted" data-install-hint>Du kannst diese Website über die Teilen-Funktion deines Browsers zum Home-Bildschirm hinzufügen. Auf unterstützten Android-Browsern erscheint zusätzlich eine Installationsschaltfläche.</p></div>
-      <button class="button secondary" type="button" data-install-app hidden>TSV Tennis installieren</button>
-    </section>
-      <section id="home-sponsors" class="hidden" aria-label="Sponsoren"></section>
     </div>
   </div>
 </MainLayout>
 <script>
   import { loadHome } from '../../scripts/public';
-  import { initInstallPrompt } from '../../scripts/phase8';
   loadHome();
-  initInstallPrompt();
 </script>
