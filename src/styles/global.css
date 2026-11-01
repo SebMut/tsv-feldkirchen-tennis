@@ -709,7 +709,7 @@ body{background:var(--sand);color:var(--text)}
 .calendar-agenda-heading>.muted{margin:0;font-size:.88rem}
 .calendar-board,.calendar-agenda{scroll-margin-top:20px}
 .calendar-agenda:focus-within{border-color:#d4dcd6}
-.calendar-day-heading:focus{outline:none}
+#calendar-day-heading:focus{outline:none}
 .calendar-back-to-month{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-top:13px;padding:7px 11px;border:1px solid #d5dfd8;border-radius:9px;background:#f8faf8;color:#a50b14;font-size:.83rem;font-weight:800;cursor:pointer}
 .calendar-back-to-month:hover{background:#fff0f1;border-color:#dd9398}
 .calendar-back-to-month:focus-visible{outline:2px solid #b00c18;outline-offset:2px}
