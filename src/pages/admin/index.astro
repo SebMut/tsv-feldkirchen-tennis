@@ -192,6 +192,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <section id="panel-teams" class="admin-panel">
             <div class="card">
               <h2>Mannschaft pflegen</h2>
+              <div id="team-season-filter" class="admin-season-pills" aria-label="Saison auswählen">
+                <button type="button" class="admin-season-pill is-active" data-team-season="sommer-2026" aria-pressed="true">Sommer 2026</button>
+                <button type="button" class="admin-season-pill" data-team-season="winter-2026-2027" aria-pressed="false">Winter 2026/2027</button>
+                <button type="button" class="admin-season-pill" data-team-season="sommer-2027" aria-pressed="false">Sommer 2027</button>
+              </div>
               <form id="team-form" class="form-grid">
                 <div class="field full"><label>Mannschaft / Saison</label><select id="team-select" required></select><p class="muted">Sommer, Winter und kommende Spielzeiten werden getrennt verwaltet.</p></div>
                 <div class="field"><label>Mannschaftsname (saisonübergreifend)</label><input id="team-name" required /></div>
