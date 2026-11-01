@@ -1186,3 +1186,36 @@ main.main--flush{padding:0}
   .matchday-page .matchday-hero__mark{display:none}
   .matchday-page .matchday-hero__grid{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Live-Ticker: keep fixtures, scores and the running encounter front and center. */
+.matchday-page--ticker .matchday-hero{padding:36px 0 42px}
+.matchday-page--ticker .matchday-hero__grid{
+  grid-template-columns:minmax(0,1fr) minmax(145px,.32fr);
+  gap:26px;
+}
+.matchday-page--ticker .matchday-hero h1{
+  margin:9px 0 13px;
+  font-size:clamp(2.3rem,4.3vw,3.9rem);
+  line-height:1.05;
+}
+.matchday-page--ticker .matchday-hero p{max-width:730px;margin:0;font-size:1rem;line-height:1.5}
+.matchday-page--ticker .matchday-hero__mark{
+  width:min(210px,100%);
+  border-radius:18px;
+  justify-self:end;
+}
+.matchday-page--ticker .matchday-dashboard{margin-top:-9px;padding-bottom:48px}
+.matchday-page--ticker .matchday-today-panel{margin-bottom:18px}
+.matchday-page--ticker .matchday-fixture-grid{margin:0;gap:18px;align-items:start}
+.matchday-page--ticker .matchday-panel h2{margin:4px 0 16px}
+@media(max-width:760px){
+  .matchday-page--ticker .matchday-hero{padding:22px 0 32px}
+  .matchday-page--ticker .matchday-hero__grid{grid-template-columns:minmax(0,1fr);gap:0}
+  .matchday-page--ticker .matchday-hero h1{font-size:clamp(2rem,9vw,2.8rem);margin:7px 0 10px}
+  .matchday-page--ticker .matchday-hero p{font-size:.87rem;line-height:1.45}
+  .matchday-page--ticker .matchday-dashboard{margin-top:-9px;padding-bottom:26px}
+  .matchday-page--ticker .matchday-today-panel{margin-bottom:12px}
+  .matchday-page--ticker .matchday-fixture-grid{grid-template-columns:1fr;gap:12px}
+  .matchday-page--ticker .matchday-panel{padding:16px}
+  .matchday-page--ticker .matchday-panel h2{font-size:1.32rem;margin:3px 0 12px}
+}
