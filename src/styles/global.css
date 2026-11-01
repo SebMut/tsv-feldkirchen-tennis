@@ -1180,3 +1180,9 @@ main.main--flush{padding:0}
 @media(prefers-reduced-motion:reduce){
   .mobile-dock__tab{transition:none}
 }
+
+/* Live-Ticker: remove only the large decorative hero crest on phones. */
+@media(max-width:760px){
+  .matchday-page .matchday-hero__mark{display:none}
+  .matchday-page .matchday-hero__grid{grid-template-columns:minmax(0,1fr)}
+}
