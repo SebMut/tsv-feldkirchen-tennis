@@ -184,6 +184,28 @@ test('training page shows only logo from school contact page without photo galle
   assert.doesNotMatch(training, /iframe/);
 });
 
+test('news match/event selector filters by chosen team and persists related event', () => {
+  const admin = source('src/scripts/admin.ts');
+  const form = source('src/pages/admin/index.astro');
+  const advanced = source('src/scripts/admin-advanced.ts');
+  const migration = source('supabase/migrations/20261101075947_news_related_event_select_20261101.sql');
+  assert.ok(form.includes('Bezug zu Spiel / Termin'));
+  assert.ok(form.includes('id="news-match"'));
+  assert.ok(admin.includes('function renderNewsReferenceOptions'));
+  assert.ok(admin.includes('ts?.team_id === teamId'));
+  assert.ok(admin.includes("(event.team_id || '') === teamId"));
+  assert.ok(admin.includes('optgroup label="Spiele"'));
+  assert.ok(admin.includes('optgroup label="Termine / Events"'));
+  assert.ok(admin.includes("renderNewsReferenceOptions('')"));
+  assert.ok(admin.includes('item.related_event_id'));
+  assert.ok(admin.includes('related_event_id:relatedEventId'));
+  assert.ok(admin.includes('Der Termin gehört nicht zu dieser Mannschaft'));
+  assert.ok(admin.includes('await refreshNewsReferenceEvents()'));
+  assert.ok(advanced.includes("teamField.dispatchEvent(new Event('change'))"));
+  assert.ok(advanced.includes("matchId.startsWith('event:')"));
+  assert.ok(migration.includes('news_only_one_reference_chk'));
+});
+
 test('news optionally creates one linked calendar appointment', () => {
   const js = source('src/scripts/admin.ts');
   const html = source('src/pages/admin/index.astro');
