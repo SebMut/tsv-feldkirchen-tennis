@@ -37,7 +37,9 @@ try{
     .map((match)=>({href:decode(match[1]),text:match[2].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()}))
     .filter((link)=>/(download|meldung|mannschaft|dokument|portal|cockpit|verein)/i.test(`${link.text} ${link.href}`))
     .map((link)=>({text:link.text.slice(0,120),url:new URL(link.href,finalUrl).href.replace(/([?&](?:code|state|token|session)=[^&]+)/gi,'')}));
-  console.log(JSON.stringify({authenticated:true,host:new URL(finalUrl).host,path:new URL(finalUrl).pathname,links:links.slice(0,40)},null,2));
+  const frames=[...page.matchAll(/<iframe\b[^>]*src="([^"]+)"/gi)].map((match)=>new URL(decode(match[1]),finalUrl).href);
+  const forms=[...page.matchAll(/<form\b[^>]*action="([^"]+)"/gi)].map((match)=>new URL(decode(match[1]),finalUrl).href);
+  console.log(JSON.stringify({authenticated:true,host:new URL(finalUrl).host,path:new URL(finalUrl).pathname,frames,forms,links:links.slice(0,40)},null,2));
 }finally{
   rmSync(work,{recursive:true,force:true});
 }
