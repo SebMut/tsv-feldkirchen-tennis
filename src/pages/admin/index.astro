@@ -302,7 +302,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
               <h2>News / Spielbericht</h2>
               <form id="news-form" class="form-grid"><input id="news-edit-id" type="hidden" />
                 <div class="field"><label>Mannschaft</label><select id="news-team"></select></div>
-                <div class="field"><label>Bezug zu Spiel</label><select id="news-match"><option value="">Kein Spiel</option></select></div>
+                <div class="field"><label for="news-match">Bezug zu Spiel / Termin</label><select id="news-match" aria-describedby="news-match-hint"><option value="">Kein Spiel / Termin</option></select><small id="news-match-hint" class="muted">Nur Spiele und Termine der ausgewählten Mannschaft.</small></div>
                 <div class="field full"><label>Titel</label><input id="news-title" required /></div>
                 <div class="field full"><label>Kurztext</label><textarea id="news-excerpt"></textarea></div>
                 <div class="field full"><label>Text</label><textarea id="news-body" required></textarea></div>
