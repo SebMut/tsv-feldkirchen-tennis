@@ -2,12 +2,6 @@ name: BTV cockpit protected probe
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - codex/btv-winter-roster-sync
-    paths:
-      - scripts/probe-btv-cockpit.mjs
-      - .github/workflows/btv-cockpit-probe.yml
 
 permissions:
   contents: read
