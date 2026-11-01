@@ -232,17 +232,107 @@ async function ensureProfile(user: any) {
   return created;
 }
 
+const panelDescriptions: Record<string, string> = {
+  dashboard: 'Dein Überblick über Mannschaften, Spiele und Aufgaben.',
+  matches: 'Spieltage vorbereiten, Ergebnisse eintragen und den Liveticker pflegen.',
+  teams: 'Mannschaftsdaten und Informationen für die Website verwalten.',
+  players: 'Spielerkader prüfen und bearbeiten.',
+  'btv-import': 'Amtliche BTV-Spieltermine prüfen und Änderungen nachvollziehen.',
+  'manual-results': 'Fehlende Mannschaftsergebnisse geschützt nachtragen.',
+  'official-rubbers': 'Verifizierte Einzel- und Doppelberichte ansehen.',
+  news: 'Neuigkeiten und Spielberichte erstellen und aktualisieren.',
+  galleries: 'Fotos und Bilder für deine Mannschaft verwalten.',
+  content: 'Seiten, Sponsoren und Vereinsinformationen pflegen.',
+  facility: 'Den aktuellen Anlagenstatus ändern.',
+  seasons: 'Saisons anlegen und verwalten.',
+  users: 'Zugänge einladen und Teamrechte verwalten.',
+  audit: 'Änderungen an Daten und Inhalten prüfen.',
+  settings: 'Zentrale Einstellungen der Website bearbeiten.',
+  account: 'Deine persönlichen Kontoeinstellungen ändern.',
+};
+
+function panelButtonLabel(button: HTMLButtonElement) {
+  const icon = button.querySelector('.admin-nav__symbol')?.textContent?.trim() || '';
+  return (button.textContent || '').replace(icon, '').trim();
+}
+
 function showPanel(name: string) {
   if (name === 'manual-results' && !state.isSuper) return;
   if (name === 'official-rubbers' && !state.isSuper) return;
-  document.querySelectorAll<HTMLElement>('.admin-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `panel-${name}`));
-  document.querySelectorAll<HTMLButtonElement>('.admin-nav button').forEach((button) => button.classList.toggle('active', button.dataset.panel === name));
+  const activeButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]'))
+    .find((button) => button.dataset.panel === name && !button.classList.contains('hidden'));
+  const target = document.getElementById(`panel-${name}`);
+  if (!activeButton || !target || target.classList.contains('hidden')) return;
+
+  document.querySelectorAll<HTMLElement>('.admin-panel').forEach((panel) => {
+    panel.classList.toggle('active', panel === target);
+  });
+  document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]').forEach((button) => {
+    const active = button === activeButton;
+    button.classList.toggle('active', active);
+    if (active) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+
+  const title = $('#admin-title');
+  const description = $('#admin-section-description');
+  const panelPicker = $<HTMLSelectElement>('#admin-panel-select');
+  if (title) title.textContent = panelButtonLabel(activeButton) || 'Mein TSV';
+  if (description) description.textContent = panelDescriptions[name] || '';
+  if (panelPicker) panelPicker.value = name;
+}
+
+function applyDashboardTeamFilters() {
+  const search = ($<HTMLInputElement>('#dashboard-team-search')?.value || '').trim().toLocaleLowerCase('de');
+  const filter = $<HTMLSelectElement>('#dashboard-team-filter')?.value || 'all';
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('#dashboard-teams [data-dashboard-team-card]'));
+  let visible = 0;
+
+  cards.forEach((card) => {
+    const teamName = card.querySelector('h3')?.textContent?.toLocaleLowerCase('de') || '';
+    const match = !search || teamName.includes(search);
+    const statusMatch = filter === 'all' || (filter === 'live' ? card.dataset.isLive === 'true' : card.dataset.hasNext === 'true');
+    const show = match && statusMatch;
+    card.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+
+  const count = $('#dashboard-team-count');
+  if (count) count.textContent = `${visible} von ${cards.length} Mannschaften`;
+  $('#dashboard-team-empty')?.classList.toggle('hidden', visible !== 0 || cards.length === 0);
 }
 
 function bindNav() {
-  document.querySelectorAll<HTMLButtonElement>('.admin-nav button').forEach((button) => {
+  document.querySelectorAll<HTMLElement>('.admin-nav__group').forEach((group) => {
+    const visibleButtons = Array.from(group.querySelectorAll<HTMLButtonElement>('button[data-panel]'))
+      .filter((button) => !button.classList.contains('hidden'));
+    group.classList.toggle('hidden', visibleButtons.length === 0);
+  });
+
+  const picker = $<HTMLSelectElement>('#admin-panel-select');
+  if (picker) {
+    picker.innerHTML = Array.from(document.querySelectorAll<HTMLElement>('.admin-nav__group'))
+      .filter((group) => !group.classList.contains('hidden'))
+      .map((group) => {
+        const title = group.querySelector('.admin-nav__label')?.textContent?.trim() || 'Bereiche';
+        const options = Array.from(group.querySelectorAll<HTMLButtonElement>('button[data-panel]'))
+          .filter((button) => !button.classList.contains('hidden'))
+          .map((button) => `<option value="${button.dataset.panel}">${escapeHtml(panelButtonLabel(button))}</option>`)
+          .join('');
+        return `<optgroup label="${escapeHtml(title)}">${options}</optgroup>`;
+      }).join('');
+    picker.value = 'dashboard';
+    picker.addEventListener('change', () => showPanel(picker.value));
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]').forEach((button) => {
     button.addEventListener('click', () => button.dataset.panel && showPanel(button.dataset.panel));
   });
+  document.querySelectorAll<HTMLButtonElement>('[data-admin-jump]').forEach((button) => {
+    button.addEventListener('click', () => button.dataset.adminJump && showPanel(button.dataset.adminJump));
+  });
+  $<HTMLInputElement>('#dashboard-team-search')?.addEventListener('input', applyDashboardTeamFilters);
+  $<HTMLSelectElement>('#dashboard-team-filter')?.addEventListener('change', applyDashboardTeamFilters);
 }
 
 async function refreshDashboard() {
@@ -254,6 +344,11 @@ async function refreshDashboard() {
   if (!teams.length) {
     liveTarget.innerHTML = '<div class="dashboard-empty"><strong>Noch keine Mannschaft zugeordnet.</strong><p class="muted">Bitte wende dich an einen SuperAdmin.</p></div>';
     target.innerHTML = '<p class="muted">Noch keine Mannschaft zugeordnet.</p>';
+    for (const id of ['admin-stat-teams', 'admin-stat-upcoming', 'admin-stat-live']) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '0';
+    }
+    applyDashboardTeamFilters();
     return;
   }
 
@@ -279,6 +374,18 @@ async function refreshDashboard() {
     const team = teamForMatch(match);
     return !!team && teams.some((allowed) => allowed.id === team.id);
   });
+  const upcomingCount = relevantMatches.filter((match) =>
+    liveMap.has(match.id) || new Date(match.starts_at).getTime() >= now.getTime()
+  ).length;
+  const liveCount = relevantMatches.filter((match) => liveMap.has(match.id)).length;
+  for (const [id, value] of [
+    ['admin-stat-teams', teams.length],
+    ['admin-stat-upcoming', upcomingCount],
+    ['admin-stat-live', liveCount],
+  ] as const) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(value);
+  }
 
   const featured = relevantMatches.find((match) => liveMap.has(match.id))
     ?? relevantMatches.find((match) => new Date(match.starts_at).getTime() >= now.getTime())
@@ -327,7 +434,7 @@ async function refreshDashboard() {
     const nextLive = next ? liveMap.get(next.id) : null;
 
     return `
-      <article class="dashboard-team-card">
+      <article class="dashboard-team-card" data-dashboard-team-card data-has-next="${next ? 'true' : 'false'}" data-is-live="${nextLive ? 'true' : 'false'}">
         <div class="dashboard-team-card__head">
           <div>
             <p class="eyebrow">${escapeHtml(ts?.league || 'Mannschaft')}</p>
@@ -355,6 +462,7 @@ async function refreshDashboard() {
         </div>
       </article>`;
   }).join('');
+  applyDashboardTeamFilters();
 
   const openMatch = async (matchId: string) => {
     showPanel('matches');
@@ -1963,9 +2071,9 @@ async function startApp(user: any) {
   if (state.isSuper) {
     initManualResultsPanel();
     initOfficialReportsPanel();
-    const requestedPanel = new URLSearchParams(location.search).get('panel');
-    if (requestedPanel === 'manual-results' || requestedPanel === 'official-rubbers') showPanel(requestedPanel);
   }
+  const requestedPanel = new URLSearchParams(location.search).get('panel');
+  showPanel(requestedPanel || 'dashboard');
 }
 
 export async function initAdmin() {

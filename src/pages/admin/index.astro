@@ -2,8 +2,8 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 ---
 <MainLayout title="Mein TSV | TSV Feldkirchen Tennis" description="Geschützter Bereich für Mannschaften und SuperAdmins." noindex={true}>
-  <div class="container stack" id="admin-root">
-    <section id="auth-box" class="card">
+  <div class="container stack admin-workspace" id="admin-root">
+    <section id="auth-box" class="card admin-auth-card">
       <p class="eyebrow">Mein TSV</p>
       <h1>Login</h1>
       <p class="muted">Mannschaftsverantwortliche und Administratoren melden sich hier an.</p>
@@ -23,7 +23,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
       <p class="muted">Neue Mannschaftsnutzer werden ausschließlich durch den SuperAdmin eingeladen.</p>
     </section>
 
-    <section id="password-setup-box" class="card hidden">
+    <section id="password-setup-box" class="card admin-auth-card hidden">
       <p class="eyebrow">Mein TSV</p>
       <h1>Passwort festlegen</h1>
       <p class="muted">Bevor du den geschützten Bereich verwenden kannst, lege bitte dein persönliches Passwort fest.</p>
@@ -44,45 +44,96 @@ import MainLayout from '../../layouts/MainLayout.astro';
     </section>
 
     <section id="admin-app" class="hidden">
-      <div class="page-head">
-        <div><p class="eyebrow">Mein TSV</p><h1 id="admin-title">Administration</h1><p id="admin-userline" class="muted"></p></div>
-      </div>
+      <header class="admin-workspace-head">
+        <div>
+          <p class="eyebrow">Mein TSV <span aria-hidden="true">/</span> Verwaltungsbereich</p>
+          <h1 id="admin-title">Übersicht</h1>
+          <p id="admin-section-description" class="muted">Dein Überblick über Mannschaften, Spiele und Aufgaben.</p>
+        </div>
+        <div class="admin-workspace-head__actions">
+          <span id="admin-userline" class="admin-userline"></span>
+          <a class="admin-public-link" href={import.meta.env.BASE_URL} target="_blank" rel="noopener noreferrer">Website ansehen <span aria-hidden="true">↗</span></a>
+        </div>
+      </header>
       <div id="admin-status" class="notice hidden" aria-live="polite"></div>
 
       <div class="admin-shell">
         <nav class="card admin-nav" aria-label="Administration">
-          <button data-panel="dashboard" class="active">Übersicht</button>
-          <button data-panel="teams" data-editor-only>Mannschaft</button>
-          <button data-panel="players" data-editor-only>Kader</button>
-          <button data-panel="matches" data-ticker-only>Spiele & Liveticker</button>
-          <button data-panel="news" data-editor-only>News</button>
-          <button data-panel="btv-import" data-super-only>BTV-Spielplan</button>
-          <button data-panel="manual-results" data-super-only class="hidden">Ergebnisse nachtragen</button>
-          <button data-panel="official-rubbers" data-super-only class="hidden">Einzel &amp; Doppel 2026</button>
-          <button data-panel="audit" data-super-only>Änderungsverlauf</button>
-          <button data-panel="galleries" data-editor-only>Bilder</button>
-          <button data-panel="seasons" data-super-only>Saisons</button>
-          <button data-panel="facility" data-super-only>Anlage</button>
-          <button data-panel="content" data-super-only>Website-Inhalte</button>
-          <button data-panel="settings" data-super-only>Einstellungen</button>
-          <button data-panel="users" data-super-only>Benutzer</button>
-          <button data-panel="account">Mein Konto</button>
+          <div class="admin-nav__brand"><span class="admin-nav__brand-mark" aria-hidden="true">TSV</span><span>Mein TSV<small>Arbeitsbereich</small></span></div>
+          <div class="admin-nav__group" data-admin-nav-group="start">
+            <p class="admin-nav__label">Start</p>
+            <button type="button" data-panel="dashboard" class="active" aria-current="page"><span aria-hidden="true" class="admin-nav__symbol">▦</span> Übersicht</button>
+          </div>
+          <div class="admin-nav__group" data-admin-nav-group="spielbetrieb">
+            <p class="admin-nav__label">Spielbetrieb</p>
+            <button type="button" data-panel="matches" data-ticker-only><span aria-hidden="true" class="admin-nav__symbol">◉</span> Spiele &amp; Liveticker</button>
+            <button type="button" data-panel="teams" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">▤</span> Mannschaften</button>
+            <button type="button" data-panel="players" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">♙</span> Kader</button>
+            <button type="button" data-panel="btv-import" data-super-only><span aria-hidden="true" class="admin-nav__symbol">↻</span> BTV-Spielplan</button>
+            <button type="button" data-panel="manual-results" data-super-only class="hidden"><span aria-hidden="true" class="admin-nav__symbol">✓</span> Ergebnisse nachtragen</button>
+            <button type="button" data-panel="official-rubbers" data-super-only class="hidden"><span aria-hidden="true" class="admin-nav__symbol">≡</span> Einzel &amp; Doppel 2026</button>
+          </div>
+          <div class="admin-nav__group" data-admin-nav-group="inhalte">
+            <p class="admin-nav__label">Inhalte &amp; Verein</p>
+            <button type="button" data-panel="news" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">✎</span> News</button>
+            <button type="button" data-panel="galleries" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">▧</span> Bilder</button>
+            <button type="button" data-panel="content" data-super-only><span aria-hidden="true" class="admin-nav__symbol">☷</span> Website-Inhalte</button>
+            <button type="button" data-panel="facility" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⌂</span> Anlage</button>
+          </div>
+          <div class="admin-nav__group" data-admin-nav-group="verwaltung">
+            <p class="admin-nav__label">Verwaltung</p>
+            <button type="button" data-panel="seasons" data-super-only><span aria-hidden="true" class="admin-nav__symbol">◷</span> Saisons</button>
+            <button type="button" data-panel="users" data-super-only><span aria-hidden="true" class="admin-nav__symbol">♧</span> Benutzer</button>
+            <button type="button" data-panel="audit" data-super-only><span aria-hidden="true" class="admin-nav__symbol">↺</span> Änderungsverlauf</button>
+            <button type="button" data-panel="settings" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⚙</span> Einstellungen</button>
+            <button type="button" data-panel="account"><span aria-hidden="true" class="admin-nav__symbol">◎</span> Mein Konto</button>
+          </div>
         </nav>
 
-        <div class="stack">
+        <div class="admin-main stack">
+          <div class="admin-mobile-picker">
+            <label for="admin-panel-select">Verwaltungsbereich wählen</label>
+            <select id="admin-panel-select" aria-label="Verwaltungsbereich wählen"></select>
+          </div>
           <section id="panel-dashboard" class="admin-panel active">
-            <div id="phase8-my-next" class="card phase8-my-next" aria-live="polite"><p class="eyebrow">Mein TSV</p><h2>Mein nächster Spieltag</h2><p class="muted">Deine Mannschaft und der nächste Spieltag werden geladen …</p></div>
-            <div id="dashboard-quickstart" class="card dashboard-quickstart">
-              <p class="eyebrow">Schnellstart</p>
-              <h2>Was möchtest du machen?</h2>
-              <p class="muted">Am Spieltag kommst du von hier mit einem Klick zum passenden Liveticker.</p>
-              <div id="dashboard-live-action"></div>
-              <p data-super-only class="hidden"><a class="button secondary" href="/admin/?panel=manual-results">Ergebnisse nachtragen</a></p>
+            <div class="admin-summary-grid" aria-label="Überblick">
+              <div class="admin-summary-tile"><span>Verfügbare Mannschaften</span><strong id="admin-stat-teams">–</strong></div>
+              <div class="admin-summary-tile"><span>Anstehende Spiele</span><strong id="admin-stat-upcoming">–</strong></div>
+              <div class="admin-summary-tile"><span>Gerade live</span><strong id="admin-stat-live">–</strong></div>
             </div>
-            <div class="card">
-              <div class="page-head">
-                <div><p class="eyebrow">Mein TSV</p><h2>Meine Mannschaften</h2></div>
+            <div id="dashboard-quickstart" class="card dashboard-quickstart">
+              <p class="eyebrow">Direkt loslegen</p>
+              <h2>Dein nächster Schritt</h2>
+              <p class="muted">Spieltage und häufige Aufgaben ohne Umwege öffnen.</p>
+              <div id="dashboard-live-action" aria-live="polite"></div>
+              <div class="admin-shortcuts" aria-label="Schnellzugriff">
+                <button class="admin-shortcut" type="button" data-admin-jump="matches" data-ticker-only><strong>Spiele &amp; Liveticker</strong><span>Spieltage bearbeiten <span aria-hidden="true">›</span></span></button>
+                <button class="admin-shortcut" type="button" data-admin-jump="players" data-editor-only><strong>Kader pflegen</strong><span>Spieler verwalten <span aria-hidden="true">›</span></span></button>
+                <button class="admin-shortcut" type="button" data-admin-jump="news" data-editor-only><strong>News erstellen</strong><span>Beiträge veröffentlichen <span aria-hidden="true">›</span></span></button>
+                <button class="admin-shortcut hidden" type="button" data-admin-jump="manual-results" data-super-only><strong>Ergebnisse nachtragen</strong><span>Fehlende Ergebnisse <span aria-hidden="true">›</span></span></button>
               </div>
+            </div>
+            <div id="phase8-my-next" class="card phase8-my-next" aria-live="polite"><p class="eyebrow">Mein TSV</p><h2>Mein nächster Spieltag</h2><p class="muted">Deine Mannschaft und der nächste Spieltag werden geladen …</p></div>
+            <div class="card admin-team-directory">
+              <div class="admin-directory-head">
+                <div><p class="eyebrow">Mannschaften</p><h2>Meine Mannschaften</h2><p class="muted">Passende Mannschaft finden und direkt bearbeiten.</p></div>
+                <span id="dashboard-team-count" class="admin-directory-count" aria-live="polite"></span>
+              </div>
+              <div class="admin-team-filterbar">
+                <div class="field">
+                  <label for="dashboard-team-search">Mannschaft suchen</label>
+                  <input id="dashboard-team-search" type="search" placeholder="z. B. Herren II oder Bambini" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="dashboard-team-filter">Anzeigen</label>
+                  <select id="dashboard-team-filter">
+                    <option value="all">Alle Mannschaften</option>
+                    <option value="upcoming">Mit anstehendem Spiel</option>
+                    <option value="live">Gerade live</option>
+                  </select>
+                </div>
+              </div>
+              <p id="dashboard-team-empty" class="admin-directory-empty muted hidden" role="status">Keine Mannschaft passt zu deiner Suche. Prüfe den Suchbegriff oder ändere den Filter.</p>
               <div id="dashboard-teams" class="dashboard-team-grid"></div>
             </div>
           </section>

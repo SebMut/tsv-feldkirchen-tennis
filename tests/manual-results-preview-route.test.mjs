@@ -23,7 +23,7 @@ test('manual results UI is a native TSV admin panel restricted to SuperAdmin', (
   assert.match(admin, /data-panel="manual-results" data-super-only/);
   assert.match(admin, /id="panel-manual-results" class="admin-panel" data-super-only/);
   assert.match(admin, /id="manual-result-form"/);
-  assert.match(admin, /href="\/admin\/\?panel=manual-results"/);
+  assert.match(admin, /data-admin-jump="manual-results" data-super-only/);
   assert.match(adminScript, /if \(name === 'manual-results' && !state\.isSuper\) return/);
   assert.match(adminScript, /if \(state\.isSuper\) \{\s*initManualResultsPanel\(\)/);
   assert.match(worker, /BASE\+'verwaltung\/'/);
