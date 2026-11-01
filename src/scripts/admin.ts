@@ -16,7 +16,8 @@ const state: {
   teamSeasons: Row[];
   memberships: Row[];
   matches: Row[];
-} = { user: null, profile: null, isSuper: false, teams: [], seasons: [], teamSeasons: [], memberships: [], matches: [] };
+  newsReferenceEvents: Row[];
+} = { user: null, profile: null, isSuper: false, teams: [], seasons: [], teamSeasons: [], memberships: [], matches: [], newsReferenceEvents: [] };
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector);
 const status = (message: string, tone: 'info' | 'error' | 'success' = 'info') => {
@@ -159,6 +160,49 @@ function renderGalleryMatchOptions() {
   el.innerHTML = '<option value="">Keine Spielzuordnung</option>' + rows.map((match) =>
     `<option value="${match.id}">${escapeHtml(formatDateTime(match.starts_at))} · ${escapeHtml(match.opponent)} · ${match.is_home ? 'Heim' : 'Auswärts'}</option>`
   ).join('');
+}
+
+
+/** News references list only games and events belonging to the left-hand team. */
+function renderNewsReferenceOptions(preferredValue?: string) {
+  const el = $<HTMLSelectElement>('#news-match');
+  if (!el) return;
+  const teamId = $<HTMLSelectElement>('#news-team')?.value || '';
+  const requested = preferredValue === undefined ? el.value : preferredValue;
+  const matches = state.matches
+    .filter(match => !!teamId && state.teamSeasons.find(ts => ts.id === match.team_season_id)?.team_id === teamId)
+    .sort((a, b) => String(b.starts_at).localeCompare(String(a.starts_at)));
+  const events = state.newsReferenceEvents
+    .filter(event => (event.team_id || '') === teamId)
+    .sort((a, b) => String(b.starts_at).localeCompare(String(a.starts_at)));
+
+  el.innerHTML = '<option value="">Kein Spiel / Termin</option>'
+    + (matches.length ? `<optgroup label="Spiele">${matches.map(match =>
+      `<option value="${match.id}">${escapeHtml(formatDateTime(match.starts_at))} · ${escapeHtml(match.opponent)} · ${match.is_home ? 'Heim' : 'Auswärts'}</option>`
+    ).join('')}</optgroup>` : '')
+    + (events.length ? `<optgroup label="Termine / Events">${events.map(event =>
+      `<option value="event:${event.id}">${escapeHtml(formatDateTime(event.starts_at))} · ${escapeHtml(event.title)}</option>`
+    ).join('')}</optgroup>` : '')
+    + (!matches.length && !events.length ? '<option value="" disabled>Keine passenden Spiele oder Termine</option>' : '');
+  el.value = Array.from(el.options).some(o => !o.disabled && o.value === requested) ? requested : '';
+}
+
+async function refreshNewsReferenceEvents() {
+  const teamIds = allowedTeamIds('edit');
+  if (!state.isSuper && !teamIds.length) {
+    state.newsReferenceEvents = [];
+    renderNewsReferenceOptions();
+    return;
+  }
+  let query = supabase.from('events')
+    .select('id,title,team_id,starts_at,status,external_url')
+    .neq('status', 'archived')
+    .order('starts_at', { ascending: false });
+  if (!state.isSuper) query = query.in('team_id', teamIds);
+  const { data, error } = await query;
+  state.newsReferenceEvents = error ? [] : data ?? [];
+  if (error) status('Termine für den News-Bezug konnten nicht geladen werden: ' + error.message, 'error');
+  renderNewsReferenceOptions();
 }
 
 async function loadCore() {
@@ -1315,12 +1359,7 @@ async function refreshMatches() {
     });
   });
 
-  const newsMatch = $<HTMLSelectElement>('#news-match');
-  if (newsMatch) newsMatch.innerHTML = '<option value="">Kein Spiel</option>' + state.matches.map((match) => {
-    const ts = state.teamSeasons.find((row) => row.id === match.team_season_id);
-    const team = state.teams.find((row) => row.id === ts?.team_id);
-    return `<option value="${match.id}">${escapeHtml(team?.name || '')} – ${escapeHtml(match.opponent)} – ${escapeHtml(formatDateTime(match.starts_at))}</option>`;
-  }).join('');
+  renderNewsReferenceOptions();
 }
 
 async function addMatch(event: Event) {
@@ -1367,7 +1406,7 @@ async function refreshNews(){
    editorialInput('news-excerpt').value=item.excerpt||'';
    editorialInput('news-body').value=item.body||'';
    editorialInput('news-team').value=item.team_id||'';
-   editorialInput('news-match').value=item.match_id||'';
+   renderNewsReferenceOptions(item.match_id || (item.related_event_id ? `event:${item.related_event_id}` : ''));
    editorialInput('news-status').value=item.status||'draft';
    const appointment=eventMap.get(item.id);
    editorialInput('news-event-start').value=local(appointment?.starts_at||null);
@@ -1385,7 +1424,7 @@ async function refreshNews(){
    if(appointment){const removed=await supabase.from('events').delete().eq('id',appointment.id);if(removed.error)return status(removed.error.message,'error');}
    const {error}=await supabase.from('news').delete().eq('id',id);
    if(error)return status(error.message,'error');
-   status('Beitrag gelöscht.','success');await refreshNews();
+   status('Beitrag gelöscht.','success');await refreshNews();await refreshNewsReferenceEvents();
  }));
 }
 
@@ -1394,7 +1433,9 @@ async function addNews(event: Event){
  const editId=editorialInput('news-edit-id')?.value||null;
  const title=editorialInput('news-title')?.value.trim()||'';
  const teamId=editorialInput('news-team')?.value||null;
- const matchId=editorialInput('news-match')?.value||null;
+ const referenceValue=editorialInput('news-match')?.value||'';
+ const relatedEventId=referenceValue.startsWith('event:')?referenceValue.slice(6):null;
+ const matchId=relatedEventId?null:(referenceValue||null);
  const publication=editorialInput('news-status')?.value||'draft';
  const body=editorialInput('news-body')?.value.trim()||'';
  const eventStart=editorialInput('news-event-start')?.value||'';
@@ -1408,13 +1449,17 @@ async function addNews(event: Event){
    const ts=state.teamSeasons.find(x=>x.id===match?.team_season_id);
    if(!match||ts?.team_id!==teamId)return status('Das Spiel gehört nicht zu dieser Mannschaft.','error');
  }
+ if(relatedEventId){
+   const related=state.newsReferenceEvents.find(e=>e.id===relatedEventId);
+   if(!related||(related.team_id||null)!==teamId)return status('Der Termin gehört nicht zu dieser Mannschaft.','error');
+ }
  let originalPublishDate: string | null = null;
  if (editId && publication === 'published') {
    const existing = await supabase.from('news').select('published_at').eq('id', editId).maybeSingle();
    if (existing.error) return status(existing.error.message,'error');
    originalPublishDate = existing.data?.published_at || null;
  }
- const patch={title,body,excerpt:editorialInput('news-excerpt')?.value.trim()||null,team_id:teamId,match_id:matchId,status:publication,published_at:publication==='published'?(originalPublishDate||new Date().toISOString()):null};
+ const patch={title,body,excerpt:editorialInput('news-excerpt')?.value.trim()||null,team_id:teamId,match_id:matchId,related_event_id:relatedEventId,status:publication,published_at:publication==='published'?(originalPublishDate||new Date().toISOString()):null};
  const result=editId?await supabase.from('news').update(patch).eq('id',editId).select('id').single():await supabase.from('news').insert({...patch,slug:`${slugify(title)}-${Date.now().toString(36)}`,author_id:state.user.id}).select('id').single();
  if(result.error||!result.data)return status(result.error?.message||'Speichern fehlgeschlagen.','error');
  const newsId=result.data.id;
@@ -1444,6 +1489,7 @@ async function addNews(event: Event){
  document.getElementById('news-preview')?.classList.add('hidden');
  status(editId?'Beitrag aktualisiert.':'Beitrag erstellt.','success');
  await refreshNews();
+ await refreshNewsReferenceEvents();
 }
 
 async function refreshGalleries() {
@@ -1801,6 +1847,7 @@ function renderInviteTeamCards() {
 function renderSelectors() {
   renderAdminTeamSeasonFilter();
   renderTeamOptions('#news-team', state.isSuper, 'edit');
+  renderNewsReferenceOptions();
   renderTeamOptions('#gallery-team', false, 'edit');
   renderGalleryMatchOptions();
   renderAdminRosterSeasonFilter();
@@ -1839,12 +1886,14 @@ function bindForms() {
     void refreshMatches();
   });
   $<HTMLFormElement>('#news-form')?.addEventListener('submit', addNews);
+  $<HTMLSelectElement>('#news-team')?.addEventListener('change', () => renderNewsReferenceOptions(''));
   $('#news-cancel-edit')?.addEventListener('click', () => {
     ($<HTMLFormElement>('#news-form'))?.reset();
     editorialInput('news-edit-id').value = '';
     editorialInput('news-status').value = 'draft';
     $('#news-cancel-edit')?.classList.add('hidden');
     $('#news-preview')?.classList.add('hidden');
+    renderNewsReferenceOptions('');
   });
   $('#news-preview-button')?.addEventListener('click', () => {
     const preview = $('#news-preview');
@@ -1907,7 +1956,7 @@ async function startApp(user: any) {
   renderSelectors();
   bindNav();
   bindForms();
-  await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshGalleries()]);
+  await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshNewsReferenceEvents(), refreshGalleries()]);
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
   await initAdvancedAdmin(state);
   await initPhase8Admin(state);
