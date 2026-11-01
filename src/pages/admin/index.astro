@@ -52,7 +52,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
         </div>
         <div class="admin-workspace-head__actions">
           <span id="admin-userline" class="admin-userline"></span>
-          <a class="admin-public-link" href="/" target="_blank" rel="noopener noreferrer">Website ansehen <span aria-hidden="true">↗</span></a>
+          <a class="admin-public-link" href={import.meta.env.BASE_URL} target="_blank" rel="noopener noreferrer">Website ansehen <span aria-hidden="true">↗</span></a>
         </div>
       </header>
       <div id="admin-status" class="notice hidden" aria-live="polite"></div>
