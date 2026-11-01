@@ -382,7 +382,7 @@ export async function loadTeams() {
   // Auch später in der Saisonverwaltung angelegte und veröffentlichte
   // Saisons berücksichtigen, statt die Auswahl auf drei Jahre zu begrenzen.
   const publishedSeasons = reference.seasons.filter((s: Row) =>
-    s.is_published !== false && typeof s.code === 'string' && /^(sommer|winter)-20\\d{2}/.test(s.code));
+    s.is_published !== false && typeof s.code === 'string' && /^(sommer|winter)-20\d{2}/.test(s.code));
   const initialButtons = Array.from(nav.querySelectorAll<HTMLButtonElement>('[data-season]'));
   const seasonCodes = [...new Set([
     ...initialButtons.map(button => button.dataset.season || '').filter(Boolean),
