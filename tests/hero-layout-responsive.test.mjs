@@ -160,3 +160,24 @@ test('Live-Ticker focuses on encounters and hides the Heute block without actual
   assert.match(homepage,/href="\/spieltag\/">Live-Ticker öffnen →<\/a>/);
   assert.match(css,/\.matchday-page--ticker \.matchday-fixture-grid\{margin:0;gap:18px;align-items:start\}/);
 });
+
+test('calendar day click jumps to agenda while keeping detailed controls and keyboard access',()=>{
+  const calendar=readFileSync(new URL('../src/pages/termine/index.astro',import.meta.url),'utf8');
+  const script=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
+  assert.ok(calendar.includes('id="calendar-day-agenda"'));
+  assert.ok(calendar.includes('id="calendar-month-board"'));
+  assert.ok(calendar.includes('id="calendar-back-to-month"'));
+  assert.ok(calendar.includes('id="calendar-day-heading" tabindex="-1"'));
+  assert.ok(script.includes("chooseDay(button.dataset.calendarDay, 'agenda')"));
+  assert.ok(script.includes("chooseDay(dateKey(new Date()), 'agenda')"));
+  assert.ok(script.includes("chooseDay(key, 'calendar')"));
+  assert.ok(script.includes("dayHeading.focus({ preventScroll: true })"));
+  assert.ok(script.includes('scrollToCalendarElement(agenda)'));
+  assert.ok(script.includes('scrollToCalendarElement(monthBoard)'));
+  assert.ok(script.includes("prefers-reduced-motion: reduce"));
+  assert.ok(script.includes("const button = target.closest<HTMLButtonElement>('[data-calendar-save]')"));
+  assert.ok(script.includes("link.download = 'tsv-termin.ics'"));
+  assert.ok(script.includes('href: `/spiel/?match='));
+  assert.ok(css.includes('.calendar-back-to-month{display:inline-flex'));
+  assert.ok(css.includes('.calendar-board,.calendar-agenda{scroll-margin-top:20px}'));
+});
