@@ -251,6 +251,11 @@ const panelDescriptions: Record<string, string> = {
   account: 'Deine persönlichen Kontoeinstellungen ändern.',
 };
 
+function panelButtonLabel(button: HTMLButtonElement) {
+  const icon = button.querySelector('.admin-nav__symbol')?.textContent?.trim() || '';
+  return (button.textContent || '').replace(icon, '').trim();
+}
+
 function showPanel(name: string) {
   const activeButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]'))
     .find((button) => button.dataset.panel === name && !button.classList.contains('hidden'));
@@ -270,7 +275,7 @@ function showPanel(name: string) {
   const title = $('#admin-title');
   const description = $('#admin-section-description');
   const panelPicker = $<HTMLSelectElement>('#admin-panel-select');
-  if (title) title.textContent = activeButton.textContent?.trim() || 'Mein TSV';
+  if (title) title.textContent = panelButtonLabel(activeButton) || 'Mein TSV';
   if (description) description.textContent = panelDescriptions[name] || '';
   if (panelPicker) panelPicker.value = name;
 }
@@ -310,7 +315,7 @@ function bindNav() {
         const title = group.querySelector('.admin-nav__label')?.textContent?.trim() || 'Bereiche';
         const options = Array.from(group.querySelectorAll<HTMLButtonElement>('button[data-panel]'))
           .filter((button) => !button.classList.contains('hidden'))
-          .map((button) => `<option value="${button.dataset.panel}">${escapeHtml(button.textContent?.trim() || '')}</option>`)
+          .map((button) => `<option value="${button.dataset.panel}">${escapeHtml(panelButtonLabel(button))}</option>`)
           .join('');
         return `<optgroup label="${escapeHtml(title)}">${options}</optgroup>`;
       }).join('');
