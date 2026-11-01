@@ -117,9 +117,10 @@ function mimeMessage(to:string,plain:string,html:string):string {
   ];
   return base64Utf8(lines.join('\r\n')).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
 }
-async function sendGmail(to:string,plain:string,html:string):Promise<boolean> {
-  // Refresh only on the server; never store or return an OAuth access token.
-  const tokenResponse=await fetch('https://oauth2.googleapis.com/token',{
+type GmailDelivery = { sent:true } | { sent:false; code:string; message:string };
+/** Report safe provider error codes, never OAuth secrets, tokens or user addresses. */
+async function sendGmail(to:string,plain:string,html:string):Promise<GmailDelivery> {
+  const oauth=await fetch('https://oauth2.googleapis.com/token',{
     method:'POST',
     headers:{'content-type':'application/x-www-form-urlencoded'},
     body:new URLSearchParams({
@@ -129,18 +130,54 @@ async function sendGmail(to:string,plain:string,html:string):Promise<boolean> {
       grant_type:'refresh_token',
     }),
   }).catch(()=>null);
-  if(!tokenResponse?.ok) return false;
-  const access=await tokenResponse.json().catch(()=>null);
-  if(typeof access?.access_token!=='string'||!access.access_token) return false;
+  if(!oauth) {
+    console.warn('rsvp_gmail_auth_network_failure');
+    return {sent:false,code:'gmail_auth_unreachable',message:'Google OAuth ist vorübergehend nicht erreichbar. Bitte später erneut versuchen.'};
+  }
+  const auth=await oauth.json().catch(()=>null);
+  if(!oauth.ok) {
+    const reason=typeof auth?.error==='string' ? auth.error : 'unknown';
+    // Do not log provider descriptions: they could contain account information.
+    console.warn('rsvp_gmail_auth_failure',JSON.stringify({http:oauth.status,code:reason}));
+    switch(reason) {
+      case 'invalid_client':
+        return {sent:false,code:'gmail_invalid_client',message:'Gmail-Anmeldung abgelehnt: OAuth Client ID und Client Secret passen nicht zusammen. Bitte die beiden Supabase-Secrets prüfen.'};
+      case 'invalid_grant':
+        return {sent:false,code:'gmail_invalid_grant',message:'Gmail-Zugriff abgelaufen oder widerrufen. Bitte den Google Refresh Token erneuern und den OAuth-Veröffentlichungsstatus prüfen.'};
+      case 'unauthorized_client':
+        return {sent:false,code:'gmail_unauthorized_client',message:'Google erlaubt diesem OAuth-Client den Zugriff noch nicht. Bitte OAuth-Client und Gmail-Berechtigung prüfen.'};
+      default:
+        return {sent:false,code:'gmail_auth_failed',message:'Google hat den Gmail-Zugriff abgelehnt (OAuth-Fehler). Bitte die Google-Cloud-Einstellungen prüfen.'};
+    }
+  }
+  if(typeof auth?.access_token!=='string'||!auth.access_token){
+    console.warn('rsvp_gmail_missing_access_token');
+    return {sent:false,code:'gmail_no_access_token',message:'Google hat keinen Zugriffstoken zurückgegeben. Bitte die Gmail-OAuth-Freigabe prüfen.'};
+  }
   const sent=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
     method:'POST',
-    headers:{
-      authorization:'Bearer '+access.access_token,
-      'content-type':'application/json',
-    },
+    headers:{authorization:'Bearer '+auth.access_token,'content-type':'application/json'},
     body:JSON.stringify({raw:mimeMessage(to,plain,html)}),
   }).catch(()=>null);
-  return !!sent?.ok;
+  if(!sent) {
+    console.warn('rsvp_gmail_send_network_failure');
+    return {sent:false,code:'gmail_send_unreachable',message:'Gmail ist vorübergehend nicht erreichbar. Bitte später erneut versuchen.'};
+  }
+  if(!sent.ok) {
+    const errorBody=await sent.json().catch(()=>null);
+    const reason=String(errorBody?.error?.errors?.[0]?.reason || errorBody?.error?.status || 'unknown');
+    console.warn('rsvp_gmail_send_failure',JSON.stringify({http:sent.status,code:reason.slice(0,90)}));
+    if(sent.status===403 && /accessNotConfigured|SERVICE_DISABLED|SERVICE_BLOCKED|API_KEY_SERVICE_BLOCKED/i.test(reason))
+      return {sent:false,code:'gmail_api_disabled',message:'Die Gmail API ist im Google-Cloud-Projekt noch nicht aktiviert oder freigegeben.'};
+    if(sent.status===403 && /insufficientPermissions|PERMISSION_DENIED|forbidden/i.test(reason))
+      return {sent:false,code:'gmail_insufficient_permission',message:'Dem Gmail-Zugriff fehlt die Berechtigung gmail.send. Bitte Gmail-Scope und Google-Freigabe kontrollieren.'};
+    if(sent.status===429 || /rateLimitExceeded|userRateLimitExceeded|quotaExceeded/i.test(reason))
+      return {sent:false,code:'gmail_rate_limit',message:'Google hat das Versandlimit erreicht. Bitte später erneut versuchen.'};
+    if(sent.status===401)
+      return {sent:false,code:'gmail_send_unauthorized',message:'Gmail hat den Zugriffstoken abgelehnt. Bitte Gmail-OAuth-Freigabe erneuern.'};
+    return {sent:false,code:'gmail_send_rejected',message:'Gmail hat die Nachricht abgelehnt. Bitte Gmail API und Berechtigungen im Google-Cloud-Projekt prüfen.'};
+  }
+  return {sent:true};
 }
 
 Deno.serve(async request=>{
@@ -253,10 +290,10 @@ Deno.serve(async request=>{
     +'\n\nDer Link ist 24 Stunden gültig. Falls du das nicht angefordert hast, ignoriere diese Nachricht.';
   // E-Mail geht tatsächlich vom verknüpften Vereins-Gmail-Konto aus.
   // Die Adresse gehört nicht einem externen Domain-Sender wie Resend.
-  const sent=await sendGmail(p.email,textContent,html);
-  if(!sent){
+  const delivery=await sendGmail(p.email,textContent,html);
+  if(!delivery.sent){
     await db.from('event_rsvp_pending').delete().eq('id',pending.id);
-    return reply(503,{error:'Gmail konnte die E-Mail nicht versenden. Bitte Google-Freigabe prüfen oder später erneut versuchen.'},origin);
+    return reply(503,{error:delivery.message,code:delivery.code},origin);
   }
   return reply(200,{pending:true,message:'Bitte öffne die E-Mail und bestätige deine Rückmeldung über den Link. Erst dann zählt deine Antwort.'},origin);
 });
