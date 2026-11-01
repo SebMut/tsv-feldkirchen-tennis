@@ -112,7 +112,17 @@ function renderAdminRosterSeasonFilter(preferredId = '') {
   const select = $<HTMLSelectElement>('#players-team-season');
   if (!select) return;
   const season = state.seasons.find((row) => row.code === rosterSeasonFilterCode);
-  const rows = allowedTeamSeasons('edit').filter((ts) => ts.season_id === season?.id);
+  const winterOrder = rosterSeasonFilterCode === 'winter-2026-2027' ? ['herren', 'herren-ii', 'herren-50'] : [];
+  const rows = allowedTeamSeasons('edit')
+    .filter((ts) => ts.season_id === season?.id)
+    .sort((left, right) => {
+      const leftTeam = state.teams.find((team) => team.id === left.team_id);
+      const rightTeam = state.teams.find((team) => team.id === right.team_id);
+      const leftRank = winterOrder.indexOf(leftTeam?.slug ?? '');
+      const rightRank = winterOrder.indexOf(rightTeam?.slug ?? '');
+      if (leftRank >= 0 || rightRank >= 0) return (leftRank < 0 ? Number.MAX_SAFE_INTEGER : leftRank) - (rightRank < 0 ? Number.MAX_SAFE_INTEGER : rightRank);
+      return String(leftTeam?.name ?? '').localeCompare(String(rightTeam?.name ?? ''), 'de');
+    });
   select.innerHTML = rows.length ? rows.map((ts) => `<option value="${ts.id}">${escapeHtml(teamSeasonLabel(ts))}</option>`).join('') : '<option value="">Noch keine Mannschaften in dieser Saison</option>';
   if (preferredId && rows.some((ts) => ts.id === preferredId)) select.value = preferredId;
   document.querySelectorAll<HTMLButtonElement>('[data-roster-season]').forEach((button) => {
