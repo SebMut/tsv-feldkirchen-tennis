@@ -57,3 +57,32 @@ test('homepage cards have consistent spacing between both rows and columns',()=>
   assert.match(css,/@media\(max-width:820px\)\{\.premium-content\{gap:22px\}/);
   assert.match(css,/@media\(max-width:520px\)\{\.premium-content,\.home-intro-grid,\.home-columns\{gap:18px\}/);
 });
+
+test('mobile TSV dock offers five icon tabs, accessible more links and login',()=>{
+  const header=readFileSync(new URL('../src/components/SiteHeader.astro',import.meta.url),'utf8');
+  assert.match(header,/class="mobile-dock"/);
+  assert.match(header,/aria-label="Mobile Hauptnavigation"/);
+  for(const href of ['/', '/mannschaften/', '/spieltag/', '/termine/']) {
+    assert.ok(header.includes('href="' + href + '"'), 'Missing mobile navigation route ' + href);
+  }
+  for(const href of ['/aktuelles/', '/training/', '/ueber-uns/', '/mitglied-werden/', '/sponsoren/', '/kontakt/', '/admin/']) {
+    assert.ok(header.includes('href="' + href + '"'), 'Missing further menu route ' + href);
+  }
+  assert.match(header, /class="mobile-dock__more"/);
+  assert.match(header, /data-auth-link>Login/);
+  assert.match(header, /aria-current=\{activePlay \? 'page' : undefined\}/);
+  assert.match(header, /dockMore\.open = false/);
+  assert.match(css,/\.mobile-dock\{display:none\}/);
+  assert.match(css,/@media\(max-width:980px\)\{[\s\S]*?\.mobile-dock\{[\s\S]*?position:fixed;/);
+  assert.match(css,/\.mobile-dock__panel\{/);
+  assert.match(css,/\.site-header \.mobile-nav\{display:none\}/);
+});
+
+test('small screens have shorter hero, closer card spacing and usable bottom dock space',()=>{
+  assert.match(css,/\.premium-hero\{min-height:365px\}/);
+  assert.match(css,/\.premium-metrics>div\{padding:12px 8px\}/);
+  assert.match(css,/\.premium-content\{padding-top:15px;padding-bottom:24px;gap:13px\}/);
+  assert.match(css,/\.home-welcome>p:nth-of-type\(2\)\{display:none\}/);
+  assert.match(css,/body\{padding-bottom:calc\(90px \+ env\(safe-area-inset-bottom,0px\)\)\}/);
+  assert.match(css,/@media\(max-width:370px\)/);
+});
