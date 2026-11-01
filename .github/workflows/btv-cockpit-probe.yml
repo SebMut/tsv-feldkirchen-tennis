@@ -1,0 +1,22 @@
+name: BTV cockpit protected probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Verify protected BTV cockpit navigation without exporting personal data
+        env:
+          BTV_LOGIN_USERNAME: ${{ secrets.BTV_LOGIN_USERNAME }}
+          BTV_LOGIN_PASSWORD: ${{ secrets.BTV_LOGIN_PASSWORD }}
+        run: node scripts/probe-btv-cockpit.mjs
