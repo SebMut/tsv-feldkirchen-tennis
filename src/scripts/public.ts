@@ -1329,11 +1329,12 @@ export async function loadCalendar() {
       id: e.id, endAt: e.ends_at || null, location: e.location_name || '',
       at: e.starts_at, key: dateKey(e.starts_at), kind: 'event', marker: 'event' as CalendarMarker,
       title: e.title,
-      href: '',
+      href: e.rsvp_enabled ? `/veranstaltung/?slug=${encodeURIComponent(e.slug)}` : '',
       html: `<div class="calendar-event-detail">
         <div><span class="calendar-event-type">Veranstaltung</span><strong>${escapeHtml(e.title)}</strong>
           <div class="match-meta">${e.all_day ? 'Ganztägig' : escapeHtml(formatDateTime(e.starts_at))} · ${escapeHtml(e.location_name || 'TSV Feldkirchen')}</div>
           ${e.description ? `<p class="muted">${escapeHtml(e.description)}</p>` : ''}
+          ${e.rsvp_enabled ? `<a class="button secondary calendar-rsvp-link" href="/veranstaltung/?slug=${encodeURIComponent(e.slug)}">Teilnahme zusagen oder absagen ↗</a>` : ''}
         </div></div>`,
     }));
     const range = rangeSelect?.value || 'all';
