@@ -238,7 +238,14 @@ export async function initEventRsvp() {
         youth,turnstileToken,
       }});
       if (error || !data?.pending) {
-        showFeedback(data?.error || 'E-Mail konnte nicht versendet werden. Bitte noch einmal versuchen.',true);
+        // supabase.functions.invoke puts a JSON body from 4xx/5xx responses
+        // into FunctionsHttpError.context, NOT into data.
+        let reason = typeof data?.error === 'string' ? data.error : '';
+        if (error && 'context' in error && error.context instanceof Response) {
+          const failure = await error.context.clone().json().catch(() => null);
+          if (typeof failure?.error === 'string') reason = failure.error;
+        }
+        showFeedback(reason || 'E-Mail konnte nicht versendet werden. Bitte später erneut versuchen.', true);
         return;
       }
       showFeedback('Prüfe jetzt dein E-Mail-Postfach: Du erhältst alle Angaben und einen Bestätigungslink. Erst nach dem Klick darauf zählt deine Rückmeldung.');
