@@ -331,6 +331,18 @@ function bindNav() {
   document.querySelectorAll<HTMLButtonElement>('[data-admin-jump]').forEach((button) => {
     button.addEventListener('click', () => button.dataset.adminJump && showPanel(button.dataset.adminJump));
   });
+  $<HTMLButtonElement>('#admin-logout')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    if (!(button instanceof HTMLButtonElement) || button.disabled) return;
+    button.disabled = true;
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      status('Abmeldung fehlgeschlagen: ' + error.message, 'error');
+      button.disabled = false;
+      return;
+    }
+    window.location.assign(`${import.meta.env.BASE_URL}admin/`);
+  });
   $<HTMLInputElement>('#dashboard-team-search')?.addEventListener('input', applyDashboardTeamFilters);
   $<HTMLSelectElement>('#dashboard-team-filter')?.addEventListener('change', applyDashboardTeamFilters);
 }
