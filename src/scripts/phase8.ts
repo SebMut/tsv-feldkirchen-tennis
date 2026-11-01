@@ -32,7 +32,7 @@ export async function loadClubNotices() {
     const rows = (data ?? []).filter((row: Row) => !row.ends_at || new Date(row.ends_at).getTime() >= now).slice(0, 4);
     if (!rows.length) { root.classList.add('hidden'); root.innerHTML = ''; return; }
     root.classList.remove('hidden');
-    root.innerHTML = `<div class="phase8-notice-heading"><p class="eyebrow">TSV Vereinsbrett</p><h2>Wichtig im Club</h2></div><div class="phase8-notice-grid">${rows.map((row: Row) => `
+    root.innerHTML = `<div class="phase8-notice-heading"><p class="eyebrow">Vereinsmitteilungen</p><h2>Aktuelles aus dem Verein</h2></div><div class="phase8-notice-grid">${rows.map((row: Row) => `
       <article class="phase8-notice phase8-notice--${row.kind === 'urgent' ? 'urgent' : row.kind === 'event' ? 'event' : 'info'}">
         <span class="phase8-notice-tag">${row.kind === 'urgent' ? 'Wichtige Information' : row.kind === 'event' ? 'Gemeinsam im Club' : 'Vereinsmitteilung'}</span>
         <h3>${escapeHtml(row.title)}</h3><p>${escapeHtml(row.message)}</p>

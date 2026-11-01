@@ -415,6 +415,10 @@ async function refreshPlayers() {
   const tsId = $<HTMLSelectElement>('#players-team-season')?.value;
   const target = $('#players-list');
   if (!tsId || !target) return;
+  const context = $('#players-season-context');
+  const selected = state.teamSeasons.find((row) => row.id === tsId);
+  const season = state.seasons.find((row) => row.id === selected?.season_id);
+  if (context) context.innerHTML = `<strong>Saison:</strong> ${escapeHtml(season?.name || 'nicht zugeordnet')}`;
 
   const { data: links } = await supabase
     .from('team_players')
@@ -1288,7 +1292,7 @@ async function refreshNews(){
  const {data,error}=await query;
  if(error){target.textContent='Beiträge derzeit nicht abrufbar.';status(error.message,'error');return;}
  const rows=data??[];
- target.innerHTML=rows.length?`<div class="admin-edit-list">${rows.map(row=>`<div class="admin-edit-item" data-news-id="${row.id}"><div><strong>${escapeHtml(row.title)}</strong><p class="muted">${escapeHtml(row.status)} · ${escapeHtml(state.teams.find(t=>t.id===row.team_id)?.name||'Verein')}</p></div><button type="button" class="button ghost" data-edit-news>Bearbeiten</button></div>`).join('')}</div>`:'<p class="muted">Noch keine Beiträge vorhanden.</p>';
+ target.innerHTML=rows.length?`<div class="admin-edit-list">${rows.map(row=>`<div class="admin-edit-item" data-news-id="${row.id}"><div><strong>${escapeHtml(row.title)}</strong><p class="muted">${escapeHtml(row.status)} · ${escapeHtml(state.teams.find(t=>t.id===row.team_id)?.name||'Verein')}</p></div><div class="actions"><button type="button" class="button ghost" data-edit-news>Bearbeiten</button><button type="button" class="button danger" data-delete-news>Löschen</button></div></div>`).join('')}</div>`:'<p class="muted">Noch keine Beiträge vorhanden.</p>';
  target.querySelectorAll('[data-edit-news]').forEach(button=>button.addEventListener('click',()=>{
    const item=rows.find(row=>row.id===button.closest('[data-news-id]')?.getAttribute('data-news-id'));if(!item)return;
    editorialInput('news-edit-id').value=item.id;
@@ -1301,6 +1305,14 @@ async function refreshNews(){
    document.getElementById('news-cancel-edit')?.classList.remove('hidden');
    document.getElementById('news-form')?.scrollIntoView({block:'start'});
    status('Beitrag zur Bearbeitung geladen.','info');
+ }));
+ target.querySelectorAll('[data-delete-news]').forEach(button=>button.addEventListener('click',async()=>{
+   const id=button.closest('[data-news-id]')?.getAttribute('data-news-id');
+   const item=rows.find(row=>row.id===id);if(!id||!item)return;
+   if(!window.confirm(`Beitrag „${item.title}“ wirklich löschen?`))return;
+   const {error}=await supabase.from('news').delete().eq('id',id);
+   if(error)return status(error.message,'error');
+   status('Beitrag gelöscht.','success');await refreshNews();
  }));
 }
 
