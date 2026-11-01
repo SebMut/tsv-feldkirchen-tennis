@@ -1,4 +1,4 @@
-import { calendarFeedUrl, mediaUrl, supabase, COURTBOOKING_URL } from '../lib/supabase';
+import { calendarFeedUrl, mediaUrl, supabase } from '../lib/supabase';
 import { escapeHtml, formatDateTime } from '../lib/ui';
 import { officialBtvTeamDestination } from '../lib/btv-group-url';
 
@@ -234,12 +234,13 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
 }
 
 export async function loadHome() {
-  const facility = document.querySelector<HTMLElement>('#facility-card');
+  const facility = document.querySelector<HTMLAnchorElement>('#facility-pill');
   const liveCenter = document.querySelector<HTMLElement>('#live-center');
   const todayTarget = document.querySelector<HTMLElement>('#today-matches');
   const upcomingTarget = document.querySelector<HTMLElement>('#upcoming-matches');
   const recentTarget = document.querySelector<HTMLElement>('#recent-matches');
   const newsTarget = document.querySelector<HTMLElement>('#home-news');
+  const weatherTarget = document.querySelector<HTMLElement>('#home-weather');
   const errorText = (target: HTMLElement | null, message: string) => {
     if (target) target.innerHTML = `<p class="muted" role="status">${escapeHtml(message)}</p>`;
   };
@@ -254,15 +255,15 @@ export async function loadHome() {
     const now = new Date();
     const start = new Date(now); start.setHours(0, 0, 0, 0);
     const end = new Date(start); end.setDate(end.getDate() + 1);
-    const [facilityResult, courtsResult, activeResult, todayResult, upcomingResult, recentResult, newsResult, settingsResult] = await Promise.all([
+    const [facilityResult, activeResult, todayResult, upcomingResult, recentResult, newsResult, settingsResult, weatherResult] = await Promise.all([
       supabase.from('facility_status').select('*').limit(1),
-      supabase.from('courts').select('*').eq('active', true).order('sort_order'),
       supabase.from('match_live_state').select('*').eq('status', 'live'),
       supabase.from('matches').select('*').eq('is_published', true).gte('starts_at', start.toISOString()).lt('starts_at', end.toISOString()).order('starts_at').limit(50),
       supabase.from('matches').select('*').eq('is_published', true).gte('starts_at', now.toISOString()).order('starts_at').limit(15),
       recentTarget ? supabase.from('matches').select('*').eq('is_published', true).lt('starts_at', start.toISOString()).order('starts_at', { ascending: false }).limit(8) : Promise.resolve({ data: [], error: null }),
       supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(3),
       supabase.from('site_settings').select('key,value').in('key', ['team_count', 'court_count']),
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=48.15&longitude=11.73&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=4').then(response => response.ok ? response.json() : Promise.reject(new Error('Wetterdienst nicht erreichbar'))).catch(() => null),
     ]);
     const settings = new Map((settingsResult.data ?? []).map(row => [row.key, row.value]));
     for (const [selector, key] of [['#home-team-count', 'team_count'], ['#home-court-count', 'court_count']]) {
@@ -272,25 +273,22 @@ export async function loadHome() {
     if (facility) {
       const current = facilityResult.data?.[0];
       const outdated = !!current?.updated_at && Date.now() - new Date(current.updated_at).getTime() > 14 * 86400000;
-      const hasError = !!(facilityResult.error || courtsResult.error);
+      const hasError = !!facilityResult.error;
       const label = outdated ? 'Status nicht aktuell' : hasError ? 'Anlagenstatus nicht verfügbar' : !current ? 'Status nicht gemeldet'
-        : current.status === 'closed' ? 'Plätze gesperrt' : current.status === 'limited' ? 'Teilweise geöffnet'
-        : current.status === 'open' ? 'Plätze geöffnet' : 'Status derzeit unklar';
+        : current.status === 'closed' ? 'Geschlossen' : current.status === 'limited' ? 'Teilweise offen'
+        : current.status === 'open' ? 'Offen' : 'Status derzeit unklar';
       const description = outdated ? 'Die letzte Meldung ist älter als 14 Tage. Bitte die Verfügbarkeit direkt bei Courtbooking prüfen.' : hasError ? 'Bitte prüfe die aktuelle Platzverfügbarkeit in Courtbooking.'
         : current?.message || (!current ? 'Für heute liegt noch keine Statusmeldung vor.' : 'Aktuelle Meldung zur Tennisanlage.');
-      const state = !hasError && !outdated && current?.status === 'closed' ? 'Gesperrt'
-        : !hasError && !outdated && current?.status === 'open' ? 'Geöffnet'
-        : !hasError && !outdated && current?.status === 'limited' ? 'Eingeschränkt' : 'Unbekannt';
-      const closed = (courtsResult.data ?? []).filter(c => c.status !== 'open');
-      facility.innerHTML = `
-        <p class="eyebrow">Anlagenstatus</p>
-        <div class="page-head">
-          <div><h2>${escapeHtml(label)}</h2><p class="muted">${escapeHtml(description)}</p></div>
-          <span class="status-pill ${state === 'Gesperrt' ? 'closed' : ''}">${escapeHtml(state)}</span>
-        </div>
-        ${!hasError && closed.length ? `<p class="muted">${closed.map(c => `${escapeHtml(c.name)}: ${escapeHtml(c.status_message || c.status)}`).join(' · ')}</p>` : ''}
-        ${current?.updated_at ? `<p class="match-meta">Zuletzt gemeldet: ${escapeHtml(formatDateTime(current.updated_at))}</p>` : ''}
-        <a class="text-link" href="${escapeHtml(COURTBOOKING_URL)}" target="_blank" rel="noreferrer">Platzverfügbarkeit prüfen ↗</a>`;
+      const state = !hasError && !outdated && ['closed', 'open', 'limited'].includes(current?.status) ? current.status : 'unknown';
+      facility.className = `facility-pill facility-pill--${state}`;
+      facility.textContent = `Anlagenstatus: ${label}`;
+      facility.title = description;
+    }
+    if (weatherTarget) {
+      const labels = ['Heute', 'Morgen', ...((weatherResult?.daily?.time ?? []).slice(2, 4).map((date: string) => new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(new Date(`${date}T12:00:00`))))];
+      const codes: Record<number, string> = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️'};
+      weatherTarget.innerHTML = weatherResult?.daily?.time?.length ? weatherResult.daily.time.slice(0, 4).map((_: string, index: number) => `
+        <div class="weather-day"><strong>${escapeHtml(labels[index] || '')}</strong><span class="weather-icon" aria-hidden="true">${codes[weatherResult.daily.weather_code[index]] || '🌤️'}</span><span>${Math.round(weatherResult.daily.temperature_2m_max[index])}° / ${Math.round(weatherResult.daily.temperature_2m_min[index])}°</span><small>${weatherResult.daily.precipitation_probability_max[index] ?? 0}% Regen</small></div>`).join('') : '<p class="muted">Wetter momentan nicht abrufbar.</p>';
     }
     const liveStates = activeResult.data ?? [];
     const liveIds = liveStates.map(s => s.match_id);
@@ -458,7 +456,15 @@ export async function loadTeams() {
     const allRows = teamsForSeason(selectedSeason)
       .map((ts: Row) => ({ ts, team: teamsById.get(ts.team_id) }))
       .filter((item: {ts: Row; team: Row | undefined}): item is {ts: Row; team: Row} => !!item.team)
-      .sort((a: {team: Row}, b: {team: Row}) => (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0));
+      .sort((a: {team: Row}, b: {team: Row}) => {
+        const rank = (team: Row) => {
+          const name = `${team.name || ''} ${team.slug || ''}`.toLocaleLowerCase('de-DE');
+          const groups = ['herren', 'damen', 'junioren', 'juniorinnen', 'knaben', 'mädchen', 'bambini', 'kleinfeld'];
+          const found = groups.findIndex(group => name.includes(group));
+          return found < 0 ? groups.length : found;
+        };
+        return rank(a.team) - rank(b.team) || (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0) || String(a.team.name).localeCompare(String(b.team.name), 'de');
+      });
     const rows = allRows.filter(({ team }: {team: Row}) => !activeCategory || team.category_id === activeCategory);
     const title = selectedSeason?.name || (activeCode === 'winter-2026-2027' ? 'Winter 2026/2027' : activeCode === 'sommer-2027' ? 'Sommer 2027' : 'Saison 2026');
     heading.textContent = title;
@@ -490,7 +496,7 @@ export async function loadTeams() {
       const btvTarget = officialBtvTeamDestination(verifiedBtv.get(ts.id) === ts.btv_url ? ts.btv_url : null);
       return `
         <article class="card team-card team-overview-card">
-          <img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" />
+          <a href="${detailUrl}" class="team-card__image-link" aria-label="${escapeHtml(team.name)} öffnen"><img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" /></a>
           <div>
             <p class="eyebrow">${escapeHtml(title)}</p>
             <h3><a href="${detailUrl}" class="text-link">${escapeHtml(team.name)}</a></h3>
@@ -1324,7 +1330,7 @@ export async function loadOfficials() {
   const { data, error } = await supabase.from('officials').select('*').eq('published', true).order('sort_order');
   target.innerHTML = data?.length ? data.map((o: Row) => `
     <article class="card team-card">
-      ${o.photo_path ? `<img src="${escapeHtml(mediaUrl(o.photo_path))}" alt="${escapeHtml(o.name)}" loading="lazy">` : ''}
+      ${o.photo_path ? `<img src="${escapeHtml(mediaUrl(o.photo_path))}" alt="${escapeHtml(o.name)}" loading="lazy">` : `<div class="official-placeholder" aria-hidden="true"><span>🎾</span><strong>${escapeHtml(String(o.name).split(' ').map((part: string) => part[0]).join('').slice(0,2))}</strong></div>`}
       <div><p class="eyebrow">${escapeHtml(o.title)}</p><h3>${escapeHtml(o.name)}</h3></div>
       <p class="muted">${o.email ? `<a href="mailto:${escapeHtml(o.email)}">${escapeHtml(o.email)}</a>` : ''}${o.email && o.phone ? '<br>' : ''}${o.phone ? escapeHtml(o.phone) : ''}</p>
     </article>

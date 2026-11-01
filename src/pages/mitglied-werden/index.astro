@@ -1,5 +1,11 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
-import ManagedPage from '../../components/ManagedPage.astro';
 ---
-<MainLayout title="Mitglied werden | TSV Feldkirchen Tennis"><ManagedPage slug="mitglied-werden" fallbackTitle="Mitglied werden" /></MainLayout>
+<MainLayout title="Mitglied werden | TSV Feldkirchen Tennis" description="Mitgliedschaft und Beiträge der Tennisabteilung des TSV Feldkirchen.">
+  <div class="container stack membership-page">
+    <header class="page-head"><div><p class="eyebrow">Spiel mit!</p><h1>Mitglied werden</h1><p class="muted">Für die Tennisabteilung ist eine Mitgliedschaft im TSV Feldkirchen erforderlich.</p></div></header>
+    <section class="card"><h2>So wirst du Mitglied</h2><p>Die Mitgliedschaft besteht aus dem Beitrag für den Hauptverein und dem zusätzlichen Beitrag der Tennisabteilung. Den Aufnahmeantrag und die aktuellen Formulare erhältst du beim TSV Feldkirchen.</p><p><a class="button" href="https://www.tsv-feldkirchen.de/mitgliedschaft/" target="_blank" rel="noreferrer">Zum Hauptverein ↗</a></p></section>
+    <section class="card"><h2>Jahresbeiträge</h2><div class="membership-fees"><div><h3>Hauptverein</h3><p><strong>Erwachsene:</strong> 50 €</p><p><strong>Kinder und Jugendliche bis 18:</strong> 20 €</p></div><div><h3>Tennisabteilung</h3><p><strong>Erwachsene, 1. Person:</strong> 190 €</p><p><strong>Erwachsene, 2. Person:</strong> 140 €</p><p><strong>Studierende/Auszubildende ab 18:</strong> 120 €</p><p><strong>Jugendliche bis 18:</strong> 90 €</p><p><strong>Kinder bis 14:</strong> 65 €</p></div></div><p class="muted">Stand nach den veröffentlichten Angaben der Tennisabteilung. Bei Fragen helfen wir gerne weiter.</p></section>
+    <section class="card"><h2>Fragen zur Mitgliedschaft?</h2><p>Schreib uns an <a href="mailto:tennis@tsvfeldkirchen.de">tennis@tsvfeldkirchen.de</a> oder komm auf der Anlage vorbei.</p></section>
+  </div>
+</MainLayout>

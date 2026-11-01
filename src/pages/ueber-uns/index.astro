@@ -1,0 +1,15 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+<MainLayout title="Über uns | TSV Feldkirchen Tennis" description="Die Tennisabteilung des TSV Feldkirchen, ihre Ansprechpartner und Kontaktdaten.">
+  <div class="container stack about-page">
+    <header class="page-head"><div><p class="eyebrow">Tennisabteilung</p><h1>Über uns</h1><p class="muted">Sport, Gemeinschaft und Freude am Tennis – mitten in Feldkirchen bei München.</p></div></header>
+    <section class="card about-intro"><h2>Willkommen beim TSV Feldkirchen Tennis</h2><p>Unsere Tennisabteilung steht für gemeinsames Training, Mannschaftssport und ein lebendiges Vereinsleben. Kinder, Jugendliche, Erwachsene, Mannschafts- und Freizeitspieler finden bei uns ihren Platz.</p><p>Die ehrenamtlichen Funktionärinnen und Funktionäre sind die Ansprechpartner für Sportbetrieb, Jugend, Finanzen, Veranstaltungen und Organisation.</p></section>
+    <section><p class="eyebrow">Ansprechpartner</p><h2>Unsere Funktionäre</h2><div id="officials-grid" class="team-grid"><p class="muted">Funktionäre werden geladen …</p></div></section>
+    <section class="card about-contact"><h2>Kontakt</h2><p><strong>TSV Feldkirchen – Tennisabteilung</strong><br />Olympiastraße 1<br />85622 Feldkirchen</p><p><a href="tel:+49899036460">+49 (0)89 9036460</a><br /><a href="mailto:tennis@tsvfeldkirchen.de">tennis@tsvfeldkirchen.de</a></p></section>
+  </div>
+</MainLayout>
+<script>
+  import { loadOfficials } from '../../scripts/public';
+  loadOfficials();
+</script>
