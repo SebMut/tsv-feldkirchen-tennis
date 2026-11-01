@@ -707,6 +707,12 @@ body{background:var(--sand);color:var(--text)}
 .calendar-agenda-heading{border-bottom:1px solid var(--calendar-line);padding-bottom:17px;margin-bottom:16px}
 .calendar-agenda-heading h2{font-size:clamp(1.4rem,2.4vw,2rem);line-height:1.3;margin-bottom:7px}
 .calendar-agenda-heading>.muted{margin:0;font-size:.88rem}
+.calendar-board,.calendar-agenda{scroll-margin-top:20px}
+.calendar-agenda:focus-within{border-color:#d4dcd6}
+.calendar-day-heading:focus{outline:none}
+.calendar-back-to-month{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-top:13px;padding:7px 11px;border:1px solid #d5dfd8;border-radius:9px;background:#f8faf8;color:#a50b14;font-size:.83rem;font-weight:800;cursor:pointer}
+.calendar-back-to-month:hover{background:#fff0f1;border-color:#dd9398}
+.calendar-back-to-month:focus-visible{outline:2px solid #b00c18;outline-offset:2px}
 .calendar-day-list{display:grid;gap:12px}
 .calendar-day-list .match-row{display:grid;grid-template-columns:1fr;padding:14px;border-radius:12px;background:#f6f8f7;border:1px solid #e2e9e4;gap:10px;min-width:0}
 .calendar-day-list .match-row .actions{justify-content:flex-start}
