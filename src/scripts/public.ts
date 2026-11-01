@@ -1,5 +1,5 @@
 import { calendarFeedUrl, mediaUrl, supabase } from '../lib/supabase';
-import { escapeHtml, formatDateTime } from '../lib/ui';
+import { escapeHtml, formatDateTime, slugify } from '../lib/ui';
 import { officialBtvTeamDestination } from '../lib/btv-group-url';
 
 type Row = Record<string, any>;
@@ -431,13 +431,16 @@ export async function loadTeams() {
     activeCode = seasonCodes.includes(code || '') ? code! :
       legacy && seasonCodes.includes(legacy) ? legacy : defaultSeason?.code || 'sommer-2026';
     const category = params.get('category') || '';
-    activeCategory = knownCategories.some((c: Row) => c.id === category) ? category : '';
+    const requestedGroup = params.get('gruppe') || '';
+    const groupedCategory = knownCategories.find((c: Row) => slugify(String(c.name || '')) === requestedGroup);
+    activeCategory = knownCategories.some((c: Row) => c.id === category) ? category : groupedCategory?.id || '';
   };
   const setUrlState = () => {
     const url = new URL(window.location.href);
     url.searchParams.set('season', activeCode);
     if (activeCategory) url.searchParams.set('category', activeCategory);
     else url.searchParams.delete('category');
+    url.searchParams.delete('gruppe');
     window.history.pushState({}, '', url.toString());
   };
 
