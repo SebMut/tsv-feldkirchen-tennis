@@ -95,3 +95,12 @@ test('small screens have shorter hero, closer card spacing and usable bottom doc
   assert.match(css,/body\{padding-bottom:calc\(90px \+ env\(safe-area-inset-bottom,0px\)\)\}/);
   assert.match(css,/@media\(max-width:370px\)/);
 });
+
+test('Live-Ticker hero logo remains on desktop and is hidden only on mobile',()=>{
+  const ticker=readFileSync(new URL('../src/pages/spieltag/index.astro',import.meta.url),'utf8');
+  assert.match(ticker,/class="matchday-hero__mark"/);
+  assert.match(ticker,/mediaUrl\("branding\/tennis-logo.png"\)/);
+  assert.doesNotMatch(ticker,/matchday-hero__grid--single/);
+  assert.match(css,/@media\(max-width:760px\)\{\s*\.matchday-page \.matchday-hero__mark\{display:none\}/);
+  assert.match(css,/\.matchday-page \.matchday-hero__grid\{grid-template-columns:minmax\(0,1fr\)\}/);
+});
