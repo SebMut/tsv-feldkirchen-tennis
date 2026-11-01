@@ -534,8 +534,15 @@ export async function loadHome() {
     if (newsTarget) newsTarget.innerHTML = newsResult.error
       ? '<p class="muted">Neuigkeiten momentan nicht abrufbar.</p>'
       : newsResult.data?.length ? newsResult.data.map(item => `
-          <div class="news-row"><div><strong>${escapeHtml(item.title)}</strong>
-          <div class="match-meta">${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : ''}</div></div></div>`).join('')
+          <article class="news-row home-news-item ${item.hero_image_path ? 'home-news-item--with-image' : ''}">
+            <a class="home-news-item__link" href="/aktuelles/" aria-label="Nachricht ${escapeHtml(item.title)} öffnen">
+              ${item.hero_image_path ? `<img class="home-news-item__image" src="${escapeHtml(mediaUrl(item.hero_image_path))}" alt="" width="108" height="80" loading="lazy" decoding="async" />` : ''}
+              <span class="home-news-item__content">
+                <strong>${escapeHtml(item.title)}</strong>
+                <time class="match-meta" ${item.published_at ? `datetime="${escapeHtml(item.published_at)}"` : ''}>${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : ''}</time>
+              </span>
+            </a>
+          </article>`).join('')
       : '<p class="muted">Noch keine aktuellen Beiträge.</p>';
     if (document.querySelector('#home-sponsors')) {
       await renderSponsorPlacements('#home-sponsors', ['home']);
