@@ -2098,3 +2098,107 @@ main.main--flush{padding:0}
 @media(prefers-reduced-motion:reduce){
   .home-news-column .home-news-item__content strong{transition:none}
 }
+
+
+/* Spieltag – lesbare Spielkarten auch in der rechten Ergebnis-Spalte.
+   Vorher zog die "auto"-Spalte der Aktionsbuttons der Textspalte die Breite weg. */
+.matchday-page--ticker .match-list{min-width:0}
+.matchday-page--ticker .match-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  align-items:stretch;
+  gap:12px;
+  min-width:0;
+  padding:17px 0 19px;
+}
+.matchday-page--ticker .match-row__main{
+  display:grid;
+  align-content:start;
+  gap:7px;
+  min-width:0;
+  width:100%;
+}
+.matchday-page--ticker .match-row__teamline{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  min-width:0;
+  gap:8px;
+}
+.matchday-page--ticker .match-row__teamline strong{
+  min-width:0;
+  color:#203228;
+  font-size:.98rem;
+  line-height:1.4;
+  overflow-wrap:break-word;
+}
+.matchday-page--ticker .match-row__main .match-meta{
+  color:#56685d;
+  font-size:.86rem;
+  line-height:1.5;
+  overflow-wrap:break-word;
+  word-break:normal;
+}
+.matchday-page--ticker .match-row__main .match-venue{
+  margin:3px 0 0;
+  gap:4px;
+  min-width:0;
+}
+.matchday-page--ticker .match-row__main .match-venue__label{color:#bd1021;font-size:.74rem}
+.matchday-page--ticker .match-row__main .match-venue strong{
+  color:#293e30;
+  font-size:.88rem;
+  line-height:1.4;
+  overflow-wrap:break-word;
+}
+.matchday-page--ticker .match-row__main .match-venue small{
+  color:#65766a;
+  font-size:.78rem;
+  line-height:1.45;
+  overflow-wrap:break-word;
+}
+.matchday-page--ticker .match-row>.actions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-start;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  width:100%;
+}
+.matchday-page--ticker .match-row>.actions .score{
+  color:#152f22;
+  font-size:1.35rem;
+  line-height:1.1;
+  white-space:nowrap;
+}
+.matchday-page--ticker .match-row>.actions .status-pill{
+  flex:0 0 auto;
+  white-space:nowrap;
+  font-size:.73rem;
+}
+.matchday-page--ticker .match-row>.actions .button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  max-width:100%;
+  min-width:0;
+  min-height:41px;
+  padding:9px 12px;
+  border-radius:11px;
+  font-size:.8rem;
+  text-align:center;
+  overflow-wrap:break-word;
+}
+.matchday-page--ticker .match-row__main:hover .match-row__teamline strong{
+  color:#ae1021;
+}
+@media(max-width:480px){
+  .matchday-page--ticker .match-row{gap:10px;padding:15px 0}
+  .matchday-page--ticker .match-row>.actions{gap:7px}
+  .matchday-page--ticker .match-row>.actions .button{
+    flex:1 1 126px;
+    white-space:normal;
+  }
+  .matchday-page--ticker .match-row__main .match-meta{font-size:.83rem}
+}
