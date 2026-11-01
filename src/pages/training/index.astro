@@ -43,7 +43,10 @@ const logoUrl = 'https://www.tennisschule-alexbraun.de/wp-content/uploads/2025/0
           <img src={logoUrl} data-school-image="logo" alt="Logo Tennisschule Alex Braun" referrerpolicy="no-referrer" width="130" height="130" loading="eager" decoding="async" />
           <span>Tennisschule<br /><strong>Alex Braun</strong></span>
         </a>
-        <p>Logo: <a href={schoolUrl} target="_blank" rel="noopener noreferrer">Tennisschule Alex Braun</a></p>
+        <a class="training-simple__portrait" href="https://www.tennisschule-alexbraun.de/" target="_blank" rel="noopener noreferrer" aria-label="Tennisschule Alex Braun – Website öffnen">
+          <img src={import.meta.env.BASE_URL + 'images/tennisschule-alex-braun-portrait.webp'} alt="Tennistrainer auf dem Sandplatz mit Tennisschläger" width="240" height="352" loading="lazy" decoding="async" />
+        </a>
+        <p>Logo und Foto: <a href="https://www.tennisschule-alexbraun.de/" target="_blank" rel="noopener noreferrer">Tennisschule Alex Braun</a></p>
       </aside>
     </section>
 
@@ -86,6 +89,10 @@ const logoUrl = 'https://www.tennisschule-alexbraun.de/wp-content/uploads/2025/0
   .training-simple__brand img{width:92px;height:92px;object-fit:contain;flex:0 0 auto}
   .training-simple__brand>span{font-size:.9rem;line-height:1.3}
   .training-simple__brand strong{font-size:1.28rem}
+  .training-simple__portrait{display:flex;justify-content:center;align-items:center;padding:14px;background:#fff6e9;border-radius:0 0 10px 10px;text-decoration:none}
+  .training-simple__portrait img{display:block;width:100%;max-width:280px;height:auto;object-fit:contain;border-radius:6px}
+  .training-simple__portrait:hover img{filter:brightness(.98)}
+  .training-simple__portrait:focus-visible{outline:3px solid #e30613;outline-offset:3px}
   .training-simple__partner>p{color:#78857b;font-size:.72rem;margin:8px 0 0}
   .training-simple__partner>p a{color:#697b70}
   .training-simple a:focus-visible,.training-simple summary:focus-visible{outline:3px solid #e30613;outline-offset:3px}

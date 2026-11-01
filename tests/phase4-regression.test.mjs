@@ -164,6 +164,10 @@ test('training page shows only logo from school contact page without photo galle
   assert.match(training, /Tennisschule Alex Braun/);
   assert.match(training, /logo-weiss_1pt_original-1\.png/);
   assert.match(training, /background:#f28323/);
+  assert.match(training, /images\/tennisschule-alex-braun-portrait\.webp/);
+  assert.match(training, /class="training-simple__portrait"/);
+  assert.match(training, /href="https:\/\/www\.tennisschule-alexbraun\.de\/" target="_blank"/);
+  assert.match(training, /object-fit:contain/);
   assert.match(training, /tennisschule-alexbraun\.de\/kontakt\//);
   assert.match(training, /referrerpolicy="no-referrer"/);
   for (const offer of ['Sommertraining', 'Wintertraining', 'Einzeltraining', 'Gruppentraining', 'Mannschaftstraining', 'Tenniscamps']) {
