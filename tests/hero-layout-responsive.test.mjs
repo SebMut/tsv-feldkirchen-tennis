@@ -58,7 +58,7 @@ test('homepage cards have consistent spacing between both rows and columns',()=>
   assert.match(css,/@media\(max-width:520px\)\{\.premium-content,\.home-intro-grid,\.home-columns\{gap:18px\}/);
 });
 
-test('mobile TSV dock offers five icon tabs, accessible more links and login',()=>{
+test('mobile TSV dock offers five icon tabs and moves administration into the footer',()=>{
   const header=readFileSync(new URL('../src/components/SiteHeader.astro',import.meta.url),'utf8');
   assert.match(header,/class="mobile-dock"/);
   assert.match(header,/aria-label="Mobile Hauptnavigation"/);
@@ -74,7 +74,7 @@ test('mobile TSV dock offers five icon tabs, accessible more links and login',()
   for(const href of ['/', '/mannschaften/', '/spieltag/', '/termine/']) {
     assert.ok(header.includes('href="' + href + '"'), 'Missing mobile navigation route ' + href);
   }
-  for(const href of ['/aktuelles/', '/training/', '/ueber-uns/', '/mitglied-werden/', '/sponsoren/', '/kontakt/', '/admin/']) {
+  for(const href of ['/aktuelles/', '/training/', '/ueber-uns/', '/mitglied-werden/', '/sponsoren/', '/kontakt/']) {
     assert.ok(header.includes('href="' + href + '"'), 'Missing further menu route ' + href);
   }
   const moreLinks = dockMarkup.slice(dockMarkup.indexOf('class="mobile-dock__panel"'));
@@ -82,7 +82,17 @@ test('mobile TSV dock offers five icon tabs, accessible more links and login',()
   assert.ok(moreLinks.includes('href="/training/"'));
   assert.ok(!moreLinks.includes('href="/">Startseite'));
   assert.match(header, /class="mobile-dock__more"/);
-  assert.match(header, /data-auth-link>Login/);
+  assert.ok(!header.includes('data-auth-link'));
+  assert.ok(!header.includes('href="/admin/"'));
+  assert.ok(!header.includes('>Login<'));
+  assert.ok(!header.includes('supabase.auth'));
+  const footer=readFileSync(new URL('../src/components/SiteFooter.astro',import.meta.url),'utf8');
+  assert.ok(footer.includes('BASE_URL}admin/'));
+  assert.ok(footer.includes('>Administration</a>'));
+  const admin=readFileSync(new URL('../src/pages/admin/index.astro',import.meta.url),'utf8');
+  const adminScript=readFileSync(new URL('../src/scripts/admin.ts',import.meta.url),'utf8');
+  assert.ok(admin.includes('id="admin-logout"'));
+  assert.ok(adminScript.includes('supabase.auth.signOut()'));
   assert.match(header, /aria-current=\{activePlay \? 'page' : undefined\}/);
   assert.match(header, /dockMore\.open = false/);
   assert.match(css,/\.mobile-dock\{display:none\}/);

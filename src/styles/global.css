@@ -1583,3 +1583,8 @@ main.main--flush{padding:0}
   .admin-shortcut{transition:none}
   .admin-shortcut:hover{transform:none}
 }
+
+/* Nur im geschützten Adminbereich: Abmelden bleibt erreichbar. */
+.admin-logout-button{cursor:pointer;color:#52615a;border-color:#dce4dd}
+.admin-logout-button:hover,.admin-logout-button:focus-visible{color:#a50b14;border-color:#dcadb1}
+.admin-logout-button:disabled{cursor:wait;opacity:.65}
