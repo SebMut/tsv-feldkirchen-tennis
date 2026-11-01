@@ -5,13 +5,14 @@ import Breadcrumbs from '../../components/Breadcrumbs.astro';
 const schoolUrl = 'https://www.tennisschule-alexbraun.de/';
 const offersUrl = 'https://www.tennisschule-alexbraun.de/angebote/';
 const coachesUrl = 'https://www.tennisschule-alexbraun.de/trainerteam/';
-// Originaldateien der Tennisschule statt unzuverlässiger WordPress-Photon-Links.
+// Bilder von den Originalseiten der Tennisschule (Angebote / Startseite).
+// Alle vier Motive sind absichtlich unterschiedlich.
 const schoolImages = 'https://www.tennisschule-alexbraun.de/wp-content/uploads';
 const logoUrl = `${schoolImages}/2025/09/logo-weiss_1pt_original-1.png`;
-const coachPhoto = `${schoolImages}/2025/07/startseite_1.jpg`;
-const trainingPhoto = `${schoolImages}/2025/07/startseite_3.jpg`;
-const winterPhoto = `${schoolImages}/2025/07/startseite_4.jpg`;
-const campPhoto = `${schoolImages}/2025/07/startseite_2.jpg`;
+const coachPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/angebote_1.jpg?fit=500%2C333&ssl=1';
+const trainingPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/angebote_4.jpg?fit=500%2C333&ssl=1';
+const winterPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/startseite_4.jpg?fit=500%2C333&ssl=1';
+const campPhoto = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07/angebote_2.jpg?fit=500%2C333&ssl=1';
 ---
 <MainLayout
   title="Training | TSV Feldkirchen Tennis"
@@ -64,47 +65,48 @@ const campPhoto = `${schoolImages}/2025/07/startseite_2.jpg`;
 </MainLayout>
 
 <script>
-  // Externe Fotos bleiben auf der Website der Tennisschule. Falls ein
-  // Original-Pfad gesperrt/verschoben ist, weitere dort gehostete Varianten
-  // probieren. Keine eigenen Kopien, keine dauerhaft kaputten Platzhalter.
-  const base = 'https://www.tennisschule-alexbraun.de/wp-content/uploads/2025';
-  const photon = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025';
-  const alternatives: Record<string, string[]> = {
-    logo: [`${photon}/09/logo-weiss_1pt_original-1.png?fit=789%2C802&ssl=1`],
+  // Jeder Bildplatz hat nur eigene, andere Motive als mögliche Ersatzbilder.
+  // Keine einheitliche Winterfoto-Ersatzadresse mehr: das hat alle
+  // Vorschaubilder identisch gemacht. Bilder bleiben extern verlinkt.
+  const base = 'https://www.tennisschule-alexbraun.de/wp-content/uploads/2025/07';
+  const photon = 'https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/07';
+  const photos: Record<string, string[]> = {
     coach: [
-      `${base}/07/angebote_1.jpg`,
-      `${photon}/07/startseite_1.jpg?fit=675%2C981&ssl=1`,
-      `${base}/07/angebote_4.jpg`,
+      `${base}/angebote_1.jpg`,
+      `${photon}/angebote_5.jpg?fit=500%2C333&ssl=1`,
+      `${base}/angebote_5.jpg`,
     ],
     summer: [
-      `${base}/07/angebote_1.jpg`,
-      `${photon}/07/startseite_3.jpg?fit=500%2C331&ssl=1`,
-      `${base}/07/angebote_4.jpg`,
+      `${base}/angebote_4.jpg`,
+      `${photon}/angebote_3.jpg?fit=500%2C331&ssl=1`,
+      `${base}/angebote_3.jpg`,
     ],
     winter: [
-      `${photon}/07/startseite_4.jpg?fit=500%2C333&ssl=1`,
-      `${base}/07/angebote_4.jpg`,
+      `${base}/startseite_4.jpg`,
+      `${photon}/angebote_6.jpg?fit=500%2C333&ssl=1`,
+      `${base}/angebote_6.jpg`,
     ],
     camp: [
-      `${base}/07/angebote_4.jpg`,
-      `${photon}/07/startseite_2.jpg?fit=750%2C500&ssl=1`,
-      `${base}/07/angebote_1.jpg`,
+      `${base}/angebote_2.jpg`,
+      `${photon}/startseite_2.jpg?fit=750%2C500&ssl=1`,
+      `${base}/startseite_2.jpg`,
     ],
   };
-
   for (const img of document.querySelectorAll<HTMLImageElement>('img[data-school-image]')) {
-    const urls = alternatives[img.dataset.schoolImage || ''] || [];
+    const kind = img.dataset.schoolImage || '';
+    const alternatives = kind === 'logo'
+      ? ['https://i0.wp.com/www.tennisschule-alexbraun.de/wp-content/uploads/2025/09/logo-weiss_1pt_original-1.png?fit=789%2C802&ssl=1']
+      : photos[kind] || [];
     let next = 0;
     const retry = () => {
-      if (next < urls.length) {
-        img.src = urls[next++];
+      if (next < alternatives.length) {
+        img.src = alternatives[next++];
       } else {
-        // Letzter Ersatz: auf der Originalseite als Winter-Foto verwendet.
-        const knownPhoto = `${photon}/07/startseite_4.jpg?fit=500%2C333&ssl=1`;
-        if (img.dataset.schoolImage !== 'logo' && img.src !== knownPhoto) {
-          img.src = knownPhoto;
-        } else {
-          img.style.display = 'none';
+        // Kein Motiv aus einem anderen Bildplatz wiederverwenden.
+        img.hidden = true;
+        const strip = img.closest('.training-simple__photo-strip');
+        if (strip && Array.from(strip.querySelectorAll('img')).every(photo => photo.hidden)) {
+          strip.setAttribute('hidden', '');
         }
       }
     };
@@ -139,6 +141,7 @@ const campPhoto = `${schoolImages}/2025/07/startseite_2.jpg`;
   .training-simple__brand strong{font-size:1.28rem}
   .training-simple__photos{display:grid;gap:7px;background:#fff6e9;padding:7px;border-radius:0 0 10px 10px}
   .training-simple__photos img{display:block;width:100%;object-fit:cover;background:#ead9c9;border-radius:5px}
+  .training-simple__photos img[hidden],.training-simple__photo-strip[hidden]{display:none}
   .training-simple__coach-photo{height:180px;object-position:center 32%}
   .training-simple__photo-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
   .training-simple__photo-strip img{height:112px}
