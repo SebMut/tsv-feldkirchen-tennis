@@ -135,6 +135,17 @@ test('team pages always show their navigation level', () => {
   assert.match(component, /aria-label="Brotkrümelnavigation"/);
 });
 
+test('season management controls the initial Mannschaften season', () => {
+  const admin = source('src/scripts/admin-advanced.ts');
+  const publicJs = source('src/scripts/public.ts');
+  assert.match(admin, /update\(\{ is_current: true, archived_at: null \}\)/);
+  assert.match(publicJs, /const managedCurrentSeason = seasonCodes\.map\(code => seasonByCode\.get\(code\)\)/);
+  assert.match(publicJs, /s\?\.is_current && !s\.archived_at/);
+  assert.match(publicJs, /const defaultSeason = managedCurrentSeason \|\| byCurrentDate/);
+  // Aufruf per ?season=... bleibt wichtiger als die initiale Voreinstellung.
+  assert.match(publicJs, /activeCode = requestedCode \|\| \(activeCategory \? seasonForGroup\(activeCategory\)/);
+});
+
 test('news optionally creates one linked calendar appointment', () => {
   const js = source('src/scripts/admin.ts');
   const html = source('src/pages/admin/index.astro');
