@@ -1,55 +1,81 @@
 ---
 import MainLayout from '../../../layouts/MainLayout.astro';
 ---
-<MainLayout title="Anmeldung bestätigen | TSV Feldkirchen Tennis" description="Bestätige deine Rückmeldung zum Sommerfest per E-Mail-Link.">
+<MainLayout title="Rückmeldung bestätigen | TSV Feldkirchen Tennis" description="Deine Rückmeldung wird nach dem Klick auf den E-Mail-Link automatisch bestätigt.">
   <main class="container rsvp-confirm-page">
     <div class="rsvp-confirm-card">
       <span class="rsvp-mode-label">TSV Feldkirchen Tennis</span>
-      <h1>E-Mail-Adresse bestätigen</h1>
-      <p id="rsvp-confirm-intro">Du hast über deine E-Mail einen Link erhalten. Bitte bestätige hier deine Angaben, damit sie bei der Vereinsplanung berücksichtigt werden.</p>
-      <p class="muted">Der Link gilt 24 Stunden und nur ein einziges Mal. Eine reine Vorschau auf diese Seite löst noch keine Bestätigung aus.</p>
-      <p id="rsvp-confirm-feedback" role="status" aria-live="polite"></p>
-      <button type="button" id="rsvp-confirm-button" class="button rsvp-submit">Ja, meine Angaben verbindlich bestätigen</button>
-      <p><a href="/veranstaltung/?slug=sommerfest">Zurück zur Sommerfest-Seite</a></p>
+      <h1 id="rsvp-confirm-title">Bestätigung wird geprüft …</h1>
+      <p id="rsvp-confirm-intro">Deine Rückmeldung wird automatisch bestätigt. Du musst keinen weiteren Button anklicken.</p>
+      <p id="rsvp-confirm-feedback" role="status" aria-live="polite">Wir prüfen gerade deinen Bestätigungslink.</p>
+      <noscript><p>Für die automatische Bestätigung muss JavaScript in deinem Browser aktiviert sein. Bitte öffne den Link in einem normalen Browser.</p></noscript>
+      <p><a href="../?slug=sommerfest">Zurück zur Sommerfest-Seite</a></p>
     </div>
   </main>
 </MainLayout>
 <script>
   import { supabase } from '../../../lib/supabase';
-  const button=document.getElementById('rsvp-confirm-button') as HTMLButtonElement | null;
+
+  const title=document.getElementById('rsvp-confirm-title');
   const feedback=document.getElementById('rsvp-confirm-feedback');
   const intro=document.getElementById('rsvp-confirm-intro');
   const params=new URLSearchParams(window.location.search);
   const request=params.get('request') || '';
   const token=params.get('token') || '';
-  // Token nicht an Drittseiten als Referrer weiterreichen.
-  const clean=window.location.pathname;
-  window.history.replaceState({},'',clean);
-  if (!/^[0-9a-f-]{36}$/i.test(request) || !/^[a-f0-9]{64}$/.test(token)) {
-    if(button)button.disabled=true;
-    if(feedback)feedback.textContent='Der Bestätigungslink ist ungültig. Bitte fordere eine neue E-Mail an.';
-  } else if(button) {
-    button.addEventListener('click',async()=>{
-      button.disabled=true;
-      button.textContent='Bestätigung wird geprüft …';
-      if(feedback)feedback.textContent='';
-      try{
-        const {data,error}=await supabase.functions.invoke('event-rsvp-email',{
-          body:{action:'confirm',request_id:request,token},
-        });
-        if(error||!data?.confirmed){
-          if(feedback)feedback.textContent=data?.error||'Der Link konnte nicht bestätigt werden. Vielleicht ist er abgelaufen oder bereits verwendet.';
-          button.textContent='Bestätigung fehlgeschlagen';
-          return;
+
+  // No link token remains in the address bar, browser history or referrer.
+  window.history.replaceState({},'',window.location.pathname);
+
+  let started=false;
+  const confirmFromEmail=async()=>{
+    if(started) return;
+    started=true;
+
+    if (!/^[0-9a-f-]{36}$/i.test(request) || !/^[a-f0-9]{64}$/.test(token)) {
+      if(title) title.textContent='Bestätigungslink ungültig';
+      if(intro) intro.textContent='Die Rückmeldung konnte nicht bestätigt werden.';
+      if(feedback) feedback.textContent='Bitte fordere über die Sommerfest-Seite eine neue Bestätigungs-E-Mail an.';
+      return;
+    }
+
+    try {
+      // Only an active, visible browser page makes the POST; merely fetching the
+      // link (as most mail link scanners do) cannot consume a confirmation token.
+      const {data,error}=await supabase.functions.invoke('event-rsvp-email',{
+        body:{action:'confirm',request_id:request,token},
+      });
+      if(error || data?.confirmed!==true) {
+        let detail=typeof data?.error==='string' ? data.error : '';
+        if(error && 'context' in error && error.context instanceof Response) {
+          const body=await error.context.clone().json().catch(()=>null);
+          if(typeof body?.error==='string') detail=body.error;
         }
-        if(intro)intro.textContent='Vielen Dank! Deine E-Mail-Adresse und deine Rückmeldung sind bestätigt. Sie werden jetzt in der Teilnehmerübersicht berücksichtigt.';
-        if(feedback)feedback.textContent='Bestätigung erfolgreich gespeichert.';
-        button.textContent='Bestätigt';
-      }catch{
-        if(feedback)feedback.textContent='Die Bestätigung ist derzeit nicht erreichbar. Bitte erneut versuchen.';
-        button.disabled=false;
-        button.textContent='Erneut bestätigen';
+        if(title) title.textContent='Bestätigung fehlgeschlagen';
+        if(intro) intro.textContent='Deine Rückmeldung wurde noch nicht bestätigt.';
+        if(feedback) feedback.textContent=detail || 'Der Link ist abgelaufen oder wurde bereits verwendet. Bitte fordere bei Bedarf eine neue E-Mail an.';
+        return;
       }
-    });
+
+      if(title) title.textContent='Erfolgreich bestätigt!';
+      if(intro) intro.textContent='Vielen Dank! Deine Rückmeldung und deine E-Mail-Adresse wurden bestätigt und werden jetzt in der Teilnehmerübersicht berücksichtigt.';
+      if(feedback) feedback.textContent='Alles erledigt – du musst nichts weiter tun.';
+    } catch {
+      if(title) title.textContent='Bestätigung derzeit nicht möglich';
+      if(intro) intro.textContent='Deine Rückmeldung konnte noch nicht bestätigt werden.';
+      if(feedback) feedback.textContent='Die Bestätigung ist gerade nicht erreichbar. Bitte öffne deinen E-Mail-Link später erneut.';
+    }
+  };
+
+  // An email link preview or prerendered/background tab must not immediately
+  // consume the single-use token. Confirm once the page is actually visible.
+  if(document.visibilityState==='visible'){
+    void confirmFromEmail();
+  } else {
+    const confirmWhenVisible=()=>{
+      if(document.visibilityState!=='visible') return;
+      document.removeEventListener('visibilitychange',confirmWhenVisible);
+      void confirmFromEmail();
+    };
+    document.addEventListener('visibilitychange',confirmWhenVisible);
   }
 </script>

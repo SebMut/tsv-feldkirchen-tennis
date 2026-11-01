@@ -11,7 +11,7 @@ Cloudflare Turnstile und der Zwei-Schritt-Bestätigungsablauf bleiben unverände
 1. Mitglied gibt Namen, verpflichtende E-Mail, Teilnahme, Anzahl Erwachsene/Kinder, Buffet, Helfer und ggf. Jugendanmeldungen ein.
 2. Cloudflare Turnstile wird serverseitig geprüft (Siteverify).
 3. Die Funktion fordert mit dem gespeicherten Gmail-OAuth-Refresh-Token einen kurzfristigen Google-Zugriffstoken an und versendet im Namen des Vereins-Gmail-Kontos eine Mail mit **allen Details** und einem Bestätigungslink.
-4. Erst nach dem bewussten Klick auf **„Ja, meine Angaben verbindlich bestätigen“** auf der Bestätigungsseite zählt die Rückmeldung. Der Link ist 24 Stunden gültig und einmalig.
+4. **Ein einziger Klick auf den Link in der E-Mail genügt:** Die Bestätigungsseite prüft den Token beim Öffnen im sichtbaren Browser automatisch und zeigt direkt „Erfolgreich bestätigt!“ – **kein zweiter Button**. Der Link ist 24 Stunden gültig und einmalig.
 5. Bestätigte Mitgliederdaten sind nur im berechtigten Adminbereich sichtbar. Änderungen gehen erneut durch E-Mail-Bestätigung.
 
 Bis die Secrets eingerichtet sind, gibt die Funktion `enabled:false` zurück. Sie verschickt dann absichtlich **keine** E-Mail.
@@ -69,7 +69,7 @@ Diese **Veranstaltungsanmeldung** verwendet eine eigene Edge Function und kein S
 3. Reale Test-E-Mail-Adresse, Teilnahme und eine Personenzahl angeben und Turnstile lösen.
 4. E-Mail im Empfängerpostfach prüfen: **Absender TSV Feldkirchen Tennis <tsvfeldkirchen.tennis@gmail.com>**, sämtliche Angaben und Bestätigungslink.
 5. Vor Bestätigung dürfen die Teilnehmerzahlen **nicht** steigen.
-6. Bestätigungsseite über den E-Mail-Link öffnen und Bestätigungsbutton klicken: genau eine bestätigte Rückmeldung.
+6. Bestätigungsseite über den E-Mail-Link öffnen: Die Anmeldung wird **automatisch bestätigt**, ohne weiteren Button. Im Browser erscheint direkt das Ergebnis. Genau eine bestätigte Rückmeldung.
 7. Wiederholtes Aufrufen des Links muss abgelehnt werden; Änderungen verlangen eine neue E-Mail-Bestätigung.
 
 Zum Schutz der Jugendlichen und Teilnehmer müssen Datenschutztext, Archivierung und Löschfristen vor dem echten Vereinsbetrieb geprüft werden. Das Sommerfest bleibt eine unverbindliche Demo, bis ein Verantwortlicher einen echten Termin ausdrücklich veröffentlicht.
@@ -87,3 +87,11 @@ https://sebmut.github.io/tsv-feldkirchen-tennis/
 Die Edge Function prüft seit der Korrektur die Basis-URL **bereits bei der Konfigurationsabfrage**. Sie lässt ausschließlich die exakten Vorschau-/Produktions-URLs zu und verschickt bei einer falschen URL **keine E-Mail mit defektem Link**. So wird der Eingabefehler vor der Anmeldung angezeigt.
 
 Bereits versandte Bestätigungslinks werden nicht automatisch umgeschrieben. Da im Support oder in Screenshots versehentlich öffentlich gewordene Bestätigungstokens einmalig und vertraulich sind, für solche Fälle eine **neue Testanmeldung** auslösen und nur den neuen Link in der eigenen Mailbox öffnen. Keine vollständigen Bestätigungslinks oder Token in Chats oder Issues posten.
+
+## Ein-Klick-Bestätigung und E-Mail-Sicherheitsprüfung
+
+Es gibt keinen Bestätigungsbutton mehr auf der Zielseite. Beim direkten Öffnen des E-Mail-Links wird ein **POST** aus dem Browser zur Supabase Edge Function `event-rsvp-email` gesendet; nur dann wird die Rückmeldung bestätigt. Die Tokenwerte werden unmittelbar aus der sichtbaren Browser-URL entfernt. Versteckte Vorschau- oder vorgerenderte Seiten bestätigen nicht automatisch, bevor sie sichtbar werden.
+
+Hinweis: Manche E-Mail-Sicherheitsprogramme öffnen Links in einem echten Browser und führen auch JavaScript aus. Deshalb lässt sich eine unbeabsichtigte Bestätigung durch *alle* denkbaren Link-Scanner bei einem Ein-Klick-Verfahren nicht vollständig ausschließen. Ein zusätzlicher Bestätigungsklick wäre dagegen robuster, ist aber nicht mehr gewünscht. Der Link bleibt zeitlich begrenzt, einmalig und mit einem 256-Bit-Token geschützt.
+
+**Keine vollständigen Bestätigungslinks veröffentlichen oder weiterleiten.** Falls ein Token in einem öffentlichen Chat/Issue gepostet wurde, eine neue Bestätigungs-E-Mail anfordern und ausschließlich deren Link verwenden.
