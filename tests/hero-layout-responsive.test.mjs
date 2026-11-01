@@ -40,3 +40,11 @@ test('welcome and three-day tennis weather share a responsive homepage row',()=>
   assert.match(script,/weatherResult\.daily\.time\.slice\(0, 3\)/);
   assert.doesNotMatch(script,/forecast_days=4/);
 });
+
+test('homepage cards have consistent spacing between both rows and columns',()=>{
+  assert.match(css,/\.premium-content\{display:flex;flex-direction:column;gap:28px;/);
+  assert.match(css,/\.home-intro-grid\{[^}]*gap:28px;/);
+  assert.match(css,/\.home-columns\{[^}]*gap:28px;/);
+  assert.match(css,/@media\(max-width:820px\)\{\.premium-content\{gap:22px\}/);
+  assert.match(css,/@media\(max-width:520px\)\{\.premium-content,\.home-intro-grid,\.home-columns\{gap:18px\}/);
+});
