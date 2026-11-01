@@ -246,6 +246,7 @@ export async function loadHome() {
   const facility = document.querySelector<HTMLAnchorElement>('#facility-pill');
   const liveCenter = document.querySelector<HTMLElement>('#live-center');
   const todayTarget = document.querySelector<HTMLElement>('#today-matches');
+  const todayPanel = document.querySelector<HTMLElement>('#today-fixtures-panel');
   const upcomingTarget = document.querySelector<HTMLElement>('#upcoming-matches');
   const recentTarget = document.querySelector<HTMLElement>('#recent-matches');
   const newsTarget = document.querySelector<HTMLElement>('#home-news');
@@ -279,14 +280,18 @@ export async function loadHome() {
     const start = new Date(midnightUtc - 2 * 3600000);
     const end = new Date(midnightUtc + 26 * 3600000);
     const [facilityResult, activeResult, todayResult, upcomingResult, recentResult, newsResult, settingsResult, weatherResult] = await Promise.all([
-      supabase.from('facility_status').select('*').limit(1),
+      facility ? supabase.from('facility_status').select('*').limit(1) : Promise.resolve({ data: [], error: null }),
       supabase.from('match_live_state').select('*').eq('status', 'live'),
       supabase.from('matches').select('*').eq('is_published', true).gte('starts_at', start.toISOString()).lt('starts_at', end.toISOString()).order('starts_at').limit(50),
       supabase.from('matches').select('*').eq('is_published', true).gte('starts_at', now.toISOString()).order('starts_at').limit(15),
       recentTarget ? supabase.from('matches').select('*').eq('is_published', true).lt('starts_at', start.toISOString()).order('starts_at', { ascending: false }).limit(8) : Promise.resolve({ data: [], error: null }),
-      supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(3),
-      supabase.from('site_settings').select('key,value').in('key', ['team_count', 'court_count']),
-      fetch('https://api.open-meteo.com/v1/forecast?latitude=48.15&longitude=11.73&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=3').then(response => response.ok ? response.json() : Promise.reject(new Error('Wetterdienst nicht erreichbar'))).catch(() => null),
+      newsTarget ? supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(3) : Promise.resolve({ data: [], error: null }),
+      document.querySelector('#home-team-count, #home-court-count')
+        ? supabase.from('site_settings').select('key,value').in('key', ['team_count', 'court_count'])
+        : Promise.resolve({ data: [], error: null }),
+      weatherTarget
+        ? fetch('https://api.open-meteo.com/v1/forecast?latitude=48.15&longitude=11.73&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=3').then(response => response.ok ? response.json() : Promise.reject(new Error('Wetterdienst nicht erreichbar'))).catch(() => null)
+        : Promise.resolve(null),
     ]);
     const settings = new Map((settingsResult.data ?? []).map(row => [row.key, row.value]));
     for (const [selector, key] of [['#home-team-count', 'team_count'], ['#home-court-count', 'court_count']]) {
@@ -356,6 +361,11 @@ export async function loadHome() {
       }
     }
     if (todayTarget) {
+      // The dedicated Live-Ticker page has no "Heute" card unless there
+      // is at least one actual fixture on the current Europe/Berlin date.
+      if (todayPanel) {
+        todayPanel.classList.toggle('hidden', !!todayResult.error || !!activeResult.error || today.length === 0);
+      }
       if (todayResult.error || upcomingResult.error || activeResult.error) {
         errorText(todayTarget, 'Punktspiele sind momentan nicht abrufbar.');
       } else {
@@ -382,7 +392,9 @@ export async function loadHome() {
           <div class="news-row"><div><strong>${escapeHtml(item.title)}</strong>
           <div class="match-meta">${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : ''}</div></div></div>`).join('')
       : '<p class="muted">Noch keine aktuellen Beiträge.</p>';
-    await renderSponsorPlacements('#home-sponsors', ['home']);
+    if (document.querySelector('#home-sponsors')) {
+      await renderSponsorPlacements('#home-sponsors', ['home']);
+    }
   } catch (error) {
     console.warn('Öffentliche Startseiten-Daten konnten nicht geladen werden:', error);
     if (facility?.textContent?.match(/geladen|ermittelt/i)) errorText(facility, 'Anlagenstatus momentan nicht abrufbar.');
