@@ -546,6 +546,104 @@ async function refreshDashboard() {
   });
 }
 
+// Ein zentraler, saisonbezogener Quellenkatalog für den offiziellen BTV-Abgleich.
+// Der Katalog verwendet das bestehende team_seasons.btv_url – keine zweite
+// Link-Datenbank und keine ungesicherten GitHub-Konfigurationsdateien.
+function verifiedBtvSourceUrl(raw: string): string | null {
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' || url.username || url.password
+      || !['btv.de', 'www.btv.de', 'btv.liga.nu'].includes(url.hostname)) return null;
+    return url.href;
+  } catch { return null; }
+}
+
+function renderBtvSourceList() {
+  const list = $('#btv-source-list');
+  const summary = $('#btv-source-summary');
+  const select = $<HTMLSelectElement>('#btv-source-season');
+  if (!state.isSuper || !list || !summary || !select) return;
+  const seasonId = select.value;
+  const rows = state.teamSeasons
+    .filter(ts => ts.season_id === seasonId)
+    .sort((a, b) => teamSeasonLabel(a).localeCompare(teamSeasonLabel(b), 'de'));
+  const direct = rows.filter(ts => {
+    const url = verifiedBtvSourceUrl(ts.btv_url || '');
+    return url && /(?:[?&]groupid=\d+|[?&]group=\d+)/.test(url);
+  }).length;
+  summary.textContent = `${direct} von ${rows.length} Mannschaften mit direktem BTV-Gruppenlink`;
+  list.innerHTML = rows.length ? rows.map(ts => {
+    const value = ts.btv_url || '';
+    const valid = verifiedBtvSourceUrl(value);
+    const group = valid && /(?:[?&]groupid=\d+|[?&]group=\d+)/.test(valid);
+    const label = teamSeasonLabel(ts);
+    return `<div class="btv-source-editor__row" data-btv-source-id="${escapeHtml(ts.id)}">
+      <div class="btv-source-editor__team">
+        <strong>${escapeHtml(label)}</strong>
+        <small class="${group ? 'btv-source-editor__verified' : 'btv-source-editor__missing'}">${group ? 'Direkter Gruppenlink hinterlegt' : value ? 'Kein direkter Gruppenlink – bitte prüfen' : 'Quelle fehlt'}</small>
+      </div>
+      <label class="btv-source-editor__input">Offizielle BTV-URL
+        <input type="url" data-btv-source-url autocomplete="url" inputmode="url" value="${escapeHtml(value)}"
+          placeholder="https://www.btv.de/de/spielbetrieb/tabelle-spielplan.html?groupid=…" />
+      </label>
+      <button class="button secondary" data-btv-source-save type="button">Speichern</button>
+      ${valid ? `<a class="text-link" href="${escapeHtml(valid)}" target="_blank" rel="noopener noreferrer">Quelle öffnen ↗</a>` : ''}
+      <p class="btv-source-editor__feedback hidden" role="status" aria-live="polite"></p>
+    </div>`;
+  }).join('') : '<p class="muted">Für diese Saison sind noch keine Mannschaften hinterlegt.</p>';
+}
+
+function initBtvSourceRegistry() {
+  if (!state.isSuper) return;
+  const select = $<HTMLSelectElement>('#btv-source-season');
+  const list = $('#btv-source-list');
+  if (!select || !list) return;
+  const seasons = state.seasons.filter(season => state.teamSeasons.some(ts => ts.season_id === season.id));
+  select.innerHTML = seasons.map(season =>
+    `<option value="${escapeHtml(season.id)}">${escapeHtml(season.name || season.code)}</option>`).join('');
+  const preferred = seasons.find(season => season.code === 'winter-2026-2027')
+    ?? seasons.find(season => season.is_current)
+    ?? seasons[0];
+  if (preferred) select.value = preferred.id;
+  select.addEventListener('change', renderBtvSourceList);
+  list.addEventListener('click', async (event) => {
+    if (!(event.target instanceof Element)) return;
+    const button = event.target.closest<HTMLButtonElement>('[data-btv-source-save]');
+    const row = button?.closest<HTMLElement>('[data-btv-source-id]');
+    const input = row?.querySelector<HTMLInputElement>('[data-btv-source-url]');
+    const feedback = row?.querySelector<HTMLElement>('.btv-source-editor__feedback');
+    if (!button || !row || !input || !feedback) return;
+    const ts = state.teamSeasons.find(ts => ts.id === row.dataset.btvSourceId);
+    if (!ts || !canEditTeamId(ts.team_id)) return;
+    const raw = input.value.trim();
+    const validated = raw ? verifiedBtvSourceUrl(raw) : null;
+    feedback.classList.remove('hidden');
+    if (raw && !validated) {
+      setStatus(feedback, 'Bitte eine sichere HTTPS-Adresse von btv.de oder btv.liga.nu eingeben.', 'error');
+      return;
+    }
+    button.disabled = true;
+    button.textContent = 'Speichert …';
+    try {
+      const { data, error } = await supabase.from('team_seasons')
+        .update({ btv_url: validated }).eq('id', ts.id).select('id,btv_url').single();
+      if (error || !data) {
+        setStatus(feedback, 'Quelle konnte nicht gespeichert werden: ' + (error?.message || 'Keine Berechtigung'), 'error');
+        return;
+      }
+      ts.btv_url = data.btv_url;
+      status('BTV-Quelle für ' + teamSeasonLabel(ts) + ' gespeichert.', 'success');
+      renderBtvSourceList();
+    } finally {
+      if (button.isConnected) {
+        button.disabled = false;
+        button.textContent = 'Speichern';
+      }
+    }
+  });
+  renderBtvSourceList();
+}
+
 function fillTeamForm() {
   const select = $<HTMLSelectElement>('#team-select');
   if (!select) return;
@@ -2267,6 +2365,7 @@ async function startApp(user: any) {
   renderSelectors();
   bindNav();
   bindForms();
+  initBtvSourceRegistry();
   await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshNewsReferenceEvents(), refreshGalleries()]);
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
   await initAdvancedAdmin(state);

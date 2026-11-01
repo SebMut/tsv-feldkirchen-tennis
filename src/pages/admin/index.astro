@@ -216,12 +216,26 @@ import MainLayout from '../../layouts/MainLayout.astro';
             </div>
           </section>
 
-          <section id="panel-btv-import" class="admin-panel">
+          <section id="panel-btv-import" class="admin-panel" data-super-only>
             <div class="card stack">
-              <p class="eyebrow">Offizieller BTV-Spielplan · TSV Feldkirchen (01012)</p>
-              <h2>Automatischer Terminabgleich</h2>
-              <p>Die geplante Prüfung läuft alle sechs Stunden. Der erste Abruf erzeugt ausschließlich eine Vergleichsbasis. Bei späteren bestätigten Verschiebungen wird – sofern der Spieltag nicht manuell überschrieben oder bereits live ist – der Kalendertermin aktualisiert und eine Meldung unter „Aktuelles“ veröffentlicht.</p>
-              <p class="muted">Der BTV-Import für Sommer 2026 läuft separat über GitHub Actions auf dem Standardbranch. Diese Ansicht zeigt ausschließlich erfolgreich gespeicherte Prüfläufe und erfasste Terminänderungen. Neue Saisons werden erst nach Verifizierung der offiziellen Quellen eingebunden.</p>
+              <p class="eyebrow">Offizielle BTV-Quellen · TSV Feldkirchen (01012)</p>
+              <h2>Automatischer BTV-Abgleich</h2>
+              <p><strong>Offizielle Ergebnisse haben immer Vorrang.</strong> Ein manuell gepflegter Liveticker bleibt als Verlauf erhalten. Neue BTV-Endstände dürfen den öffentlichen Mannschaftsspielstand jederzeit korrigieren.</p>
+              <p class="muted">Geplanter Rhythmus: alle sechs Stunden. Der Import wird über GitHub Actions auf dem Standardbranch ausgeführt, <strong>nur wenn die Importfreigabe aktiviert ist</strong>. Ein Link allein aktiviert noch keinen Import. Die offiziellen Quellen werden vor der Übernahme auf Mannschaft und Saison geprüft.</p>
+              <section class="btv-source-editor" aria-labelledby="btv-source-editor-title">
+                <div class="btv-source-editor__header">
+                  <div>
+                    <h3 id="btv-source-editor-title">Mannschafts-URLs pflegen</h3>
+                    <p class="muted">Die Quellen sind je Saison getrennt. Verwende möglichst den direkten BTV-Gruppenlink mit <code>groupid=…</code>; eine Vereinsübersicht reicht für den zuverlässigen Einzelabgleich nicht aus.</p>
+                  </div>
+                  <label for="btv-source-season">Saison
+                    <select id="btv-source-season"></select>
+                  </label>
+                </div>
+                <div id="btv-source-summary" class="btv-source-editor__summary" aria-live="polite"></div>
+                <div id="btv-source-list" class="btv-source-editor__list" aria-live="polite"></div>
+                <p class="muted">Die Links werden in den bestehenden Mannschafts-Saisondaten gespeichert. Der aktuelle Import liest noch nur die bereits verifizierten BTV-Spielplandokumente; weitere Quellen müssen vor ihrer automatischen Auswertung angebunden werden.</p>
+              </section>
               <div class="actions">
                 <button class="button ghost" type="button" id="btv-sync-refresh">Status aktualisieren</button>
                 <a class="button ghost" href="https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?club=23391&amp;dokument=ScheduleReportFOP&amp;season=18105" target="_blank" rel="noopener noreferrer">BTV-Spielplan 2026 (PDF) öffnen</a>

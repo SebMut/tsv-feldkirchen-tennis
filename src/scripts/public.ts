@@ -303,7 +303,7 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
   const { team } = matchContext(match, reference);
   const state = scoreFor(match, liveStates);
   const status = state?.status ?? 'scheduled';
-  const official = status === 'scheduled' ? officialBtvScore(match) : null;
+  const official = officialBtvScore(match);
   const home = official?.home ?? state?.home_score ?? 0;
   const away = official?.away ?? state?.away_score ?? 0;
   const clubScore = match.is_home ? home : away;
@@ -319,7 +319,7 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
       </a>
       <div class="actions">
         ${matchRouteButton(match)}
-        ${status === 'live' ? '<span class="status-pill live">LIVE</span>' : status === 'finished' ? '<span class="status-pill">Beendet</span>' : official ? '<span class="status-pill">BTV-Ergebnis</span>' : ''}
+        ${official ? '<span class="status-pill btv-official">Offizielles BTV-Ergebnis</span>' : status === 'live' ? '<span class="status-pill live">LIVE</span>' : status === 'finished' ? '<span class="status-pill">Beendet</span>' : ''}
         ${status !== 'scheduled' || official ? `<span class="score">${clubScore} : ${opponentScore}</span>` : ''}
         <a class="button ghost" href="${detailUrl}">${matchesWithGallery.has(match.id) ? 'Spiel & Bilder' : 'Spiel öffnen'}</a>
         ${status === 'live' ? `<a class="button" href="/live/?match=${encodeURIComponent(match.id)}">Liveticker</a>` : ''}
@@ -455,8 +455,9 @@ export async function loadHome() {
               const homeLabel = match.is_home ? clubLabel : match.opponent;
               const guestLabel = match.is_home ? match.opponent : clubLabel;
               const currentLiveState = scoreRows.find((state: Row) => state.match_id === match.id);
-              const currentHomeScore = Number(currentLiveState?.home_score ?? 0);
-              const currentAwayScore = Number(currentLiveState?.away_score ?? 0);
+              const officialMatchScore = officialBtvScore(match);
+              const currentHomeScore = officialMatchScore?.home ?? Number(currentLiveState?.home_score ?? 0);
+              const currentAwayScore = officialMatchScore?.away ?? Number(currentLiveState?.away_score ?? 0);
               const detailHref = `/live/?match=${encodeURIComponent(match.id)}`;
               const matchEncounters = activeEncounters.filter((row: Row) => row.match_id === match.id);
               return `
@@ -466,7 +467,7 @@ export async function loadHome() {
                       <h3>${escapeHtml(team?.name || 'TSV Feldkirchen')} <span>gegen</span> ${escapeHtml(match.opponent)}</h3>
                       <p>${escapeHtml(formatDateTime(match.starts_at))} · ${match.is_home ? 'Heimspiel' : 'Auswärtsspiel'}</p>
                     </div>
-                    <span class="ticker-overview-feature__match-count">${matchEncounters.length} ${matchEncounters.length === 1 ? 'Begegnung läuft' : 'Begegnungen laufen'}</span>
+                    <span class="ticker-overview-feature__match-count">${officialMatchScore ? 'BTV-Endstand verfügbar' : `${matchEncounters.length} ${matchEncounters.length === 1 ? 'Begegnung läuft' : 'Begegnungen laufen'}`}</span>
                   </div>
                   <div class="ticker-overview-feature__score" aria-label="Heim ${currentHomeScore}, Gast ${currentAwayScore}">
                     <div class="ticker-overview-feature__team">
@@ -942,9 +943,9 @@ export async function loadTeamDetail(slug: string) {
     const results = finished.map((m: Row) => {
       const state = seasonLiveMap.get(m.id);
       const official = officialBtvScore(m);
-      const useLive = state?.status === 'finished';
-      const homeScore = useLive ? Number(state?.home_score ?? 0) : Number(official?.home ?? 0);
-      const awayScore = useLive ? Number(state?.away_score ?? 0) : Number(official?.away ?? 0);
+      // Die BTV-Wertung ist auch dann maßgeblich, wenn ein Liveticker abgeschlossen wurde.
+      const homeScore = official?.home ?? Number(state?.home_score ?? 0);
+      const awayScore = official?.away ?? Number(state?.away_score ?? 0);
       const our = m.is_home ? homeScore : awayScore;
       const rival = m.is_home ? awayScore : homeScore;
       return Math.sign(our - rival);
@@ -1105,7 +1106,7 @@ export async function loadMatchDetail(matchId: string | null) {
   const leftTeam = match.is_home ? clubName : match.opponent;
   const rightTeam = match.is_home ? match.opponent : clubName;
   const status = liveState?.status ?? 'scheduled';
-  const officialScore = status === 'scheduled' ? officialBtvScore(match) : null;
+  const officialScore = officialBtvScore(match);
   const homeScore = officialScore?.home ?? liveState?.home_score ?? 0;
   const awayScore = officialScore?.away ?? liveState?.away_score ?? 0;
   const clubScore = match.is_home ? homeScore : awayScore;
@@ -1122,15 +1123,15 @@ export async function loadMatchDetail(matchId: string | null) {
         <div class="actions">
           ${matchRouteButton(match)}
           <a class="button secondary" href="/mannschaften/${escapeHtml(team?.slug || '')}/">Zur Mannschaft</a>
-          ${status === 'live' ? `<a class="button" href="/live/?match=${encodeURIComponent(match.id)}">Liveticker öffnen</a>` : ''}
+          ${status === 'live' && !officialScore ? `<a class="button" href="/live/?match=${encodeURIComponent(match.id)}">Liveticker öffnen</a>` : ''}
           ${match.external_url ? `<a class="button ghost" href="${escapeHtml(match.external_url)}" target="_blank" rel="noreferrer">BTV / Details ↗</a>` : ''}
         </div>
       </div>
     </div>`;
 
   scoreTarget.innerHTML = status !== 'scheduled' || officialScore
-    ? `<div class="match-detail-score"><span class="status-pill ${status === 'live' ? 'live' : ''}">${status === 'live' ? 'LIVE' : status === 'finished' ? 'Beendet' : 'Offizielles BTV-Ergebnis'}</span><strong>${clubScore} : ${opponentScore}</strong><span>aus Sicht des TSV</span></div>`
-    : '<div class="match-detail-score"><span class="status-pill">Geplant</span><strong>– : –</strong><span>Kein offizieller Endstand vorhanden</span></div>';
+    ? `<div class="match-detail-score"><span class="status-pill ${!officialScore && status === 'live' ? 'live' : ''}">${officialScore ? 'Offizielles BTV-Ergebnis' : status === 'live' ? 'LIVE' : 'Liveticker beendet'}</span><strong>${clubScore} : ${opponentScore}</strong><span>aus Sicht des TSV${officialScore ? ' · BTV ist maßgeblich; Liveticker-Einträge bleiben als Verlauf erhalten' : ''}</span></div>`
+    : '<div class="match-detail-score"><span class="status-pill">Geplant</span><strong>– : –</strong><span>Noch kein Ergebnis vorhanden</span></div>';
 
   const encounterRows = encounters ?? [];
   const renderDetailEncounter = (encounter: Row) => {
@@ -1814,8 +1815,10 @@ export async function loadLiveTicker(matchId: string | null) {
         <div class="live-match-heading__venue">${matchVenueInfo(match)}${matchRouteButton(match)}</div>
       </div>`;
 
-    const homeScore = state?.home_score ?? 0;
-    const awayScore = state?.away_score ?? 0;
+    // BTV ist autoritativ, auch wenn der Liveticker noch läuft oder bereits beendet wurde.
+    const official = officialBtvScore(match);
+    const homeScore = official?.home ?? state?.home_score ?? 0;
+    const awayScore = official?.away ?? state?.away_score ?? 0;
     const homeBlock = match.is_home
       ? tsvTeamBlock('Heim')
       : opponentTeamBlock('Heim', match.opponent);
@@ -1835,11 +1838,11 @@ export async function loadLiveTicker(matchId: string | null) {
         <div class="live-score-status">
           <div class="live-badge ${state?.status === 'live' ? 'is-running' : ''}">
             <span class="live-dot" aria-hidden="true"></span>
-            ${state?.status === 'live' ? 'Spieltag läuft' : state?.status === 'finished' ? 'Spieltag beendet' : 'Spieltag geplant'}
+            ${official ? 'BTV-Ergebnis bestätigt' : state?.status === 'live' ? 'Spieltag läuft' : state?.status === 'finished' ? 'Spieltag beendet' : 'Spieltag geplant'}
           </div>
-          <span class="live-score-topline__hint">Mannschaftsstand · Heim : Gast</span>
+          <span class="live-score-topline__hint">${official ? 'Offizielles BTV-Endergebnis · Heim : Gast' : 'Liveticker-Zwischenstand · Heim : Gast'}</span>
         </div>
-        <span class="live-score-topline__updated">Aktuelle Spielstände</span>
+        <span class="live-score-topline__updated">${official ? 'Offizielle Wertung hat Vorrang' : 'Aktuelle Spielstände'}</span>
       </div>
       <div class="live-scoreboard">
         ${homeBlock}
