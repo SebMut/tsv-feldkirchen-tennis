@@ -5,7 +5,7 @@ import { initPhase8Admin } from './phase8';
 import { initManualResultsPanel } from './manual-results-admin';
 import { initOfficialReportsPanel } from './official-reports-admin';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
-import { summarizeSetResult, homeAwaySetScore } from '../lib/tennis-score.mjs';
+import { summarizeSetResult, homeAwaySetScore, validateSetScore } from '../lib/tennis-score.mjs';
 
 type Row = Record<string, any>;
 const state: {
@@ -925,13 +925,8 @@ const matchTieBreakScores = [
 ] as const;
 
 function parseEncounterSetScores(resultText: string | null | undefined): string[] {
-  // Alte frei eingegebene Ergebnisse können Doppelpunkt oder Bindestrich verwenden.
-  const entries = String(resultText || '').match(/\b\d{1,2}\s*[:\-]\s*\d{1,2}\b/g) || [];
-  return [0, 1, 2].map((index) => {
-    const value = entries[index]?.replace(/\s/g, '').replace('-', ':') || '';
-    if (index === 2) return matchTieBreakScores.includes(value as typeof matchTieBreakScores[number]) ? value : '';
-    return regularSetScores.includes(value as typeof regularSetScores[number]) ? value : '';
-  });
+  // Freie Zwischenstände und Schnellwahl-Satzergebnisse werden einheitlich gelesen.
+  return summarizeSetResult(resultText).scores;
 }
 
 function formatEncounterSetScores(scores: string[]) {
@@ -1070,6 +1065,9 @@ async function refreshMatches() {
       : (openMobileEncounterId === encounter.id || focusedByDefault?.id === encounter.id);
     const playerLabel = [encounter.tsv_player_1_name, encounter.tsv_player_2_name].filter(Boolean).join(' / ');
     const setScores = parseEncounterSetScores(encounter.result_text);
+    const firstSetCompleted = !!setScores[0] && validateSetScore(setScores[0], 0).complete;
+    const afterTwoSets = summarizeSetResult(`${setScores[0]} ${setScores[1]}`);
+    const thirdSetAllowed = afterTwoSets.tsvSets === 1 && afterTwoSets.opponentSets === 1;
     return `
       <details class="encounter-card ${encounter.status === 'live' ? 'is-live' : ''}" data-encounter-id="${encounter.id}" ${isOpen ? 'open' : ''}>
         <summary class="encounter-card__head">
@@ -1091,10 +1089,12 @@ async function refreshMatches() {
               ${['1. Satz', '2. Satz', '3. Satz'].map((label, index) => `
                 <button class="encounter-set-button ${setScores[index] ? 'has-score' : ''}"
                   type="button" data-enc-set="${index}" aria-label="${label}${index === 2 ? ' Match-Tiebreak' : ''}: ${setScores[index] || 'noch kein Ergebnis'}"
-                  ${(index > 0 && !setScores[index - 1]) || (index === 2 && summary.complete)
-                    ? 'disabled title="Dieser Satz wird nicht benötigt oder der vorherige Satz fehlt"' : ''}>
+                  ${(index === 1 && !firstSetCompleted) || (index === 2 && !thirdSetAllowed)
+                    ? 'disabled title="Bitte zuerst den vorherigen Satz beenden"' : ''}>
                   <span>${label}</span><strong>${setScores[index] || '–'}</strong>
-                  ${index === 2 ? '<small>Match-Tiebreak</small>' : ''}
+                  ${setScores[index] && !validateSetScore(setScores[index], index).complete
+                    ? '<small>Zwischenstand</small>'
+                    : index === 2 ? '<small>Match-Tiebreak</small>' : ''}
                 </button>`).join('')}
             </div>
             <input type="hidden" data-enc-result value="${escapeHtml(encounter.result_text || '')}" />
@@ -1468,7 +1468,14 @@ async function refreshMatches() {
           const subtitle = $('#encounter-set-dialog-subtitle');
           const options = $('#encounter-set-dialog-options');
           const feedback = $('#encounter-set-dialog-feedback');
-          if (!dialog || !title || !subtitle || !options || !feedback || !Number.isInteger(setIndex)) return;
+          const manualDetails = $<HTMLDetailsElement>('#encounter-set-dialog-manual');
+          const manualForm = $<HTMLFormElement>('#encounter-set-dialog-manual-form');
+          const manualTsv = $<HTMLInputElement>('#encounter-set-manual-tsv');
+          const manualOpponent = $<HTMLInputElement>('#encounter-set-manual-opponent');
+          const manualHint = $('#encounter-set-dialog-manual-hint');
+          const manualError = $('#encounter-set-dialog-manual-error');
+          if (!dialog || !title || !subtitle || !options || !feedback || !manualDetails || !manualForm
+            || !manualTsv || !manualOpponent || !manualHint || !manualError || !Number.isInteger(setIndex)) return;
           if (dialog.open) dialog.close();
 
           const initial = parseEncounterSetScores(encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.value);
@@ -1478,6 +1485,18 @@ async function refreshMatches() {
           subtitle.textContent = `${encounter.discipline === 'singles' ? 'Einzel' : 'Doppel'} ${encounter.position} · Ergebnis aus Sicht TSV : Gegner`;
           feedback.textContent = '';
           feedback.classList.add('hidden');
+          manualError.textContent = '';
+          manualError.classList.add('hidden');
+          manualDetails.open = !!oldValue && !scores.some((score) => score === oldValue);
+          const [initialTsv, initialOpponent] = oldValue ? oldValue.split(':') : ['', ''];
+          const maxScore = setIndex === 2 ? 99 : 7;
+          manualTsv.max = String(maxScore);
+          manualOpponent.max = String(maxScore);
+          manualTsv.value = initialTsv || '';
+          manualOpponent.value = initialOpponent || '';
+          manualHint.textContent = setIndex === 2
+            ? 'Match-Tiebreak: bis 10 Punkte mit 2 Punkten Vorsprung, bei Bedarf länger.'
+            : 'Satz: z. B. 3:2 oder 5:5; bei 6 gewonnenen Spielen entscheidet der gültige Endstand.';
           options.innerHTML = scores.map((score) => `
             <button type="button" class="encounter-set-option ${score === oldValue ? 'selected' : ''}"
               data-set-score-choice="${score}" aria-pressed="${score === oldValue}">${score}</button>
@@ -1494,6 +1513,14 @@ async function refreshMatches() {
             next[setIndex] = score;
             if (!score) next.splice(setIndex + 1, 2 - setIndex, ...Array(2 - setIndex).fill(''));
             const normalized = summarizeSetResult(formatEncounterSetScores(next));
+            if (score && normalized.scores[setIndex] !== score) {
+              manualError.textContent = 'Ungültiges Satzergebnis. Bitte den Stand prüfen.';
+              manualError.classList.remove('hidden');
+              manualDetails.open = true;
+              return;
+            }
+            if (next.slice(setIndex + 1).some((value, offset) => value && value !== normalized.scores[setIndex + 1 + offset])
+              && !window.confirm('Dieser Satz ist noch nicht beendet. Bereits eingetragene Folgesätze werden entfernt. Fortfahren?')) return;
             const resultText = formatEncounterSetScores(normalized.scores);
             const buttons = dialog.querySelectorAll<HTMLButtonElement>('button');
             buttons.forEach((button) => { button.disabled = true; });
@@ -1530,6 +1557,27 @@ async function refreshMatches() {
             }
           };
 
+          manualForm.onsubmit = (event) => {
+            event.preventDefault();
+            if (dialog.querySelector<HTMLButtonElement>('[data-set-score-choice]:disabled')) return;
+            const tsvText = manualTsv.value.trim();
+            const opponentText = manualOpponent.value.trim();
+            if (!/^\d{1,2}$/.test(tsvText) || !/^\d{1,2}$/.test(opponentText)) {
+              manualError.textContent = 'Bitte für TSV und Gegner jeweils eine ganze Zahl von 0 bis ' + maxScore + ' eingeben.';
+              manualError.classList.remove('hidden');
+              return;
+            }
+            const enteredScore = `${Number(tsvText)}:${Number(opponentText)}`;
+            const validation = validateSetScore(enteredScore, setIndex);
+            if (!validation.valid) {
+              manualError.textContent = validation.message;
+              manualError.classList.remove('hidden');
+              return;
+            }
+            manualError.textContent = '';
+            manualError.classList.add('hidden');
+            void commitSetScore(enteredScore);
+          };
           dialog.onclick = (event) => {
             if (!(event.target instanceof Element)) return;
             if (event.target.closest('[data-set-score-close]')) {
@@ -1547,7 +1595,8 @@ async function refreshMatches() {
             if (dialog.querySelector<HTMLButtonElement>('[data-set-score-choice]:disabled')) event.preventDefault();
           };
           dialog.showModal();
-          (dialog.querySelector<HTMLButtonElement>('[data-set-score-choice].selected')
+          if (manualDetails.open) manualTsv.focus();
+          else (dialog.querySelector<HTMLButtonElement>('[data-set-score-choice].selected')
             || dialog.querySelector<HTMLButtonElement>('[data-set-score-choice]'))?.focus();
         });
       });
