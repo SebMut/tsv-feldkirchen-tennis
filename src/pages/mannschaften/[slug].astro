@@ -31,7 +31,7 @@ const teamGroup = slug?.startsWith('herren') ? { label: 'Herren', key: 'herren' 
 const breadcrumbItems = [
   { label: 'Startseite', href: '/' },
   { label: 'Mannschaften', href: '/mannschaften/' },
-  ...(teamName === teamGroup.label ? [] : [{ label: teamGroup.label, href: `/mannschaften/?gruppe=${teamGroup.key}` }]),
+  ...(teamName === teamGroup.label ? [] : [{ label: teamGroup.label, href: `/mannschaften/?category=${teamGroup.key}` }]),
   { label: teamName }
 ];
 ---
