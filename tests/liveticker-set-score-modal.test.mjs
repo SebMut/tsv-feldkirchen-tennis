@@ -42,7 +42,7 @@ test('modal selection persists score through existing private encounter update',
   assert.match(page, /data-set-score-close/);
   assert.match(admin, /dialog\.showModal\(\)/);
   assert.match(admin, /if \(await updateEncounter\(encounterId, patch\)\)/);
-  assert.match(admin, /await refreshChangedEncounter\(encounterId, 'Satz-Ergebnis gespeichert\.'\)/);
+  assert.match(admin, /await refreshChangedEncounter\(encounterId, normalized\.complete/);
   assert.match(admin, /if \(!score && next\.slice\(setIndex \+ 1\)\.some\(Boolean\)/);
   assert.match(admin, /window\.confirm\('Wenn du diesen Satz löschst/);
   assert.match(admin, /dialog\.oncancel/);
