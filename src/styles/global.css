@@ -220,7 +220,9 @@ p{line-height:1.65}
 .home-intro-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(320px,1fr);gap:28px;align-items:stretch}
 .home-intro-grid>.card{min-width:0}
 .home-welcome{display:grid;align-content:start;gap:9px}.home-welcome h2,.home-welcome p{margin:0}.home-welcome p{max-width:1050px;line-height:1.65}
-.home-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;align-items:stretch}.home-columns>article{min-width:0}.home-columns h2{margin-top:0}.home-games-column .match-row{grid-template-columns:1fr}.home-games-column .match-row .actions{justify-content:flex-start}
+.home-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;align-items:stretch}
+/* Eine eigenständige Regel für die beiden gleich breiten Startseiten-Karten. */
+.home-columns--equal{grid-template-columns:repeat(2,minmax(0,1fr))}.home-columns>article{min-width:0}.home-columns h2{margin-top:0}.home-games-column .match-row{grid-template-columns:1fr}.home-games-column .match-row .actions{justify-content:flex-start}
 .home-weather{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:22px}.home-weather h2{margin:0}.weather-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%}.weather-day{display:grid;justify-items:center;align-content:center;gap:6px;min-width:0;padding:12px 4px;border-left:1px solid var(--line);text-align:center;font-size:.9rem}.weather-day strong,.weather-day span{white-space:nowrap}.weather-icon{font-size:1.7rem}.weather-day small{color:var(--muted);font-size:.75rem;white-space:nowrap}
 .team-card__image-link{display:block;overflow:hidden;border-radius:inherit}.team-card__image-link img{width:100%;transition:transform .2s ease}.team-card__image-link:hover img{transform:scale(1.025)}
 .official-placeholder{display:grid;place-items:center;align-content:center;gap:6px;min-height:210px;background:linear-gradient(145deg,#f1f3f0,#dfe6df);color:#9e0b15;font-size:1.2rem}.official-placeholder span{font-size:2.4rem}.official-placeholder strong{letter-spacing:.12em}
