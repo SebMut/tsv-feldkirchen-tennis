@@ -32,18 +32,20 @@ import { COURTBOOKING_URL } from '../lib/supabase';
   <div class="container premium-content" id="home">
     <section id="live-center" class="card live-center hidden premium-live" aria-live="polite"></section>
 
-    <section class="card home-welcome">
-      <p class="eyebrow">Herzlich willkommen</p>
-      <h2>Das ist die Seite der Tennisabteilung des TSV Feldkirchen!</h2>
-      <p><strong>Willkommen bei Tennis TSV Feldkirchen – Ihrem Ziel für alle Dinge Rennsport und Einzelsportarten.</strong></p>
-      <p>Herzlich willkommen bei der Tennisabteilung des <strong>TSV Feldkirchen bei München</strong>! Mit rund <strong>329 Mitgliedern</strong> und <strong>20 Mannschaften</strong> bieten wir Tennis für alle Alters- und Spielklassen – von der Jugend über Damen und Herren bis zu Freizeitspielern.</p>
-      <p>Auf unserer Anlage stehen <strong>Sport, Gemeinschaft und Spaß am Tennis</strong> im Mittelpunkt. Schau dich gerne auf unserer Seite um und erfahre mehr über unsere <strong>Mannschaften, Termine und Veranstaltungen</strong>. <strong>Wir freuen uns auf dich – komm vorbei und spiel mit!</strong></p>
-    </section>
+    <div class="home-intro-grid">
+      <section class="card home-welcome">
+        <p class="eyebrow">Herzlich willkommen</p>
+        <h2>Das ist die Seite der Tennisabteilung des TSV Feldkirchen!</h2>
+        <p><strong>Willkommen bei Tennis TSV Feldkirchen – Ihrem Ziel für alle Dinge Rennsport und Einzelsportarten.</strong></p>
+        <p>Herzlich willkommen bei der Tennisabteilung des <strong>TSV Feldkirchen bei München</strong>! Mit rund <strong>329 Mitgliedern</strong> und <strong>20 Mannschaften</strong> bieten wir Tennis für alle Alters- und Spielklassen – von der Jugend über Damen und Herren bis zu Freizeitspielern.</p>
+        <p>Auf unserer Anlage stehen <strong>Sport, Gemeinschaft und Spaß am Tennis</strong> im Mittelpunkt. Schau dich gerne auf unserer Seite um und erfahre mehr über unsere <strong>Mannschaften, Termine und Veranstaltungen</strong>. <strong>Wir freuen uns auf dich – komm vorbei und spiel mit!</strong></p>
+      </section>
 
-    <section class="card home-weather" aria-labelledby="weather-title">
-      <div><p class="eyebrow">Feldkirchen bei München</p><h2 id="weather-title">Tenniswetter</h2></div>
-      <div id="home-weather" class="weather-grid"><p class="muted">Wetter wird geladen …</p></div>
-    </section>
+      <section class="card home-weather" aria-labelledby="weather-title">
+        <div><p class="eyebrow">Feldkirchen bei München</p><h2 id="weather-title">Tenniswetter</h2></div>
+        <div id="home-weather" class="weather-grid"><p class="muted">Wetter wird geladen …</p></div>
+      </section>
+    </div>
 
     <section class="home-columns">
       <article class="card home-news-column">
