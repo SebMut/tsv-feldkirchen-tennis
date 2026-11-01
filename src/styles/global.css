@@ -1879,3 +1879,53 @@ main.main--flush{padding:0}
   .encounter-card__score strong{font-size:.99rem}
 }
 @media(prefers-reduced-motion:reduce){.live-match-progress__track>span,.encounter-set-button{transition:none}}
+
+
+/* Hauptnavigation > Live-Ticker: sichtbarer Einstieg in das neue Match-Cockpit. */
+.matchday-page--ticker .matchday-live-center{
+  padding:clamp(17px,2.5vw,29px);border:1px solid #ebc8cd;border-radius:20px;
+  box-shadow:0 13px 38px rgb(66 34 36 / .075);
+  background:linear-gradient(135deg,#fff 65%,#fff5f5 100%);
+}
+.ticker-overview-feature{display:grid;gap:18px;min-width:0}
+.ticker-overview-feature__intro{display:grid;gap:6px}
+.ticker-overview-feature__intro>.live-badge{justify-self:start;border-radius:999px;padding:7px 12px;background:#ffebed;color:#b91022}
+.ticker-overview-feature__intro>h2{margin:0;font-size:clamp(1.45rem,2.7vw,2.25rem);line-height:1.12;letter-spacing:-.035em;color:#212b24}
+.ticker-overview-feature__intro>p{margin:0;color:#607168;font-size:.91rem}
+.ticker-overview-feature__score{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,.6fr) minmax(0,1fr);
+  align-items:center;gap:clamp(7px,2.1vw,20px);padding:16px;
+  border:1px solid #e6ebe6;border-radius:16px;background:#f8faf8;min-width:0;
+}
+.ticker-overview-feature__team{min-width:0;display:grid;gap:5px;padding:12px;background:#fff;border:1px solid #e5e9e5;border-radius:13px;min-height:84px;align-content:center}
+.ticker-overview-feature__team:first-child{border-color:#efc8cb;background:#fff8f8}
+.ticker-overview-feature__team>small{font-size:.68rem;color:#718176;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.ticker-overview-feature__team>strong{font-size:clamp(.87rem,1.55vw,1.18rem);color:#24372a;line-height:1.27;overflow-wrap:anywhere}
+.ticker-overview-feature__number{display:grid;gap:5px;text-align:center;min-width:0}
+.ticker-overview-feature__number>span{font-size:.7rem;color:#69796d;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.ticker-overview-feature__number>strong{font-size:clamp(2.25rem,5.2vw,4.6rem);color:#b10e1b;font-variant-numeric:tabular-nums;font-weight:950;letter-spacing:-.055em;white-space:nowrap;line-height:1.1}
+.ticker-overview-feature__number i{color:#a5b3a7;font-size:.7em;font-weight:550;font-style:normal}
+.ticker-overview-feature__footer{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.ticker-overview-feature__footer>span{font-size:.83rem;color:#536b5b;font-weight:700}
+.ticker-overview-feature__action{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  padding:13px 18px;min-height:49px;border:1px solid #b20e1e;border-radius:11px;
+  background:#c20a1b;color:#fff!important;text-decoration:none;font-size:.9rem;font-weight:880;
+  box-shadow:0 5px 12px rgb(175 17 32 / .13)
+}
+.ticker-overview-feature__action:hover{background:#a50010}
+.ticker-overview-feature__action:focus-visible{outline:3px solid #ed6975;outline-offset:3px}
+.ticker-overview-feature__more{border-top:1px solid #e6eae6;padding-top:12px}
+.ticker-overview-feature__more>summary{min-height:44px;padding:10px 2px;color:#405f47;font-weight:840;cursor:pointer}
+.ticker-overview-feature__more .match-list{margin-top:10px}
+@media(max-width:680px){
+  .ticker-overview-feature__score{grid-template-columns:minmax(0,1fr) minmax(75px,.6fr) minmax(0,1fr);gap:6px;padding:9px}
+  .ticker-overview-feature__team{padding:8px 6px;min-height:98px;text-align:center}
+  .ticker-overview-feature__team>small{font-size:.62rem}
+  .ticker-overview-feature__team>strong{font-size:clamp(.7rem,2.7vw,.94rem)}
+  .ticker-overview-feature__number>span{font-size:.61rem}
+  .ticker-overview-feature__number>strong{font-size:clamp(1.75rem,7vw,2.8rem)}
+  .ticker-overview-feature__footer{display:grid;gap:12px}
+  .ticker-overview-feature__action{width:100%;min-width:0;font-size:.82rem;text-align:center;padding:12px 9px}
+}
+@media(prefers-reduced-motion:reduce){.ticker-overview-feature__action{transition:none}}
