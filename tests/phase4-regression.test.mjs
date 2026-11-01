@@ -156,7 +156,7 @@ test('public team navigation labels summer correctly and follows managed active 
   assert.match(publicJs, /const defaultSeason = managedCurrentSeason \|\| byCurrentDate/);
   assert.match(publicJs, /const requestedCode = seasonCodes\.includes/);
   assert.match(publicJs, /activeCode = requestedCode \|\|/);
-  assert.match(source('src/pages/sw.js.ts'), /tsv-tennis-public-v2/);
+  assert.match(source('src/pages/sw.js.ts'), /tsv-tennis-public-v3/);
 });
 
 test('training page shows only logo from school contact page without photo gallery', () => {
