@@ -1,8 +1,33 @@
 import { calendarFeedUrl, mediaUrl, supabase } from '../lib/supabase';
 import { escapeHtml, formatDateTime } from '../lib/ui';
 import { officialBtvTeamDestination } from '../lib/btv-group-url';
+import { summarizeSetResult, homeAwaySetScore } from '../lib/tennis-score.mjs';
 
 type Row = Record<string, any>;
+
+function publicEncounterSetResult(match: Row, encounter: Row) {
+  // Erst „Live anzeigen“ veröffentlicht den Zwischenstand.
+  if (encounter.status === 'scheduled') return '<span>Ergebnis</span><strong>–</strong>';
+  const result = summarizeSetResult(encounter.result_text);
+  if (!result.hasResult) {
+    return `<span>Ergebnis</span><strong>${escapeHtml(encounter.result_text || '–')}</strong>`;
+  }
+  const { homeSets, awaySets } = homeAwaySetScore(result, !!match.is_home);
+  const scores = result.scores.filter(Boolean).map((value) => {
+    if (match.is_home) return value;
+    const [tsv, opponent] = value.split(':');
+    return `${opponent}:${tsv}`;
+  });
+  const final = encounter.status === 'finished' && result.complete;
+  const winnerName = result.winner === 'tsv' ? 'TSV Feldkirchen' : match.opponent;
+  return `
+    <span>${final ? 'Endstand' : 'Zwischenstand'} · Heim : Gast</span>
+    <strong>${homeSets} : ${awaySets}</strong>
+    <small class="live-set-scores">Sätze: ${escapeHtml(scores.join(' · '))}</small>
+    ${final ? `<small class="live-set-winner">${escapeHtml(winnerName)} gewinnt</small>` : ''}
+  `;
+}
+
 
 const fallbackImage =
   'data:image/svg+xml;charset=UTF-8,' +
@@ -1007,7 +1032,7 @@ export async function loadMatchDetail(matchId: string | null) {
         </div>
         <div class="match-detail-encounter__matchup">
           ${match.is_home ? tsvSide : opponentSide}
-          <div class="match-detail-encounter__result"><span>Ergebnis</span><strong>${escapeHtml(encounter.result_text || '–')}</strong></div>
+          <div class="match-detail-encounter__result">${publicEncounterSetResult(match, encounter)}</div>
           ${match.is_home ? opponentSide : tsvSide}
         </div>
       </article>`;
@@ -1587,8 +1612,7 @@ export async function loadLiveTicker(matchId: string | null) {
         <div class="live-encounter-matchup">
           ${match.is_home ? tsvSide : opponentSide}
           <div class="live-encounter-result">
-            <span>Ergebnis</span>
-            <strong>${escapeHtml(encounter.result_text || '–')}</strong>
+            ${publicEncounterSetResult(match, encounter)}
           </div>
           ${match.is_home ? opponentSide : tsvSide}
         </div>
