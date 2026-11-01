@@ -257,6 +257,8 @@ function panelButtonLabel(button: HTMLButtonElement) {
 }
 
 function showPanel(name: string) {
+  if (name === 'manual-results' && !state.isSuper) return;
+  if (name === 'official-rubbers' && !state.isSuper) return;
   const activeButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]'))
     .find((button) => button.dataset.panel === name && !button.classList.contains('hidden'));
   const target = document.getElementById(`panel-${name}`);
