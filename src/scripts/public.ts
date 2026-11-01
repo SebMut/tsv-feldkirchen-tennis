@@ -601,7 +601,7 @@ export async function loadTeams() {
               ${matchRouteButton(featured)}
               ${isLive ? `<a href="/live/?match=${encodeURIComponent(featured.id)}">Zum Liveticker</a>` : ''}
             </div>` : '<p class="muted">Derzeit kein nächstes Punktspiel eingetragen.</p>'}
-          <div class="actions"><a class="button" href="${detailUrl}">Mannschaft öffnen</a><a class="button ghost" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Gruppe ↗' : 'BTV Verein ↗'}</a>${`<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer" aria-label="${tennisDeTarget.isDirect ? 'Offizielles tennis.de Mannschaftsporträt' : 'Offizielle tennis.de Mannschaftssuche für TSV Feldkirchen'} – ${escapeHtml(team.name)} – ${escapeHtml(activeCode)}">${tennisDeTarget.isDirect ? 'tennis.de Portrait ↗' : 'tennis.de Team suchen ↗'}</a>`}</div>
+          <div class="actions"><a class="button" href="${detailUrl}">Mannschaft öffnen</a><a class="button ghost" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Gruppe ↗' : 'BTV Verein ↗'}</a><a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer" aria-label="${tennisDeTarget.isDirect ? 'Offizielles tennis.de Mannschaftsporträt' : 'Offizielle tennis.de Mannschaftssuche für TSV Feldkirchen'} – ${escapeHtml(team.name)} – ${escapeHtml(activeCode)}">${tennisDeTarget.isDirect ? 'tennis.de Portrait ↗' : 'tennis.de Team suchen ↗'}</a></div>
         </article>`;
     }).join('');
   };
