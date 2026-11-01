@@ -62,6 +62,15 @@ test('mobile TSV dock offers five icon tabs, accessible more links and login',()
   const header=readFileSync(new URL('../src/components/SiteHeader.astro',import.meta.url),'utf8');
   assert.match(header,/class="mobile-dock"/);
   assert.match(header,/aria-label="Mobile Hauptnavigation"/);
+  const dockStart = header.indexOf('<nav class="mobile-dock"');
+  const dockEnd = header.indexOf('</nav>', dockStart);
+  const dockMarkup = header.slice(dockStart, dockEnd);
+  const primaryLabels = Array.from(dockMarkup.matchAll(/<span>(Live-Ticker|Aktuelles|Training|Kalender|Mehr)<\/span>/g), match => match[1]);
+  assert.deepEqual(primaryLabels, ['Live-Ticker', 'Aktuelles', 'Training', 'Kalender', 'Mehr']);
+  const topLinks = dockMarkup.slice(0, dockMarkup.indexOf('<details class="mobile-dock__more">'));
+  const primaryHrefs = Array.from(topLinks.matchAll(/href="([^"]+)"/g), match => match[1]);
+  assert.deepEqual(primaryHrefs, ['/spieltag/', '/aktuelles/', '/training/', '/termine/']);
+  assert.match(header, /const activeMore = !activePlay && !active\('\/aktuelles\/'\) && !active\('\/training\/'\) && !active\('\/termine\/'\);/);
   for(const href of ['/', '/mannschaften/', '/spieltag/', '/termine/']) {
     assert.ok(header.includes('href="' + href + '"'), 'Missing mobile navigation route ' + href);
   }
