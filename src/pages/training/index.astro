@@ -1,5 +1,354 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
-import ManagedPage from '../../components/ManagedPage.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { mediaUrl } from '../../lib/supabase';
+
+const offersUrl = 'https://www.tennisschule-alexbraun.de/angebote/';
+const coachesUrl = 'https://www.tennisschule-alexbraun.de/trainerteam/';
+const schoolUrl = 'https://www.tennisschule-alexbraun.de/tsv-feldkirchen/';
+const schoolContactUrl = 'https://www.tennisschule-alexbraun.de/kontakt/';
 ---
-<MainLayout title="Training | TSV Feldkirchen Tennis"><ManagedPage slug="training" fallbackTitle="Training" /></MainLayout>
+
+<MainLayout
+  title="Tennistraining | TSV Feldkirchen Tennis"
+  description="Tennistraining für Kinder, Jugendliche und Erwachsene beim TSV Feldkirchen – gemeinsam mit der Tennisschule Alex Braun. Sommertraining, Wintertraining und Tenniscamps."
+  mainClass="main--flush"
+>
+  <div class="training-page">
+    <section class="training-hero" aria-labelledby="training-title">
+      <div class="container training-hero__layout">
+        <div class="training-hero__content">
+          <Breadcrumbs items={[{ label: 'Startseite', href: '/' }, { label: 'Training' }]} />
+          <p class="training-kicker"><span></span> TSV FELDKIRCHEN × TENNISSCHULE ALEX BRAUN</p>
+          <h1 id="training-title">DEIN SPIEL.<br /><span>DEIN TRAINING.</span></h1>
+          <p class="training-hero__lead">Mehr Ballgefühl. Mehr Selbstvertrauen. Mehr Freude am Tennis. Gemeinsam mit der Tennisschule Alex Braun begleiten wir dich vom ersten Aufschlag bis zum Mannschaftsspiel.</p>
+          <div class="training-actions">
+            <a class="training-button training-button--red" href="#training-angebote">Training entdecken <span aria-hidden="true">↗</span></a>
+            <a class="training-button training-button--line" href={offersUrl} target="_blank" rel="noopener noreferrer">Zur Anmeldung <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="training-hero__footer">
+            <span class="training-line"></span>
+            <span>Für Einsteiger, Nachwuchs &amp; Mannschaftsspieler</span>
+          </div>
+        </div>
+        <div class="training-hero__visual">
+          <img
+            class="training-hero__photo"
+            src={import.meta.env.BASE_URL + 'images/tsv-feldkirchen-tennisanlage-hero.avif'}
+            alt="Sandplätze der Tennisanlage des TSV Feldkirchen"
+            width="1200"
+            height="900"
+            loading="eager"
+            fetchpriority="high"
+          />
+          <div class="training-hero__photo-label"><span>01 / 03</span><strong>TRAINIERE MIT UNS</strong></div>
+          <div class="training-hero__stamp" aria-hidden="true"><span>TSV</span><span>1912</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="training-marquee" aria-label="Training für jede Spielstärke">
+      <div class="container training-marquee__inner">
+        <span>TENNIS LERNEN</span><i aria-hidden="true">✳</i>
+        <span>GEMEINSAM WACHSEN</span><i aria-hidden="true">✳</i>
+        <span>AM BALL BLEIBEN</span>
+      </div>
+    </div>
+
+    <section class="training-intro container" aria-labelledby="training-intro-title">
+      <div class="training-intro__heading">
+        <p class="training-kicker"><span></span> UNSERE TENNISSCHULE</p>
+        <h2 id="training-intro-title">TENNIS IST <em>MEHR</em><br />ALS EIN SPORT.</h2>
+      </div>
+      <div class="training-intro__copy">
+        <p>Bei uns stehen Bewegung, Begeisterung und das Miteinander im Mittelpunkt. Egal, ob du gerade anfängst, regelmäßig spielst oder dich auf Punktspiele vorbereitest: Das Trainerteam der Tennisschule Alex Braun unterstützt dich dabei, dein Spiel weiterzuentwickeln.</p>
+        <a class="training-text-link" href={schoolUrl} target="_blank" rel="noopener noreferrer">Mehr über unsere Tennisschule <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+
+    <section id="training-angebote" class="training-offers" aria-labelledby="training-offers-title">
+      <div class="container">
+        <div class="training-section-top">
+          <div>
+            <p class="training-kicker"><span></span> FINDE DEIN FORMAT</p>
+            <h2 id="training-offers-title">UNSERE <span>ANGEBOTE.</span></h2>
+          </div>
+          <p>Von der Sommersaison auf Sand bis zum Training in der Halle – für jedes Spielniveau gibt es den passenden Einstieg.</p>
+        </div>
+        <div class="training-offers__grid">
+          <article class="training-offer training-offer--summer">
+            <div class="training-offer__art" aria-hidden="true">
+              <span class="training-offer__sun"></span><span class="training-offer__court"></span>
+              <span class="training-offer__season">SOMMER</span>
+            </div>
+            <div class="training-offer__body">
+              <span class="training-offer__number">01 / OUTDOOR</span>
+              <h3>Sommertraining</h3>
+              <p>Schlagtechnik, Spielverständnis und jede Menge Ballwechsel auf dem Sandplatz – für Anfänger und Fortgeschrittene.</p>
+              <div class="training-offer__details"><span>☀ Freiluftsaison</span><span>TSV Feldkirchen &amp; SV Heimstetten</span></div>
+              <a href={offersUrl} target="_blank" rel="noopener noreferrer" aria-label="Sommertraining – Angebote und Anmeldung bei der Tennisschule Alex Braun">Sommertraining ansehen <span aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+          <article class="training-offer training-offer--winter">
+            <div class="training-offer__art" aria-hidden="true">
+              <span class="training-offer__snow"></span><span class="training-offer__court"></span>
+              <span class="training-offer__season">WINTER</span>
+            </div>
+            <div class="training-offer__body">
+              <span class="training-offer__number">02 / INDOOR</span>
+              <h3>Wintertraining</h3>
+              <p>Auch wenn die Außenplätze pausieren: In der Halle arbeiten wir weiter an Technik, Bewegung und Spielfreude.</p>
+              <div class="training-offer__details"><span>❄ Hallensaison</span><span>Kirchheim &amp; Heimstetten</span></div>
+              <a href={offersUrl} target="_blank" rel="noopener noreferrer" aria-label="Wintertraining – Angebote und Anmeldung bei der Tennisschule Alex Braun">Wintertraining ansehen <span aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+          <article class="training-offer training-offer--camp">
+            <div class="training-offer__art" aria-hidden="true">
+              <span class="training-offer__ball"></span><span class="training-offer__court"></span>
+              <span class="training-offer__season">CAMPS</span>
+            </div>
+            <div class="training-offer__body">
+              <span class="training-offer__number">03 / FERIEN</span>
+              <h3>Tenniscamps</h3>
+              <p>Ferien voller Tennis: gemeinsam trainieren, Neues ausprobieren und mit anderen Tennisbegeisterten Spaß haben.</p>
+              <div class="training-offer__details"><span>✳ Oster-, Pfingst- &amp; Sommerferien</span><span>Gemeinsam auf dem Platz</span></div>
+              <a href={offersUrl} target="_blank" rel="noopener noreferrer" aria-label="Tenniscamps – Angebote und Anmeldung bei der Tennisschule Alex Braun">Tenniscamps ansehen <span aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+        </div>
+        <p class="training-offers__note">Trainingszeiten, verfügbare Plätze, Preise und Anmeldungen findest du aktuell bei der Tennisschule Alex Braun.</p>
+      </div>
+    </section>
+
+    <section class="training-audience container" aria-labelledby="training-audience-title">
+      <div class="training-audience__intro">
+        <p class="training-kicker"><span></span> FÜR JEDE SPIELSTÄRKE</p>
+        <h2 id="training-audience-title">JEDER<br />FÄNGT <span>MAL AN.</span></h2>
+        <p>Ob der erste Ballwechsel oder das nächste Punktspiel – Tennis verbindet Menschen und macht gemeinsam noch mehr Spaß.</p>
+      </div>
+      <div class="training-audience__list">
+        <div><span>01</span><div><h3>Kinder &amp; Jugendliche</h3><p>Spielerisch lernen, sicherer werden und die Freude am Tennis entdecken.</p></div><b aria-hidden="true">↗</b></div>
+        <div><span>02</span><div><h3>Erwachsene &amp; Wiedereinsteiger</h3><p>Technik verbessern, in Bewegung bleiben und mit Gleichgesinnten trainieren.</p></div><b aria-hidden="true">↗</b></div>
+        <div><span>03</span><div><h3>Mannschaftsspieler</h3><p>Gemeinsam gezielt an Spieltaktik, Konstanz und Matchpraxis arbeiten.</p></div><b aria-hidden="true">↗</b></div>
+      </div>
+    </section>
+
+    <section class="training-coaches" aria-labelledby="training-coaches-title">
+      <div class="container training-coaches__layout">
+        <div class="training-coaches__visual">
+          <img src={import.meta.env.BASE_URL + 'images/tsv-feldkirchen-tennisanlage-hero.avif'} alt="Tennisplätze in Feldkirchen als Ort für das Sommertraining" width="1200" height="900" loading="lazy" />
+          <div class="training-coaches__label">TSV FELDKIRCHEN <span aria-hidden="true">✳</span> ALEX BRAUN</div>
+        </div>
+        <div class="training-coaches__copy">
+          <p class="training-kicker"><span></span> GEMEINSAM STÄRKER</p>
+          <h2 id="training-coaches-title">TRAINING MIT<br /><span>PERSÖNLICHKEIT.</span></h2>
+          <p>Das engagierte Trainerteam rund um Alex Braun verbindet individuelles Coaching mit dem Gemeinschaftsgefühl unseres Vereins. Auf dem Platz geht es nicht nur um Ergebnisse, sondern auch um Fortschritt, Motivation und Freude am Spiel.</p>
+          <div class="training-coaches__actions">
+            <a class="training-button training-button--red" href={coachesUrl} target="_blank" rel="noopener noreferrer">Trainerteam kennenlernen <span aria-hidden="true">↗</span></a>
+            <a class="training-text-link" href={schoolContactUrl} target="_blank" rel="noopener noreferrer">Kontakt zur Tennisschule <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="training-cta" aria-labelledby="training-cta-title">
+      <div class="container training-cta__layout">
+        <div>
+          <p class="training-kicker"><span></span> BEREIT FÜR DEN NÄCHSTEN BALLWECHSEL?</p>
+          <h2 id="training-cta-title">WIR SEHEN UNS<br />AUF DEM <em>PLATZ.</em></h2>
+          <p>Alle Trainingsangebote und die Anmeldung laufen über unseren Partner, die Tennisschule Alex Braun.</p>
+        </div>
+        <a class="training-button training-button--light" href={offersUrl} target="_blank" rel="noopener noreferrer">Jetzt Trainingsangebot finden <span aria-hidden="true">↗</span></a>
+      </div>
+      <img class="training-cta__logo" src={mediaUrl('branding/tennis-logo.png')} alt="" aria-hidden="true" loading="lazy" />
+    </section>
+
+    <section class="training-extra container" data-managed-page="training" aria-label="Weitere Informationen zum Training">
+      <details>
+        <summary>Weitere Informationen zur Trainingsorganisation <span aria-hidden="true">+</span></summary>
+        <div id="managed-page-content" class="training-extra__text" aria-live="polite">Zusätzliche Informationen werden geladen …</div>
+      </details>
+    </section>
+  </div>
+</MainLayout>
+
+<script>
+  import { loadManagedPage } from '../../scripts/public';
+  loadManagedPage('training');
+</script>
+
+<style>
+  .training-page{background:#faf9f6;color:#192420;overflow:hidden}
+  .training-page h1,.training-page h2,.training-page h3{color:inherit}
+  .training-page p{line-height:1.65}
+  .training-page a:focus-visible,.training-page summary:focus-visible{outline:3px solid #e30613;outline-offset:4px}
+  .training-kicker{display:flex;align-items:center;gap:10px;margin:0 0 24px;color:#a91821;font-size:.72rem;font-weight:900;letter-spacing:.14em;line-height:1.5}
+  .training-kicker>span{display:block;width:26px;height:2px;background:currentColor;flex:0 0 auto}
+  .training-hero{position:relative;background:#faf9f6}
+  .training-hero__layout{display:grid;grid-template-columns:1fr .98fr;align-items:stretch;gap:clamp(28px,4vw,76px);min-height:630px;padding-top:24px;padding-bottom:66px}
+  .training-hero__content{display:flex;flex-direction:column;justify-content:center;min-width:0}
+  .training-hero__content :global(.breadcrumbs){margin-bottom:42px;padding-top:0}
+  .training-hero h1{font-size:clamp(3.45rem,5.3vw,6.7rem);line-height:.91;font-weight:950;letter-spacing:-.073em;margin:0 0 28px;overflow-wrap:normal}
+  .training-hero h1 span{color:#e30613}
+  .training-hero__lead{max-width:620px;color:#5d6862;font-size:clamp(1.02rem,1.4vw,1.2rem);margin:0 0 30px}
+  .training-actions{display:flex;gap:12px;flex-wrap:wrap}
+  .training-button{display:inline-flex;justify-content:space-between;align-items:center;gap:20px;min-height:52px;padding:12px 22px;border:1px solid transparent;border-radius:5px;text-decoration:none;font-size:.89rem;font-weight:850;line-height:1.3;transition:transform .2s,background .2s,border-color .2s}
+  .training-button:hover{transform:translateY(-2px)}
+  .training-button span{font-size:1.15rem;line-height:1}
+  .training-button--red{background:#e30613;color:#fff;border-color:#e30613}
+  .training-button--red:hover{background:#bd0a17}
+  .training-button--line{color:#27352c;border-color:#bbc4bb;background:transparent}
+  .training-button--line:hover{border-color:#e30613}
+  .training-hero__footer{display:flex;align-items:center;gap:13px;margin-top:49px;font-size:.75rem;font-weight:750;color:#7a827b;letter-spacing:.015em}
+  .training-line{height:1px;width:36px;background:#c8cbc5}
+  .training-hero__visual{position:relative;min-height:550px;border-radius:9px 90px 9px 9px;overflow:hidden;background:#2c4939;isolation:isolate}
+  .training-hero__visual:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 43%,rgba(17,32,25,.75) 100%);z-index:1}
+  .training-hero__photo{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+  .training-hero__photo-label{position:absolute;bottom:34px;left:36px;z-index:2;display:grid;gap:6px;color:white}
+  .training-hero__photo-label span{font-size:.71rem;letter-spacing:.18em;font-weight:850}
+  .training-hero__photo-label strong{font-size:clamp(1.25rem,2.2vw,2rem);font-weight:950;letter-spacing:-.04em}
+  .training-hero__stamp{position:absolute;top:22px;right:22px;z-index:2;display:grid;place-items:center;align-content:center;width:92px;height:92px;background:#e30613;color:#fff;border:2px solid #fff;border-radius:50%;transform:rotate(12deg);box-shadow:0 0 0 5px #e30613;font-weight:950;line-height:1.05}
+  .training-hero__stamp span:first-child{font-size:1.65rem;letter-spacing:-.055em}
+  .training-hero__stamp span:last-child{font-size:.84rem;letter-spacing:.12em}
+  .training-marquee{background:#e30613;color:#fff}
+  .training-marquee__inner{min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:clamp(.73rem,1.1vw,.94rem);letter-spacing:.11em;font-weight:950}
+  .training-marquee i{font-style:normal;color:#ffc8cb;font-size:1.55rem}
+  .training-intro{display:grid;grid-template-columns:1fr .74fr;gap:clamp(24px,6vw,100px);align-items:center;padding-top:112px;padding-bottom:110px}
+  .training-intro h2,.training-audience h2,.training-cta h2{font-size:clamp(2.8rem,5vw,5.1rem);font-weight:950;line-height:.94;letter-spacing:-.064em;margin:0}
+  .training-intro em,.training-cta em{color:#e30613;font-style:normal}
+  .training-intro__copy{padding-top:30px}
+  .training-intro__copy p{font-size:1.11rem;color:#55625a;max-width:600px;margin:0 0 24px}
+  .training-text-link{color:#ae1320;text-decoration:none;display:inline-flex;align-items:center;gap:13px;padding-bottom:7px;border-bottom:2px solid currentColor;font-size:.93rem;font-weight:900}
+  .training-text-link:hover{color:#e30613}
+  .training-offers{background:#f0f0eb;padding:100px 0 105px}
+  .training-section-top{display:flex;justify-content:space-between;align-items:end;gap:45px;margin-bottom:42px}
+  .training-section-top h2{font-size:clamp(2.7rem,4.2vw,4.4rem);font-weight:950;line-height:.96;letter-spacing:-.06em;margin:0}
+  .training-section-top h2 span{color:#e30613}
+  .training-section-top>p{max-width:370px;color:#59665d;font-size:1rem;margin:0 0 5px}
+  .training-offers__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+  .training-offer{display:flex;flex-direction:column;min-width:0;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 18px 48px rgb(22 36 27 / .065);transition:transform .2s,box-shadow .2s}
+  .training-offer:hover{transform:translateY(-5px);box-shadow:0 24px 58px rgb(22 36 27 / .14)}
+  .training-offer__art{height:194px;position:relative;overflow:hidden;isolation:isolate;background:#d8e3d9}
+  .training-offer__court{position:absolute;inset:28px -30px -30px 25%;border:2px solid #ffffff70;transform:rotate(-18deg)}
+  .training-offer__court:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:#ffffff70}
+  .training-offer__season{position:absolute;bottom:-17px;left:18px;color:#ffffffb5;letter-spacing:-.085em;font-size:clamp(4rem,6vw,7rem);font-weight:950;line-height:1}
+  .training-offer--summer .training-offer__art{background:linear-gradient(120deg,#bf251b,#ed7b45)}
+  .training-offer--winter .training-offer__art{background:linear-gradient(120deg,#203d3f,#4b8280)}
+  .training-offer--camp .training-offer__art{background:linear-gradient(120deg,#e6a33c,#eac65d)}
+  .training-offer__sun,.training-offer__snow,.training-offer__ball{position:absolute;top:29px;right:36px;width:90px;height:90px;border-radius:50%;z-index:1}
+  .training-offer__sun{background:#ffdc73;box-shadow:0 0 0 18px #ffffff20}
+  .training-offer__snow{border:5px solid #d2f1ed;box-shadow:0 0 0 18px #ffffff15}
+  .training-offer__snow:after{content:"✳";position:absolute;inset:0;display:grid;place-items:center;font-size:3.5rem;color:#d2f1ed}
+  .training-offer__ball{background:#f1f6be;box-shadow:0 0 0 9px #ffffff24}
+  .training-offer__ball:after{content:"";position:absolute;inset:13px;border-left:3px solid #fff;border-right:3px solid #fff;border-radius:50%;transform:rotate(22deg)}
+  .training-offer__body{padding:27px 26px 29px;display:flex;flex:1;flex-direction:column;gap:0}
+  .training-offer__number{font-size:.69rem;font-weight:950;color:#b61e27;letter-spacing:.13em}
+  .training-offer h3{font-size:clamp(1.45rem,2vw,1.9rem);font-weight:900;line-height:1.09;letter-spacing:-.045em;margin:11px 0 13px}
+  .training-offer__body>p{font-size:.92rem;color:#58665c;margin:0 0 22px}
+  .training-offer__details{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto;margin-bottom:24px}
+  .training-offer__details>span{display:inline-flex;font-size:.73rem;line-height:1.35;font-weight:750;border-radius:999px;padding:8px 10px;background:#f4f5f0;color:#58675e}
+  .training-offer__body>a{border-top:1px solid #e7e9e4;padding-top:19px;display:flex;align-items:center;justify-content:space-between;gap:9px;color:#b91a25;font-weight:900;font-size:.86rem;text-decoration:none}
+  .training-offer__body>a:hover{color:#e30613}
+  .training-offer__body>a span{font-size:1.4rem}
+  .training-offers__note{color:#69746c;font-size:.8rem;text-align:center;margin:24px 0 0}
+  .training-audience{display:grid;grid-template-columns:.83fr 1fr;gap:clamp(35px,6vw,115px);padding-top:120px;padding-bottom:122px}
+  .training-audience h2 span{color:#e30613}
+  .training-audience__intro>p:last-child{max-width:375px;color:#5d695f;font-size:1.04rem;margin:26px 0 0}
+  .training-audience__list{border-top:2px solid #1e2922}
+  .training-audience__list>div{display:grid;grid-template-columns:42px 1fr 24px;gap:15px;align-items:start;padding:28px 0;border-bottom:1px solid #cfd4cc}
+  .training-audience__list>div>span{font-size:.76rem;color:#ad1720;font-weight:900;padding-top:6px}
+  .training-audience__list h3{font-size:1.28rem;font-weight:900;letter-spacing:-.025em;margin:0 0 8px}
+  .training-audience__list p{font-size:.89rem;color:#647067;margin:0}
+  .training-audience__list b{color:#e30613;font-size:1.2rem;font-weight:500}
+  .training-coaches{background:#12221e;color:#fff;padding:100px 0}
+  .training-coaches__layout{display:grid;grid-template-columns:.92fr 1fr;gap:clamp(35px,6vw,100px);align-items:center}
+  .training-coaches__visual{position:relative;overflow:hidden;border-radius:8px 70px 8px 8px;min-height:420px;align-self:stretch;background:#1d372d}
+  .training-coaches__visual>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.8)}
+  .training-coaches__visual:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,#0f1c18d9)}
+  .training-coaches__label{position:absolute;bottom:25px;left:28px;right:20px;z-index:1;color:#fff;font-size:.75rem;font-weight:900;letter-spacing:.12em;display:flex;gap:14px;align-items:center}
+  .training-coaches__label span{color:#ff5c63;font-size:1.5rem}
+  .training-coaches .training-kicker{color:#ff6169}
+  .training-coaches h2{font-size:clamp(2.7rem,4.4vw,5.1rem);line-height:.96;font-weight:950;letter-spacing:-.062em;margin:0 0 25px}
+  .training-coaches h2 span{color:#ff5863}
+  .training-coaches__copy>p:not(.training-kicker){color:#ccdad2;max-width:620px;margin:0 0 30px;font-size:1.05rem}
+  .training-coaches__actions{display:flex;align-items:center;flex-wrap:wrap;gap:20px}
+  .training-coaches .training-text-link{color:#fff;border-color:#f8767e}
+  .training-cta{position:relative;background:#e30613;color:#fff;overflow:hidden}
+  .training-cta__layout{position:relative;z-index:1;min-height:360px;padding-top:77px;padding-bottom:83px;display:flex;justify-content:space-between;gap:50px;align-items:end}
+  .training-cta .training-kicker{color:#fff}
+  .training-cta h2{color:#fff}
+  .training-cta h2 em{color:#ffc1c5}
+  .training-cta__layout p:last-child{margin:22px 0 0;color:#fff4f4;max-width:575px;font-size:1rem}
+  .training-button--light{flex-shrink:0;color:#b10b18;background:#fff;border-color:#fff}
+  .training-button--light:hover{background:#fff2f2}
+  .training-cta__logo{position:absolute;right:6%;top:24px;width:250px;max-width:32%;opacity:.1;transform:rotate(-14deg);pointer-events:none}
+  .training-extra{padding-top:34px;padding-bottom:48px}
+  .training-extra details{border:1px solid #dedfd7;border-radius:7px;padding:0 21px;background:#fff}
+  .training-extra summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:17px 0;cursor:pointer;color:#39473d;font-weight:800;font-size:.92rem}
+  .training-extra summary span{font-size:1.4rem;font-weight:400;color:#c8202b}
+  .training-extra details[open] summary span{transform:rotate(45deg)}
+  .training-extra__text{white-space:pre-line;max-width:780px;padding:0 0 22px;color:#59675d;font-size:.87rem;overflow-wrap:anywhere}
+  @media(max-width:1140px){
+    .training-hero__layout{gap:32px;min-height:570px}
+    .training-hero__visual{min-height:500px}
+    .training-hero h1{font-size:clamp(3.05rem,5.1vw,5.5rem)}
+    .training-offer__body{padding:24px 19px}
+    .training-offer__art{height:172px}
+    .training-offer__season{font-size:clamp(3.6rem,6vw,6rem)}
+  }
+  @media(max-width:900px){
+    .training-hero__layout{grid-template-columns:1fr;gap:32px;padding-bottom:45px}
+    .training-hero__content{padding-top:12px}
+    .training-hero__content :global(.breadcrumbs){margin-bottom:32px}
+    .training-hero h1{font-size:clamp(3.8rem,9vw,6rem)}
+    .training-hero__visual{min-height:330px;max-height:510px}
+    .training-hero__photo{max-height:510px}
+    .training-hero__footer{margin-top:25px}
+    .training-intro,.training-audience{grid-template-columns:1fr;gap:27px;padding-top:78px;padding-bottom:78px}
+    .training-intro__copy{padding-top:0}
+    .training-offers{padding:76px 0}
+    .training-offers__grid{gap:12px}
+    .training-coaches__layout{gap:36px}
+    .training-coaches{padding:72px 0}
+    .training-coaches__visual{min-height:365px}
+    .training-cta__layout{align-items:start;flex-direction:column;gap:32px}
+  }
+  @media(max-width:680px){
+    .training-hero__layout{padding-top:12px;padding-bottom:32px}
+    .training-hero__content :global(.breadcrumbs){margin-bottom:30px}
+    .training-kicker{font-size:.65rem;letter-spacing:.1em;margin-bottom:17px}
+    .training-hero h1{font-size:clamp(2.9rem,11.7vw,4.6rem);margin-bottom:22px}
+    .training-hero__lead{font-size:1.02rem;margin-bottom:23px}
+    .training-actions{flex-direction:column;align-items:stretch}
+    .training-button{width:100%}
+    .training-hero__footer{margin-top:23px;font-size:.7rem}
+    .training-hero__visual{min-height:300px;border-top-right-radius:55px}
+    .training-hero__photo-label{left:23px;bottom:22px}
+    .training-hero__stamp{width:72px;height:72px;right:16px;top:16px}
+    .training-hero__stamp span:first-child{font-size:1.35rem}
+    .training-marquee__inner{min-height:56px;justify-content:center;flex-wrap:wrap;gap:9px 15px;padding:12px 0;font-size:.68rem}
+    .training-marquee__inner i{font-size:.9rem}
+    .training-intro{padding-top:66px;padding-bottom:65px}
+    .training-intro h2,.training-audience h2,.training-cta h2{font-size:clamp(2.55rem,10vw,4rem)}
+    .training-intro__copy p{font-size:1rem}
+    .training-offers{padding:66px 0}
+    .training-section-top{display:grid;gap:13px;margin-bottom:28px}
+    .training-section-top h2{font-size:clamp(2.7rem,9.4vw,4rem)}
+    .training-offers__grid{grid-template-columns:1fr;gap:18px}
+    .training-offer__art{height:150px}
+    .training-offer__season{font-size:5.3rem}
+    .training-offer__body{padding:24px}
+    .training-audience{padding-top:70px;padding-bottom:74px}
+    .training-audience__list>div{grid-template-columns:28px 1fr 20px;gap:10px;padding:23px 0}
+    .training-audience__list h3{font-size:1.1rem}
+    .training-coaches__layout{grid-template-columns:1fr}
+    .training-coaches__visual{min-height:280px}
+    .training-coaches__copy{padding-bottom:8px}
+    .training-coaches h2{font-size:clamp(2.7rem,9.4vw,4.2rem)}
+    .training-coaches__actions{align-items:stretch;flex-direction:column}
+    .training-cta__layout{min-height:0;padding-top:65px;padding-bottom:69px}
+    .training-cta__logo{width:190px;right:-20px}
+    .training-extra{padding-top:25px;padding-bottom:36px}
+  }
+  @media(prefers-reduced-motion:reduce){.training-offer,.training-button{transition:none}.training-offer:hover,.training-button:hover{transform:none}}
+</style>
