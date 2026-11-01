@@ -162,18 +162,18 @@ test('public team navigation labels summer correctly and follows managed active 
 test('training page stays compact with school photos, logo and linked training types', () => {
   const training = source('src/pages/training/index.astro');
   assert.match(training, /Tennisschule Alex Braun/);
-  assert.match(training, /logo-weiss_1pt_original-1\\.png/);
-  assert.match(training, /startseite_1\\.jpg/);
-  assert.match(training, /startseite_3\\.jpg/);
+  assert.match(training, /logo-weiss_1pt_original-1\.png/);
+  assert.match(training, /startseite_1\.jpg/);
+  assert.match(training, /startseite_3\.jpg/);
   for (const offer of ['Sommertraining', 'Wintertraining', 'Einzeltraining', 'Gruppentraining', 'Mannschaftstraining', 'Tenniscamps']) {
     assert.ok(training.includes(offer), offer + ' fehlt');
   }
   assert.match(training, /<ul class="training-simple__list">/);
-  assert.match(training, /tennisschule-alexbraun\\.de\\/angebote\\//);
+  assert.match(training, /tennisschule-alexbraun\.de\/angebote\//);
   assert.match(training, /Trainingsangebote &amp; Anmeldung/);
   assert.match(training, /data-managed-page="training"/);
-  assert.match(training, /loadManagedPage\\('training'\\)/);
-  assert.match(training, /@media\\(max-width:600px\\)/);
+  assert.match(training, /loadManagedPage\('training'\)/);
+  assert.match(training, /@media\(max-width:600px\)/);
   assert.doesNotMatch(training, /iframe/);
 });
 
