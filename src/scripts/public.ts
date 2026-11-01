@@ -139,7 +139,7 @@ async function renderSponsorPlacements(
 // Portrait IDs identify a particular team and season, not the venue.
 // Without a verified ID, link to the official club-filtered tennis.de team search.
 const TENNIS_DE_CLUB_SEARCH_URL =
-  'https://www.tennis.de/spielen/spielbetrieb/mannschaftssuche.html?verband=btv&verein=01012';
+  'https://www.tennis.de/spielen/spielbetrieb/mannschaftssuche.html?verband=btv&verein=01012#teamview/23391';
 
 function tennisDeTeamDestination(teamSeason: Row | undefined): { href: string; isDirect: boolean } {
   const portrait = officialTennisDePortraitUrl(teamSeason);
