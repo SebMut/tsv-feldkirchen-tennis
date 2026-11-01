@@ -45,11 +45,13 @@ test('portrait 3728614 is stored only for verified winter 2026/27 Herren', () =>
   assert.match(migration, /team_seasons_tennis_de_portrait_url_check/);
 });
 
-test('season-specific portraits appear only for explicitly mapped teams', () => {
-  assert.match(publicJs, /function officialTennisDePortraitUrl\(teamSeason: Row \| undefined\)/);
-  assert.match(publicJs, /url\.origin !== 'https:\/\/www\.tennis\.de'/);
-  assert.match(publicJs, /url\.searchParams\.get\('verein'\) !== '01012'/);
-  assert.match(publicJs, /tennisDePortraitUrl \? /);
-  assert.match(publicJs, /tennis\.de Mannschaftsportrait/);
-  assert.match(publicJs, /teamSeason\?\.tennis_de_portrait_url/);
+test('verified portraits are direct while other teams use club-filtered tennis.de search', () => {
+  assert.ok(publicJs.includes('function officialTennisDePortraitUrl(teamSeason: Row | undefined)'));
+  assert.ok(publicJs.includes("url.origin !== 'https://www.tennis.de'"));
+  assert.ok(publicJs.includes("url.searchParams.get('verein') !== '01012'"));
+  assert.ok(publicJs.includes('teamSeason?.tennis_de_portrait_url'));
+  assert.ok(publicJs.includes('function tennisDeTeamDestination(teamSeason: Row | undefined)'));
+  assert.ok(publicJs.includes('href: portrait || TENNIS_DE_CLUB_SEARCH_URL, isDirect: !!portrait'));
+  assert.ok(publicJs.includes('tennis.de Mannschaftsporträt ↗'));
+  assert.ok(publicJs.includes('tennis.de Mannschaftssuche ↗'));
 });
