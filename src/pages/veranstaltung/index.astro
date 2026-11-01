@@ -2,19 +2,31 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 ---
 
-<MainLayout title="Sommerfest & Anmeldung | TSV Feldkirchen Tennis" description="Zu unseren Vereinsveranstaltungen anmelden: Zusage, Absage oder vielleicht – mit Anzahl der teilnehmenden Personen.">
+<MainLayout title="Sommerfest & Anmeldung | TSV Feldkirchen Tennis" description="Sommerfest und Jugendvereinsmeisterschaften: Einladung, Teilnahme mit Erwachsenen und Kindern, Beiträge zum Buffet sowie Anmeldung der Jugendlichen.">
   <div class="container rsvp-page">
     <nav class="rsvp-breadcrumb" aria-label="Brotkrumen"><a href="/termine/">Kalender</a><span aria-hidden="true">›</span><span>Veranstaltungsanmeldung</span></nav>
     <div class="rsvp-page__grid">
       <section class="rsvp-intro" aria-labelledby="rsvp-heading">
         <p class="eyebrow">TSV Feldkirchen · Vereinsleben</p>
         <span id="rsvp-mode-label" class="rsvp-mode-label">Beispielansicht</span>
-        <h1 id="rsvp-heading">Sommerfest beim TSV Feldkirchen</h1>
-        <p id="rsvp-description" class="rsvp-intro__lead">Gemeinsam feiern, miteinander ins Gespräch kommen und die Tennissaison genießen.</p>
+        <h1 id="rsvp-heading">Sommerfest &amp; Jugendvereinsmeisterschaften</h1>
+        <p class="rsvp-salutation">Liebe Tennisfreunde,</p>
+        <p id="rsvp-description" class="rsvp-intro__lead">Zum Abschluss der Punktspielsaison möchten wir mit euch gemeinsam feiern! Wir laden alle Mitglieder sowie Eltern, Partner und Freunde herzlich ein. Für Speis und Trank ist gesorgt.</p>
+        <p class="rsvp-intro__lead">Über selbstgemachte Nachspeisen und Salate sowie Unterstützung beim Auf- und Abbau freuen wir uns sehr. Parallel zum Sommerfest möchten wir unsere Jugendvereinsmeisterschaften austragen.</p>
         <div class="rsvp-event-facts">
           <div><span aria-hidden="true">▦</span><div><small>Termin</small><strong id="rsvp-date">Wird noch bekannt gegeben</strong></div></div>
-          <div><span aria-hidden="true">⌖</span><div><small>Ort</small><strong id="rsvp-location">TSV Feldkirchen · Ort folgt</strong></div></div>
+          <div><span aria-hidden="true">⌖</span><div><small>Ort</small><strong id="rsvp-location">Tennisanlage · Ort noch offen</strong></div></div>
+          <div><span aria-hidden="true">✓</span><div><small>Rückmeldung bis</small><strong id="rsvp-deadline">Wird noch bekannt gegeben</strong></div></div>
         </div>
+        <section class="rsvp-invitation-details" aria-labelledby="rsvp-invitation-title">
+          <h2 id="rsvp-invitation-title">Das erwartet euch</h2>
+          <div class="rsvp-invitation-details__list">
+            <div><strong>Sommerfest &amp; gemeinsames Essen</strong><p id="rsvp-fees-note">Essen und Getränke sind geplant. Ein möglicher Unkostenbeitrag wird vor der Veröffentlichung bekannt gegeben.</p></div>
+            <div><strong>Hilfe beim Auf- und Abbau</strong><p id="rsvp-helper-note">Wir freuen uns über freiwillige Helferinnen und Helfer. Die Zeiten werden noch festgelegt.</p></div>
+            <div><strong>Jugendvereinsmeisterschaften</strong><p id="rsvp-youth-note">Geplante Kategorien nach der Vorlage von 2024: U10 gemischt, U12 männlich, U15 männlich, U18 männlich und U18 weiblich. Modus und Spielzeiten richten sich nach den Anmeldungen.</p></div>
+          </div>
+          <p id="rsvp-source-note" class="rsvp-source-note">Gestaltung nach der Einladung von 2024. Frühere Termine und Beiträge werden nicht als neue Veranstaltungsdaten übernommen.</p>
+        </section>
         <div class="rsvp-summary" id="rsvp-summary" aria-live="polite">
           <p class="rsvp-summary__label">Gemeinsam planen</p>
           <div class="rsvp-summary__stats">
@@ -39,10 +51,35 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <label class="rsvp-choice"><input type="radio" name="attendance" value="no" /><span aria-hidden="true" class="rsvp-choice__icon">×</span><span><strong>Nein, diesmal nicht</strong><small>Danke für deine Rückmeldung.</small></span></label>
           </fieldset>
           <div class="rsvp-field"><label for="rsvp-member-name">Dein Name <span aria-hidden="true">*</span></label><input id="rsvp-member-name" name="member_name" type="text" autocomplete="name" minlength="2" maxlength="100" placeholder="Vor- und Nachname" required /><small>Nur im geschützten Adminbereich sichtbar.</small></div>
-          <div class="rsvp-field" id="rsvp-count-wrap"><label for="rsvp-person-count">Mit wie vielen Personen kommst du?</label><div class="rsvp-stepper"><button id="rsvp-count-minus" type="button" aria-label="Eine Person weniger">−</button><input type="number" id="rsvp-person-count" name="party_size" min="1" max="20" step="1" value="1" inputmode="numeric" required /><button id="rsvp-count-plus" type="button" aria-label="Eine Person mehr">+</button></div><small>Inklusive dir selbst. Weitere Familienmitglieder und Gäste mitzählen.</small></div>
+          <fieldset class="rsvp-paper-fields" id="rsvp-count-wrap">
+            <legend>Mit wie vielen Personen nehmt ihr am Sommerfest teil?</legend>
+            <div class="rsvp-party-grid">
+              <div class="rsvp-field"><label for="rsvp-adults-count">Erwachsene</label><input type="number" id="rsvp-adults-count" name="adults_count" min="0" max="20" step="1" value="1" inputmode="numeric" /></div>
+              <div class="rsvp-field"><label for="rsvp-children-count">Kinder &amp; Jugendliche</label><input type="number" id="rsvp-children-count" name="children_count" min="0" max="20" step="1" value="0" inputmode="numeric" /></div>
+            </div>
+            <small>Alle mitkommenden Personen mitzählen, einschließlich dir selbst. Insgesamt maximal 20 Personen je Rückmeldung.</small>
+          </fieldset>
+          <section class="rsvp-contributions" aria-labelledby="rsvp-contributions-heading">
+            <h3 id="rsvp-contributions-heading">Was kannst du mitbringen?</h3>
+            <p class="muted">Freiwillige Unterstützung für unser Buffet – wie auf dem Anmeldezettel.</p>
+            <div class="rsvp-field"><label for="rsvp-dessert">Kuchen oder Nachspeise</label><input type="text" id="rsvp-dessert" maxlength="180" placeholder="z. B. Kuchen oder Nachtisch" /></div>
+            <div class="rsvp-field"><label for="rsvp-salad">Salat oder Vorspeise</label><input type="text" id="rsvp-salad" maxlength="180" placeholder="z. B. Nudelsalat" /></div>
+          </section>
+          <fieldset class="rsvp-paper-fields">
+            <legend>Kannst du beim Fest helfen?</legend>
+            <label class="rsvp-check"><input id="rsvp-help-setup" type="checkbox" /> Ich kann beim Aufbau / bei den Vorbereitungen helfen.</label>
+            <label class="rsvp-check"><input id="rsvp-help-cleanup" type="checkbox" /> Ich kann beim Abbau / Aufräumen helfen.</label>
+          </fieldset>
+          <section class="rsvp-youth-section" aria-labelledby="rsvp-youth-heading">
+            <h3 id="rsvp-youth-heading">Jugendvereinsmeisterschaften</h3>
+            <p class="muted">Melde die Jugendlichen für eine Altersklasse an – unabhängig davon, ob ihr zum Sommerfest kommt. Die Einteilung kann sich je nach Anmeldungen ändern.</p>
+            <div class="rsvp-youth-rows" id="rsvp-youth-rows"></div>
+            <button type="button" id="rsvp-add-youth" class="button ghost">+ Jugendliche Person anmelden</button>
+            <p class="rsvp-youth-consent">Bitte nur mit Zustimmung der Erziehungsberechtigten Namen von Kindern und Jugendlichen eintragen.</p>
+          </section>
           <p id="rsvp-form-feedback" class="rsvp-form-feedback hidden" role="status" aria-live="polite"></p>
           <button id="rsvp-submit" type="submit" class="button rsvp-submit">Rückmeldung senden <span aria-hidden="true">›</span></button>
-          <p class="rsvp-form__privacy">Deine Rückmeldung wird nur zur Planung der Veranstaltung genutzt. Auf dem verwendeten Gerät kannst du sie später mit derselben Kennung ändern. Die Anmeldung prüft noch keine Vereinsmitgliedschaft.</p>
+          <p class="rsvp-form__privacy">Die Angaben zu Erwachsenen, Kindern, Buffetspeisen, Helfern und Jugendanmeldungen sind nur für die Vereinsorganisation bestimmt. Öffentlich sind keine Namen sichtbar. Änderungen sind vom selben Gerät aus mit einer gespeicherten Kennung möglich. Eine automatische Mitgliedschaftsprüfung gibt es noch nicht.</p>
         </form>
       </section>
     </div>

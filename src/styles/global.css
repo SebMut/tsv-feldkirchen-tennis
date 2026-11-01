@@ -2295,3 +2295,43 @@ main.main--flush{padding:0}
 .rsvp-admin-table th{font-weight:850}
 @media(max-width:950px){.rsvp-page__grid{grid-template-columns:minmax(0,1fr)}.rsvp-intro{gap:12px}.rsvp-summary{max-width:750px}.rsvp-form-panel{max-width:750px}}
 @media(max-width:520px){.rsvp-page{padding-top:18px;padding-bottom:45px}.rsvp-breadcrumb{margin-bottom:16px}.rsvp-intro h1{font-size:2.2rem}.rsvp-summary__stats{gap:7px}.rsvp-form-panel{padding:16px;border-radius:16px}.rsvp-choice{gap:10px;padding:11px}.rsvp-choice__icon{display:none}}
+
+
+/* Sommerfest nach der Papier-Einladung 2024: Einladung & Rückmeldung */
+.rsvp-salutation{margin:0;font-size:1.05rem;font-weight:850;color:#264330}
+.rsvp-invitation-details{display:grid;gap:15px;width:100%;min-width:0;margin-bottom:8px}
+.rsvp-invitation-details h2{margin:0;font-size:1.3rem;color:#193123;letter-spacing:-.025em}
+.rsvp-invitation-details__list{display:grid;gap:11px}
+.rsvp-invitation-details__list>div{padding:14px 16px;background:#fff;border-radius:12px;border:1px solid #e2e9e1}
+.rsvp-invitation-details__list strong{font-size:.87rem;color:#1e3b2a}
+.rsvp-invitation-details__list p{margin:7px 0 0;font-size:.82rem;color:#596d5d;line-height:1.55;white-space:pre-line}
+.rsvp-source-note{margin:0;font-size:.75rem;line-height:1.6;color:#737f78}
+.rsvp-source-note.hidden{display:none}
+.rsvp-paper-fields{margin:0;border:1px solid #e2eae2;padding:15px;border-radius:13px;background:#f9fbf9;display:grid;gap:12px;min-width:0}
+.rsvp-paper-fields[hidden]{display:none!important}
+.rsvp-paper-fields legend{font-size:.88rem;font-weight:850;color:#25432c;padding:0 5px}
+.rsvp-paper-fields>small{font-size:.75rem;color:#667b6a;line-height:1.5}
+.rsvp-party-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rsvp-party-grid .rsvp-field input{width:100%;min-height:50px;text-align:center;font-weight:900;font-size:1.14rem}
+.rsvp-contributions,.rsvp-youth-section{display:grid;gap:11px}
+.rsvp-contributions h3,.rsvp-youth-section h3{font-size:1.01rem;margin:0;color:#213c29}
+.rsvp-contributions .muted,.rsvp-youth-section .muted{font-size:.8rem;margin:0;line-height:1.5;color:#627565}
+.rsvp-check{display:flex;gap:9px;align-items:flex-start;font-size:.84rem;line-height:1.5;color:#34523b}
+.rsvp-check input{width:19px;height:19px;flex:0 0 auto;accent-color:#bb0d1e}
+.rsvp-youth-rows{display:grid;gap:9px}
+.rsvp-youth-row{display:grid;gap:8px;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;align-items:end;padding:12px;border:1px solid #e1e8e1;border-radius:12px;background:#f9fbf9}
+.rsvp-youth-row label{min-width:0;display:grid;gap:6px;color:#385340;font-size:.75rem;font-weight:830}
+.rsvp-youth-row input,.rsvp-youth-row select{min-width:0;width:100%;min-height:46px;padding:9px 10px;background:#fff;color:#213728;border:1px solid #cad8cc;border-radius:9px;font-size:.83rem}
+.rsvp-youth-row .button{min-height:46px;font-size:.75rem;padding:8px 10px}
+.rsvp-youth-consent{margin:0;font-size:.73rem;color:#6a7b6d;line-height:1.55}
+.rsvp-template-reference{border:1px solid #e4e9de;border-radius:12px;background:#fcfbf5;padding:13px;color:#334635}
+.rsvp-template-reference summary{cursor:pointer;font-size:.86rem;font-weight:850}
+.rsvp-template-reference p{font-size:.78rem;line-height:1.6}
+.rsvp-admin-table{min-width:900px}
+.rsvp-admin-table td{vertical-align:top;line-height:1.5}
+.rsvp-admin-table td hr{border:0;border-top:1px solid #e7eee8;margin:6px 0}
+@media(max-width:760px){
+  .rsvp-youth-row{grid-template-columns:minmax(0,1fr)}
+  .rsvp-youth-row .button{justify-self:start}
+  .rsvp-party-grid{gap:9px}
+}
