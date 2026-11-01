@@ -13,3 +13,6 @@ verify_jwt = false
 public = true
 file_size_limit = "8MiB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/avif"]
+
+[functions.event-rsvp-email]
+verify_jwt = false # Public visitor endpoint; Turnstile and one-time email token checked in function.
