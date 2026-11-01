@@ -1,0 +1,1 @@
+import{a as e}from"./public.CsaGsSyV.js";var t=new URLSearchParams(location.search).get(`match`);e(t);
