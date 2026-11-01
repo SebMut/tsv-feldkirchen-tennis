@@ -23,12 +23,13 @@ export async function initEventRsvp() {
   const form = byId<HTMLFormElement>('rsvp-form');
   const feedback = byId<HTMLElement>('rsvp-form-feedback');
   const nameInput = byId<HTMLInputElement>('rsvp-member-name');
+  const emailInput = byId<HTMLInputElement>('rsvp-member-email');
   const adultsInput = byId<HTMLInputElement>('rsvp-adults-count');
   const childrenInput = byId<HTMLInputElement>('rsvp-children-count');
   const countWrap = byId<HTMLElement>('rsvp-count-wrap');
   const submit = byId<HTMLButtonElement>('rsvp-submit');
   const youthRows = byId<HTMLElement>('rsvp-youth-rows');
-  if (!form || !feedback || !nameInput || !adultsInput || !childrenInput || !countWrap || !submit || !youthRows) return;
+  if (!form || !feedback || !nameInput || !emailInput || !adultsInput || !childrenInput || !countWrap || !submit || !youthRows) return;
 
   const choice = () => (form.querySelector<HTMLInputElement>('input[name="attendance"]:checked')?.value || 'yes') as RsvpChoice;
   const updateChoice = () => {
@@ -124,10 +125,72 @@ export async function initEventRsvp() {
     return;
   }
 
-  const keyName = event ? `tsv-event-rsvp-token:${event.id}` : '';
-  form.addEventListener('submit', async e => {
+  // Die Bestätigung erfolgt ausschließlich über eine serverseitig abgesicherte
+  // Edge Function. Ohne Turnstile/SMTP-Konfiguration gibt es KEINE echte Anmeldung.
+  let turnstileToken = '';
+  let turnstileId: string | number | undefined;
+  let enabled = false;
+  const cf = window as Window & { turnstile?: {
+    render: (target: HTMLElement, config: Record<string, unknown>) => string | number;
+    reset: (id?: string | number) => void;
+  } };
+  const showFeedback = (text: string, error = false) => {
+    feedback.textContent = text;
+    feedback.classList.remove('hidden');
+    feedback.classList.toggle('is-error', error);
+  };
+  const resetChallenge = () => {
+    turnstileToken = '';
+    try { cf.turnstile?.reset(turnstileId); } catch { /* widget can be reloaded */ }
+  };
+  const loadTurnstile = async (siteKey: string) => {
+    const wrap = byId<HTMLElement>('rsvp-turnstile-wrap');
+    const widget = byId<HTMLElement>('rsvp-turnstile-widget');
+    const status = byId<HTMLElement>('rsvp-turnstile-status');
+    if (!wrap || !widget || !status) throw new Error('Menschprüfung fehlt.');
+    wrap.hidden = false;
+    // Cloudflare loads only when a real event is published and configured.
+    if (!cf.turnstile) {
+      await new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Cloudflare Turnstile konnte nicht geladen werden.'));
+        document.head.append(script);
+      });
+    }
+    if (!cf.turnstile) throw new Error('Cloudflare Turnstile ist nicht verfügbar.');
+    turnstileId = cf.turnstile.render(widget,{
+      sitekey: siteKey,
+      theme:'light',size:'flexible',
+      callback:(token: string)=>{turnstileToken=token;status.textContent='Menschprüfung erfolgreich.';},
+      'expired-callback':()=>{turnstileToken='';status.textContent='Bitte die Menschprüfung erneut ausführen.';},
+      'error-callback':()=>{turnstileToken='';status.textContent='Menschprüfung fehlgeschlagen, bitte erneut versuchen.';},
+    });
+    status.textContent = 'Bitte die Cloudflare-Menschprüfung abschließen.';
+  };
+
+  if (event) {
+    submit.disabled = true;
+    try {
+      const { data, error } = await supabase.functions.invoke('event-rsvp-email',{body:{action:'config'}});
+      if (error || !data?.enabled || !data.siteKey) {
+        showFeedback(data?.message || 'Die E-Mail-Bestätigung und Cloudflare Turnstile müssen vor der Anmeldung noch eingerichtet werden.',true);
+      } else {
+        await loadTurnstile(String(data.siteKey));
+        enabled = true;
+        submit.disabled = false;
+      }
+    } catch {
+      showFeedback('Die Cloudflare-Menschprüfung konnte nicht geladen werden. Die Anmeldung ist derzeit geschlossen.',true);
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const memberName = nameInput.value.trim();
+    const memberEmail = emailInput.value.trim().toLowerCase();
     const selected = choice();
     const adults = selected === 'yes' ? Number(adultsInput.value) : 0;
     const children = selected === 'yes' ? Number(childrenInput.value) : 0;
@@ -135,68 +198,60 @@ export async function initEventRsvp() {
     const youth = youthValues();
     feedback.classList.remove('hidden', 'is-error');
     if (memberName.length < 2 || memberName.length > 100
+      || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(memberEmail) || memberEmail.length > 254
       || !Number.isInteger(adults) || !Number.isInteger(children)
       || adults < 0 || children < 0 || partySize > 20
       || (selected === 'yes' && partySize < 1)) {
-      feedback.textContent = 'Bitte Namen und gültige Personenanzahlen angeben (mindestens eine Person bei Zusage, maximal 20).';
-      feedback.classList.add('is-error');
+      showFeedback('Bitte Namen, eine gültige E-Mail-Adresse und die Personenzahl prüfen (maximal 20).',true);
       return;
     }
     if (!youth) {
-      feedback.textContent = 'Bitte für jede Jugendanmeldung einen vollständigen Namen und eine Altersklasse auswählen.';
-      feedback.classList.add('is-error');
+      showFeedback('Bitte für jede Jugendanmeldung einen vollständigen Namen und eine Altersklasse auswählen.',true);
       return;
     }
     const dessert = byId<HTMLInputElement>('rsvp-dessert')?.value.trim() || '';
     const salad = byId<HTMLInputElement>('rsvp-salad')?.value.trim() || '';
     if (dessert.length > 180 || salad.length > 180) {
-      feedback.textContent = 'Bitte die Buffetbeiträge kürzer beschreiben.';
-      feedback.classList.add('is-error');
+      showFeedback('Bitte die Buffetbeiträge kürzer beschreiben.',true);
       return;
     }
     if (!event) {
-      feedback.textContent = `Demo: ${selected === 'yes' ? `${adults} Erwachsene und ${children} Kinder/Jugendliche` : selected === 'maybe' ? 'Vielleicht' : 'Absage'}, ${youth.length} Jugendanmeldungen. Nichts gespeichert.`;
+      showFeedback(`Demo: ${selected === 'yes' ? `${adults} Erwachsene und ${children} Kinder/Jugendliche` : selected === 'maybe' ? 'Vielleicht' : 'Absage'}, ${youth.length} Jugendanmeldungen. Keine E-Mail versendet, nichts gespeichert.`);
       return;
     }
-
-    let editKey: string;
-    try {
-      editKey = localStorage.getItem(keyName) || crypto.randomUUID();
-    } catch {
-      feedback.textContent = 'Dein Browser verhindert die Speicherung der Änderungskennung. Bitte die Website ohne privaten Speicherschutz öffnen.';
-      feedback.classList.add('is-error');
+    if (!enabled) {
+      showFeedback('Die E-Mail-Bestätigung ist noch nicht eingerichtet. Bitte beim Verein nachfragen.',true);
+      return;
+    }
+    if (!turnstileToken) {
+      showFeedback('Bitte zuerst „Ich bin ein Mensch“ abschließen.',true);
       return;
     }
     submit.disabled = true;
-    submit.textContent = 'Wird gespeichert …';
+    submit.textContent = 'Prüfe und versende E-Mail …';
     try {
-      const { error } = await supabase.rpc('submit_event_rsvp', {
-        p_event_id: event.id,
-        p_edit_key: editKey,
-        p_member_name: memberName,
-        p_attendance: selected,
-        p_adults: adults,
-        p_children: children,
-        p_dessert: dessert,
-        p_salad: salad,
-        p_help_setup: !!byId<HTMLInputElement>('rsvp-help-setup')?.checked,
-        p_help_cleanup: !!byId<HTMLInputElement>('rsvp-help-cleanup')?.checked,
-        p_youth: youth,
-      });
-      if (error) {
-        feedback.textContent = 'Die Rückmeldung konnte nicht gespeichert werden: ' + error.message;
-        feedback.classList.add('is-error');
+      const { data, error } = await supabase.functions.invoke('event-rsvp-email', {body:{
+        action:'submit',event_id:event.id, name:memberName,email:memberEmail,
+        attendance:selected, adults,children,dessert,salad,
+        help_setup:!!byId<HTMLInputElement>('rsvp-help-setup')?.checked,
+        help_cleanup:!!byId<HTMLInputElement>('rsvp-help-cleanup')?.checked,
+        youth,turnstileToken,
+      }});
+      if (error || !data?.pending) {
+        showFeedback(data?.error || 'E-Mail konnte nicht versendet werden. Bitte noch einmal versuchen.',true);
         return;
       }
-      localStorage.setItem(keyName, editKey);
-      feedback.textContent = 'Danke! Deine Rückmeldung zum Sommerfest und den Jugendvereinsmeisterschaften wurde gespeichert.';
-      await loadSummary();
+      showFeedback('Prüfe jetzt dein E-Mail-Postfach: Du erhältst alle Angaben und einen Bestätigungslink. Erst nach dem Klick darauf zählt deine Rückmeldung.');
+      submit.textContent = 'Bestätigungs-E-Mail angefordert';
+      return;
     } catch {
-      feedback.textContent = 'Speichern fehlgeschlagen. Bitte erneut versuchen.';
-      feedback.classList.add('is-error');
+      showFeedback('Die Anmeldung ist momentan nicht erreichbar. Bitte später erneut versuchen.',true);
     } finally {
-      submit.disabled = false;
-      submit.innerHTML = 'Rückmeldung aktualisieren <span aria-hidden="true">›</span>';
+      resetChallenge();
+      if (submit.textContent !== 'Bestätigungs-E-Mail angefordert') {
+        submit.disabled = false;
+        submit.innerHTML = 'Bestätigungs-E-Mail anfordern <span aria-hidden="true">›</span>';
+      }
     }
   });
 }

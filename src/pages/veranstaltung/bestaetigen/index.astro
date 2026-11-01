@@ -1,0 +1,55 @@
+---
+import MainLayout from '../../../layouts/MainLayout.astro';
+---
+<MainLayout title="Anmeldung bestätigen | TSV Feldkirchen Tennis" description="Bestätige deine Rückmeldung zum Sommerfest per E-Mail-Link.">
+  <main class="container rsvp-confirm-page">
+    <div class="rsvp-confirm-card">
+      <span class="rsvp-mode-label">TSV Feldkirchen Tennis</span>
+      <h1>E-Mail-Adresse bestätigen</h1>
+      <p id="rsvp-confirm-intro">Du hast über deine E-Mail einen Link erhalten. Bitte bestätige hier deine Angaben, damit sie bei der Vereinsplanung berücksichtigt werden.</p>
+      <p class="muted">Der Link gilt 24 Stunden und nur ein einziges Mal. Eine reine Vorschau auf diese Seite löst noch keine Bestätigung aus.</p>
+      <p id="rsvp-confirm-feedback" role="status" aria-live="polite"></p>
+      <button type="button" id="rsvp-confirm-button" class="button rsvp-submit">Ja, meine Angaben verbindlich bestätigen</button>
+      <p><a href="/veranstaltung/?slug=sommerfest">Zurück zur Sommerfest-Seite</a></p>
+    </div>
+  </main>
+</MainLayout>
+<script>
+  import { supabase } from '../../../lib/supabase';
+  const button=document.getElementById('rsvp-confirm-button') as HTMLButtonElement | null;
+  const feedback=document.getElementById('rsvp-confirm-feedback');
+  const intro=document.getElementById('rsvp-confirm-intro');
+  const params=new URLSearchParams(window.location.search);
+  const request=params.get('request') || '';
+  const token=params.get('token') || '';
+  // Token nicht an Drittseiten als Referrer weiterreichen.
+  const clean=window.location.pathname;
+  window.history.replaceState({},'',clean);
+  if (!/^[0-9a-f-]{36}$/i.test(request) || !/^[a-f0-9]{64}$/.test(token)) {
+    if(button)button.disabled=true;
+    if(feedback)feedback.textContent='Der Bestätigungslink ist ungültig. Bitte fordere eine neue E-Mail an.';
+  } else if(button) {
+    button.addEventListener('click',async()=>{
+      button.disabled=true;
+      button.textContent='Bestätigung wird geprüft …';
+      if(feedback)feedback.textContent='';
+      try{
+        const {data,error}=await supabase.functions.invoke('event-rsvp-email',{
+          body:{action:'confirm',request_id:request,token},
+        });
+        if(error||!data?.confirmed){
+          if(feedback)feedback.textContent=data?.error||'Der Link konnte nicht bestätigt werden. Vielleicht ist er abgelaufen oder bereits verwendet.';
+          button.textContent='Bestätigung fehlgeschlagen';
+          return;
+        }
+        if(intro)intro.textContent='Vielen Dank! Deine E-Mail-Adresse und deine Rückmeldung sind bestätigt. Sie werden jetzt in der Teilnehmerübersicht berücksichtigt.';
+        if(feedback)feedback.textContent='Bestätigung erfolgreich gespeichert.';
+        button.textContent='Bestätigt';
+      }catch{
+        if(feedback)feedback.textContent='Die Bestätigung ist derzeit nicht erreichbar. Bitte erneut versuchen.';
+        button.disabled=false;
+        button.textContent='Erneut bestätigen';
+      }
+    });
+  }
+</script>

@@ -54,7 +54,7 @@ test('validation and backend ensure sensible responses and no public PII', () =>
   assert.ok(sql.includes('jsonb_array_length(v_youth) > 12'));
   assert.ok(sql.includes('youth_registrations=excluded.youth_registrations'));
   assert.ok(sql.includes('and (e.rsvp_deadline is null or e.rsvp_deadline >= now())'));
-  assert.ok(form.includes("supabase.rpc('submit_event_rsvp'"));
+  assert.ok(form.includes("supabase.functions.invoke('event-rsvp-email'"));
   assert.ok(!form.includes(".from('event_rsvps')"));
   assert.ok(sql.includes('grant execute on function public.submit_event_rsvp'));
 });

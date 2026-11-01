@@ -51,6 +51,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <label class="rsvp-choice"><input type="radio" name="attendance" value="no" /><span aria-hidden="true" class="rsvp-choice__icon">×</span><span><strong>Nein, diesmal nicht</strong><small>Danke für deine Rückmeldung.</small></span></label>
           </fieldset>
           <div class="rsvp-field"><label for="rsvp-member-name">Dein Name <span aria-hidden="true">*</span></label><input id="rsvp-member-name" name="member_name" type="text" autocomplete="name" minlength="2" maxlength="100" placeholder="Vor- und Nachname" required /><small>Nur im geschützten Adminbereich sichtbar.</small></div>
+          <div class="rsvp-field"><label for="rsvp-member-email">Deine E-Mail-Adresse <span aria-hidden="true">*</span></label><input id="rsvp-member-email" name="member_email" type="email" inputmode="email" autocomplete="email" maxlength="254" required placeholder="name@beispiel.de" /><small>Du erhältst eine E-Mail mit allen Angaben und einem Bestätigungslink. Erst nach Bestätigung zählt deine Anmeldung.</small></div>
           <fieldset class="rsvp-paper-fields" id="rsvp-count-wrap">
             <legend>Mit wie vielen Personen nehmt ihr am Sommerfest teil?</legend>
             <div class="rsvp-party-grid">
@@ -77,9 +78,15 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <button type="button" id="rsvp-add-youth" class="button ghost">+ Jugendliche Person anmelden</button>
             <p class="rsvp-youth-consent">Bitte nur mit Zustimmung der Erziehungsberechtigten Namen von Kindern und Jugendlichen eintragen.</p>
           </section>
+          <div class="rsvp-turnstile" id="rsvp-turnstile-wrap" hidden>
+            <strong>Ich bin ein Mensch</strong>
+            <p class="muted">Cloudflare Turnstile schützt diese Anmeldung vor automatisierten Eingaben.</p>
+            <div id="rsvp-turnstile-widget" role="group" aria-label="Cloudflare-Menschprüfung"></div>
+            <small id="rsvp-turnstile-status" role="status">Die Menschprüfung wird geladen …</small>
+          </div>
           <p id="rsvp-form-feedback" class="rsvp-form-feedback hidden" role="status" aria-live="polite"></p>
           <button id="rsvp-submit" type="submit" class="button rsvp-submit">Rückmeldung senden <span aria-hidden="true">›</span></button>
-          <p class="rsvp-form__privacy">Die Angaben zu Erwachsenen, Kindern, Buffetspeisen, Helfern und Jugendanmeldungen sind nur für die Vereinsorganisation bestimmt. Öffentlich sind keine Namen sichtbar. Änderungen sind vom selben Gerät aus mit einer gespeicherten Kennung möglich. Eine automatische Mitgliedschaftsprüfung gibt es noch nicht.</p>
+          <p class="rsvp-form__privacy">Die Angaben zu Erwachsenen, Kindern, Buffetspeisen, Helfern und Jugendanmeldungen sind nur für die Vereinsorganisation bestimmt. Öffentlich sind keine Namen sichtbar. Die E-Mail-Adresse wird ausschließlich zur Rückmeldung und Bestätigung verwendet. Änderungen lassen sich über eine neue Bestätigung an dieselbe Adresse vornehmen. Cloudflare Turnstile prüft, ob die Anfrage automatisiert ist; eine automatische Mitgliedschaftsprüfung besteht noch nicht.</p>
         </form>
       </section>
     </div>
