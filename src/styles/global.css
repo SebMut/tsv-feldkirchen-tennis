@@ -1413,3 +1413,39 @@ main.main--flush{padding:0}
   .teams-page .teams-category-chips{gap:6px}
   .teams-page .teams-category-chip{padding:8px 9px}
 }
+
+/* Team roster remains collapsed until explicitly expanded; avoids long mobile pages. */
+.team-roster-disclosure{align-self:start;min-width:0}
+.team-roster-disclosure__summary{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+  min-height:44px;
+  cursor:pointer;
+  list-style:none;
+  font-weight:850;
+}
+.team-roster-disclosure__summary::-webkit-details-marker{display:none}
+.team-roster-disclosure__title{font-size:1.14rem;color:#19221f}
+.team-roster-disclosure__action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 10px;
+  border:1px solid #d7e1d9;
+  border-radius:9px;
+  background:#f5f9f6;
+  color:#9b111c;
+  font-size:.8rem;
+  white-space:nowrap;
+}
+.team-roster-disclosure__action::after{content:"Kader anzeigen +"}
+.team-roster-disclosure[open] .team-roster-disclosure__action::after{content:"Kader schließen −"}
+.team-roster-disclosure__summary:focus-visible{outline:3px solid #e30613;outline-offset:3px;border-radius:7px}
+.team-roster-disclosure__content{margin-top:16px;padding-top:16px;border-top:1px solid #e1e8e2}
+@media(max-width:760px){
+  .team-detail-page .team-roster-disclosure{padding:12px 15px}
+  .team-roster-disclosure__content{margin-top:12px;padding-top:12px}
+}
