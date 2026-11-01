@@ -126,6 +126,8 @@ test('team pages always show their navigation level', () => {
   assert.match(detail, /mannschaften\/\?gruppe=\$\{teamGroup\.key\}/);
   assert.match(detail, /label: teamName/);
   assert.match(source('src/scripts/public.ts'), /params\.get\('gruppe'\)/);
+  assert.match(source('src/scripts/public.ts'), /\{ id: 'junioren', name: 'Junioren' \}/);
+  assert.match(source('src/scripts/public.ts'), /groupForTeam\(team\) === activeCategory/);
   assert.match(component, /aria-current="page"/);
   assert.match(component, /aria-label="Brotkrümelnavigation"/);
 });
