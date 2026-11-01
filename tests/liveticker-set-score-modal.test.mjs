@@ -30,8 +30,9 @@ test('encounter has three buttons rather than an editable result text field', ()
   assert.match(admin, /\['1\. Satz', '2\. Satz', '3\. Satz'\]/);
   assert.match(admin, /type="hidden" data-enc-result/);
   assert.doesNotMatch(admin, /<input data-enc-result /);
-  assert.match(admin, /data-enc-winner="tsv"/);
-  assert.match(admin, /data-enc-winner="opponent"/);
+  assert.match(admin, /data-enc-live/);
+  assert.doesNotMatch(admin, /data-enc-winner="tsv"/);
+  assert.doesNotMatch(admin, /data-enc-winner="opponent"/);
 });
 
 test('modal selection persists score through existing private encounter update', () => {
@@ -40,7 +41,7 @@ test('modal selection persists score through existing private encounter update',
   assert.match(page, /data-set-score-clear/);
   assert.match(page, /data-set-score-close/);
   assert.match(admin, /dialog\.showModal\(\)/);
-  assert.match(admin, /updateEncounter\(encounterId, \{ result_text: resultText \}\)/);
+  assert.match(admin, /if \(await updateEncounter\(encounterId, patch\)\)/);
   assert.match(admin, /await refreshChangedEncounter\(encounterId, 'Satz-Ergebnis gespeichert\.'\)/);
   assert.match(admin, /if \(!score && next\.slice\(setIndex \+ 1\)\.some\(Boolean\)/);
   assert.match(admin, /window\.confirm\('Wenn du diesen Satz löschst/);
