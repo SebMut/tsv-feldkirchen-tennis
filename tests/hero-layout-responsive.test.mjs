@@ -121,3 +121,17 @@ test('Spieltag "Heute" never falls back to a later match date',()=>{
   assert.match(publicScript, /Heutige Punktspiele/);
   assert.match(publicScript, /const start = new Date\(midnightUtc - 2 \* 3600000\)/);
 });
+
+test('every listed team and detail offers tennis.de access without invented portraits',()=>{
+  const script=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
+  assert.match(script,/const TENNIS_DE_CLUB_SEARCH_URL/);
+  assert.match(script,/mannschaftssuche\\.html\\?verband=btv&verein=01012/);
+  assert.match(script,/function tennisDeTeamDestination/);
+  assert.match(script,/href: portrait \\|\\| TENNIS_DE_CLUB_SEARCH_URL, isDirect: !!portrait/);
+  assert.match(script,/function officialTennisDePortraitUrl/);
+  assert.match(script,/\\^#teamportrait\\\\\\/\\\\d\\+\\$/);
+  assert.match(script,/const tennisDeTarget = tennisDeTeamDestination\\(ts\\);/);
+  assert.match(script,/const tennisDeTarget = tennisDeTeamDestination\\(current\\);/);
+  assert.match(script,/tennisDeTarget\\.isDirect \\? 'tennis\\.de Portrait ↗' : 'tennis\\.de Team suchen ↗'/);
+  assert.match(script,/tennisDeTarget\\.isDirect \\? 'tennis\\.de Mannschaftsporträt ↗' : 'tennis\\.de Mannschaftssuche ↗'/);
+});
