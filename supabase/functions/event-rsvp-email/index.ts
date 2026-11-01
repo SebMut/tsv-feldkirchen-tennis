@@ -63,6 +63,9 @@ function validate(input:Record<string,unknown>) {
   const adults=Number(input.adults),children=Number(input.children);
   const dessert=String(input.dessert||'').trim(), salad=String(input.salad||'').trim();
   const youth=input.youth;
+  const women=input.women ?? [], men=input.men ?? [];
+  const validAdults=(names:unknown):names is string[] => Array.isArray(names) && names.length<=12
+    && names.every(n=>typeof n==='string'&&n.trim().length>=2&&n.trim().length<=100);
   if (!uuid(input.event_id) || name.length<2||name.length>100||!validEmail(email)
     || !['yes','maybe','no'].includes(String(attendance))
     || !Number.isInteger(adults)||!Number.isInteger(children)
@@ -70,13 +73,15 @@ function validate(input:Record<string,unknown>) {
     || (attendance==='yes' && adults+children<1)
     || (attendance!=='yes' && adults+children!==0)
     || dessert.length>180||salad.length>180
+    || !validAdults(women)||!validAdults(men)
     || !Array.isArray(youth)||youth.length>12
     || !youth.every(x=>x && typeof x==='object'
       && typeof x.name==='string' && x.name.trim().length>=2 && x.name.trim().length<=100
       && categories.has(x.category))) return null;
   return { name,email,attendance,adults,children,dessert,salad,
     help_setup:input.help_setup===true,help_cleanup:input.help_cleanup===true,
-    youth:youth.map(x=>({name:x.name.trim(),category:x.category})) };
+    youth:youth.map(x=>({name:x.name.trim(),category:x.category})),
+    women:women.map(name=>name.trim()),men:men.map(name=>name.trim()) };
 }
 function describe(p:ReturnType<typeof validate>,event:{title:string;starts_at:string;location_name:string|null}) {
   if (!p) return [];
@@ -90,6 +95,8 @@ function describe(p:ReturnType<typeof validate>,event:{title:string;starts_at:st
     ['Kuchen/Nachspeise',p.dessert||'–'],['Salat/Vorspeise',p.salad||'–'],
     ['Hilfe Aufbau',p.help_setup?'Ja':'Nein'],['Hilfe Abbau',p.help_cleanup?'Ja':'Nein'],
     ['Jugendmeisterschaften',p.youth.length?p.youth.map(x=>x.name+' ('+c[x.category]+')').join(', '):'Keine Meldung'],
+    ['Damenmeisterschaft',p.women.length?p.women.join(', '):'Keine Meldung'],
+    ['Herrenmeisterschaft',p.men.length?p.men.join(', '):'Keine Meldung'],
   ] as [string,string][];
 }
 
@@ -250,12 +257,27 @@ Deno.serve(async request=>{
   const p=validate(body);
   if(!p) return reply(400,{error:'Bitte die Angaben einschließlich E-Mail-Adresse prüfen.'},origin);
   const {data:event,error:eventError}=await db.from('events')
-    .select('id,title,starts_at,location_name,rsvp_enabled,rsvp_deadline')
+    .select('id,title,starts_at,location_name,rsvp_enabled,rsvp_deadline,rsvp_details')
     .eq('id',body.event_id).eq('status','published').eq('rsvp_enabled',true).maybeSingle();
   if(eventError||!event) return reply(404,{error:'Die Veranstaltung ist nicht für Anmeldungen geöffnet.'},origin);
   if(new Date(event.starts_at).getTime()<=Date.now()
     || (event.rsvp_deadline&&new Date(event.rsvp_deadline).getTime()<Date.now()))
     return reply(409,{error:'Die Anmeldefrist ist abgelaufen.'},origin);
+
+  const offers=event.rsvp_details || {};
+  if ((offers.tournament_youth_enabled===false && p.youth.length>0)
+    || (offers.tournament_women_enabled!==true && p.women.length>0)
+    || (offers.tournament_men_enabled!==true && p.men.length>0))
+    return reply(409,{error:'Eine ausgewählte Vereinsmeisterschaft ist für diese Veranstaltung nicht freigeschaltet.'},origin);
+
+  // Check after server-verified Turnstile. Never allow a second email to
+  // replace an already CONFIRMED response, even if a client sends forged data.
+  const existing=await db.from('event_rsvps').select('id')
+    .eq('event_id',event.id).eq('member_email',p.email)
+    .not('verified_at','is',null).limit(1);
+  if(existing.error) return reply(503,{error:'Die Rückmeldung konnte nicht auf doppelte Einträge geprüft werden.'},origin);
+  if((existing.data?.length||0)>0)
+    return reply(409,{error:'Für diese E-Mail-Adresse wurde bereits eine Rückmeldung bestätigt. Eine zweite Rückmeldung ist nicht möglich. Bitte eine andere E-Mail-Adresse verwenden oder den Verein kontaktieren.',code:'rsvp_duplicate_email'},origin);
 
   const ip=request.headers.get('cf-connecting-ip')
     ||request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'unknown';
