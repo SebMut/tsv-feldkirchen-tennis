@@ -87,6 +87,7 @@ test('admin modal supports manual input on all three sets without changing prese
     assert.ok(page.includes('id="'+id+'"'),id);
   }
   assert.ok(page.includes('Zwischenstand speichern'));
+  assert.ok(page.indexOf('id="encounter-set-dialog-manual"') < page.indexOf('id="encounter-set-dialog-options"'), 'Manual option must appear before long preset lists');
   assert.ok(admin.includes('manualForm.onsubmit = (event) =>'));
   assert.ok(admin.includes('validateSetScore(enteredScore, setIndex)'));
   assert.ok(admin.includes('const maxScore = setIndex === 2 ? 99 : 7'));
