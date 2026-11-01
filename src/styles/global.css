@@ -1330,3 +1330,86 @@ main.main--flush{padding:0}
   .matchday-page--ticker .matchday-panel{padding:16px}
   .matchday-page--ticker .matchday-panel h2{font-size:1.32rem;margin:3px 0 12px}
 }
+
+/* True responsive layout for squad overview and individual team pages.
+   Grid children may not impose their minimum-content width on the viewport. */
+.teams-page,.team-detail-page{grid-template-columns:minmax(0,1fr);min-width:0;max-width:100%}
+.teams-page>*,.team-detail-page>*,.teams-results>*,.teams-official-widget>*{min-width:0;max-width:100%}
+.teams-page .team-grid,.teams-page .team-grid>*{min-width:0;max-width:100%}
+.teams-page .team-overview-card{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+}
+.teams-page .team-overview-card>*,.teams-page .team-overview-card>div,
+.teams-page .team-overview-next,.teams-page .team-overview-next>*{min-width:0;max-width:100%}
+.teams-page .team-overview-card .button{min-width:0;max-width:100%;white-space:normal;text-align:center;overflow-wrap:anywhere}
+.teams-page .team-overview-card__image-link img,.teams-page .team-card__image-link img{width:100%;height:auto}
+.teams-results__heading>div{min-width:0}
+.teams-page .teams-results__official,.teams-official-widget a{max-width:100%;overflow-wrap:anywhere}
+.team-detail-page .hero{grid-template-columns:minmax(0,1.45fr) minmax(0,.75fr)}
+.team-detail-page .hero>*,.team-detail-page .hero .card,
+.team-detail-page .grid>*,.team-detail-page .card,
+.team-detail-page .match-row,.team-detail-page .news-row,
+.team-detail-page .roster-grid,.team-detail-page .player-card>div{min-width:0;max-width:100%}
+.team-detail-page .hero img{width:100%;height:auto}
+.team-detail-page .hero .button,.team-detail-page .next-match-card .button{
+  max-width:100%;
+  min-width:0;
+  white-space:normal;
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+.team-detail-page .table-wrap{
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.team-detail-page .team-standings-table{min-width:840px}
+.team-standings-scroll-hint{display:none}
+.team-detail-page .next-match-card__teams span,
+.team-detail-page .match-row__main,
+.team-detail-page #team-season{overflow-wrap:anywhere}
+@media(max-width:980px){
+  .teams-page .team-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .team-detail-page .hero{grid-template-columns:minmax(0,1fr);gap:14px}
+  .team-detail-page .hero>.card{padding:12px}
+  .team-detail-page .hero .actions{flex-wrap:wrap;gap:8px}
+}
+@media(max-width:760px){
+  .teams-page{gap:18px}
+  .teams-page__intro h1{font-size:clamp(2rem,8vw,2.75rem);overflow-wrap:anywhere}
+  .teams-page .team-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+  .teams-page .team-overview-card{padding:15px;gap:11px}
+  .teams-page .team-overview-card>.actions{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:8px;
+    width:100%;
+  }
+  .teams-page .team-overview-card>.actions .button{width:100%;padding:10px 12px;min-height:42px}
+  .teams-page .team-overview-next{padding:11px}
+  .teams-page .team-card h3{font-size:1.22rem}
+  .teams-page .teams-category-chip{padding:8px 11px;font-size:.82rem;min-width:0;max-width:100%}
+  .teams-page .teams-results__official{font-size:.88rem}
+  .team-detail-page{gap:16px}
+  .team-detail-page .grid.two,.team-detail-page #team-gallery{grid-template-columns:minmax(0,1fr)}
+  .team-detail-page .roster-grid{grid-template-columns:minmax(0,1fr)}
+  .team-detail-page .hero{padding-top:15px}
+  .team-detail-page .hero .actions{display:grid;grid-template-columns:minmax(0,1fr)}
+  .team-detail-page .hero .actions .button{width:100%;min-height:43px;padding:9px 12px}
+  .team-detail-page .match-row,.team-detail-page .news-row{grid-template-columns:minmax(0,1fr)}
+  .team-detail-page .phase8-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .team-detail-page .next-match-card__teams{grid-template-columns:minmax(0,1fr)}
+  .team-standings-scroll-hint{display:block;margin:3px 0 10px;font-size:.82rem;color:#64736c}
+}
+@media(max-width:380px){
+  .teams-page .team-overview-card{padding:12px}
+  .teams-page .teams-category-chips{gap:6px}
+  .teams-page .teams-category-chip{padding:8px 9px}
+}
