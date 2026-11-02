@@ -22,10 +22,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
   import { supabase } from '../../lib/supabase';
   import { escapeHtml, formatDateTime } from '../../lib/ui';
 
-  loadNews();
-
   const section = document.querySelector<HTMLElement>('#event-news');
   const list = document.querySelector<HTMLElement>('#event-news-list');
+  const newsList = document.querySelector<HTMLElement>('#news-list');
+  const linkedNewsIds = new Set<string>();
+
   if (section && list) {
     const { data: events } = await supabase
       .from('events')
@@ -39,6 +40,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
       return end >= now - 86400000;
     });
 
+    rows.forEach((event: any) => {
+      const match = typeof event.slug === 'string' ? /^news-([0-9a-f-]{36})$/i.exec(event.slug) : null;
+      if (match) linkedNewsIds.add(match[1]);
+    });
+
     if (rows.length) {
       section.hidden = false;
       list.innerHTML = rows.map((event: any) => {
@@ -46,10 +52,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
           ? `/veranstaltung/?slug=${encodeURIComponent(event.slug)}`
           : '/termine/';
         const description = event.description || 'Gemeinsam Tennis und Vereinsleben erleben – alle Informationen zur Veranstaltung findest du hier.';
+        const linkedNewsId = typeof event.slug === 'string' ? /^news-([0-9a-f-]{36})$/i.exec(event.slug)?.[1] : undefined;
         return `
           <article class="event-news-card">
             <a class="event-news-card__image" href="${href}" aria-label="${escapeHtml(event.title)} öffnen">
-              <img src="/images/veranstaltung-ai.svg" alt="Stimmungsbild zur Veranstaltung ${escapeHtml(event.title)}" loading="lazy" />
+              <img data-event-news-id="${escapeHtml(linkedNewsId || '')}" src="/images/veranstaltung-ai.svg" alt="Stimmungsbild zur Veranstaltung ${escapeHtml(event.title)}" loading="lazy" />
               <span>Veranstaltung</span>
             </a>
             <div class="event-news-card__body">
@@ -61,8 +68,26 @@ import MainLayout from '../../layouts/MainLayout.astro';
             </div>
           </article>`;
       }).join('');
+
+      if (linkedNewsIds.size) {
+        const { data: linkedNews } = await supabase
+          .from('news')
+          .select('id,hero_image_path')
+          .in('id', [...linkedNewsIds]);
+        (linkedNews ?? []).forEach((article: any) => {
+          if (!article.hero_image_path) return;
+          const image = list.querySelector<HTMLImageElement>(`img[data-event-news-id="${article.id}"]`);
+          if (image) image.src = `${import.meta.env.PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${article.hero_image_path}`;
+        });
+      }
     }
   }
+
+  await loadNews();
+  linkedNewsIds.forEach(id => {
+    const duplicate = newsList?.querySelector<HTMLElement>(`[data-news-id="${id}"]`);
+    duplicate?.remove();
+  });
 </script>
 <style>
   .aktuelles-page{padding-bottom:42px}
