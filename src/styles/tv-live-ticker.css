@@ -240,6 +240,9 @@ body.tv-ticker{margin:0;background:#041119;color:#f6f9fa;font-family:Inter,syste
 .tv-ticker__set{
   grid-template-rows:var(--tv-set-head) repeat(2,var(--tv-set-player));
 }
+.tv-ticker__set>small{
+  border-bottom:1px solid #102833;
+}
 .tv-ticker__set>small,
 .tv-ticker__set>.tv-ticker__set-value{
   height:100%;
