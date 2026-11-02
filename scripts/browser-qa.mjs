@@ -111,7 +111,7 @@ async function deviceQA(device){
     assert.match(shortText,/10:30 Uhr/,'Stored event excerpt is missing in the public card');
     assert.match(shortText,/machen wir unsere Tennisplätze gemeinsam winterfest/);
     assert.doesNotMatch(shortText,/Und danach wird.s gemütlich/,'Long description incorrectly replaced the short text');
-    const fullText = await platzabbau.locator('.content-card__full-text').innerText();
+    const fullText = (await platzabbau.locator('.content-card__full-text').textContent()) || '';
     assert.match(fullText,/Brotzeit/,'Long description was lost');
   },page);
   await check(device.name+' calendar modal Escape',async()=>{
