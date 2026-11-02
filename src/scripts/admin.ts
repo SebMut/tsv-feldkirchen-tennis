@@ -5,6 +5,7 @@ import { initPhase8Admin } from './phase8';
 import { initManualResultsPanel } from './manual-results-admin';
 import { initOfficialReportsPanel } from './official-reports-admin';
 import { initEventRsvpAdmin } from './event-rsvp-admin';
+import { initEditorialComposer } from './editorial-composer';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
 import { summarizeSetResult, homeAwaySetScore, validateSetScore } from '../lib/tennis-score.mjs';
 
@@ -2553,6 +2554,13 @@ async function startApp(user: any) {
   renderSelectors();
   bindNav();
   bindForms();
+  if (canNews || canEvents) {
+    initEditorialComposer({ canNews, canEvents, user: state.user });
+    window.addEventListener('tsv:editorial-content-changed', () => {
+      if (canNews) void refreshNews();
+      if (canEvents) void refreshNewsReferenceEvents();
+    });
+  }
   initBtvSourceRegistry();
   initTickerMultiDeviceSync();
   $<HTMLButtonElement>('#btv-sync-refresh')?.addEventListener('click', () => void refreshWinterBtvHealth());
