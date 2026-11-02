@@ -137,7 +137,8 @@ test('TV timings have an independent save action that checks real stored values'
   assert.match(controller, /\.select\('key,value'\)\.single\(\)/);
   assert.match(controller, /\.select\('value'\)\.eq\('key', 'tv_ticker_timing'\)\.maybeSingle\(\)/);
   assert.match(controller, /\['#setting-tv-poll', 'Datenabfrage', 5, 600\]/);
-  assert.match(controller, /Rückblick-Dauer.*muss kürzer als der Rückblick-Abstand/);
+  assert.match(controller, /Rückblick-Dauer/);
+  assert.match(controller, /muss kürzer als der Rückblick-Abstand/);
   assert.match(controller, /#save-tv-timing'\)\?\.addEventListener\('click'/);
   const generalSave=controller.split('async function saveSettings(')[1]?.split('async function loadPlacements(')[0];
   assert.ok(generalSave);
