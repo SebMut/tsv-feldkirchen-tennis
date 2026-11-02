@@ -37,25 +37,57 @@ import MainLayout from '../../layouts/MainLayout.astro';
     .replace(/[🍂🎾🍻🥨]+\s*$/u, '')
     .trim();
 
-  // Install a delegated handler before the first asynchronous data request.
-  // Otherwise visitors can click an already visible event before loadNews() finishes.
-  const expandCard = (id: string, scroll = false) => {
-    if (!/^(event|news)-[0-9a-f-]{36}$/i.test(id)) return false;
+  // Links and native <summary> controls must both open AND close the same details.
+  // Keep the URL in sync so a closed entry does not reopen after a hash change.
+  const cardDetails = (id: string) => {
+    if (!/^(event|news)-[0-9a-f-]{36}$/i.test(id)) return null;
     const card = document.getElementById(id);
     const details = card?.querySelector<HTMLDetailsElement>('details[data-expanded-details]');
-    if (!card || !details) return false;
-    details.open = true;
-    if (scroll) requestAnimationFrame(() => card.scrollIntoView({behavior:'smooth', block:'start'}));
+    return card && details ? {card, details} : null;
+  };
+  const syncDetailsControls = (card: HTMLElement, details: HTMLDetailsElement) => {
+    card.querySelectorAll<HTMLAnchorElement>('a[data-open-detail]').forEach(anchor => {
+      anchor.setAttribute('aria-expanded', String(details.open));
+      if (anchor.hasAttribute('data-detail-toggle-label')) {
+        anchor.textContent = details.open ? 'Details schließen ↑' : 'Details lesen →';
+      }
+    });
+    const summary = details.querySelector('summary');
+    if (summary) summary.textContent = details.open
+      ? 'Weniger anzeigen ↑'
+      : card.classList.contains('content-card--event') ? 'Vollständigen Text anzeigen →' : 'Weiterlesen →';
+  };
+  const clearDetailUrl = (id: string) => {
+    const url = new URL(location.href);
+    const kind = id.startsWith('event-') ? 'event' : 'news';
+    const uuid = id.slice(kind.length + 1);
+    let changed = false;
+    if (url.searchParams.get(kind) === uuid) { url.searchParams.delete(kind); changed = true; }
+    if (decodeURIComponent(url.hash.slice(1)) === id) { url.hash = ''; changed = true; }
+    if (changed) history.replaceState(history.state, '', url);
+  };
+  const expandCard = (id: string, scroll = false) => {
+    const found = cardDetails(id);
+    if (!found) return false;
+    found.details.open = true;
+    syncDetailsControls(found.card, found.details);
+    if (scroll) requestAnimationFrame(() => found.card.scrollIntoView({behavior:'smooth', block:'start'}));
     return true;
   };
+  // Delegated handlers work for event cards and News cards added asynchronously.
   document.addEventListener('click', event => {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const anchor = target.closest<HTMLAnchorElement>('a[data-open-detail]');
     if (!anchor) return;
     const id = anchor.getAttribute('href')?.slice(1) || '';
-    if (!expandCard(id, true)) return;
+    const found = cardDetails(id);
+    if (!found) return;
     event.preventDefault();
+    const shouldOpen = !found.details.open;
+    found.details.open = shouldOpen;
+    syncDetailsControls(found.card, found.details);
+    if (!shouldOpen) { clearDetailUrl(id); return; }
     const url = new URL(location.href);
     url.searchParams.delete('event');
     url.searchParams.delete('news');
@@ -63,7 +95,17 @@ import MainLayout from '../../layouts/MainLayout.astro';
     url.searchParams.set(kind, id.slice(kind.length + 1));
     url.hash = id;
     history.replaceState(history.state, '', url);
+    requestAnimationFrame(() => found.card.scrollIntoView({behavior:'smooth', block:'start'}));
   });
+  // Native summary clicks and keyboard toggles also update links and deep links.
+  document.addEventListener('toggle', event => {
+    const details = event.target;
+    if (!(details instanceof HTMLDetailsElement) || !details.matches('details[data-expanded-details]')) return;
+    const card = details.closest<HTMLElement>('.content-card');
+    if (!card) return;
+    syncDetailsControls(card, details);
+    if (!details.open && card.id) clearDetailUrl(card.id);
+  }, true);
 
   if (section && list) {
     const { data: events } = await supabase
@@ -102,7 +144,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
               <div class="content-card__meta"><span class="content-card__badge">Veranstaltung</span><time>${event.all_day ? 'Ganztägig · ' : ''}${escapeHtml(formatDateTime(event.starts_at))}</time></div>
               <h3><a href="${href}" data-open-detail>${escapeHtml(cleanTitle(event.title))}</a></h3>
               <p class="content-card__description">${escapeHtml(description)}</p>
-              <div class="content-card__footer"><span>📍 ${escapeHtml(event.location_name || 'TSV Feldkirchen')}</span><a href="${href}" data-open-detail>Details lesen →</a></div>
+              <div class="content-card__footer"><span>📍 ${escapeHtml(event.location_name || 'TSV Feldkirchen')}</span><a href="${href}" data-open-detail data-detail-toggle-label aria-expanded="false">Details lesen →</a></div>
               <details class="content-card__details" data-expanded-details>
                 <summary>Vollständigen Text anzeigen →</summary>
                 <div class="content-card__full-text">${fullDescription}</div>
@@ -175,8 +217,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
     card.appendChild(body);
   });
 
-  const selected = new URLSearchParams(location.search);
   const openFromUrl = () => {
+    const selected = new URLSearchParams(location.search);
     const hash = location.hash.slice(1);
     const candidate = /^(event|news)-[0-9a-f-]{36}$/i.test(hash) ? hash
       : selected.get('event') ? `event-${selected.get('event')}`
