@@ -7,7 +7,7 @@ import { initOfficialReportsPanel } from './official-reports-admin';
 import { initEventRsvpAdmin } from './event-rsvp-admin';
 import { initEditorialComposer } from './editorial-composer';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
-import { summarizeSetResult, homeAwaySetScore, validateSetScore } from '../lib/tennis-score.mjs';
+import { summarizeSetResult, homeAwaySetScore, validateSetScore, adjustSetScore } from '../lib/tennis-score.mjs';
 
 type Row = Record<string, any>;
 const state: {
@@ -1351,6 +1351,19 @@ async function refreshMatches() {
     const firstSetCompleted = !!setScores[0] && validateSetScore(setScores[0], 0).complete;
     const afterTwoSets = summarizeSetResult(`${setScores[0]} ${setScores[1]}`);
     const thirdSetAllowed = afterTwoSets.tsvSets === 1 && afterTwoSets.opponentSets === 1;
+    const stepper = (setIndex: number, side: 'tsv' | 'opponent') => {
+      const current = setScores[setIndex] ? setScores[setIndex].split(':').map(Number) : [0, 0];
+      const digit = current[side === 'tsv' ? 0 : 1];
+      const permitted = setIndex === 0 || (setIndex === 1 ? firstSetCompleted : thirdSetAllowed);
+      const button = (delta: number) => {
+        const next = adjustSetScore(setScores[setIndex], setIndex, side, delta);
+        const disabled = !permitted || !next.valid;
+        return `<button class="encounter-set-stepper__control" type="button" data-enc-step="${setIndex}" data-enc-side="${side}" data-enc-delta="${delta}" aria-label="${setIndex + 1}. Satz ${side === 'tsv' ? 'TSV' : 'Gegner'} ${delta > 0 ? 'erhöhen' : 'verringern'}" ${disabled ? 'disabled' : ''}>${delta > 0 ? '+' : '−'}</button>`;
+      };
+      return `<div class="encounter-set-stepper" aria-label="${side === 'tsv' ? 'TSV' : 'Gegner'} Punkte in Satz ${setIndex + 1}">
+        ${button(1)}<strong>${digit}</strong>${button(-1)}
+      </div>`;
+    };
     return `
       <details class="encounter-card ${encounter.status === 'live' ? 'is-live' : ''}" data-encounter-id="${encounter.id}" ${isOpen ? 'open' : ''}>
         <summary class="encounter-card__head">
@@ -1370,15 +1383,20 @@ async function refreshMatches() {
             <div class="encounter-set-editor__heading"><strong>Ergebnis</strong><span>TSV : Gegner</span></div>
             <div class="encounter-set-grid">
               ${['1. Satz', '2. Satz', '3. Satz'].map((label, index) => `
-                <button class="encounter-set-button ${setScores[index] ? 'has-score' : ''}"
-                  type="button" data-enc-set="${index}" aria-label="${label}${index === 2 ? ' Match-Tiebreak' : ''}: ${setScores[index] || 'noch kein Ergebnis'}"
-                  ${(index === 1 && !firstSetCompleted) || (index === 2 && !thirdSetAllowed)
-                    ? 'disabled title="Bitte zuerst den vorherigen Satz beenden"' : ''}>
-                  <span>${label}</span><strong>${setScores[index] || '–'}</strong>
-                  ${setScores[index] && !validateSetScore(setScores[index], index).complete
-                    ? '<small>Zwischenstand</small>'
-                    : index === 2 ? '<small>Match-Tiebreak</small>' : ''}
-                </button>`).join('')}
+                <div class="encounter-set-cell">
+                  <button class="encounter-set-button ${setScores[index] ? 'has-score' : ''}"
+                    type="button" data-enc-set="${index}" aria-label="${label}${index === 2 ? ' Match-Tiebreak' : ''}: ${setScores[index] || 'noch kein Ergebnis'}"
+                    ${(index === 1 && !firstSetCompleted) || (index === 2 && !thirdSetAllowed)
+                      ? 'disabled title="Bitte zuerst den vorherigen Satz beenden"' : ''}>
+                    <span>${label}</span><strong>${setScores[index] || '–'}</strong>
+                    ${setScores[index] && !validateSetScore(setScores[index], index).complete
+                      ? '<small>Zwischenstand</small>'
+                      : index === 2 ? '<small>Match-Tiebreak</small>' : ''}
+                  </button>
+                  <div class="encounter-set-steppers" role="group" aria-label="${label}: TSV und Gegner einzeln zählen">
+                    ${stepper(index, 'tsv')}${stepper(index, 'opponent')}
+                  </div>
+                </div>`).join('')}
             </div>
             <input type="hidden" data-enc-result value="${escapeHtml(encounter.result_text || '')}" />
             <p class="encounter-set-status" aria-live="polite">
