@@ -1,6 +1,6 @@
 import { mediaUrl, supabase } from '../lib/supabase';
 import { replaceMediaImage, removeMediaImage, uploadGalleryImages, removeOwnedMediaPaths } from '../lib/media-upload';
-import { initAdvancedAdmin, loadAdvancedUsers } from './admin-advanced';
+import { bindTvTimingControls, initAdvancedAdmin, loadAdvancedUsers } from './admin-advanced';
 import { initPhase8Admin } from './phase8';
 import { initManualResultsPanel } from './manual-results-admin';
 import { initOfficialReportsPanel } from './official-reports-admin';
@@ -2708,6 +2708,7 @@ async function startApp(user: any) {
   renderSelectors();
   bindNav();
   bindForms();
+  bindTvTimingControls(state); // Ready immediately, even while other admin data loads.
   if (canNews || canEvents) {
     initEditorialComposer({ canNews, canEvents, user: state.user });
     window.addEventListener('tsv:editorial-content-changed', () => {
