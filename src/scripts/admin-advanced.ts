@@ -156,6 +156,11 @@ async function loadSettings(base: BaseState) {
   set('#setting-tennis-school-url', values.get('tennis_school_url'));
   set('#setting-address', JSON.stringify(values.get('address') ?? {}, null, 2));
   set('#setting-social-links', JSON.stringify(values.get('social_links') ?? {}, null, 2));
+  const tv = (values.get('tv_ticker_timing') || {}) as Row;
+  set('#setting-tv-poll', tv.poll_seconds ?? 30);
+  set('#setting-tv-recap-every', tv.recap_every_seconds ?? 300);
+  set('#setting-tv-recap-for', tv.recap_duration_seconds ?? 30);
+  set('#setting-tv-highlight', tv.highlight_seconds ?? 300);
 }
 
 async function saveSettings(event: Event, base: BaseState) {
@@ -170,7 +175,18 @@ async function saveSettings(event: Event, base: BaseState) {
     return reportStatus('Adresse und Social-Links müssen gültiges JSON sein.', 'error');
   }
 
+  const tvPoll = Number($<HTMLInputElement>('#setting-tv-poll')?.value);
+  const tvEvery = Number($<HTMLInputElement>('#setting-tv-recap-every')?.value);
+  const tvDuration = Number($<HTMLInputElement>('#setting-tv-recap-for')?.value);
+  const tvHighlight = Number($<HTMLInputElement>('#setting-tv-highlight')?.value);
+  if (![tvPoll,tvEvery,tvDuration,tvHighlight].every(Number.isInteger)
+    || tvPoll < 5 || tvPoll > 600 || tvEvery < 10 || tvEvery > 3600
+    || tvDuration < 1 || tvDuration >= tvEvery || tvHighlight < 5 || tvHighlight > 3600) {
+    return reportStatus('Ungültige TV-Zeiten: Anzeigezeit muss kürzer als der Wiederholungsabstand sein. Alle Werte müssen im angegebenen Bereich liegen.', 'error');
+  }
   const rows = [
+    ['tv_ticker_timing', { poll_seconds: tvPoll, recap_every_seconds: tvEvery,
+      recap_duration_seconds: tvDuration, highlight_seconds: tvHighlight }],
     ['club_name', $<HTMLInputElement>('#setting-club-name')?.value.trim() || 'TSV Feldkirchen Tennis'],
     ['email', $<HTMLInputElement>('#setting-email')?.value.trim() || ''],
     ['phone', $<HTMLInputElement>('#setting-phone')?.value.trim() || ''],
