@@ -2702,3 +2702,28 @@ main.main--flush{padding:0}
   html{scroll-behavior:auto}
   :where(.team-card__image-link img){transition:none}
 }
+
+
+/* Protected operational status cards and readable failure details. */
+.ops-health-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,195px),1fr));gap:10px}
+.ops-health-tile{min-width:0;border:1px solid #d8e4db;border-left:4px solid #247e48;border-radius:10px;padding:12px;background:#f8fbf9}
+.ops-health-tile[data-level="warning"]{border-left-color:#bf7515;background:#fff8ec}
+.ops-health-tile[data-level="error"]{border-left-color:#b0182e;background:#fff3f4}
+.ops-health-tile>strong{display:block;font-size:.88rem;color:#243b2d}
+.ops-health-tile>p{margin:5px 0 0;color:#475f4d;font-size:.79rem;line-height:1.4}
+.ops-health-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-top:18px}
+.ops-health-details>section{min-width:0;border:1px solid #dae7df;border-radius:12px;padding:14px;background:#fff}
+.ops-health-details h3{margin:0 0 10px;font-size:1rem}
+.ops-health-details p{margin:0;font-size:.85rem}
+.ops-detail-list{margin:0;padding-left:18px;display:grid;gap:7px;font-size:.78rem}
+.ops-detail-list li{min-width:0;overflow-wrap:anywhere}
+.ops-detail-list code{overflow-wrap:anywhere;white-space:normal;font-size:.72rem}
+.ops-restore #ops-restore-last{padding:10px 12px;margin-bottom:16px;background:#eef6ee;border:1px solid #d8e8da;border-radius:10px}
+.ops-restore #ops-restore-last p{margin:3px 0;font-size:.86rem}
+.ops-warning{font-weight:750;color:#8f4d12}
+#ops-restore-form{align-items:start}
+#ops-restore-feedback{margin:0;overflow-wrap:anywhere}
+@media(max-width:640px){
+  .ops-health-details{grid-template-columns:minmax(0,1fr)}
+  .ops-health-tile{padding:10px}
+}
