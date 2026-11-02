@@ -37,6 +37,34 @@ import MainLayout from '../../layouts/MainLayout.astro';
     .replace(/[🍂🎾🍻🥨]+\s*$/u, '')
     .trim();
 
+  // Install a delegated handler before the first asynchronous data request.
+  // Otherwise visitors can click an already visible event before loadNews() finishes.
+  const expandCard = (id: string, scroll = false) => {
+    if (!/^(event|news)-[0-9a-f-]{36}$/i.test(id)) return false;
+    const card = document.getElementById(id);
+    const details = card?.querySelector<HTMLDetailsElement>('details[data-expanded-details]');
+    if (!card || !details) return false;
+    details.open = true;
+    if (scroll) requestAnimationFrame(() => card.scrollIntoView({behavior:'smooth', block:'start'}));
+    return true;
+  };
+  document.addEventListener('click', event => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const anchor = target.closest<HTMLAnchorElement>('a[data-open-detail]');
+    if (!anchor) return;
+    const id = anchor.getAttribute('href')?.slice(1) || '';
+    if (!expandCard(id, true)) return;
+    event.preventDefault();
+    const url = new URL(location.href);
+    url.searchParams.delete('event');
+    url.searchParams.delete('news');
+    const kind = id.startsWith('event-') ? 'event' : 'news';
+    url.searchParams.set(kind, id.slice(kind.length + 1));
+    url.hash = id;
+    history.replaceState(history.state, '', url);
+  });
+
   if (section && list) {
     const { data: events } = await supabase
       .from('events')
@@ -147,30 +175,6 @@ import MainLayout from '../../layouts/MainLayout.astro';
     card.appendChild(body);
   });
 
-  // Every card has a shareable URL; opening a card reveals its full text here.
-  const expandCard = (id: string, scroll = false) => {
-    if (!/^(event|news)-[0-9a-f-]{36}$/i.test(id)) return false;
-    const card = document.getElementById(id);
-    const details = card?.querySelector<HTMLDetailsElement>('details[data-expanded-details]');
-    if (!card || !details) return false;
-    details.open = true;
-    if (scroll) requestAnimationFrame(() => card.scrollIntoView({behavior:'smooth', block:'start'}));
-    return true;
-  };
-  document.querySelectorAll<HTMLAnchorElement>('[data-open-detail]').forEach(anchor => {
-    anchor.addEventListener('click', event => {
-      const id = anchor.getAttribute('href')?.slice(1) || '';
-      if (!expandCard(id, true)) return;
-      event.preventDefault();
-      const url = new URL(location.href);
-      url.searchParams.delete('event');
-      url.searchParams.delete('news');
-      const kind = id.startsWith('event-') ? 'event' : 'news';
-      url.searchParams.set(kind, id.slice(kind.length + 1));
-      url.hash = id;
-      history.replaceState(history.state, '', url);
-    });
-  });
   const selected = new URLSearchParams(location.search);
   const openFromUrl = () => {
     const hash = location.hash.slice(1);
