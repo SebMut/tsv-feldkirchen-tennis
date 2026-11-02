@@ -72,7 +72,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <button type="button" data-panel="players" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">♙</span> Kader</button>
             <button type="button" data-panel="btv-import" data-super-only><span aria-hidden="true" class="admin-nav__symbol">↻</span> BTV-Spielplan</button>
             <button type="button" data-panel="manual-results" data-super-only class="hidden"><span aria-hidden="true" class="admin-nav__symbol">✓</span> Ergebnisse nachtragen</button>
-            <button type="button" data-panel="official-rubbers" data-super-only class="hidden"><span aria-hidden="true" class="admin-nav__symbol">≡</span> Einzel &amp; Doppel 2026</button>
+            <button type="button" data-panel="official-rubbers" data-super-only class="hidden"><span aria-hidden="true" class="admin-nav__symbol">≡</span> Amtliche Spielberichte</button>
           </div>
           <div class="admin-nav__group" data-admin-nav-group="inhalte">
             <p class="admin-nav__label">Inhalte &amp; Verein</p>
@@ -143,7 +143,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <section id="panel-official-rubbers" class="admin-panel" data-super-only>
             <div class="card stack">
               <p class="eyebrow">SuperAdmin · Amtliche Spielberichte</p>
-              <h2>Einzel &amp; Doppel · Sommer 2026</h2>
+              <h2 id="btv-rubbers-season-title">Einzel &amp; Doppel · aktuelle Saison</h2>
               <p class="muted">Nur tatsächlich aus offiziellen BTV-Spielberichten geprüfte Aufstellungen, Sätze und Match-Tiebreaks. Die Daten sind ausschließlich nach Anmeldung für berechtigte Administratoren sichtbar. Fehlende Spielberichte werden ausdrücklich gekennzeichnet.</p>
               <p id="btv-rubbers-summary" class="muted" aria-live="polite"></p>
               <div id="btv-rubbers-feedback" class="notice" aria-live="polite"></div>
@@ -259,8 +259,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <div class="card">
               <h2>Mannschaft pflegen</h2>
               <div id="team-season-filter" class="admin-season-pills" aria-label="Saison auswählen">
-                <button type="button" class="admin-season-pill is-active" data-team-season="sommer-2026" aria-pressed="true">Sommer 2026</button>
-                <button type="button" class="admin-season-pill" data-team-season="winter-2026-2027" aria-pressed="false">Winter 2026/2027</button>
+                <button type="button" class="admin-season-pill is-active" data-team-season="winter-2026-2027" aria-pressed="true">Winter 2026/2027</button>
                 <button type="button" class="admin-season-pill" data-team-season="sommer-2027" aria-pressed="false">Sommer 2027</button>
               </div>
               <form id="team-form" class="form-grid">
@@ -286,8 +285,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <div class="card">
               <h2>Kader</h2>
               <div id="roster-season-filter" class="admin-season-pills" aria-label="Kadersaison auswählen">
-                <button type="button" class="admin-season-pill is-active" data-roster-season="sommer-2026" aria-pressed="true">Sommer 2026</button>
-                <button type="button" class="admin-season-pill" data-roster-season="winter-2026-2027" aria-pressed="false">Winter 2026/2027</button>
+                <button type="button" class="admin-season-pill is-active" data-roster-season="winter-2026-2027" aria-pressed="true">Winter 2026/2027</button>
                 <button type="button" class="admin-season-pill" data-roster-season="sommer-2027" aria-pressed="false">Sommer 2027</button>
               </div>
               <div class="field"><label>Mannschaft / Saison</label><select id="players-team-season"></select></div>

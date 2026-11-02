@@ -661,8 +661,8 @@ export async function loadTeams() {
     s && (seasonCounts.get(s.code) || 0) > 0 && s.starts_on <= today && s.ends_on >= today);
   const defaultSeason = managedCurrentSeason || byCurrentDate
     || seasonCodes.map(code => seasonByCode.get(code)).find((s: Row | undefined) => s && (seasonCounts.get(s.code) || 0) > 0)
-    || seasonByCode.get('sommer-2026');
-  let activeCode = defaultSeason?.code || 'sommer-2026';
+    || seasonByCode.get('winter-2026-2027');
+  let activeCode = defaultSeason?.code || seasonCodes[0] || 'winter-2026-2027';
   let activeCategory = '';
   const knownCategories = teamGroups.filter((category) =>
     publishedTeamSeasons.some((ts: Row) => groupForTeam(teamsById.get(ts.team_id)) === category.id));
@@ -702,7 +702,7 @@ export async function loadTeams() {
     const requestedCode = seasonCodes.includes(code || '') ? code :
       legacy && seasonCodes.includes(legacy) ? legacy : '';
     activeCode = requestedCode || (activeCategory ? seasonForGroup(activeCategory) : undefined)
-      || defaultSeason?.code || 'sommer-2026';
+      || defaultSeason?.code || seasonCodes[0] || 'winter-2026-2027';
   };
   const setUrlState = () => {
     const url = new URL(window.location.href);
@@ -738,7 +738,7 @@ export async function loadTeams() {
         return rank(a.team) - rank(b.team) || (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0) || String(a.team.name).localeCompare(String(b.team.name), 'de');
       });
     const rows = allRows.filter(({ team }: {team: Row}) => !activeCategory || groupForTeam(team) === activeCategory);
-    const title = selectedSeason?.name || (activeCode === 'winter-2026-2027' ? 'Winter 2026/2027' : activeCode === 'sommer-2027' ? 'Sommer 2027' : 'Sommer 2026');
+    const title = selectedSeason?.name || (activeCode === 'winter-2026-2027' ? 'Winter 2026/2027' : activeCode === 'sommer-2027' ? 'Sommer 2027' : 'Saison');
     heading.textContent = title;
     info.textContent = allRows.length > 0
       ? `${rows.length} ${rows.length === 1 ? 'Mannschaft' : 'Mannschaften'}${activeCategory ? ' in dieser Kategorie' : ' in dieser Runde'}`
@@ -796,7 +796,7 @@ export async function loadTeams() {
   nav.addEventListener('click', (event: MouseEvent) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-season]');
     if (!button || !nav.contains(button) || button.dataset.season === activeCode) return;
-    activeCode = button.dataset.season || 'sommer-2026';
+    activeCode = button.dataset.season || defaultSeason?.code || 'winter-2026-2027';
     activeCategory = '';
     setUrlState();
     render();

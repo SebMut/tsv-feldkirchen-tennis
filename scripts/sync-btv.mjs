@@ -5,8 +5,9 @@ import { getClubSchedule, normalizedName } from './btv-schedule.mjs';
 import { getWinterSchedule, WINTER_CODE, WINTER_YEAR } from './btv-winter-schedule.mjs';
 
 const apply = process.argv.includes('--apply');
-const isWinter = process.env.BTV_SEASON_CODE === WINTER_CODE;
-const year = isWinter ? WINTER_YEAR : Number(process.env.BTV_SEASON_YEAR || 2026);
+const isWinter = process.env.BTV_SEASON_CODE === WINTER_CODE || !process.env.BTV_SEASON_YEAR;
+const year = isWinter ? WINTER_YEAR : Number(process.env.BTV_SEASON_YEAR);
+if (!isWinter && year < 2027) throw new Error('Sommer 2026 wurde vollständig entfernt und darf nicht wieder importiert werden.');
 const seasonCode = isWinter ? WINTER_CODE : 'sommer-' + year;
 if (process.env.BTV_SEASON_CODE && process.env.BTV_SEASON_CODE !== WINTER_CODE)
   throw new Error('Unverified BTV competition code; refusing import');

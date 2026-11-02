@@ -15,7 +15,7 @@ test('new roster assignments default to private without changing existing approv
 test('official tennis.de widget shows current teams but TSV preserves historic seasons',()=>{
   assert.match(page,/zeigt automatisch die aktuell gemeldete Saison/);
   assert.match(page,/Für frühere Sommer- und Winterrunden/);
-  assert.match(page,/data-season="sommer-2026"/);
+  assert.doesNotMatch(page,/data-season="sommer-2026"/);
   assert.match(page,/data-season="winter-2026-2027"/);
   assert.match(page,/data-src="https:\/\/services\.tennis\.de\/extern\/tennisdeteamsearch\.zul\?verband=BTV&amp;verein=01012/);
   assert.match(page,/officialWidget\?\.addEventListener\('toggle'/);

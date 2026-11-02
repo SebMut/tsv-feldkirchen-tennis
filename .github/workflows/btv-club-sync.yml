@@ -21,9 +21,9 @@ on:
         options: [preview, apply]
         default: preview
       season_year:
-        description: 'Summer season year (2026 verified); winter 2026/27 is checked separately'
-        required: true
-        default: '2026'
+        description: 'Optional future summer year (2027+), only after BTV season ID has been verified'
+        required: false
+        default: ''
         type: string
   schedule:
     - cron: '17 */6 * * *'
@@ -47,9 +47,10 @@ jobs:
           node-version-file: .nvmrc
       - name: Install PDF text extractor
         run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
-      - name: Read and verify public BTV club schedule (no database access)
+      - name: Read verified future summer BTV schedule (optional; no database access)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.season_year != '' && inputs.season_year != '2026' }}
         env:
-          BTV_SEASON_YEAR: ${{ inputs.season_year || '2026' }}
+          BTV_SEASON_YEAR: ${{ inputs.season_year }}
         run: node scripts/sync-btv.mjs
       - name: Verify all 3 public winter group PDFs (read-only)
         env:
@@ -71,9 +72,10 @@ jobs:
       - run: npm ci
       - name: Install PDF text extractor
         run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
-      - name: Check official schedule, atomically publish verified postponements to News
+      - name: Check a future verified summer schedule (optional)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.season_year != '' && inputs.season_year != '2026' }}
         env:
-          BTV_SEASON_YEAR: ${{ inputs.season_year || '2026' }}
+          BTV_SEASON_YEAR: ${{ inputs.season_year }}
           BTV_IMPORT_ENABLED: ${{ vars.BTV_IMPORT_ENABLED }}
           SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
         run: node scripts/sync-btv.mjs --apply

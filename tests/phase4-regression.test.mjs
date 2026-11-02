@@ -95,7 +95,7 @@ test('team administration separates summer, winter and future seasons', () => {
   assert.match(js, /replaceMediaImage\(/);
   assert.match(js, /team_image_path:\s*path/);
   assert.match(js, /Sommer \$\{String\(season\.code\)/);
-  assert.match(html, /data-team-season="sommer-2026"/);
+  assert.doesNotMatch(html, /data-team-season="sommer-2026"/);
   assert.match(html, /data-team-season="winter-2026-2027"/);
   assert.match(html, /data-team-season="sommer-2027"/);
   assert.match(js, /ts\.season_id === season\?\.id/);
@@ -105,7 +105,7 @@ test('roster administration separates summer, winter and future seasons', () => 
   const html = source('src/pages/admin/index.astro');
   const admin = source('src/scripts/admin.ts');
 
-  assert.match(html, /data-roster-season="sommer-2026"/);
+  assert.doesNotMatch(html, /data-roster-season="sommer-2026"/);
   assert.match(html, /data-roster-season="winter-2026-2027"/);
   assert.match(html, /data-roster-season="sommer-2027"/);
   assert.match(admin, /rosterSeasonFilterCode/);
@@ -150,7 +150,7 @@ test('season management controls the initial Mannschaften season', () => {
 test('public team navigation labels summer correctly and follows managed active season', () => {
   const html = source('src/pages/mannschaften/index.astro');
   const publicJs = source('src/scripts/public.ts');
-  assert.match(html, /<strong>Sommer 2026<\/strong>/);
+  assert.doesNotMatch(html, /<strong>Sommer 2026<\/strong>/);
   assert.doesNotMatch(html, /<strong>Saison 2026<\/strong>/);
   assert.match(publicJs, /const publishedSeasons = reference\.seasons\.filter/);
   assert.match(publicJs, /const seasonCodes = \[\.\.\.new Set\(/);

@@ -63,9 +63,17 @@ async function choose(id:string){
  }
 }
 async function load(){
- message('Spielberichte Sommer 2026 werden geladen …');
+ message('Amtliche Spielberichte der aktuellen Saison werden geladen …');
+ const current = await supabase.from('seasons').select('code,name')
+   .eq('is_current',true).eq('is_published',true).maybeSingle();
+ if(current.error || !current.data){
+   message('Keine aktuelle Saison festgelegt oder lesbar.','error');return;
+ }
+ const seasonCode = current.data.code;
+ const heading=byId<HTMLElement>('btv-rubbers-season-title');
+ if(heading) heading.textContent='Einzel & Doppel · '+current.data.name;
  const [m,r]=await Promise.all([
-  supabase.from('manual_editable_matches').select('match_id,starts_at,is_home,opponent,team_name,season_code').eq('season_code','sommer-2026').order('starts_at',{ascending:true}).limit(250),
+  supabase.from('manual_editable_matches').select('match_id,starts_at,is_home,opponent,team_name,season_code').eq('season_code',seasonCode).order('starts_at',{ascending:true}).limit(250),
   supabase.from('official_meeting_reports').select('id,match_id,source_meeting_id,report_url,verification_status').not('match_id','is',null).limit(250)
  ]);
  if(m.error||r.error){message('Spielberichte konnten nicht geladen werden. Berechtigungen prüfen.','error');return;}

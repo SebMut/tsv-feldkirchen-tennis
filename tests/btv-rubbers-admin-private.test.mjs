@@ -14,8 +14,8 @@ test('detailed BTV rubbers are fetched only by authenticated SuperAdmin panel',(
   assert.match(script,/from\('official_meeting_reports'\)/);
   assert.doesNotMatch(script,/localStorage|sessionStorage|upload|download|writeFileSync|console\.log/);
 });
-test('only 2026 matches with verified BTV report may show player names',()=>{
-  assert.match(script,/eq\('season_code','sommer-2026'\)/);
+test('only matches of the current season with verified BTV reports may show player names',()=>{
+  assert.match(script,/eq\('season_code',seasonCode\)/);
   assert.match(script,/report\.verification_status!=='verified'/);
   assert.match(script,/Fehlende|fehlt noch ein vollständig verifizierter/);
   assert.match(script,/r\.home_participants/);

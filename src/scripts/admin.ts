@@ -88,8 +88,8 @@ function teamSeasonLabel(ts: Row) {
   return `${team?.name ?? 'Team'} · ${seasonLabel}`;
 }
 
-let teamSeasonFilterCode = 'sommer-2026';
-let rosterSeasonFilterCode = 'sommer-2026';
+let teamSeasonFilterCode = 'winter-2026-2027';
+let rosterSeasonFilterCode = 'winter-2026-2027';
 
 function renderAdminTeamSeasonFilter(preferredId = '') {
   const select = $<HTMLSelectElement>('#team-select');
@@ -2249,11 +2249,11 @@ function renderSelectors() {
 
 function bindForms() {
   document.querySelectorAll<HTMLButtonElement>('[data-team-season]').forEach((button) => button.addEventListener('click', () => {
-    teamSeasonFilterCode = button.dataset.teamSeason || 'sommer-2026';
+    teamSeasonFilterCode = button.dataset.teamSeason || 'winter-2026-2027';
     renderAdminTeamSeasonFilter();
   }));
   document.querySelectorAll<HTMLButtonElement>('[data-roster-season]').forEach((button) => button.addEventListener('click', () => {
-    rosterSeasonFilterCode = button.dataset.rosterSeason || 'sommer-2026';
+    rosterSeasonFilterCode = button.dataset.rosterSeason || 'winter-2026-2027';
     renderAdminRosterSeasonFilter();
     resetPlayerForm();
     clearBulkRosterPreview();
