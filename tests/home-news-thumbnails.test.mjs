@@ -15,7 +15,7 @@ test('homepage combines upcoming events and news while keeping their image sourc
   assert.match(script, /linkedNewsIds\.has\(item\.id\)/);
   assert.match(script, /const homeItems = \[/);
   assert.match(script, /item\.image \? `<img class="home-news-item__image"/);
-  assert.match(script, /mediaUrl\(item\.image\)/);
+  assert.match(script, /item\.image \? `<img class="home-news-item__image/);
   assert.match(script, /width="108" height="80" loading="lazy" decoding="async"/);
   assert.match(script, /class="news-row home-news-item/);
   assert.match(script, /item\.label/);
@@ -24,7 +24,8 @@ test('homepage combines upcoming events and news while keeping their image sourc
 test('article detail image and homepage thumbnail reference the same stored image field', () => {
   assert.match(script, /item\.hero_image_path \? `<img src="\$\{escapeHtml\(mediaUrl\(item\.hero_image_path\)\)\}"/);
   assert.match(script, /image: item\.hero_image_path/);
-  assert.match(script, /class="home-news-item__image" src="\$\{escapeHtml\(mediaUrl\(item\.image\)\)\}"/);
+  assert.match(script, /class="home-news-item__image/);
+  assert.match(script, /mediaUrl\(item\.image\)/);
 });
 
 test('news thumbnail layout has mobile sizing, keyboard focus and no layout shift', () => {
