@@ -319,8 +319,8 @@ function matchRow(match: Row, reference: Awaited<ReturnType<typeof refs>>, liveS
       </a>
       <div class="actions">
         ${matchRouteButton(match)}
-        ${official ? '<span class="status-pill btv-official">Offizielles BTV-Ergebnis</span>' : status === 'live' ? '<span class="status-pill live">LIVE</span>' : status === 'finished' ? '<span class="status-pill">Beendet</span>' : ''}
-        ${status !== 'scheduled' || official ? `<span class="score">${clubScore} : ${opponentScore}</span>` : ''}
+        ${official ? '<span class="status-pill btv-official">Offizielles BTV-Ergebnis</span>' : status === 'live' ? '<span class="status-pill live">LIVE</span>' : status === 'finished' ? '<span class="status-pill">Beendet</span>' : status === 'expired' ? '<span class="status-pill closed">Ticker automatisch geschlossen</span>' : ''}
+        ${status !== 'scheduled' && status !== 'expired' || official ? `<span class="score">${clubScore} : ${opponentScore}</span>` : ''}
         <a class="button ghost" href="${detailUrl}">${matchesWithGallery.has(match.id) ? 'Spiel & Bilder' : 'Spiel öffnen'}</a>
         ${status === 'live' ? `<a class="button" href="/live/?match=${encodeURIComponent(match.id)}">Liveticker</a>` : ''}
       </div>
@@ -1130,7 +1130,7 @@ export async function loadMatchDetail(matchId: string | null) {
     </div>`;
 
   scoreTarget.innerHTML = status !== 'scheduled' || officialScore
-    ? `<div class="match-detail-score"><span class="status-pill ${!officialScore && status === 'live' ? 'live' : ''}">${officialScore ? 'Offizielles BTV-Ergebnis' : status === 'live' ? 'LIVE' : 'Liveticker beendet'}</span><strong>${clubScore} : ${opponentScore}</strong><span>aus Sicht des TSV${officialScore ? ' · BTV ist maßgeblich; Liveticker-Einträge bleiben als Verlauf erhalten' : ''}</span></div>`
+    ? `<div class="match-detail-score"><span class="status-pill ${!officialScore && status === 'live' ? 'live' : ''}">${officialScore ? 'Offizielles BTV-Ergebnis' : status === 'live' ? 'LIVE' : status === 'expired' ? 'Ticker automatisch geschlossen – kein Endergebnis' : 'Liveticker beendet'}</span><strong>${clubScore} : ${opponentScore}</strong><span>aus Sicht des TSV${officialScore ? ' · BTV ist maßgeblich; Liveticker-Einträge bleiben als Verlauf erhalten' : ''}</span></div>`
     : '<div class="match-detail-score"><span class="status-pill">Geplant</span><strong>– : –</strong><span>Noch kein Ergebnis vorhanden</span></div>';
 
   const encounterRows = encounters ?? [];
@@ -1839,7 +1839,7 @@ export async function loadLiveTicker(matchId: string | null) {
         <div class="live-score-status">
           <div class="live-badge ${state?.status === 'live' ? 'is-running' : ''}">
             <span class="live-dot" aria-hidden="true"></span>
-            ${official ? 'BTV-Ergebnis bestätigt' : state?.status === 'live' ? 'Spieltag läuft' : state?.status === 'finished' ? 'Spieltag beendet' : 'Spieltag geplant'}
+            ${official ? 'BTV-Ergebnis bestätigt' : state?.status === 'live' ? 'Spieltag läuft' : state?.status === 'finished' ? 'Spieltag beendet' : state?.status === 'expired' ? 'Ticker automatisch geschlossen' : 'Spieltag geplant'}
           </div>
           <span class="live-score-topline__hint">${official ? 'Offizielles BTV-Endergebnis · Heim : Gast' : 'Liveticker-Zwischenstand · Heim : Gast'}</span>
         </div>

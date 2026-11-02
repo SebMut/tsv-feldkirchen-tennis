@@ -169,7 +169,7 @@ test('Live-Ticker focuses on encounters and hides the Heute block without actual
   assert.match(script,/const todayPanel = document\.querySelector<HTMLElement>\('#today-fixtures-panel'\)/);
   assert.match(script,/todayPanel\.classList\.toggle\('hidden', !!todayResult\.error \|\| !!activeResult\.error \|\| today\.length === 0\)/);
   assert.match(script,/const todaysFixtures = \(todayResult\.data \?\? \[\]\)\.filter\(m => berlinDayKey\(m\.starts_at\) === currentDayKey\)/);
-  assert.match(header,/<a href="\/spieltag\/">Live-Ticker<\/a>/);
+  assert.match(header,/<a href="\/spieltag\/" class="js-live-nav-link">Live-Ticker<\/a>/);
   assert.match(homepage,/href="\/spieltag\/">Zum Live-Ticker<\/a>/);
   assert.match(homepage,/href="\/spieltag\/">Live-Ticker öffnen →<\/a>/);
   assert.match(css,/\.matchday-page--ticker \.matchday-fixture-grid\{margin:0;gap:18px;align-items:start\}/);
