@@ -1770,6 +1770,104 @@ async function refreshMatches() {
         if (await updateEncounter(encounterId, { opponent_slot_2: value })) localFeedback('Gegner gespeichert.');
       });
 
+      // Both the existing modal and the new +/- controls share exactly one
+      // validated Supabase write path. Disable controls while it is pending so
+      // two fast taps cannot overwrite each other with a stale result.
+      let setSaving = false;
+      const persistSetScore = async (setIndex: number, score: string, dialogFeedback?: HTMLElement) => {
+        if (setSaving) return false;
+        const current = parseEncounterSetScores(encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.value);
+        const previous = current[setIndex] || '';
+        if (score === previous) return true;
+        if (!score && current.slice(setIndex + 1).some(Boolean)
+          && !window.confirm('Wenn du diesen Satz löschst, werden auch die folgenden Sätze entfernt. Fortfahren?')) return false;
+        const next = [...current];
+        next[setIndex] = score;
+        if (!score) next.splice(setIndex + 1, 2 - setIndex, ...Array(2 - setIndex).fill(''));
+        const normalized = summarizeSetResult(formatEncounterSetScores(next));
+        const reportError = (message: string) => {
+          if (dialogFeedback) {
+            dialogFeedback.textContent = message;
+            dialogFeedback.classList.remove('hidden');
+            dialogFeedback.dataset.tone = 'error';
+          }
+          localFeedback(message, 'error');
+        };
+        if (score && normalized.scores[setIndex] !== score) {
+          reportError('Ungültiger Satzstand: im 1. und 2. Satz sind nur 6:x, 7:5 oder 7:6 als Endstand möglich.');
+          return false;
+        }
+        if (next.slice(setIndex + 1).some((value, offset) => value && value !== normalized.scores[setIndex + 1 + offset])
+          && !window.confirm('Dieser Satz ist noch nicht beendet. Bereits eingetragene Folgesätze werden entfernt. Fortfahren?')) return false;
+        const resultText = formatEncounterSetScores(normalized.scores);
+        const controls = Array.from(encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-step], [data-enc-set]'));
+        const dialog = $<HTMLDialogElement>('#encounter-set-dialog');
+        const modalControls = dialog?.open ? Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')) : [];
+        setSaving = true;
+        [...controls, ...modalControls].forEach(button => { button.disabled = true; });
+        if (dialogFeedback) {
+          dialogFeedback.classList.remove('hidden');
+          dialogFeedback.textContent = 'Ergebnis wird gespeichert und veröffentlicht …';
+          dialogFeedback.dataset.tone = 'info';
+        }
+        const liveFeedback = encounterCard.querySelector<HTMLElement>('[data-enc-feedback]');
+        if (liveFeedback) {
+          liveFeedback.textContent = 'Satzstand wird gespeichert und veröffentlicht …';
+          liveFeedback.dataset.tone = 'info';
+        }
+        try {
+          if (resultText && !(await ensureMatchLive())) {
+            reportError('Der Spieltag konnte nicht live geschaltet werden. Der Satzstand wurde nicht veröffentlicht.');
+            return false;
+          }
+          const now = new Date().toISOString();
+          const patch = {
+            result_text: resultText,
+            status: normalized.complete ? 'finished' : resultText ? 'live' : encounter.status === 'finished' ? 'scheduled' : encounter.status,
+            winner: normalized.winner,
+            finished_at: normalized.complete ? now : null,
+            ...((normalized.complete || resultText) ? { started_at: encounter.started_at || now } : {}),
+          };
+          if (!(await updateEncounter(encounterId, patch))) {
+            reportError('Speichern fehlgeschlagen. Bitte Berechtigung und Fehlermeldung im Adminbereich prüfen.');
+            return false;
+          }
+          const hidden = encounterCard.querySelector<HTMLInputElement>('[data-enc-result]');
+          if (hidden) hidden.value = resultText;
+          if (dialog?.open) dialog.close();
+          await refreshChangedEncounter(encounterId, normalized.complete
+            ? `Endstand ${normalized.tsvSets}:${normalized.opponentSets} – ${normalized.winner === 'tsv' ? 'TSV Feldkirchen' : 'Gegner'} gewinnt.`
+            : 'Zwischenstand gespeichert und live veröffentlicht.');
+          target.querySelector<HTMLButtonElement>(
+            `[data-encounter-id="${encounterId}"] [data-enc-set="${setIndex}"]`
+          )?.focus({ preventScroll: true });
+          return true;
+        } catch (error) {
+          reportError(error instanceof Error ? error.message : 'Der Satzstand konnte nicht gespeichert werden.');
+          return false;
+        } finally {
+          setSaving = false;
+          [...controls, ...modalControls].forEach(button => {
+            if (button.isConnected) button.disabled = false;
+          });
+        }
+      };
+      encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-step]').forEach(button => {
+        button.addEventListener('click', async () => {
+          if (setSaving || button.disabled) return;
+          const setIndex = Number(button.dataset.encStep);
+          const side = button.dataset.encSide;
+          const change = Number(button.dataset.encDelta);
+          const current = parseEncounterSetScores(encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.value);
+          const result = adjustSetScore(current[setIndex] || '', setIndex, side, change);
+          if (!result.valid) {
+            localFeedback(result.message || 'Ungültiger Spielstand.', 'error');
+            return;
+          }
+          await persistSetScore(setIndex, result.score);
+        });
+      });
+
       encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-set]').forEach((setButton) => {
         setButton.addEventListener('click', () => {
           const setIndex = Number(setButton.dataset.encSet);
@@ -1813,61 +1911,17 @@ async function refreshMatches() {
           `).join('');
 
           const commitSetScore = async (score: string) => {
-            const next = [...initial];
             if (score === oldValue) {
               dialog.close();
               return;
             }
-            if (!score && next.slice(setIndex + 1).some(Boolean)
-              && !window.confirm('Wenn du diesen Satz löschst, werden auch die folgenden Sätze entfernt. Fortfahren?')) return;
-            next[setIndex] = score;
-            if (!score) next.splice(setIndex + 1, 2 - setIndex, ...Array(2 - setIndex).fill(''));
-            const normalized = summarizeSetResult(formatEncounterSetScores(next));
-            if (score && normalized.scores[setIndex] !== score) {
-              manualError.textContent = 'Ungültiges Satzergebnis. Bitte den Stand prüfen.';
+            manualError.textContent = '';
+            manualError.classList.add('hidden');
+            const updated = await persistSetScore(setIndex, score, feedback);
+            if (!updated && feedback.dataset.tone === 'error') {
+              manualError.textContent = feedback.textContent || 'Bitte den Satzstand überprüfen.';
               manualError.classList.remove('hidden');
               manualDetails.open = true;
-              return;
-            }
-            if (next.slice(setIndex + 1).some((value, offset) => value && value !== normalized.scores[setIndex + 1 + offset])
-              && !window.confirm('Dieser Satz ist noch nicht beendet. Bereits eingetragene Folgesätze werden entfernt. Fortfahren?')) return;
-            const resultText = formatEncounterSetScores(normalized.scores);
-            const buttons = dialog.querySelectorAll<HTMLButtonElement>('button');
-            buttons.forEach((button) => { button.disabled = true; });
-            feedback.classList.remove('hidden');
-            feedback.textContent = 'Ergebnis wird gespeichert …';
-            try {
-              // A valid interim set is meant to be visible immediately. Start the
-              // existing ticker first, then persist the individual encounter as live.
-              if (resultText && !(await ensureMatchLive())) {
-                feedback.textContent = 'Spieltag konnte nicht live geschaltet werden. Zwischenstand wurde nicht gespeichert.';
-                feedback.dataset.tone = 'error';
-                return;
-              }
-              const now = new Date().toISOString();
-              const patch = {
-                result_text: resultText,
-                status: normalized.complete ? 'finished' : resultText ? 'live' : encounter.status === 'finished' ? 'scheduled' : encounter.status,
-                winner: normalized.winner,
-                finished_at: normalized.complete ? now : null,
-                ...((normalized.complete || resultText) ? { started_at: encounter.started_at || now } : {}),
-              };
-              if (await updateEncounter(encounterId, patch)) {
-                const hidden = encounterCard.querySelector<HTMLInputElement>('[data-enc-result]');
-                if (hidden) hidden.value = resultText || '';
-                dialog.close();
-                await refreshChangedEncounter(encounterId, normalized.complete
-                  ? `Endstand ${normalized.tsvSets}:${normalized.opponentSets} – ${normalized.winner === 'tsv' ? 'TSV Feldkirchen' : 'Gegner'} gewinnt.`
-                  : 'Zwischenstand gespeichert.');
-                target.querySelector<HTMLButtonElement>(
-                  `[data-encounter-id="${encounterId}"] [data-enc-set="${setIndex}"]`
-                )?.focus({ preventScroll: true });
-              } else {
-                feedback.textContent = 'Speichern fehlgeschlagen. Bitte Rechte und Fehlermeldung im Adminbereich prüfen.';
-                feedback.dataset.tone = 'error';
-              }
-            } finally {
-              if (dialog.open) buttons.forEach((button) => { button.disabled = false; });
             }
           };
 
