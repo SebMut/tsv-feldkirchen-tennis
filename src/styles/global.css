@@ -2082,6 +2082,8 @@ main.main--flush{padding:0}
   flex:0 0 108px;width:108px;height:80px;object-fit:cover;
   border-radius:11px;background:#f0f3f0;border:1px solid #e5eae5
 }
+/* Event artwork is a poster with legible information at its edges, not a decorative crop. */
+.home-news-column .home-news-item__image--event{object-fit:contain;background:#fff}
 .home-news-column .home-news-item__content{display:grid;align-content:center;min-width:0;gap:5px}
 .home-news-column .home-news-item__content strong{
   font-size:.91rem;line-height:1.4;color:#172a20;overflow-wrap:anywhere;

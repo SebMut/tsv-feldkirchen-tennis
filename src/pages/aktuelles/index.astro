@@ -65,7 +65,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
         const eventImage = event.hero_image_path ? mediaUrl(event.hero_image_path) : '/images/veranstaltung-ai.svg';
         return `
           <article class="content-card content-card--event">
-            <a class="content-card__media" href="${href}" aria-label="${escapeHtml(cleanTitle(event.title))} öffnen">
+            <a class="content-card__media${event.hero_image_path ? ' content-card__media--poster' : ''}" href="${href}" aria-label="${escapeHtml(cleanTitle(event.title))} öffnen">
               <img data-event-news-id="${escapeHtml(linkedNewsId || '')}" data-event-has-image="${event.hero_image_path ? 'true' : 'false'}" src="${escapeHtml(eventImage)}" alt="${escapeHtml(cleanTitle(event.title))}" loading="lazy" />
             </a>
             <div class="content-card__body">
@@ -141,6 +141,9 @@ import MainLayout from '../../layouts/MainLayout.astro';
   :global(.content-card){overflow:hidden;border:1px solid #dfe7e1;border-radius:20px;background:#fff;box-shadow:0 10px 30px rgb(25 60 44 / .08)}
   :global(.content-card__media){display:block;aspect-ratio:16/8.5;overflow:hidden;background:#edf2ef}
   :global(.content-card__media img){display:block;width:100%;height:100%;margin:0!important;border:0!important;border-radius:0!important;object-fit:cover}
+  /* Editorial posters have text along their edges. Always show the complete original at its intrinsic ratio. */
+  :global(.content-card--event .content-card__media--poster){aspect-ratio:auto;overflow:visible;background:#fff}
+  :global(.content-card--event .content-card__media--poster img){width:100%;height:auto;object-fit:contain;aspect-ratio:auto}
   :global(.content-card__body){padding:18px 20px 20px}
   :global(.content-card__meta){display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;margin:0 0 11px;color:#68756e;font-size:.74rem;font-weight:750;letter-spacing:.025em}
   :global(.content-card__badge){display:inline-flex;align-items:center;min-height:24px;padding:4px 9px;border-radius:999px;background:#e30613;color:#fff;font-size:.66rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase}

@@ -555,7 +555,7 @@ export async function loadHome() {
       newsTarget.innerHTML = homeItems.length ? homeItems.map(item => `
         <article class="news-row home-news-item ${item.image ? 'home-news-item--with-image' : ''}">
           <a class="home-news-item__link" href="${escapeHtml(item.href)}" aria-label="${escapeHtml(item.label + ': ' + item.title)} öffnen">
-            ${item.image ? `<img class="home-news-item__image" src="${escapeHtml(mediaUrl(item.image))}" alt="" width="108" height="80" loading="lazy" decoding="async" />` : ''}
+            ${item.image ? `<img class="home-news-item__image${item.label === 'Veranstaltung' ? ' home-news-item__image--event' : ''}" src="${escapeHtml(mediaUrl(item.image))}" alt="" width="108" height="80" loading="lazy" decoding="async" />` : ''}
             <span class="home-news-item__content">
               <strong>${escapeHtml(item.title)}</strong>
               <time class="match-meta" ${item.when ? `datetime="${escapeHtml(item.when)}"` : ''}>${escapeHtml(item.label)} · ${item.when ? escapeHtml(formatDateTime(item.when)) : ''}</time>
