@@ -39,6 +39,32 @@ jobs:
           PUBLIC_PREVIEW_MODE: "true"
         run: npm run audit:site
 
+      - name: Install isolated browser test runner
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Browser QA – must pass before publishing
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis
+          PUBLIC_PREVIEW_MODE: 'true'
+          QA_ROLE_TICKER_EMAIL: ${{ secrets.QA_ROLE_TICKER_EMAIL }}
+          QA_ROLE_TICKER_PASSWORD: ${{ secrets.QA_ROLE_TICKER_PASSWORD }}
+          QA_ROLE_NEWS_EMAIL: ${{ secrets.QA_ROLE_NEWS_EMAIL }}
+          QA_ROLE_NEWS_PASSWORD: ${{ secrets.QA_ROLE_NEWS_PASSWORD }}
+          QA_ROLE_EVENTS_EMAIL: ${{ secrets.QA_ROLE_EVENTS_EMAIL }}
+          QA_ROLE_EVENTS_PASSWORD: ${{ secrets.QA_ROLE_EVENTS_PASSWORD }}
+        run: npm run qa:browser
+
+      - name: Archive Chromium screenshots and JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromium-quality-preview
+          path: artifacts/browser-qa/
+          retention-days: 7
+          if-no-files-found: warn
+
       - name: Block crawling of the preview
         run: |
           echo 'User-agent: *' > dist/robots.txt
