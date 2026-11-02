@@ -73,7 +73,7 @@ export function initEditorialComposer(access: Access) {
     const record = entry.news || entry.event!;
     input('title').value = String(record.title || '');
     input('body').value = String(entry.news?.body || entry.event?.description || '');
-    input('excerpt').value = String(entry.news?.excerpt || '');
+    input('excerpt').value = String(entry.news?.excerpt || entry.event?.excerpt || '');
     input('team').value = String(record.team_id || '');
     input('event').checked = !!entry.event && (entry.kind === 'event' || entry.event.status !== 'archived');
     input('start').value = localTime(entry.event?.starts_at);
@@ -141,7 +141,7 @@ export function initEditorialComposer(access: Access) {
       return '<article class="content-card content-card--event">' + media(image || '/images/veranstaltung-ai.svg') +
         '<div class="content-card__body"><div class="content-card__meta"><span class="content-card__badge">Veranstaltung</span><time>' +
         escapeHtml(formatDateTime(iso(val('start')) || new Date().toISOString())) + '</time></div><h3><a href="#">' + title +
-        '</a></h3><p class="content-card__description">' + escapeHtml(plain(val('body'))) + '</p>' +
+        '</a></h3><p class="content-card__description">' + escapeHtml(plain(val('excerpt') || val('body'))) + '</p>' +
         '<div class="content-card__footer"><span>📍 ' + escapeHtml(val('location') || 'TSV Feldkirchen') +
         '</span><a href="#">Details lesen →</a></div><details class="content-card__details">' +
         '<summary>Vollständigen Text anzeigen →</summary><div class="content-card__full-text">' +
@@ -211,7 +211,7 @@ export function initEditorialComposer(access: Access) {
           tournament_youth_enabled: on('rsvp') && on('tournaments') && on('youth'),
           tournament_women_enabled: on('rsvp') && on('tournaments') && on('women'),
           tournament_men_enabled: on('rsvp') && on('tournaments') && on('men') };
-        const patch = { title: val('title'), description: val('body'), category: 'club',
+        const patch = { title: val('title'), excerpt: val('excerpt') || null, description: val('body'), category: 'club',
           starts_at: iso(val('start'))!, ends_at: iso(val('end')), location_name: val('location') || null,
           team_id: teamId, status: oldEvent?.status || 'draft', rsvp_enabled: on('rsvp'),
           rsvp_deadline: on('rsvp') ? iso(val('deadline')) : null, rsvp_details: details };
