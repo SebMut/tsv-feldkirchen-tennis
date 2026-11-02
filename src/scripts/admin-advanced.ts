@@ -163,6 +163,84 @@ async function loadSettings(base: BaseState) {
   set('#setting-tv-highlight', tv.highlight_seconds ?? 300);
 }
 
+type TvTimeValues = {
+  poll_seconds: number;
+  recap_every_seconds: number;
+  recap_duration_seconds: number;
+  highlight_seconds: number;
+};
+
+function readTvTimeForm(): { value?: TvTimeValues; error?: string } {
+  const fields = [
+    ['#setting-tv-poll', 'Datenabfrage', 5, 600],
+    ['#setting-tv-recap-every', 'Rückblick-Abstand', 10, 3600],
+    ['#setting-tv-recap-for', 'Rückblick-Dauer', 1, 3599],
+    ['#setting-tv-highlight', 'Sieg-/Niederlage-Markierung', 5, 3600],
+  ] as const;
+  const values: number[] = [];
+  for (const [selector, name, min, max] of fields) {
+    const input = $<HTMLInputElement>(selector);
+    const value = input?.value.trim() ? Number(input.value) : NaN;
+    if (!Number.isInteger(value) || value < min || value > max) {
+      input?.setAttribute('aria-invalid', 'true');
+      return { error: name + ': Bitte eine ganze Sekundenzahl zwischen ' + min + ' und ' + max + ' eingeben.' };
+    }
+    input?.removeAttribute('aria-invalid');
+    values.push(value);
+  }
+  const [poll_seconds, recap_every_seconds, recap_duration_seconds, highlight_seconds] = values;
+  if (recap_duration_seconds >= recap_every_seconds) {
+    $<HTMLInputElement>('#setting-tv-recap-for')?.setAttribute('aria-invalid', 'true');
+    return { error: 'Rückblick-Dauer (' + recap_duration_seconds +
+      ' s) muss kürzer als der Rückblick-Abstand (' + recap_every_seconds +
+      ' s) sein. Bitte einen der beiden Werte anpassen.' };
+  }
+  return { value: { poll_seconds, recap_every_seconds, recap_duration_seconds, highlight_seconds } };
+}
+
+function tvTimeFeedback(message: string, tone: 'error' | 'success' | 'info' = 'info') {
+  const target = $<HTMLElement>('#tv-timing-feedback');
+  if (target) {
+    target.hidden = false;
+    setStatus(target, message, tone);
+  }
+  reportStatus(message, tone);
+}
+
+async function saveTvTimeSettings(base: BaseState) {
+  if (!base.isSuper) return tvTimeFeedback('Nur Super-Admins dürfen TV-Anzeigezeiten ändern.', 'error');
+  const input = readTvTimeForm();
+  if (!input.value) return tvTimeFeedback(input.error || 'Bitte TV-Zeiten prüfen.', 'error');
+  const button = $<HTMLButtonElement>('#save-tv-timing');
+  if (button?.disabled) return;
+  if (button) { button.disabled = true; button.textContent = 'TV-Zeiten werden gespeichert …'; }
+  tvTimeFeedback('Speichere die TV-Zeiten in Supabase …');
+  try {
+    const { data, error } = await supabase.from('site_settings').upsert({
+      key: 'tv_ticker_timing', value: input.value,
+      is_public: true, updated_by: base.user.id,
+    }, { onConflict: 'key' }).select('key,value').single();
+    if (error || data?.key !== 'tv_ticker_timing')
+      throw Error(error?.message || 'Supabase hat die TV-Zeiten nicht bestätigt.');
+    const stored = data.value as Partial<TvTimeValues> | null;
+    if (!stored || Object.entries(input.value).some(([key,value]) =>
+      stored[key as keyof TvTimeValues] !== value))
+      throw Error('Die zurückgegebenen TV-Zeiten stimmen nicht mit der Eingabe überein.');
+    // Independently read back the saved values, including after an UPSERT with RLS.
+    const checked = await supabase.from('site_settings')
+      .select('value').eq('key', 'tv_ticker_timing').maybeSingle();
+    if (checked.error || !checked.data || Object.entries(input.value).some(([key,value]) =>
+      checked.data.value?.[key] !== value))
+      throw Error(checked.error?.message || 'Die TV-Zeiten konnten nicht aus Supabase zurückgelesen werden.');
+    tvTimeFeedback('TV-Zeiten gespeichert und überprüft. Die TV-Anzeige übernimmt die Werte bei der nächsten Datenabfrage.', 'success');
+  } catch (error) {
+    tvTimeFeedback('TV-Zeiten nicht gespeichert: ' +
+      (error instanceof Error ? error.message : 'Unbekannter Fehler'), 'error');
+  } finally {
+    if (button) { button.disabled = false; button.textContent = 'TV-Zeiten speichern'; }
+  }
+}
+
 async function saveSettings(event: Event, base: BaseState) {
   event.preventDefault();
   if (!base.isSuper) return;
@@ -175,18 +253,9 @@ async function saveSettings(event: Event, base: BaseState) {
     return reportStatus('Adresse und Social-Links müssen gültiges JSON sein.', 'error');
   }
 
-  const tvPoll = Number($<HTMLInputElement>('#setting-tv-poll')?.value);
-  const tvEvery = Number($<HTMLInputElement>('#setting-tv-recap-every')?.value);
-  const tvDuration = Number($<HTMLInputElement>('#setting-tv-recap-for')?.value);
-  const tvHighlight = Number($<HTMLInputElement>('#setting-tv-highlight')?.value);
-  if (![tvPoll,tvEvery,tvDuration,tvHighlight].every(Number.isInteger)
-    || tvPoll < 5 || tvPoll > 600 || tvEvery < 10 || tvEvery > 3600
-    || tvDuration < 1 || tvDuration >= tvEvery || tvHighlight < 5 || tvHighlight > 3600) {
-    return reportStatus('Ungültige TV-Zeiten: Anzeigezeit muss kürzer als der Wiederholungsabstand sein. Alle Werte müssen im angegebenen Bereich liegen.', 'error');
-  }
+  // TV-specific values are saved separately. Invalid URL/JSON or unrelated
+  // fields must never prevent editing the TV timings, and vice versa.
   const rows = [
-    ['tv_ticker_timing', { poll_seconds: tvPoll, recap_every_seconds: tvEvery,
-      recap_duration_seconds: tvDuration, highlight_seconds: tvHighlight }],
     ['club_name', $<HTMLInputElement>('#setting-club-name')?.value.trim() || 'TSV Feldkirchen Tennis'],
     ['email', $<HTMLInputElement>('#setting-email')?.value.trim() || ''],
     ['phone', $<HTMLInputElement>('#setting-phone')?.value.trim() || ''],
@@ -603,6 +672,14 @@ export async function initAdvancedAdmin(base: BaseState) {
 
   $<HTMLFormElement>('#season-form')?.addEventListener('submit', (event) => createSeason(event, base));
   $<HTMLFormElement>('#settings-form')?.addEventListener('submit', (event) => saveSettings(event, base));
+  $<HTMLButtonElement>('#save-tv-timing')?.addEventListener('click', () => void saveTvTimeSettings(base));
+  for (const id of ['setting-tv-poll', 'setting-tv-recap-every', 'setting-tv-recap-for', 'setting-tv-highlight']) {
+    $<HTMLInputElement>('#' + id)?.addEventListener('input', () => {
+      $<HTMLInputElement>('#' + id)?.removeAttribute('aria-invalid');
+      const feedback = $<HTMLElement>('#tv-timing-feedback');
+      if (feedback) feedback.hidden = true;
+    });
+  }
   $<HTMLFormElement>('#placement-form')?.addEventListener('submit', (event) => savePlacement(event, base));
   $('#placement-cancel-edit')?.addEventListener('click', () => {
     ($<HTMLFormElement>('#placement-form'))?.reset();
