@@ -13,7 +13,7 @@ const flow=read('.github/workflows/btv-club-sync.yml');
 test('public winter BTV audit checks all 15 actual fixtures and group assignments',()=>{
   assert.match(audit,/getWinterSchedule\(\)/);
   assert.match(audit,/assert\.equal\(official\.fixtures\.length,15\)/);
-  assert.match(audit,/assert\.equal\(matched\.size,15\)/);
+  assert.match(audit,/if\(matched\.size!==15\)errors\.push/);
   assert.match(audit,/fixture\.isHome/);
   assert.match(audit,/fixture\.startsAt/);
   assert.match(audit,/new URL\(game\.external_url\)\.searchParams\.get\('groupid'\)/);
