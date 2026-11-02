@@ -136,19 +136,20 @@ test('Spieltag "Heute" never falls back to a later match date',()=>{
   assert.match(publicScript, /const start = new Date\(midnightUtc - 2 \* 3600000\)/);
 });
 
-test('every listed team and detail offers tennis.de access without invented portraits',()=>{
+test('every listed team has the verified BTV source and only verified tennis.de portraits appear',()=>{
   const script=readFileSync(new URL('../src/scripts/public.ts',import.meta.url),'utf8');
-  assert.ok(script.includes('const TENNIS_DE_CLUB_SEARCH_URL'));
-  assert.ok(script.includes('mannschaftssuche.html?verband=btv&verein=01012#teamview/23391'));
+  assert.ok(script.includes("from('verified_team_btv_links').select('team_season_id,btv_url')"));
   assert.ok(script.includes('function tennisDeTeamDestination'));
-  assert.ok(script.includes('href: portrait || TENNIS_DE_CLUB_SEARCH_URL, isDirect: !!portrait'));
+  assert.ok(script.includes('return portrait ? { href: portrait, isDirect: true } : null'));
   assert.ok(script.includes('function officialTennisDePortraitUrl'));
   assert.ok(script.includes('const tennisDeTarget = tennisDeTeamDestination(ts);'));
   assert.ok(script.includes('const tennisDeTarget = tennisDeTeamDestination(current);'));
+  assert.ok(script.includes('BTV Gruppe ↗'));
+  assert.ok(script.includes('BTV Spielplan ↗'));
   assert.ok(script.includes('tennis.de Portrait ↗'));
-  assert.ok(script.includes('tennis.de Team suchen ↗'));
   assert.ok(script.includes('tennis.de Mannschaftsporträt ↗'));
-  assert.ok(script.includes('tennis.de Mannschaftssuche ↗'));
+  assert.ok(!script.includes('tennis.de Team suchen ↗'));
+  assert.ok(!script.includes('#teamview/23391'));
 });
 
 test('Live-Ticker focuses on encounters and hides the Heute block without actual today fixtures',()=>{
@@ -250,7 +251,8 @@ test('teams overview and detail fit phone width while wide standings scroll insi
   assert.ok(script.includes('← Tabelle seitlich wischen →'));
   assert.ok(script.includes('role="region" aria-label="BTV-Gruppentabelle seitlich scrollbar"'));
   assert.ok(script.includes('Mannschaft öffnen'));
-  assert.ok(script.includes('tennis.de Team suchen ↗'));
+  assert.ok(script.includes('BTV Gruppe ↗'));
+  assert.ok(script.includes('tennis.de Portrait ↗'))
 });
 
 test('team squad roster is collapsed initially and can be expanded by its native details control',()=>{
