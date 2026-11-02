@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { runTickerBrowserRehearsal } from './ticker-browser-qa.mjs';
+import { runTvTickerBrowserQA } from './tv-ticker-browser-qa.mjs';
 
 // Read-only browser QA. Screenshots and outcomes are saved, not published.
 const out=path.resolve('artifacts/browser-qa');
@@ -11,7 +12,7 @@ const base=(process.env.PREVIEW_BASE||'/').replace(/^\/|\/$/g,'');
 const host='http://127.0.0.1:4321';
 const url=route=>host+(base?'/'+base:'')+route;
 const report={started:new Date().toISOString(),base:base||'/',checks:[],passed:0,failed:0,skipped:0};
-const routes=['/','/aktuelles/','/mannschaften/','/spieltag/','/termine/','/live/','/veranstaltung/','/admin/'];
+const routes=['/','/aktuelles/','/mannschaften/','/spieltag/','/spieltag/live-ticker/','/termine/','/live/','/veranstaltung/','/admin/'];
 let server,browser;
 let previewLogs='';
 function outcome(name,status,reason=''){
@@ -242,6 +243,7 @@ try{
   await deviceQA({name:'desktop',viewport:{width:1440,height:900},mobile:false});
   await deviceQA({name:'mobile',viewport:{width:390,height:844},mobile:true});
   await runTickerBrowserRehearsal({browser,url,check});
+  await runTvTickerBrowserQA({browser,url,check});
   await roleQA({code:'TICKER',name:'ticker only',visible:{matches:true,teams:false,players:false,news:false,galleries:false,users:false}});
   await roleQA({code:'NEWS',name:'news only',visible:{news:true,matches:false,teams:false,players:false,users:false}});
   await roleQA({code:'EVENTS',name:'events only',visible:{news:true,matches:false,teams:false,players:false,users:false}});
