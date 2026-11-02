@@ -229,8 +229,9 @@ async function saveTvTimeSettings(base: BaseState) {
     // Independently read back the saved values, including after an UPSERT with RLS.
     const checked = await supabase.from('site_settings')
       .select('value').eq('key', 'tv_ticker_timing').maybeSingle();
-    if (checked.error || !checked.data || Object.entries(input.value).some(([key,value]) =>
-      checked.data.value?.[key] !== value))
+    const storedValue = checked.data?.value as Partial<TvTimeValues> | undefined;
+    if (checked.error || !storedValue || Object.entries(input.value).some(([key,value]) =>
+      storedValue[key as keyof TvTimeValues] !== value))
       throw Error(checked.error?.message || 'Die TV-Zeiten konnten nicht aus Supabase zurückgelesen werden.');
     tvTimeFeedback('TV-Zeiten gespeichert und überprüft. Die TV-Anzeige übernimmt die Werte bei der nächsten Datenabfrage.', 'success');
   } catch (error) {
