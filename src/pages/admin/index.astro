@@ -557,7 +557,14 @@ import MainLayout from '../../layouts/MainLayout.astro';
               <form id="invite-form" class="form-grid">
                 <div class="field"><label>Name</label><input id="invite-name" required /></div>
                 <div class="field"><label>E-Mail</label><input id="invite-email" type="email" required /></div>
-                <div class="field"><label>Globale Rolle</label><select id="invite-global-role"><option value="user">Mannschafts-Nutzer</option><option value="super_admin">SuperAdmin</option></select></div>
+                <div class="field full">
+                  <label for="invite-global-role">Kontotyp</label>
+                  <select id="invite-global-role">
+                    <option value="user">Standard-Nutzer (Rechte individuell auswählen)</option>
+                    <option value="super_admin">SuperAdmin (Vollzugriff)</option>
+                  </select>
+                  <p class="muted"><strong>Standard-Nutzer:</strong> Darf nur die unten ausgewählten globalen Aufgaben und zugewiesenen Mannschaften bearbeiten. Ohne eine Auswahl besteht kein Redaktions- oder Liveticker-Zugriff.</p>
+                </div>
                 <div class="field full superadmin-role-info" id="invite-superadmin-info" hidden>
                   <strong>SuperAdmin – Vollzugriff auf die Plattform</strong>
                   <p>Diese Rolle kann alle Mannschaften und Saisons verwalten, Kader und Bilder pflegen, Spiele und Liveticker bearbeiten, News und Termine verwalten, Website-Inhalte und Einstellungen ändern sowie weitere Benutzer und deren Rechte administrieren.</p>
@@ -566,15 +573,38 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field full" id="invite-global-permissions-section">
                   <label>Globale Berechtigungen</label>
                   <p class="muted">Vereinsweit gültig, unabhängig und zusätzlich zu Mannschaftsrollen auswählbar.</p>
-                  <div class="grid">
-                    <label><input type="checkbox" data-invite-permission value="events" /> Veranstaltungen hinzufügen</label>
-                    <label><input type="checkbox" data-invite-permission value="news" /> News hinzufügen</label>
-                    <label><input type="checkbox" data-invite-permission value="ticker" /> Liveticker (alle Mannschaften)</label>
+                  <div class="grid" aria-label="Globale Berechtigungen erklärt">
+                    <div class="card flat">
+                      <label><input type="checkbox" data-invite-permission value="events" /> <strong>Veranstaltungen hinzufügen</strong></label>
+                      <p class="muted">Darf Veranstaltungen für den gesamten Verein erstellen, veröffentlichen und bearbeiten sowie eingegangene Anmeldungen im Adminbereich einsehen und auswerten. Keine Rechte zur Benutzerverwaltung.</p>
+                    </div>
+                    <div class="card flat">
+                      <label><input type="checkbox" data-invite-permission value="news" /> <strong>News hinzufügen</strong></label>
+                      <p class="muted">Darf News für den gesamten Verein und alle Mannschaften schreiben, bearbeiten und veröffentlichen. Verknüpfte Kalendertermine benötigen zusätzlich Veranstaltungsrechte oder die entsprechende Mannschaftsberechtigung.</p>
+                    </div>
+                    <div class="card flat">
+                      <label><input type="checkbox" data-invite-permission value="ticker" /> <strong>Liveticker (alle Mannschaften)</strong></label>
+                      <p class="muted">Darf bestehende Begegnungen aller Mannschaften live begleiten, Spielstände und Tickermeldungen pflegen. Keine Berechtigung, Mannschaftsstammdaten oder Kader zu ändern.</p>
+                    </div>
                   </div>
                 </div>
                 <div class="field full" id="invite-team-section">
                   <label>Mannschaften und Rollen</label>
-                  <p class="muted">Initial ist keine Mannschaft ausgewählt. Für jede gewählte Mannschaft kann eine eigene Rolle vergeben werden.</p>
+                  <p class="muted">Wähle die Mannschaften aus, die diese Person betreuen darf. Jede Mannschaft kann eine eigene Rolle erhalten. Die folgenden Rechte gelten <strong>nur für die ausgewählte Mannschaft</strong>.</p>
+                  <div class="grid" aria-label="Mannschaftsrollen erklärt">
+                    <div class="card flat">
+                      <strong>Manager</strong>
+                      <p class="muted">Darf Mannschaftsdaten, Kader, Spielerbilder, Spieltage, Mannschafts-News und Liveticker bearbeiten. Aktuell technisch die gleichen Mannschafts-Bearbeitungsrechte wie Editor; keine globale Benutzerverwaltung.</p>
+                    </div>
+                    <div class="card flat">
+                      <strong>Editor</strong>
+                      <p class="muted">Darf die zugewiesene Mannschaft redaktionell betreuen, einschließlich Mannschaftsdaten, Kader, Bildern, Spielen, News und Liveticker. Keine Rechte für andere Mannschaften.</p>
+                    </div>
+                    <div class="card flat">
+                      <strong>Nur Liveticker</strong>
+                      <p class="muted">Darf die Spiele der zugewiesenen Mannschaft live begleiten, Ergebnisse und Tickermeldungen bearbeiten; keine Mannschafts- oder Kaderverwaltung.</p>
+                    </div>
+                  </div>
                   <div id="invite-teams" class="invite-team-grid"></div>
                 </div>
                 <div class="field"><button class="button" type="submit">Einladung senden</button></div>
