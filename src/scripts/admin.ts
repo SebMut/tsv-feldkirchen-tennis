@@ -1833,7 +1833,7 @@ async function refreshMatches() {
             return false;
           }
           const hidden = encounterCard.querySelector<HTMLInputElement>('[data-enc-result]');
-          if (hidden) hidden.value = resultText;
+          if (hidden) hidden.value = resultText || '';
           if (dialog?.open) dialog.close();
           await refreshChangedEncounter(encounterId, normalized.complete
             ? `Endstand ${normalized.tsvSets}:${normalized.opponentSets} – ${normalized.winner === 'tsv' ? 'TSV Feldkirchen' : 'Gegner'} gewinnt.`
