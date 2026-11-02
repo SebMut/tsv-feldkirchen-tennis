@@ -44,7 +44,7 @@
   --live-score-player:44px;
   position:relative!important;
   grid-template-rows:var(--live-score-header) repeat(2,var(--live-score-player))!important;
-  min-height:calc(var(--live-score-header) + 2 * var(--live-score-player))!important;
+  min-height:calc(var(--live-score-header) + var(--live-score-player) + var(--live-score-player))!important;
   padding-bottom:0!important;
   box-sizing:border-box!important;
 }
@@ -74,7 +74,7 @@
 .live-match-modal__body .ticker-running-encounter__result,
 .live-match-modal__body .ticker-running-encounter__result>strong,
 .live-match-modal__body .ticker-running-encounter__set{
-  height:calc(var(--live-score-header) + 2 * var(--live-score-player))!important;
+  height:calc(var(--live-score-header) + var(--live-score-player) + var(--live-score-player))!important;
   min-height:0!important;
 }
 .live-match-modal__body .ticker-running-encounter__result>strong,
