@@ -245,8 +245,7 @@ const panelDescriptions: Record<string, string> = {
   'btv-import': 'Amtliche BTV-Spieltermine prüfen und Änderungen nachvollziehen.',
   'manual-results': 'Fehlende Mannschaftsergebnisse geschützt nachtragen.',
   'official-rubbers': 'Verifizierte Einzel- und Doppelberichte ansehen.',
-  news: 'Neuigkeiten und Spielberichte erstellen und aktualisieren.',
-  'rsvp-events': 'Veranstaltungen organisieren, Zusagen und Personenanzahl überblicken.',
+  news: 'News, Spielberichte und Veranstaltungen an einem Ort verwalten.',
   galleries: 'Fotos und Bilder für deine Mannschaft verwalten.',
   content: 'Seiten, Sponsoren und Vereinsinformationen pflegen.',
   facility: 'Den aktuellen Anlagenstatus ändern.',
@@ -262,10 +261,56 @@ function panelButtonLabel(button: HTMLButtonElement) {
   return (button.textContent || '').replace(icon, '').trim();
 }
 
+type EditorialKind = 'news' | 'events';
+let selectedEditorialKind: EditorialKind = 'news';
+let canUseEditorialNews = false;
+let canUseEditorialEvents = false;
+
+function selectEditorialKind(requested: EditorialKind) {
+  const kind = requested === 'events' && canUseEditorialEvents ? 'events'
+    : requested === 'news' && canUseEditorialNews ? 'news'
+    : canUseEditorialNews ? 'news' : 'events';
+  selectedEditorialKind = kind;
+  document.querySelectorAll<HTMLButtonElement>('[data-editorial-tab]').forEach((button) => {
+    const active = button.dataset.editorialTab === kind;
+    button.setAttribute('aria-selected', String(active));
+    button.tabIndex = active ? 0 : -1;
+    button.classList.toggle('secondary', !active);
+  });
+  document.querySelectorAll<HTMLElement>('[data-editorial-pane]').forEach((pane) => {
+    const active = pane.dataset.editorialPane === kind;
+    pane.hidden = !active;
+    pane.classList.toggle('hidden', !active);
+  });
+}
+
+function bindEditorialTabs(canNews: boolean, canEvents: boolean) {
+  canUseEditorialNews = canNews;
+  canUseEditorialEvents = canEvents;
+  document.querySelectorAll<HTMLButtonElement>('[data-editorial-tab]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const kind = button.dataset.editorialTab;
+      if (kind === 'news' || kind === 'events') selectEditorialKind(kind);
+    });
+    button.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+      const other: EditorialKind = button.dataset.editorialTab === 'news' ? 'events' : 'news';
+      if ((other === 'news' && !canUseEditorialNews) || (other === 'events' && !canUseEditorialEvents)) return;
+      event.preventDefault();
+      selectEditorialKind(other);
+      document.getElementById('editorial-tab-' + other)?.focus();
+    });
+  });
+  const requested = new URLSearchParams(location.search).get('type');
+  selectEditorialKind(requested === 'events' ? 'events' : 'news');
+}
+
 function showPanel(name: string) {
+  const legacyEvents = name === 'rsvp-events';
+  if (legacyEvents && !hasGlobalPermission('events')) return;
+  if (legacyEvents) name = 'news';
   if (name === 'manual-results' && !state.isSuper) return;
   if (name === 'official-rubbers' && !state.isSuper) return;
-  if (name === 'rsvp-events' && !hasGlobalPermission('events')) return;
   const activeButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]'))
     .find((button) => button.dataset.panel === name && !button.classList.contains('hidden'));
   const target = document.getElementById(`panel-${name}`);
@@ -287,6 +332,7 @@ function showPanel(name: string) {
   if (title) title.textContent = panelButtonLabel(activeButton) || 'Mein TSV';
   if (description) description.textContent = panelDescriptions[name] || '';
   if (panelPicker) panelPicker.value = name;
+  if (name === 'news') selectEditorialKind(legacyEvents ? 'events' : selectedEditorialKind);
 }
 
 function applyDashboardTeamFilters() {
@@ -2295,6 +2341,8 @@ async function startApp(user: any) {
   document.querySelectorAll<HTMLElement>('[data-ticker-only]').forEach((el) => el.classList.toggle('hidden', !canTickAny));
   document.querySelectorAll<HTMLElement>('[data-news-only]').forEach((el) => el.classList.toggle('hidden', !canNews));
   document.querySelectorAll<HTMLElement>('[data-events-only]').forEach((el) => el.classList.toggle('hidden', !canEvents));
+  document.querySelectorAll<HTMLElement>('[data-editorial-only]').forEach((el) => el.classList.toggle('hidden', !(canNews || canEvents)));
+  bindEditorialTabs(canNews, canEvents);
   $('#match-create-card')?.classList.toggle('hidden', !canEditAny);
 
   $('#auth-box')?.classList.add('hidden');

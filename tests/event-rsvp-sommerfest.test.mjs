@@ -64,7 +64,7 @@ test('aggregated count never exposes participant names and supports all choices'
 });
 
 test('admins can schedule and publish real events, see private RSVP rows',()=>{
-  assert.ok(adminPage.includes('id="panel-rsvp-events" class="admin-panel" data-events-only'));
+  assert.ok(adminPage.includes('id="panel-rsvp-events" class="editorial-pane" data-events-only'));
   assert.ok(adminPage.includes('id="rsvp-admin-start" type="datetime-local" required'));
   assert.ok(adminPage.includes('id="rsvp-admin-status"'));
   assert.ok(adminPage.includes('id="rsvp-admin-list"'));

@@ -35,8 +35,8 @@ test('RLS grants exact global functions independently of team memberships', () =
 });
 
 test('admin panel respects global permissions while preserving team-specific editing', () => {
-  assert.ok(page.includes('data-panel="news" data-news-only'));
-  assert.ok(page.includes('data-panel="rsvp-events" data-events-only'));
+  assert.ok(page.includes('data-panel="news" data-editorial-only'));
+  assert.ok(page.includes('data-editorial-tab="events" data-events-only'));
   assert.ok(page.includes('data-panel="teams" data-editor-only'));
   assert.match(admin, /const canNews = canEditAny \|\| hasGlobalPermission\('news'\)/);
   assert.match(admin, /const canEvents = hasGlobalPermission\('events'\)/);

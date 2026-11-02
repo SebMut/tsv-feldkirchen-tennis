@@ -104,7 +104,7 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
   const refresh = async (preferredId = '') => {
     const { data, error } = await supabase.from('events').select('*').order('starts_at', { ascending: false }).limit(250);
     if (error) { message('Veranstaltungen konnten nicht geladen werden: ' + error.message, true); return; }
-    events = data ?? []; const relevant = events;
+    events = data ?? []; const relevant = events.filter(e => !String(e.external_url || '').startsWith('news:'));
     select.innerHTML = '<option value="">Neue Veranstaltung</option>' + relevant.map(e => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.title)} · ${escapeHtml(formatDateTime(e.starts_at))} (${escapeHtml(e.status)})</option>`).join('');
     if (preferredId && relevant.some(e => e.id === preferredId)) select.value = preferredId; fill();
   };

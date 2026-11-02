@@ -76,8 +76,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           </div>
           <div class="admin-nav__group" data-admin-nav-group="inhalte">
             <p class="admin-nav__label">Inhalte &amp; Verein</p>
-            <button type="button" data-panel="news" data-news-only><span aria-hidden="true" class="admin-nav__symbol">✎</span> News</button>
-            <button type="button" data-panel="rsvp-events" data-events-only><span aria-hidden="true" class="admin-nav__symbol">✦</span> Veranstaltungen &amp; Zusagen</button>
+            <button type="button" data-panel="news" data-editorial-only><span aria-hidden="true" class="admin-nav__symbol">✎</span> Aktuelles &amp; Veranstaltungen</button>
             <button type="button" data-panel="galleries" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">▧</span> Bilder</button>
             <button type="button" data-panel="content" data-super-only><span aria-hidden="true" class="admin-nav__symbol">☷</span> Website-Inhalte</button>
             <button type="button" data-panel="facility" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⌂</span> Anlage</button>
@@ -364,11 +363,44 @@ import MainLayout from '../../layouts/MainLayout.astro';
             </div>
           </section>
 
-          <section id="panel-rsvp-events" class="admin-panel" data-events-only>
+          <section id="panel-news" class="admin-panel">
+            <div class="card stack">
+              <p class="eyebrow">Vereinsredaktion</p>
+              <h2>Aktuelles &amp; Veranstaltungen</h2>
+              <p class="muted">Ein Bereich für alle Vereinsinhalte. Wähle, ob du einen <strong>News-Beitrag</strong> (Informationen und Spielberichte) oder eine <strong>Veranstaltung</strong> (Termin, Ort und optional Anmeldungen) pflegen möchtest.</p>
+              <div class="actions" role="tablist" aria-label="Inhaltstyp auswählen">
+                <button id="editorial-tab-news" class="button" type="button" role="tab" aria-selected="true" aria-controls="editorial-news-pane" data-editorial-tab="news" data-news-only>News / Spielberichte</button>
+                <button id="editorial-tab-events" class="button secondary" type="button" role="tab" aria-selected="false" aria-controls="panel-rsvp-events" data-editorial-tab="events" data-events-only>Veranstaltungen &amp; Anmeldungen</button>
+              </div>
+            </div>
+          <div id="editorial-news-pane" class="editorial-pane" data-news-only data-editorial-pane="news" role="tabpanel" aria-labelledby="editorial-tab-news">
+            <div class="card">
+              <h2>News / Spielberichte</h2>
+              <p class="muted">Neuigkeiten, Spielberichte und Vereinsmitteilungen veröffentlichen. Für einen einfachen Kalenderhinweis kannst du optional einen Termin hinzufügen; für Veranstaltungen mit Anmeldung nutze den Reiter <strong>Veranstaltungen &amp; Anmeldungen</strong>.</p>
+              <form id="news-form" class="form-grid"><input id="news-edit-id" type="hidden" />
+                <div class="field"><label>Mannschaft</label><select id="news-team"></select></div>
+                <div class="field"><label for="news-match">Bezug zu Spiel / Termin</label><select id="news-match" aria-describedby="news-match-hint"><option value="">Kein Spiel / Termin</option></select><small id="news-match-hint" class="muted">Nur Spiele und Termine der ausgewählten Mannschaft.</small></div>
+                <div class="field full"><label>Titel</label><input id="news-title" required /></div>
+                <div class="field full"><label>Kurztext</label><textarea id="news-excerpt"></textarea></div>
+                <div class="field full"><label>Text</label><textarea id="news-body" required></textarea></div>
+                <div class="field full"><p class="muted"><strong>Optionaler Termin:</strong> Nur ausfüllen, wenn dieser Beitrag zusätzlich im Kalender erscheinen soll.</p></div>
+                <div class="field"><label>Datum und Uhrzeit (optional)</label><input id="news-event-start" type="datetime-local" /></div>
+                <div class="field"><label>Ende (optional)</label><input id="news-event-end" type="datetime-local" /></div>
+                <div class="field full"><label>Ort (optional)</label><input id="news-event-location" /></div>
+                <div class="field"><label>Status</label><select id="news-status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="archived">Archiviert</option></select></div>
+                <div class="field"><label>Beitragsbild</label><input id="news-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
+                <div class="field"><button class="button" type="submit">Beitrag speichern</button><button id="news-cancel-edit" class="button ghost hidden" type="button">Bearbeiten abbrechen</button></div><div class="field full"><button id="news-preview-button" class="button ghost" type="button">Vorschau anzeigen</button><div id="news-preview" class="card flat hidden" aria-live="polite"></div></div>
+              </form>
+              <div id="news-admin-list" class="table-wrap"></div>
+            </div>
+          </div>
+
+          <div id="panel-rsvp-events" class="editorial-pane" data-events-only data-editorial-pane="events" role="tabpanel" aria-labelledby="editorial-tab-events" hidden>
             <div class="card stack">
               <p class="eyebrow">Vereinsleben · Mitglieder-Rückmeldungen</p>
               <h2>Veranstaltungen &amp; Zusagen</h2>
-              <p class="muted">Vorlage nach der Einladung zum Sommerfest und den Jugendvereinsmeisterschaften von 2024: Ja / Vielleicht / Nein, Anzahl Erwachsene und Kinder, Beiträge zum Buffet, Auf- und Abbau sowie Jugendanmeldungen. Persönliche Angaben bleiben im geschützten Adminbereich.</p>
+              <p class="muted">Veranstaltungen haben einen Termin und Ort. Wenn gewünscht, lassen sich Anmeldungen, Turnieroptionen und eine Teilnehmer-PDF verwalten. Kalendertermine, die mit einem News-Beitrag verknüpft sind, bearbeitest du unter <strong>News / Spielberichte</strong> – ohne doppelte Einträge.</p>
+              <p class="muted">Für Vereinsveranstaltungen mit optionaler Anmeldung: Zu- und Absagen, Personenanzahl, Buffetbeiträge, Helfer sowie Meisterschaften. Persönliche Angaben bleiben geschützt.</p>
               <details class="rsvp-template-reference">
                 <summary>Originalvorlage 2024 – Hinweise für die neue Einladung</summary>
                 <p>Die historische Einladung nannte: Sommerfest am 20.07.2024 ab 17:30 Uhr an der Olympiastraße; Aufbau ab 11:00 Uhr, Abbau am 21.07.2024 ab 11:00 Uhr; Rückmeldung bis 15.07.2024. Jugendvereinsmeisterschaften am 19./20.07.2024, Spiele überwiegend samstags ab 10:00 Uhr. Damalige Unkostenbeiträge: Erwachsene 20 €, Jugendliche 10 €, Kinder bis 10 Jahre frei.</p>
@@ -386,7 +418,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
               <form id="rsvp-admin-event-form" class="form-grid">
                 <div class="field"><label for="rsvp-admin-title">Titel</label><input id="rsvp-admin-title" maxlength="140" value="Sommerfest" required /></div>
                 <div class="field"><label for="rsvp-admin-slug">Kurzlink</label><input id="rsvp-admin-slug" pattern="[a-z0-9-]+" maxlength="70" value="sommerfest" required /></div>
-                <div class="field"><label for="rsvp-admin-start">Sommerfest: Datum &amp; Uhrzeit</label><input id="rsvp-admin-start" type="datetime-local" required /></div>
+                <div class="field"><label for="rsvp-admin-start">Datum &amp; Uhrzeit</label><input id="rsvp-admin-start" type="datetime-local" required /></div>
                 <div class="field"><label for="rsvp-admin-deadline">Anmeldeschluss (optional)</label><input id="rsvp-admin-deadline" type="datetime-local" /></div>
                 <div class="field"><label for="rsvp-admin-location">Veranstaltungsort</label><input id="rsvp-admin-location" placeholder="z. B. Vereinsanlage" maxlength="140" /></div>
                 <div class="field full"><label for="rsvp-admin-description">Einladungstext</label><textarea id="rsvp-admin-description" maxlength="1200" rows="4" placeholder="Liebe Tennisfreunde, wir möchten gemeinsam mit euch feiern …"></textarea></div>
@@ -411,27 +443,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="table-wrap" id="rsvp-admin-list" aria-live="polite"></div>
               </div>
             </div>
-          </section>
-
-          <section id="panel-news" class="admin-panel">
-            <div class="card">
-              <h2>News / Spielbericht</h2>
-              <form id="news-form" class="form-grid"><input id="news-edit-id" type="hidden" />
-                <div class="field"><label>Mannschaft</label><select id="news-team"></select></div>
-                <div class="field"><label for="news-match">Bezug zu Spiel / Termin</label><select id="news-match" aria-describedby="news-match-hint"><option value="">Kein Spiel / Termin</option></select><small id="news-match-hint" class="muted">Nur Spiele und Termine der ausgewählten Mannschaft.</small></div>
-                <div class="field full"><label>Titel</label><input id="news-title" required /></div>
-                <div class="field full"><label>Kurztext</label><textarea id="news-excerpt"></textarea></div>
-                <div class="field full"><label>Text</label><textarea id="news-body" required></textarea></div>
-                <div class="field full"><p class="muted"><strong>Optionaler Termin:</strong> Nur ausfüllen, wenn dieser Beitrag zusätzlich im Kalender erscheinen soll.</p></div>
-                <div class="field"><label>Datum und Uhrzeit (optional)</label><input id="news-event-start" type="datetime-local" /></div>
-                <div class="field"><label>Ende (optional)</label><input id="news-event-end" type="datetime-local" /></div>
-                <div class="field full"><label>Ort (optional)</label><input id="news-event-location" /></div>
-                <div class="field"><label>Status</label><select id="news-status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="archived">Archiviert</option></select></div>
-                <div class="field"><label>Beitragsbild</label><input id="news-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></div>
-                <div class="field"><button class="button" type="submit">Beitrag speichern</button><button id="news-cancel-edit" class="button ghost hidden" type="button">Bearbeiten abbrechen</button></div><div class="field full"><button id="news-preview-button" class="button ghost" type="button">Vorschau anzeigen</button><div id="news-preview" class="card flat hidden" aria-live="polite"></div></div>
-              </form>
-              <div id="news-admin-list" class="table-wrap"></div>
-            </div>
+          </div>
           </section>
 
           <section id="panel-galleries" class="admin-panel">
