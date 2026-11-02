@@ -1,0 +1,84 @@
+/* TV-only layout: independent of the normal site header, dock and content width. */
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+html{min-width:320px;background:#041119}
+body.tv-ticker{margin:0;background:#041119;color:#f6f9fa;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh;min-width:320px;-webkit-font-smoothing:antialiased}
+.tv-ticker a{color:inherit}
+.tv-ticker button{font:inherit}
+.tv-ticker__shell{width:100%;max-width:2560px;margin:0 auto;padding:clamp(12px,1.2vw,28px)}
+.tv-ticker__header{display:flex;align-items:center;justify-content:space-between;gap:25px;min-height:112px;padding:22px clamp(16px,1.7vw,36px);border:1px solid #18313a;border-radius:8px 8px 0 0;background:#06151c}
+.tv-ticker__heading{min-width:0}
+.tv-ticker__eyebrow{display:flex;align-items:center;gap:9px;margin:0 0 10px;color:#ff2651;font-size:clamp(.72rem,.9vw,1rem);font-weight:900;letter-spacing:.095em}
+.tv-ticker__live-dot{width:12px;height:12px;border:3px solid #5d6870;border-radius:50%;background:#ed204a;box-shadow:0 0 0 4px #151e24;animation:tv-live-glow 1.7s ease-in-out infinite;flex:none}
+@keyframes tv-live-glow{50%{opacity:.35;box-shadow:0 0 0 8px rgb(237 32 74 / .12)}}
+.tv-ticker__header h1{margin:0;color:#fff;font-size:clamp(1.65rem,2.25vw,2.8rem);font-weight:900;letter-spacing:-.035em;line-height:1.1}
+.tv-ticker__description{margin:9px 0 0;color:#a6b7be;font-size:clamp(.79rem,1vw,1rem)}
+.tv-ticker__identity{display:flex;align-items:center;gap:13px;text-align:right;flex:none}
+.tv-ticker__identity img{display:block;width:clamp(44px,4vw,72px);height:clamp(44px,4vw,72px);object-fit:contain}
+.tv-ticker__identity>div{display:grid;gap:5px}
+.tv-ticker__identity strong{color:#ff315a;font-size:clamp(.85rem,1.05vw,1.2rem);font-variant-numeric:tabular-nums}
+.tv-ticker__identity span{color:#a7b9c0;font-size:clamp(.77rem,.86vw,1rem);font-variant-numeric:tabular-nums}
+.tv-ticker__utility{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;padding:10px clamp(16px,1.7vw,36px);background:#092633;border:1px solid #183845;border-top:0;border-radius:0 0 8px 8px;color:#b5c6cc;font-size:clamp(.7rem,.8vw,.9rem)}
+.tv-ticker__sync{white-space:normal}
+.tv-ticker__sync--error{color:#ff8e9c}
+.tv-ticker__tools{display:flex;align-items:center;gap:16px;white-space:nowrap}
+.tv-ticker__tools>span{opacity:.75}
+.tv-ticker__tools a,.tv-ticker__tools button{cursor:pointer;min-height:30px;padding:6px 9px;border:1px solid #2a4b56;border-radius:5px;background:#0b303d;color:#e8f2f4;text-decoration:none;font-size:inherit;font-weight:750}
+.tv-ticker__tools button:focus-visible,.tv-ticker__tools a:focus-visible,.tv-ticker__detail:focus-visible{outline:2px solid #ff315a;outline-offset:3px}
+.tv-ticker__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:clamp(10px,1vw,22px);padding:clamp(12px,1.1vw,24px) 0;min-height:30vh}
+.tv-ticker__match{min-width:0;overflow:hidden;background:#05151d;border:1px solid #24424e;border-radius:5px;box-shadow:0 6px 28px rgb(0 0 0 / .15)}
+.tv-ticker__match-head{display:flex;justify-content:space-between;align-items:start;gap:12px;padding:clamp(12px,1vw,20px);min-height:105px;background:#092d3a;border-bottom:1px solid #225060}
+.tv-ticker__match-head>div{min-width:0}
+.tv-ticker__match-head h2{margin:0 0 8px;font-size:clamp(.94rem,1.15vw,1.4rem);font-weight:900;line-height:1.25;overflow-wrap:anywhere}
+.tv-ticker__match-head h2 span{color:#c2d0d5;font-size:.8em;font-weight:600}
+.tv-ticker__match-head p{margin:4px 0;color:#bdcbd0;line-height:1.35;font-size:clamp(.68rem,.78vw,.9rem)}
+.tv-ticker__match-head .tv-ticker__changed{color:#88a7b4;font-size:clamp(.63rem,.7vw,.85rem)}
+.tv-ticker__running{flex:none;color:#ff2e5b;white-space:nowrap;font-size:clamp(.67rem,.75vw,.85rem);font-weight:900}
+.tv-ticker__running>span{animation:tv-live-glow 1.7s infinite}
+.tv-ticker__score{display:grid;grid-template-columns:minmax(0,1fr) clamp(58px,4.2vw,92px);min-height:116px;background:#05141b;border-bottom:1px solid #193644}
+.tv-ticker__score-names,.tv-ticker__score-values{display:grid;grid-template-rows:1fr 1fr;min-width:0}
+.tv-ticker__score-names>div{display:flex;align-items:center;gap:10px;min-width:0;padding:10px 13px}
+.tv-ticker__score-names>div+div{border-top:1px solid #102833}
+.tv-ticker__score-names strong{font-size:clamp(.82rem,1vw,1.22rem);font-weight:850;line-height:1.2;overflow-wrap:anywhere}
+.tv-ticker__score-names img{width:24px;height:24px;object-fit:contain;flex:none}
+.tv-ticker__score-values{border-left:1px solid #274755}
+.tv-ticker__score-values strong{display:grid;place-items:center;color:#fff;font-size:clamp(1.5rem,2vw,2.7rem);font-weight:950;font-variant-numeric:tabular-nums}
+.tv-ticker__score-values strong+strong{border-top:1px solid #102833}
+.tv-ticker__games-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 13px 11px;background:#0a2835;border-bottom:1px solid #24414d}
+.tv-ticker__games-head strong{font-weight:900;font-size:clamp(.82rem,.94vw,1.08rem)}
+.tv-ticker__games-head span{font-size:clamp(.66rem,.7vw,.85rem);color:#b4c5ca;text-align:right}
+.tv-ticker__games{display:grid;gap:0}
+.tv-ticker__game{min-width:0;border-bottom:1px solid #19313c;background:#06171f;position:relative}
+.tv-ticker__game:last-child{border-bottom:0}
+.tv-ticker__game.is-live:before{position:absolute;content:"";width:3px;left:0;top:0;bottom:0;background:#ee2051}
+.tv-ticker__game.is-live{background:#091e29}
+.tv-ticker__game-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 13px;background:#091e28}
+.tv-ticker__game-top>strong{font-size:clamp(.74rem,.82vw,.98rem)}
+.tv-ticker__game-status{font-size:clamp(.63rem,.67vw,.82rem);font-weight:800;color:#8aa6b1}
+.is-live .tv-ticker__game-status{color:#ff3a62}
+.is-finished .tv-ticker__game-status{color:#74d7a7}
+.tv-ticker__game-body{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;min-height:75px}
+.tv-ticker__players{min-width:0;display:grid;grid-template-rows:1fr 1fr}
+.tv-ticker__players>div{min-width:0;display:flex;align-items:center;padding:9px 13px;font-size:clamp(.71rem,.81vw,.98rem);font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.tv-ticker__players>div+div{border-top:1px solid #102833}
+.tv-ticker__sets{display:flex;justify-content:flex-end;min-width:0;border-left:1px solid #233e4a}
+.tv-ticker__set{display:grid;grid-template-rows:22px minmax(30px,1fr) minmax(30px,1fr);min-width:clamp(27px,2.5vw,44px);border-left:1px solid #102833;text-align:center;font-size:clamp(.8rem,.9vw,1.08rem);font-variant-numeric:tabular-nums;font-weight:750}
+.tv-ticker__set:first-child{border-left:0}
+.tv-ticker__set small{display:grid;place-items:center;color:#90a6ae;font-size:.65em;background:#081d27;font-weight:800}
+.tv-ticker__set span{display:grid;place-items:center;padding:4px 2px}
+.tv-ticker__set span+span{border-top:1px solid #102833}
+.tv-ticker__set--total{min-width:clamp(29px,2.7vw,46px);background:#0e303e;color:#fff;font-weight:900}
+.tv-ticker__result-note{margin:0;padding:4px 11px 8px;color:#acbec5;font-size:.7rem}
+.tv-ticker__no-games{padding:18px;color:#c2cdd1;font-size:.85rem}
+.tv-ticker__detail{display:block;padding:11px 14px;color:#ff466b!important;text-decoration:none;font-size:clamp(.73rem,.8vw,.95rem);font-weight:800;border-top:1px solid #20404d}
+.tv-ticker__detail:hover{text-decoration:underline}
+.tv-ticker__empty{grid-column:1/-1;display:grid;justify-items:center;align-content:center;gap:12px;padding:clamp(36px,8vh,120px) 20px;background:#071e29;border:1px solid #24424e;border-radius:8px;text-align:center}
+.tv-ticker__empty-mark{font-size:3.5rem}
+.tv-ticker__empty h2{margin:0;color:#fff;font-size:clamp(1.3rem,2.5vw,2.3rem)}
+.tv-ticker__empty p{margin:0;color:#afc0c6;line-height:1.5}
+.tv-ticker__footer{display:flex;justify-content:space-between;gap:16px;padding:14px 4px 22px;color:#839eaa;font-size:clamp(.68rem,.77vw,.93rem)}
+@media(max-width:1350px){.tv-ticker__grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tv-ticker__set{min-width:38px}.tv-ticker__match-head h2{font-size:1.12rem}.tv-ticker__players>div{font-size:.94rem}}
+@media(max-width:850px){.tv-ticker__grid{grid-template-columns:minmax(0,1fr);max-width:700px;margin-inline:auto}.tv-ticker__match-head h2{font-size:1.12rem}.tv-ticker__score-names strong{font-size:1rem}.tv-ticker__players>div{font-size:.89rem}.tv-ticker__tools>span{display:none}}
+@media(max-width:560px){.tv-ticker__header{min-height:0;padding:17px 13px}.tv-ticker__header h1{font-size:1.55rem}.tv-ticker__description{display:none}.tv-ticker__identity{gap:5px}.tv-ticker__identity img{width:37px;height:37px}.tv-ticker__identity strong{font-size:.75rem}.tv-ticker__identity span{font-size:.67rem}.tv-ticker__utility{flex-wrap:wrap;padding:9px 13px}.tv-ticker__tools{width:100%;justify-content:flex-end}.tv-ticker__footer{flex-direction:column;gap:4px}.tv-ticker__score{grid-template-columns:minmax(0,1fr) 62px}.tv-ticker__match-head{min-height:90px}.tv-ticker__set{min-width:29px}.tv-ticker__players>div{padding:8px;font-size:.78rem}.tv-ticker__score-names>div{padding:8px}.tv-ticker__game-top{padding:8px}.tv-ticker__match-head h2{font-size:1rem}}
+@media(max-width:370px){.tv-ticker__set{min-width:25px}.tv-ticker__identity img{display:none}}
+@media(prefers-reduced-motion:reduce){.tv-ticker__live-dot,.tv-ticker__running>span{animation:none}}
