@@ -1,0 +1,54 @@
+name: Backup Restore Drill (read-only source)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '40 5 * * 1'
+  push:
+    branches:
+      - feature/astro-supabase-foundation
+    paths:
+      - '.github/workflows/backup-restore-drill.yml'
+permissions:
+  contents: read
+jobs:
+  test_restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: drill
+          POSTGRES_PASSWORD: drill
+          POSTGRES_DB: drill
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U drill -d drill"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      TSV_BACKUP_DB_URL: ${{ secrets.TSV_BACKUP_DB_URL }}
+    steps:
+      - name: Require a read-only source connection
+        shell: bash
+        run: |
+          if [[ -z "$TSV_BACKUP_DB_URL" ]]; then
+            echo "::error::TSV_BACKUP_DB_URL is not configured. No backup/restore test occurred."
+            exit 1
+          fi
+      - name: Dump and restore BTV import history in an isolated PostgreSQL container
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="$RUNNER_TEMP/tsv-restore-drill.dump"
+          trap 'rm -f "$FILE"' EXIT
+          docker run --rm -e DB_URL="$TSV_BACKUP_DB_URL" postgres:17             sh -c 'pg_dump "$DB_URL" --format=custom --no-owner --no-acl --table=public.btv_import_runs' > "$FILE"
+          SOURCE_COUNT=$(docker run --rm -e DB_URL="$TSV_BACKUP_DB_URL" postgres:17             sh -c 'psql "$DB_URL" -Atc "select count(*) from public.btv_import_runs"')
+          docker run --rm --network host -v "$RUNNER_TEMP:/drill:ro" postgres:17             sh -c 'PGPASSWORD=drill pg_restore --no-owner --no-acl --section=pre-data --section=data               -d "postgresql://drill@127.0.0.1:5432/drill" /drill/tsv-restore-drill.dump'
+          RESTORED_COUNT=$(docker run --rm --network host postgres:17             sh -c 'PGPASSWORD=drill psql "postgresql://drill@127.0.0.1:5432/drill" -Atc               "select count(*) from public.btv_import_runs"')
+          if [[ "$SOURCE_COUNT" != "$RESTORED_COUNT" ]]; then
+            echo "::error::Restore row count differs; no backup integrity verified."
+            exit 1
+          fi
+          echo "PASS: isolated logical restore of public.btv_import_runs ($RESTORED_COUNT rows)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Scope: one public table only; not a verification of Supabase-managed backups/PITR." >> "$GITHUB_STEP_SUMMARY"
