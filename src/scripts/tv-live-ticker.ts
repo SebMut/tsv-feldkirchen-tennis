@@ -202,6 +202,8 @@ export function initTvLiveTicker() {
   let inFlight = false;
   let lastSuccessful = 0;
   let timing = readTvTiming(null);
+  // Manual views never mix ongoing and finished matches. Auto keeps the timed TV cycle.
+  let viewOverride: 'live' | 'finished' | null = null;
   let nextPollAt = Date.now() + REFRESH_MS;
   const startedAt = Date.now();
   let currentMatches: LiveMatch[] = [];
@@ -223,7 +225,8 @@ export function initTvLiveTicker() {
     const now = Date.now();
     const finished = currentMatches.flatMap(m => m.encounters)
       .filter(e => e.status === 'finished');
-    const showRecap = recapIsActive(timing, now, startedAt) && finished.length > 0;
+    const scheduledRecap = recapIsActive(timing, now, startedAt) && finished.length > 0;
+    const showRecap = viewOverride === 'finished' || (viewOverride === null && scheduledRecap);
     const highlightedIds = showRecap ? finished
       .filter(e => withinHighlight(e.finished_at, timing, now))
       .map(e => e.match_id + ':' + e.discipline + ':' + e.position).join('|') : '';
@@ -234,6 +237,10 @@ export function initTvLiveTicker() {
     const visibleMatches = currentMatches.filter(m =>
       m.encounters.some(e => e.status === status));
     board!.dataset.viewMode = showRecap ? 'finished' : 'live';
+    document.querySelectorAll<HTMLButtonElement>('[data-tv-view]').forEach(button => {
+      const selected = button.dataset.tvView === (viewOverride || 'auto');
+      button.setAttribute('aria-pressed', String(selected));
+    });
     board!.setAttribute('aria-label', showRecap ? 'Beendete Partien' : 'Laufende Partien');
     board!.classList.toggle('tv-ticker__grid--single', visibleMatches.length === 1);
     board!.classList.toggle('tv-ticker__grid--pair', visibleMatches.length === 2);
@@ -249,13 +256,22 @@ export function initTvLiveTicker() {
     if (viewLabel) viewLabel.textContent = showRecap
       ? 'RÜCKBLICK · TSV FELDKIRCHEN TENNIS' : 'LIVE · TSV FELDKIRCHEN TENNIS';
     document.body.classList.toggle('tv-ticker--recap', showRecap);
-    if (recapNotice) recapNotice.textContent = showRecap
-      ? 'Nur beendete Partien · Rückblick für ' + timing.recap_duration_seconds + ' Sekunden'
-      : 'Nur laufende Partien · Rückblick alle ' + timing.recap_every_seconds + ' Sekunden';
+    if (recapNotice) recapNotice.textContent = viewOverride
+      ? (showRecap ? 'Nur beendete Partien · Manuelle Ansicht' : 'Nur laufende Partien · Manuelle Ansicht')
+      : (showRecap
+          ? 'Nur beendete Partien · Rückblick für ' + timing.recap_duration_seconds + ' Sekunden'
+          : 'Nur laufende Partien · Rückblick alle ' + timing.recap_every_seconds + ' Sekunden');
     count!.textContent = showRecap
       ? (visibleMatches.length === 1 ? '1 Begegnung im Rückblick' : visibleMatches.length + ' Begegnungen im Rückblick')
       : (visibleMatches.length === 1 ? '1 Begegnung live' : visibleMatches.length + ' Begegnungen live');
   };
+  document.querySelectorAll<HTMLButtonElement>('[data-tv-view]').forEach(button => {
+    button.addEventListener('click', () => {
+      const value = button.dataset.tvView;
+      viewOverride = value === 'live' || value === 'finished' ? value : null;
+      renderBoard(true);
+    });
+  });
   const refresh = async () => {
     if (inFlight) return;
     inFlight = true;
