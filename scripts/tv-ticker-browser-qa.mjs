@@ -64,6 +64,20 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       assert.ok(sizes.small<sizes.game,'tiebreak superscripts must be visually smaller');
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+3),true);
     },page);
+    await check('TV scoreboard: compact laptop match header and rows',async()=>{
+      await page.setViewportSize({width:1366,height:768});
+      const match=page.locator('.tv-ticker__match').first();
+      const metrics=await match.evaluate(el=>({
+        heading:el.querySelector('.tv-ticker__match-head').getBoundingClientRect().height,
+        score:el.querySelector('.tv-ticker__score').getBoundingClientRect().height,
+        game:el.querySelector('.tv-ticker__game').getBoundingClientRect().height,
+      }));
+      assert.ok(metrics.heading<105,'laptop fixture heading too tall: '+JSON.stringify(metrics));
+      assert.ok(metrics.score<105,'laptop scoreboard too tall: '+JSON.stringify(metrics));
+      assert.ok(metrics.game<125,'laptop individual match too tall: '+JSON.stringify(metrics));
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+3),true);
+      await page.setViewportSize({width:1920,height:1080});
+    },page);
     await check('TV scoreboard: two columns tablet, one smartphone',async()=>{
       await page.setViewportSize({width:1100,height:900});
       let grid=await page.locator('.tv-ticker__grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
@@ -72,6 +86,20 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       grid=await page.locator('.tv-ticker__grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
       assert.equal(grid.trim().split(/\s+/).length,1);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+3),true,'mobile TV layout overflows');
+      const compact=await page.evaluate(()=>{
+        const r=selector=>document.querySelector(selector)?.getBoundingClientRect().height;
+        return {header:r('.tv-ticker__header'),heading:r('.tv-ticker__match-head'),
+          score:r('.tv-ticker__score'),game:r('.tv-ticker__game')};
+      });
+      assert.ok(compact.header<96,'phone title occupies too much space '+JSON.stringify(compact));
+      assert.ok(compact.heading<110,'phone match title too tall '+JSON.stringify(compact));
+      assert.ok(compact.score<98,'phone total scoreboard too tall '+JSON.stringify(compact));
+      assert.ok(compact.game<128,'phone individual score too tall '+JSON.stringify(compact));
+      assert.ok(await page.locator('.tv-ticker__player-logo').count()===3,'TSV logos must remain visible on phone');
+      assert.equal(await page.locator('.tv-ticker__tb-point').count(),2,'tie-break digits must remain on phone');
+      await page.setViewportSize({width:320,height:720});
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+3),true,'320px ticker overflow');
+      await page.setViewportSize({width:390,height:844});
     },page);
     await check('TV scoreboard: polls new scores every 30 seconds without navigation',async()=>{
       const first=page.locator('[data-tv-match="'+ids[0]+'"]');
