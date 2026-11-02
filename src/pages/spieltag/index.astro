@@ -36,16 +36,12 @@ import '../../styles/live-flashscore.css';
         <section class="matchday-panel" aria-labelledby="upcoming-fixtures-title">
           <p class="matchday-kicker">Demnächst</p>
           <h2 id="upcoming-fixtures-title">Die nächsten Punktspiele</h2>
-          <div id="upcoming-matches" class="match-list" aria-live="polite">
-            <p class="muted">Weitere Spiele werden geladen …</p>
-          </div>
+          <div id="upcoming-matches" class="match-list" aria-live="polite"><p class="muted">Weitere Spiele werden geladen …</p></div>
         </section>
         <section class="matchday-panel" aria-labelledby="recent-fixtures-title">
           <p class="matchday-kicker">Ergebnisse</p>
           <h2 id="recent-fixtures-title">Zuletzt gespielt</h2>
-          <div id="recent-matches" class="match-list" aria-live="polite">
-            <p class="muted">Ergebnisse werden geladen …</p>
-          </div>
+          <div id="recent-matches" class="match-list" aria-live="polite"><p class="muted">Ergebnisse werden geladen …</p></div>
         </section>
       </div>
     </div>
@@ -54,6 +50,8 @@ import '../../styles/live-flashscore.css';
 <script>
   import { loadHome } from '../../scripts/public';
   import { enhanceLiveLastUpdated } from '../../scripts/live-last-updated';
+  import { initLiveScorecenter } from '../../scripts/live-scorecenter';
+  initLiveScorecenter();
   loadHome();
   enhanceLiveLastUpdated();
 </script>
