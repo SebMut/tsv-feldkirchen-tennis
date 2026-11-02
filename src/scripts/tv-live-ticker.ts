@@ -190,6 +190,7 @@ export function initTvLiveTicker() {
         : '<section class="tv-ticker__empty" role="status"><div class="tv-ticker__empty-mark" aria-hidden="true">🎾</div><h2>Aktuell läuft keine Begegnung</h2><p>Die Anzeige startet automatisch, sobald ein Spiel live geschaltet wird.</p></section>';
       count.textContent = matches.length === 1 ? '1 Begegnung live' : matches.length + ' Begegnungen live';
       lastSuccessful = Date.now();
+      sync.classList.remove('tv-ticker__sync--error');
       sync.textContent = 'Live-Daten aktualisiert: ' + fmtTime() + ' Uhr';
       board.removeAttribute('aria-busy');
     } catch (error) {
@@ -204,7 +205,6 @@ export function initTvLiveTicker() {
         board.removeAttribute('aria-busy');
       }
     } finally {
-      if (lastSuccessful && sync.classList.contains('tv-ticker__sync--error')) sync.classList.remove('tv-ticker__sync--error');
       inFlight = false;
     }
   };
