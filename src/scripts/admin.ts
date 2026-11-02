@@ -1121,6 +1121,79 @@ window.addEventListener('beforeunload', (event) => {
   event.preventDefault();
 });
 
+/**
+ * Synchronize two simultaneously open ticker-admin sessions. Never replace
+ * actively edited fields or tracked drafts with remote state.
+ * Public viewers already subscribe to these same database changes.
+ */
+function initTickerMultiDeviceSync() {
+  if (!state.user || !allowedTeamSeasons('tick').length) return;
+  const notice = $('#ticker-remote-update-notice');
+  let timer: number | undefined;
+  let busy = false;
+  let queued = false;
+  let stopped = false;
+  const editing = () => pendingMatchDrafts.size > 0 ||
+    !!document.activeElement?.closest('#matches-admin-list input, #matches-admin-list textarea, #matches-admin-list select');
+  const visible = () => document.visibilityState === 'visible' &&
+    !!document.querySelector('#panel-matches.active');
+  const refresh = async () => {
+    if (stopped || !visible()) return;
+    if (editing()) {
+      queued = true;
+      if (notice) {
+        notice.classList.remove('hidden');
+        notice.textContent = 'Auf einem anderen Gerät wurden Spielstände geändert. Deine ungespeicherten Eingaben bleiben erhalten; nach dem Speichern wird aktualisiert.';
+      }
+      return;
+    }
+    if (busy) { queued = true; return; }
+    busy = true;
+    queued = false;
+    if (notice) notice.classList.add('hidden');
+    try {
+      await refreshMatches();
+    } finally {
+      busy = false;
+      if (queued && !stopped) schedule();
+    }
+  };
+  const schedule = () => {
+    if (stopped || timer !== undefined) return;
+    timer = window.setTimeout(() => {
+      timer = undefined;
+      void refresh();
+    }, 300);
+  };
+  const matchIsOurs = (payload: { new?: Record<string, any>; old?: Record<string, any> }) => {
+    const id = payload.new?.match_id || payload.old?.match_id;
+    return !id || state.matches.some(match => match.id === id);
+  };
+  const channel = supabase.channel('admin-ticker-updates:' + state.user.id)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_live_state' }, payload => {
+      if (matchIsOurs(payload)) schedule();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_encounters' }, payload => {
+      if (matchIsOurs(payload)) schedule();
+    })
+    .subscribe();
+  const onVisible = () => { if (visible() && (queued || !busy)) schedule(); };
+  document.addEventListener('visibilitychange', onVisible);
+  document.addEventListener('focusout', schedule);
+  window.addEventListener('focus', onVisible);
+  const polling = window.setInterval(onVisible, 30000);
+  window.addEventListener('pagehide', () => {
+    stopped = true;
+    if (timer !== undefined) window.clearTimeout(timer);
+    window.clearInterval(polling);
+    document.removeEventListener('visibilitychange', onVisible);
+    document.removeEventListener('focusout', schedule);
+    window.removeEventListener('focus', onVisible);
+    void supabase.removeChannel(channel);
+  }, { once: true });
+}
+
+
 // Zulässige Satzstände aus Sicht TSV : Gegner. Der dritte Satz ist ein Match-Tiebreak.
 const regularSetScores = [
   '6:0', '0:6', '6:1', '1:6', '6:2', '2:6', '6:3', '3:6',
@@ -2481,6 +2554,7 @@ async function startApp(user: any) {
   bindNav();
   bindForms();
   initBtvSourceRegistry();
+  initTickerMultiDeviceSync();
   $<HTMLButtonElement>('#btv-sync-refresh')?.addEventListener('click', () => void refreshWinterBtvHealth());
   await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshNewsReferenceEvents(), refreshGalleries()]);
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
