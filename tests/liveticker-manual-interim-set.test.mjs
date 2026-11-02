@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {summarizeSetResult, validateSetScore, homeAwaySetScore} from '../src/lib/tennis-score.mjs';
+import {summarizeSetResult, validateSetScore, homeAwaySetScore, adjustSetScore} from '../src/lib/tennis-score.mjs';
 
 const read=(path)=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
@@ -120,4 +120,33 @@ test('a saved interim score activates the public ticker and checks for a persist
   assert.match(admin,/if \(error \|\| !data\)/);
   assert.match(admin,/Zwischenstand gespeichert/);
   assert.match(admin,/Speichern fehlgeschlagen/);
+});
+
+test('increment/decrement enforces regular set boundaries in set 1 and 2',()=>{
+  for(const setIndex of [0,1]){
+    assert.deepEqual(adjustSetScore('',setIndex,'tsv',1),{valid:true,score:'1:0',message:''});
+    assert.deepEqual(adjustSetScore('3:2',setIndex,'opponent',1),{valid:true,score:'3:3',message:''});
+    assert.deepEqual(adjustSetScore('3:2',setIndex,'tsv',-1),{valid:true,score:'2:2',message:''});
+    assert.equal(adjustSetScore('',setIndex,'opponent',-1).valid,false,'scores must never be negative');
+    assert.equal(adjustSetScore('0:0',setIndex,'tsv',-1).valid,false);
+    assert.equal(adjustSetScore('6:4',setIndex,'tsv',1).valid,false,'7:4 is not allowed');
+    assert.equal(adjustSetScore('7:5',setIndex,'tsv',1).valid,false,'8:5 is not allowed');
+    assert.equal(adjustSetScore('7:6',setIndex,'opponent',1).valid,false,'7:7 is not allowed');
+    assert.equal(adjustSetScore('6:6',setIndex,'tsv',1).score,'7:6');
+    assert.equal(adjustSetScore('6:6',setIndex,'opponent',1).score,'6:7');
+    assert.equal(adjustSetScore('6:5',setIndex,'tsv',1).score,'7:5');
+    assert.equal(adjustSetScore('5:6',setIndex,'opponent',1).score,'5:7');
+    assert.equal(adjustSetScore('6:5',setIndex,'opponent',1).score,'6:6');
+    assert.equal(summarizeSetResult(adjustSetScore('6:5',setIndex,'tsv',1).score).winner,setIndex===0?null:null);
+  }
+});
+
+test('third-set plus/minus continues the original match-tiebreak counting',()=>{
+  assert.equal(adjustSetScore('9:9',2,'tsv',1).score,'10:9');
+  assert.equal(adjustSetScore('10:9',2,'tsv',1).score,'11:9');
+  assert.equal(validateSetScore('11:9',2).complete,true);
+  assert.equal(adjustSetScore('12:11',2,'tsv',1).score,'13:11');
+  assert.equal(adjustSetScore('10:10',2,'opponent',-1).score,'10:9');
+  assert.equal(adjustSetScore('0:0',2,'tsv',-1).valid,false);
+  assert.equal(adjustSetScore('99:98',2,'tsv',1).valid,false);
 });
