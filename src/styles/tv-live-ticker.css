@@ -105,3 +105,7 @@ body.tv-ticker{margin:0;background:#041119;color:#f6f9fa;font-family:Inter,syste
 @media(max-width:850px){
   .tv-ticker__grid.tv-ticker__grid--single,.tv-ticker__grid.tv-ticker__grid--pair{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Small raised regular tie-break points, aligned to the appropriate player. */
+.tv-ticker__set-value{display:inline-flex!important;align-items:baseline;justify-content:center;white-space:nowrap;gap:0}
+.tv-ticker__tb-point{font-size:.57em;line-height:1;margin-left:1px;position:relative;top:-.32em;color:#ffd86a;font-weight:900}
