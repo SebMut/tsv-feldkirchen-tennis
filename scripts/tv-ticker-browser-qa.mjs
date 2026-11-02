@@ -57,6 +57,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       const first=page.locator('[data-tv-match="'+ids[0]+'"]');
       model.states[0]={...model.states[0],home_score:2,updated_at:new Date().toISOString()};
       model.encounters[0]={...model.encounters[0],status:'finished',result_text:'6:2 6:3'};
+      await new Promise(resolve=>setTimeout(resolve,350));
       await page.clock.fastForward(30000);
       await page.waitForFunction(id=>{
         const item=document.querySelector('[data-tv-match="'+id+'"]');
@@ -65,6 +66,15 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       },ids[0],{timeout:9000});
       assert.match(await first.locator('.tv-ticker__score').innerText(),/2/);
       assert.equal(await page.locator('.tv-ticker__match').count(),3);
+    },page);
+    await check('TV scoreboard: one live fixture spans the full TV width',async()=>{
+      await page.setViewportSize({width:1920,height:1080});
+      model.states=model.states.slice(0,1);
+      await page.clock.fastForward(30000);
+      await page.waitForFunction(()=>document.querySelectorAll('.tv-ticker__match').length===1,null,{timeout:9000});
+      assert.equal(await page.locator('.tv-ticker__grid--single').count(),1);
+      const grid=await page.locator('.tv-ticker__grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
+      assert.equal(grid.trim().split(/\s+/).length,1,'one live team must use full horizontal room');
     },page);
   }finally{await context.close();}
 }
