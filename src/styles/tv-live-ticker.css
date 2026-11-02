@@ -203,3 +203,58 @@ body.tv-ticker{margin:0;background:#041119;color:#f6f9fa;font-family:Inter,syste
   .tv-ticker__players>div { font-size: .7rem; }
   .tv-ticker__identity img { display: none; }
 }
+
+/* Exact table alignment: the player column gets the same set-number header
+   row as the result columns. Never divide the entire header+scores block into
+   just two equal halves: that shifts the name divider above the score divider. */
+.tv-ticker__game-body{
+  --tv-set-head:22px;
+  --tv-set-player:30px;
+  align-items:stretch;
+}
+.tv-ticker__players{
+  display:grid;
+  grid-template-rows:var(--tv-set-head) repeat(2,var(--tv-set-player));
+  min-width:0;
+}
+.tv-ticker__players::before{
+  content:"";
+  display:block;
+  grid-row:1;
+  border-bottom:1px solid #102833;
+}
+.tv-ticker__players>div{
+  height:var(--tv-set-player);
+  min-height:0;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+.tv-ticker__players>div:first-of-type{grid-row:2}
+.tv-ticker__players>div:last-of-type{grid-row:3}
+.tv-ticker__players>div>span:first-of-type{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
+}
+.tv-ticker__set{
+  grid-template-rows:var(--tv-set-head) repeat(2,var(--tv-set-player));
+}
+.tv-ticker__set>small,
+.tv-ticker__set>.tv-ticker__set-value{
+  height:100%;
+  min-height:0;
+  box-sizing:border-box;
+  line-height:1;
+}
+.tv-ticker__set>.tv-ticker__set-value{
+  display:flex!important;
+  align-items:center;
+  justify-content:center;
+}
+@media(max-width:1600px){
+  .tv-ticker__game-body{--tv-set-head:18px;--tv-set-player:26px}
+}
+@media(max-width:560px){
+  .tv-ticker__game-body{--tv-set-head:16px;--tv-set-player:24px}
+}
