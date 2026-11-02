@@ -82,3 +82,13 @@ body.tv-ticker{margin:0;background:#041119;color:#f6f9fa;font-family:Inter,syste
 @media(max-width:560px){.tv-ticker__header{min-height:0;padding:17px 13px}.tv-ticker__header h1{font-size:1.55rem}.tv-ticker__description{display:none}.tv-ticker__identity{gap:5px}.tv-ticker__identity img{width:37px;height:37px}.tv-ticker__identity strong{font-size:.75rem}.tv-ticker__identity span{font-size:.67rem}.tv-ticker__utility{flex-wrap:wrap;padding:9px 13px}.tv-ticker__tools{width:100%;justify-content:flex-end}.tv-ticker__footer{flex-direction:column;gap:4px}.tv-ticker__score{grid-template-columns:minmax(0,1fr) 62px}.tv-ticker__match-head{min-height:90px}.tv-ticker__set{min-width:29px}.tv-ticker__players>div{padding:8px;font-size:.78rem}.tv-ticker__score-names>div{padding:8px}.tv-ticker__game-top{padding:8px}.tv-ticker__match-head h2{font-size:1rem}}
 @media(max-width:370px){.tv-ticker__set{min-width:25px}.tv-ticker__identity img{display:none}}
 @media(prefers-reduced-motion:reduce){.tv-ticker__live-dot,.tv-ticker__running>span{animation:none}}
+
+/* A single active encounter uses the full available TV width. Two take half;
+   only three or more use the three-column broadcast grid. */
+@media(min-width:851px){
+  .tv-ticker__grid.tv-ticker__grid--single{grid-template-columns:minmax(0,1fr)}
+  .tv-ticker__grid.tv-ticker__grid--pair{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:850px){
+  .tv-ticker__grid.tv-ticker__grid--single,.tv-ticker__grid.tv-ticker__grid--pair{grid-template-columns:minmax(0,1fr)}
+}
