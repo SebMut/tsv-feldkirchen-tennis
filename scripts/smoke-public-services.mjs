@@ -33,7 +33,9 @@ async function calendar(params, { min = 0, exact = null } = {}) {
 
 const allMatches = await calendar({ type: 'matches' }, { min: 1 });
 await calendar({ type: 'events' });
-const exampleTeams = ['herren', 'damen', 'junioren-18'];
+// Only active Winter 2026/27 squads have published fixtures. Do not require
+// retired Sommer 2026 women's or youth matches to exist.
+const exampleTeams = ['herren', 'herren-ii', 'herren-50'];
 for (const team of exampleTeams) {
   const count = await calendar({ type: 'matches', team }, { min: 1 });
   if (count > allMatches) throw new Error(`Team feed ${team} exceeds all matches`);
