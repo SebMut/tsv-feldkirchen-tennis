@@ -625,6 +625,16 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field full"><label>Tennisschule-URL</label><input id="setting-tennis-school-url" type="url" /></div>
                 <div class="field full"><label>Adresse (JSON)</label><textarea id="setting-address" placeholder='{"street":"Olympiastrasse 1","postal_code":"85622","city":"Feldkirchen","country":"Deutschland"}'></textarea></div>
                 <div class="field full"><label>Social-Links (JSON)</label><textarea id="setting-social-links" placeholder='{"instagram":"https://..."}'></textarea></div>
+                <fieldset class="field full tv-timing-settings">
+                  <legend>TV-Liveticker · Anzeigezeiten (zum Testen einstellbar)</legend>
+                  <p class="muted">Nur für die TV-Ansicht. Die Zeiten werden im bestehenden Website-Einstellungsbereich gespeichert und gelten für alle Zuschauer.</p>
+                  <div class="form-grid">
+                    <div class="field"><label for="setting-tv-poll">Neue Ergebnisse abfragen (Sekunden)</label><input id="setting-tv-poll" type="number" min="5" max="600" step="1" value="30" required /></div>
+                    <div class="field"><label for="setting-tv-recap-every">Beendete Spiele zeigen alle (Sekunden)</label><input id="setting-tv-recap-every" type="number" min="10" max="3600" step="1" value="300" required /></div>
+                    <div class="field"><label for="setting-tv-recap-for">Beendete Spiele anzeigen für (Sekunden)</label><input id="setting-tv-recap-for" type="number" min="1" max="3599" step="1" value="30" required /></div>
+                    <div class="field"><label for="setting-tv-highlight">Neue Siege/Niederlagen hervorheben (Sekunden)</label><input id="setting-tv-highlight" type="number" min="5" max="3600" step="1" value="300" required /></div>
+                  </div>
+                </fieldset>
                 <div class="field"><button class="button" type="submit">Einstellungen speichern</button></div>
               </form>
             </div>
