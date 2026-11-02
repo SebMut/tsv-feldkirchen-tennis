@@ -110,7 +110,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
               <div class="admin-shortcuts" aria-label="Schnellzugriff">
                 <button class="admin-shortcut" type="button" data-admin-jump="matches" data-ticker-only><strong>Spiele &amp; Liveticker</strong><span>Spieltage bearbeiten <span aria-hidden="true">›</span></span></button>
                 <button class="admin-shortcut" type="button" data-admin-jump="players" data-editor-only><strong>Kader pflegen</strong><span>Spieler verwalten <span aria-hidden="true">›</span></span></button>
-                <button class="admin-shortcut" type="button" data-admin-jump="news" data-editor-only><strong>News erstellen</strong><span>Beiträge veröffentlichen <span aria-hidden="true">›</span></span></button>
+                <button class="admin-shortcut" type="button" data-admin-jump="news" data-editorial-only><strong>Aktuelles &amp; Veranstaltungen</strong><span>Beiträge und Termine verwalten <span aria-hidden="true">›</span></span></button>
                 <button class="admin-shortcut hidden" type="button" data-admin-jump="manual-results" data-super-only><strong>Ergebnisse nachtragen</strong><span>Fehlende Ergebnisse <span aria-hidden="true">›</span></span></button>
               </div>
             </div>
@@ -592,7 +592,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
                     </div>
                     <div class="card flat">
                       <label><input type="checkbox" data-invite-permission value="news" /> <strong>News hinzufügen</strong></label>
-                      <p class="muted">Darf News für den gesamten Verein und alle Mannschaften schreiben, bearbeiten und veröffentlichen. Verknüpfte Kalendertermine benötigen zusätzlich Veranstaltungsrechte oder die entsprechende Mannschaftsberechtigung.</p>
+                      <p class="muted">Darf News für den gesamten Verein und alle Mannschaften schreiben, bearbeiten und veröffentlichen. Kalendertermine benötigen zusätzlich die globale Veranstaltungsberechtigung.</p>
                     </div>
                     <div class="card flat">
                       <label><input type="checkbox" data-invite-permission value="ticker" /> <strong>Liveticker (alle Mannschaften)</strong></label>
@@ -606,15 +606,15 @@ import MainLayout from '../../layouts/MainLayout.astro';
                   <div class="grid" aria-label="Mannschaftsrollen erklärt">
                     <div class="card flat">
                       <strong>Manager</strong>
-                      <p class="muted">Darf Mannschaftsdaten, Kader, Spielerbilder, Spieltage, Mannschafts-News und Liveticker bearbeiten. Aktuell technisch die gleichen Mannschafts-Bearbeitungsrechte wie Editor; keine globale Benutzerverwaltung.</p>
+                      <p class="muted">Darf die zugewiesene Mannschaft, Kader, Spielerbilder, Spieltage und deren Liveticker bearbeiten. News und Veranstaltungen benötigen separate globale Rechte. Aktuell technisch dieselben Mannschaftsrechte wie Editor; keine Benutzerverwaltung.</p>
                     </div>
                     <div class="card flat">
                       <strong>Editor</strong>
-                      <p class="muted">Darf die zugewiesene Mannschaft redaktionell betreuen, einschließlich Mannschaftsdaten, Kader, Bildern, Spielen, News und Liveticker. Keine Rechte für andere Mannschaften.</p>
+                      <p class="muted">Darf Mannschaftsdaten, Kader, Bilder, Spiele und Liveticker für die zugewiesene Mannschaft bearbeiten. News und Veranstaltungen nur mit zusätzlichem globalen Recht. Keine Rechte für andere Mannschaften.</p>
                     </div>
                     <div class="card flat">
                       <strong>Nur Liveticker</strong>
-                      <p class="muted">Darf die Spiele der zugewiesenen Mannschaft live begleiten, Ergebnisse und Tickermeldungen bearbeiten; keine Mannschafts- oder Kaderverwaltung.</p>
+                      <p class="muted">Darf ausschließlich den Liveticker der zugewiesenen Mannschaft bedienen, Ergebnisse und Tickermeldungen pflegen. Keine Mannschafts-, Kader-, News-, Veranstaltungs- oder Galerieverwaltung.</p>
                     </div>
                   </div>
                   <div id="invite-teams" class="invite-team-grid"></div>
