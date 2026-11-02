@@ -1,5 +1,14 @@
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+
+export function validateImageFile(file: File) {
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) throw new Error('Erlaubt sind JPEG, PNG, WebP und AVIF.');
+  if (file.size <= 0) throw new Error('Die Bilddatei ist leer.');
+  if (file.size > MAX_IMAGE_BYTES) throw new Error('Das Bild darf maximal 8 MB groß sein.');
+}
+
 export async function optimizeImage(file: File, maxDimension = 2200, quality = 0.84): Promise<File> {
-  if (!file.type.startsWith('image/')) return file;
+  validateImageFile(file);
 
   let bitmap: ImageBitmap;
   try {
@@ -16,16 +25,16 @@ export async function optimizeImage(file: File, maxDimension = 2200, quality = 0
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d', { alpha: true });
-  if (!ctx) return file;
+  if (!ctx) throw new Error('Das Bild konnte nicht verarbeitet werden.');
 
   ctx.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
 
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', quality));
-  if (!blob) return file;
+  if (!blob) throw new Error('Das Bild konnte nicht in WebP umgewandelt werden.');
 
   const safeBase = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '-');
-  return new File([blob], `${safeBase}.webp`, {
+  return new File([blob], `${safeBase || 'image'}.webp`, {
     type: 'image/webp',
     lastModified: Date.now(),
   });
