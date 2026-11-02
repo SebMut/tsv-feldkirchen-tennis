@@ -216,17 +216,19 @@ async function saveTvTimeSettings(base: BaseState) {
   if (button) { button.disabled = true; button.textContent = 'TV-Zeiten werden gespeichert …'; }
   tvTimeFeedback('Speichere die TV-Zeiten in Supabase …');
   try {
-    const { data, error } = await supabase.from('site_settings').upsert({
-      key: 'tv_ticker_timing', value: input.value,
-      is_public: true, updated_by: base.user.id,
-    }, { onConflict: 'key' }).select('key,value').single();
+    // This setting is seeded by the migration. UPDATE avoids an INSERT-path
+    // RLS check when PostgREST would otherwise attempt INSERT ... ON CONFLICT.
+    const { data, error } = await supabase.from('site_settings')
+      .update({ value: input.value, updated_by: base.user.id })
+      .eq('key', 'tv_ticker_timing')
+      .select('key,value').maybeSingle();
     if (error || data?.key !== 'tv_ticker_timing')
-      throw Error(error?.message || 'Supabase hat die TV-Zeiten nicht bestätigt.');
+      throw Error(error?.message || 'TV-Zeiten nicht geändert. Bitte Super-Admin-Rechte und Datenbankeintrag prüfen.');
     const stored = data.value as Partial<TvTimeValues> | null;
     if (!stored || Object.entries(input.value).some(([key,value]) =>
       stored[key as keyof TvTimeValues] !== value))
       throw Error('Die zurückgegebenen TV-Zeiten stimmen nicht mit der Eingabe überein.');
-    // Independently read back the saved values, including after an UPSERT with RLS.
+    // Independently read back the saved values under the current user's RLS permissions.
     const checked = await supabase.from('site_settings')
       .select('value').eq('key', 'tv_ticker_timing').maybeSingle();
     const storedValue = checked.data?.value as Partial<TvTimeValues> | undefined;
@@ -665,6 +667,22 @@ export async function loadAdvancedUsers(base: BaseState) {
   });
 }
 
+// Bind critical controls before the slower match, gallery and user requests.
+export function bindTvTimingControls(base: BaseState) {
+  if (!base.isSuper) return;
+  const button = $<HTMLButtonElement>('#save-tv-timing');
+  if (!button || button.dataset.tvTimingBound === 'true') return;
+  button.dataset.tvTimingBound = 'true';
+  button.addEventListener('click', () => void saveTvTimeSettings(base));
+  for (const id of ['setting-tv-poll', 'setting-tv-recap-every', 'setting-tv-recap-for', 'setting-tv-highlight']) {
+    $<HTMLInputElement>('#' + id)?.addEventListener('input', () => {
+      $<HTMLInputElement>('#' + id)?.removeAttribute('aria-invalid');
+      const feedback = $<HTMLElement>('#tv-timing-feedback');
+      if (feedback) feedback.hidden = true;
+    });
+  }
+}
+
 export async function initAdvancedAdmin(base: BaseState) {
   decorateMatchCards(base);
   $<HTMLSelectElement>('#news-match')?.addEventListener('change', () => prefillReport(base));
@@ -673,14 +691,7 @@ export async function initAdvancedAdmin(base: BaseState) {
 
   $<HTMLFormElement>('#season-form')?.addEventListener('submit', (event) => createSeason(event, base));
   $<HTMLFormElement>('#settings-form')?.addEventListener('submit', (event) => saveSettings(event, base));
-  $<HTMLButtonElement>('#save-tv-timing')?.addEventListener('click', () => void saveTvTimeSettings(base));
-  for (const id of ['setting-tv-poll', 'setting-tv-recap-every', 'setting-tv-recap-for', 'setting-tv-highlight']) {
-    $<HTMLInputElement>('#' + id)?.addEventListener('input', () => {
-      $<HTMLInputElement>('#' + id)?.removeAttribute('aria-invalid');
-      const feedback = $<HTMLElement>('#tv-timing-feedback');
-      if (feedback) feedback.hidden = true;
-    });
-  }
+  bindTvTimingControls(base);
   $<HTMLFormElement>('#placement-form')?.addEventListener('submit', (event) => savePlacement(event, base));
   $('#placement-cancel-edit')?.addEventListener('click', () => {
     ($<HTMLFormElement>('#placement-form'))?.reset();
