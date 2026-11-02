@@ -40,21 +40,27 @@ test('tie-break finishes only at >=7 and a lead of at least two, extending beyon
   assert.equal(adjustRegularTiebreak([0,0],'opponent',-1).valid,false);
 });
 
-test('finished set shows small losing points; running 6:6 shows both scores',()=>{
+test('finished and running regular sets show small tiebreak points for both players',()=>{
   const pointMap={'1':[8,6],'2':[7,9]};
   assert.deepEqual(regularSetDisplayValues('7:6',0,pointMap,true),
-    {first:7,second:6,smallFirst:null,smallSecond:6});
+    {first:7,second:6,smallFirst:8,smallSecond:6});
   assert.deepEqual(regularSetDisplayValues('7:6',0,pointMap,false),
-    {first:6,second:7,smallFirst:6,smallSecond:null});
+    {first:6,second:7,smallFirst:6,smallSecond:8});
   assert.deepEqual(regularSetDisplayValues('6:7',1,pointMap,true),
-    {first:6,second:7,smallFirst:7,smallSecond:null});
+    {first:6,second:7,smallFirst:7,smallSecond:9});
   assert.deepEqual(regularSetDisplayValues('6:6',0,pointMap,true),
     {first:6,second:6,smallFirst:8,smallSecond:6});
   assert.equal(regularSetDisplayValues('7:6',0,null,true).smallSecond,null,'legacy 7:6 remains unchanged');
   const html=regularSetDisplayHtml('7:6',0,pointMap,true);
-  assert.match(html,/ticker-set-side">7<\/span>/);
+  assert.match(html,/ticker-set-side">7<sup class="ticker-set-tiebreak" aria-label="Tiebreak-Punkte 8">8<\/sup><\/span>/);
   assert.match(html,/ticker-set-side">6<sup class="ticker-set-tiebreak"/);
   assert.match(html,/aria-label="Tiebreak-Punkte 6"/);
+  assert.match(html,/aria-label="Tiebreak-Punkte 8"/);
+  const awayHtml=regularSetDisplayHtml('6:7',1,pointMap,false);
+  assert.match(awayHtml,/aria-label="Tiebreak-Punkte 9"/);
+  assert.match(awayHtml,/aria-label="Tiebreak-Punkte 7"/);
+  assert.equal((awayHtml.match(/ticker-set-tiebreak/g)||[]).length,2);
+  assert.equal((html.match(/ticker-set-tiebreak/g)||[]).length,2);
   assert.doesNotMatch(regularSetDisplayHtml('8:10',2,pointMap,true),/sup/,'match tie-break uses normal large digits');
 });
 
