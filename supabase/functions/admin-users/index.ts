@@ -8,6 +8,12 @@ const cors = {
 };
 const allowedRoles = new Set(["user", "super_admin"]);
 const allowedTeamRoles = new Set(["manager", "editor", "ticker"]);
+const allowedGlobalPermissions = new Set(["events", "news", "ticker"]);
+function readGlobalPermissions(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  if (!value.every((permission) => typeof permission === "string" && allowedGlobalPermissions.has(permission))) return null;
+  return [...new Set(value as string[])];
+}
 
 function allowedRedirect(value: unknown) {
   if (typeof value !== "string") return undefined;
@@ -63,7 +69,7 @@ Deno.serve(async (req: Request) => {
 
   if (action === "list") {
     const [{ data: profiles, error: profileError }, { data: memberships, error: membershipError }, { data: teams, error: teamsError }, authResult] = await Promise.all([
-      admin.from("profiles").select("id,display_name,email,global_role,created_at").order("display_name"),
+      admin.from("profiles").select("id,display_name,email,global_role,global_permissions,created_at").order("display_name"),
       admin.from("team_memberships").select("id,user_id,team_id,role,active"),
       admin.from("teams").select("id,name,slug"),
       admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
@@ -108,6 +114,8 @@ Deno.serve(async (req: Request) => {
     const email = String(body.email ?? "").trim().toLowerCase();
     const displayName = String(body.display_name ?? "").trim();
     const globalRole = allowedRoles.has(String(body.global_role)) ? String(body.global_role) : "user";
+    const globalPermissions = globalRole === "super_admin" ? [] : readGlobalPermissions(body.global_permissions ?? []);
+    if (!globalPermissions) return Response.json({ error: "Ungültige globale Berechtigungen." }, { status: 400, headers: cors });
     const redirectTo = allowedRedirect(body.redirect_to);
 
     let memberships: Array<{ team_id: string; role: string }> = [];
@@ -180,6 +188,7 @@ Deno.serve(async (req: Request) => {
       display_name: displayName || email.split("@")[0],
       email,
       global_role: globalRole,
+      global_permissions: globalPermissions,
     });
     if (profileError) return Response.json({ error: profileError.message }, { status: 500, headers: cors });
 
@@ -277,6 +286,9 @@ Deno.serve(async (req: Request) => {
   if (action === "set_role") {
     const userId = String(body.user_id ?? "");
     const globalRole = String(body.global_role ?? "");
+    const permissionsIncluded = Object.prototype.hasOwnProperty.call(body, "global_permissions");
+    const requestedPermissions = globalRole === "super_admin" ? [] : permissionsIncluded ? readGlobalPermissions(body.global_permissions) : undefined;
+    if (requestedPermissions === null) return Response.json({ error: "Ungültige globale Berechtigungen." }, { status: 400, headers: cors });
     if (!userId || !allowedRoles.has(globalRole)) {
       return Response.json({ error: "Ungültige Rolle oder user_id." }, { status: 400, headers: cors });
     }
@@ -301,7 +313,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const { error } = await admin.from("profiles").update({ global_role: globalRole }).eq("id", userId);
+    const patch = { global_role: globalRole, ...(requestedPermissions !== undefined ? { global_permissions: requestedPermissions } : {}) };
+    const { error } = await admin.from("profiles").update(patch).eq("id", userId);
     if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
 
     if (globalRole === "super_admin") {

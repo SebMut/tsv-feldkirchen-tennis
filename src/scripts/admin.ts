@@ -29,6 +29,9 @@ const status = (message: string, tone: 'info' | 'error' | 'success' = 'info') =>
   setStatus(el, message, tone);
 };
 
+function hasGlobalPermission(permission: 'events' | 'news' | 'ticker') {
+  return state.isSuper || (Array.isArray(state.profile?.global_permissions) && state.profile.global_permissions.includes(permission));
+}
 function ownMemberships() {
   if (state.isSuper) return [];
   return state.memberships.filter((m) => m.active && m.user_id === state.user?.id);
@@ -40,12 +43,12 @@ function canEditTeamId(teamId: string) {
 }
 
 function canTickTeamId(teamId: string) {
-  if (state.isSuper) return true;
+  if (hasGlobalPermission('ticker')) return true;
   return ownMemberships().some((m) => m.team_id === teamId && ['manager', 'editor', 'ticker'].includes(m.role));
 }
 
 function allowedTeamIds(mode: 'tick' | 'edit' = 'tick') {
-  if (state.isSuper) return state.teams.map((t) => t.id);
+  if (state.isSuper || (mode === 'tick' && hasGlobalPermission('ticker'))) return state.teams.map((t) => t.id);
   return ownMemberships()
     .filter((m) => mode === 'edit' ? ['manager', 'editor'].includes(m.role) : ['manager', 'editor', 'ticker'].includes(m.role))
     .map((m) => m.team_id);
@@ -139,7 +142,7 @@ function renderTeamOptions(selector: string, includeBlank = false, mode: 'tick' 
   const el = $<HTMLSelectElement>(selector);
   if (!el) return;
   el.innerHTML = (includeBlank ? '<option value="">Keine / Verein allgemein</option>' : '') +
-    allowedTeams(mode).map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+    (selector === '#news-team' && hasGlobalPermission('news') ? state.teams : allowedTeams(mode)).map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
 }
 
 function renderTeamSeasonOptions(selector: string, mode: 'tick' | 'edit' = 'edit') {
@@ -191,7 +194,7 @@ function renderNewsReferenceOptions(preferredValue?: string) {
 
 async function refreshNewsReferenceEvents() {
   const teamIds = allowedTeamIds('edit');
-  if (!state.isSuper && !teamIds.length) {
+  if (!state.isSuper && !hasGlobalPermission('news') && !teamIds.length) {
     state.newsReferenceEvents = [];
     renderNewsReferenceOptions();
     return;
@@ -200,7 +203,7 @@ async function refreshNewsReferenceEvents() {
     .select('id,title,team_id,starts_at,status,external_url')
     .neq('status', 'archived')
     .order('starts_at', { ascending: false });
-  if (!state.isSuper) query = query.in('team_id', teamIds);
+  if (!state.isSuper && !hasGlobalPermission('news')) query = query.in('team_id', teamIds);
   const { data, error } = await query;
   state.newsReferenceEvents = error ? [] : data ?? [];
   if (error) status('Termine für den News-Bezug konnten nicht geladen werden: ' + error.message, 'error');
@@ -262,7 +265,7 @@ function panelButtonLabel(button: HTMLButtonElement) {
 function showPanel(name: string) {
   if (name === 'manual-results' && !state.isSuper) return;
   if (name === 'official-rubbers' && !state.isSuper) return;
-  if (name === 'rsvp-events' && !state.isSuper) return;
+  if (name === 'rsvp-events' && !hasGlobalPermission('events')) return;
   const activeButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]'))
     .find((button) => button.dataset.panel === name && !button.classList.contains('hidden'));
   const target = document.getElementById(`panel-${name}`);
@@ -1776,9 +1779,9 @@ const editorialInput = (id: string) => document.getElementById(id) as HTMLInputE
 async function refreshNews(){
  const target=document.getElementById('news-admin-list');if(!target)return;
  const ids=allowedTeamIds('edit');
- if(!state.isSuper&&!ids.length){target.textContent='Keine Redaktionsberechtigung.';return;}
+ if(!state.isSuper&&!hasGlobalPermission('news')&&!ids.length){target.textContent='Keine Redaktionsberechtigung.';return;}
  let query=supabase.from('news').select('*').order('created_at',{ascending:false});
- if(!state.isSuper)query=query.in('team_id',ids);
+ if(!state.isSuper&&!hasGlobalPermission('news'))query=query.in('team_id',ids);
  const {data,error}=await query;
  if(error){target.textContent='Beiträge derzeit nicht abrufbar.';status(error.message,'error');return;}
  const rows=data??[];
@@ -1830,7 +1833,8 @@ async function addNews(event: Event){
  if(!title||!body)return status('Titel und Text fehlen.','error');
  if(eventEnd&&!eventStart)return status('Für ein Ende muss auch ein Beginn eingetragen sein.','error');
  if(eventStart&&eventEnd&&new Date(eventEnd).getTime()<new Date(eventStart).getTime())return status('Das Terminende darf nicht vor dem Beginn liegen.','error');
- if(!state.isSuper&&(!teamId||!canEditTeamId(teamId)))return status('Keine Redaktionsberechtigung.','error');
+ if(!hasGlobalPermission('news')&&(!teamId||!canEditTeamId(teamId)))return status('Keine Redaktionsberechtigung.','error');
+ if(eventStart&&!hasGlobalPermission('events')&&(!teamId||!canEditTeamId(teamId)))return status('Für einen Kalendertermin wird zusätzlich die Veranstaltungsberechtigung benötigt.','error');
  if(matchId){
    const match=state.matches.find(m=>m.id===matchId);
    const ts=state.teamSeasons.find(x=>x.id===match?.team_season_id);
@@ -1861,7 +1865,7 @@ async function addNews(event: Event){
    if(removed.error)return status(`Beitrag gespeichert, alter Kalendertermin konnte nicht entfernt werden: ${removed.error.message}`,'error');
  }
  const photo=document.getElementById('news-image');
- if(photo instanceof HTMLInputElement&&photo.files?.[0]){const old=(await supabase.from('news').select('hero_image_path').eq('id',newsId).maybeSingle()).data?.hero_image_path||null;try{await replaceMediaImage({directory:teamId?`teams/${teamId}/news/${newsId}`:`news/${newsId}`,file:photo.files[0],oldPath:old,persistPath:async(path)=>{const {error}=await supabase.from('news').update({hero_image_path:path}).eq('id',newsId);return {error};}});}catch(error){return status('Text gespeichert, Bildfehler: '+(error instanceof Error?error.message:'Unbekannter Fehler'),'error');}}
+ if(photo instanceof HTMLInputElement&&photo.files?.[0]){const old=(await supabase.from('news').select('hero_image_path').eq('id',newsId).maybeSingle()).data?.hero_image_path||null;try{await replaceMediaImage({directory:`news/${newsId}`,file:photo.files[0],oldPath:old,persistPath:async(path)=>{const {error}=await supabase.from('news').update({hero_image_path:path}).eq('id',newsId);return {error};}});}catch(error){return status('Text gespeichert, Bildfehler: '+(error instanceof Error?error.message:'Unbekannter Fehler'),'error');}}
  const form=document.getElementById('news-form');if(form instanceof HTMLFormElement)form.reset();
  editorialInput('news-edit-id').value='';
  editorialInput('news-status').value='draft';
@@ -2126,6 +2130,7 @@ async function inviteUser(event: Event) {
     display_name: $<HTMLInputElement>('#invite-name')?.value.trim(),
     email: $<HTMLInputElement>('#invite-email')?.value.trim(),
     global_role: globalRole,
+    global_permissions: globalRole === 'super_admin' ? [] : Array.from(document.querySelectorAll<HTMLInputElement>('#invite-global-permissions-section [data-invite-permission]:checked')).map((box) => box.value),
     memberships,
     redirect_to: `${location.origin}${import.meta.env.BASE_URL}admin/`,
   };
@@ -2148,6 +2153,8 @@ function renderInviteTeamCards() {
   const isSuperAdmin = $<HTMLSelectElement>('#invite-global-role')?.value === 'super_admin';
 
   section.hidden = isSuperAdmin;
+  const permissionSection = $('#invite-global-permissions-section');
+  if (permissionSection) permissionSection.hidden = isSuperAdmin;
   superInfo.hidden = !isSuperAdmin;
   section.setAttribute('aria-hidden', isSuperAdmin ? 'true' : 'false');
   superInfo.setAttribute('aria-hidden', isSuperAdmin ? 'false' : 'true');
@@ -2186,7 +2193,7 @@ function renderInviteTeamCards() {
 
 function renderSelectors() {
   renderAdminTeamSeasonFilter();
-  renderTeamOptions('#news-team', state.isSuper, 'edit');
+  renderTeamOptions('#news-team', hasGlobalPermission('news'), 'edit');
   renderNewsReferenceOptions();
   renderTeamOptions('#gallery-team', false, 'edit');
   renderGalleryMatchOptions();
@@ -2281,9 +2288,13 @@ async function startApp(user: any) {
   await loadCore();
 
   const canEditAny = state.isSuper || ownMemberships().some((m) => ['manager', 'editor'].includes(m.role));
-  const canTickAny = state.isSuper || ownMemberships().some((m) => ['manager', 'editor', 'ticker'].includes(m.role));
+  const canTickAny = hasGlobalPermission('ticker') || ownMemberships().some((m) => ['manager', 'editor', 'ticker'].includes(m.role));
+  const canNews = canEditAny || hasGlobalPermission('news');
+  const canEvents = hasGlobalPermission('events');
   document.querySelectorAll<HTMLElement>('[data-editor-only]').forEach((el) => el.classList.toggle('hidden', !canEditAny));
   document.querySelectorAll<HTMLElement>('[data-ticker-only]').forEach((el) => el.classList.toggle('hidden', !canTickAny));
+  document.querySelectorAll<HTMLElement>('[data-news-only]').forEach((el) => el.classList.toggle('hidden', !canNews));
+  document.querySelectorAll<HTMLElement>('[data-events-only]').forEach((el) => el.classList.toggle('hidden', !canEvents));
   $('#match-create-card')?.classList.toggle('hidden', !canEditAny);
 
   $('#auth-box')?.classList.add('hidden');
@@ -2300,7 +2311,7 @@ async function startApp(user: any) {
   await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshNewsReferenceEvents(), refreshGalleries()]);
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
   await initAdvancedAdmin(state);
-  if (state.isSuper) initEventRsvpAdmin({ isSuper: true, user: state.user });
+  if (canEvents) initEventRsvpAdmin({ isSuper: canEvents, user: state.user });
   await initPhase8Admin(state);
   if (state.isSuper) {
     initManualResultsPanel();

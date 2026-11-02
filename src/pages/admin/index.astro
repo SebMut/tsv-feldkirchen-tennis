@@ -76,8 +76,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
           </div>
           <div class="admin-nav__group" data-admin-nav-group="inhalte">
             <p class="admin-nav__label">Inhalte &amp; Verein</p>
-            <button type="button" data-panel="news" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">✎</span> News</button>
-            <button type="button" data-panel="rsvp-events" data-super-only><span aria-hidden="true" class="admin-nav__symbol">✦</span> Veranstaltungen &amp; Zusagen</button>
+            <button type="button" data-panel="news" data-news-only><span aria-hidden="true" class="admin-nav__symbol">✎</span> News</button>
+            <button type="button" data-panel="rsvp-events" data-events-only><span aria-hidden="true" class="admin-nav__symbol">✦</span> Veranstaltungen &amp; Zusagen</button>
             <button type="button" data-panel="galleries" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">▧</span> Bilder</button>
             <button type="button" data-panel="content" data-super-only><span aria-hidden="true" class="admin-nav__symbol">☷</span> Website-Inhalte</button>
             <button type="button" data-panel="facility" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⌂</span> Anlage</button>
@@ -364,7 +364,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             </div>
           </section>
 
-          <section id="panel-rsvp-events" class="admin-panel" data-super-only>
+          <section id="panel-rsvp-events" class="admin-panel" data-events-only>
             <div class="card stack">
               <p class="eyebrow">Vereinsleben · Mitglieder-Rückmeldungen</p>
               <h2>Veranstaltungen &amp; Zusagen</h2>
@@ -553,7 +553,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <section id="panel-users" class="admin-panel">
             <div class="card">
               <h2>Benutzer einladen</h2>
-              <p class="muted"><strong>Manager/Editor:</strong> Mannschaftsdaten und Liveticker. <strong>Nur Liveticker:</strong> ausschließlich vorhandene Spiele live begleiten. Ein Benutzer kann mehreren Mannschaften mit unterschiedlichen Rollen zugeordnet werden.</p>
+              <p class="muted"><strong>Globale Berechtigungen:</strong> News, Veranstaltungen und Liveticker für den ganzen Verein – auch ohne Mannschaftszuordnung. Mannschaftsrollen können zusätzlich vergeben werden. SuperAdmins haben Vollzugriff.</p>
               <form id="invite-form" class="form-grid">
                 <div class="field"><label>Name</label><input id="invite-name" required /></div>
                 <div class="field"><label>E-Mail</label><input id="invite-email" type="email" required /></div>
@@ -562,6 +562,15 @@ import MainLayout from '../../layouts/MainLayout.astro';
                   <strong>SuperAdmin – Vollzugriff auf die Plattform</strong>
                   <p>Diese Rolle kann alle Mannschaften und Saisons verwalten, Kader und Bilder pflegen, Spiele und Liveticker bearbeiten, News und Termine verwalten, Website-Inhalte und Einstellungen ändern sowie weitere Benutzer und deren Rechte administrieren.</p>
                   <p class="muted">Eine zusätzliche Mannschaftszuordnung ist deshalb nicht erforderlich.</p>
+                </div>
+                <div class="field full" id="invite-global-permissions-section">
+                  <label>Globale Berechtigungen</label>
+                  <p class="muted">Vereinsweit gültig, unabhängig und zusätzlich zu Mannschaftsrollen auswählbar.</p>
+                  <div class="grid">
+                    <label><input type="checkbox" data-invite-permission value="events" /> Veranstaltungen hinzufügen</label>
+                    <label><input type="checkbox" data-invite-permission value="news" /> News hinzufügen</label>
+                    <label><input type="checkbox" data-invite-permission value="ticker" /> Liveticker (alle Mannschaften)</label>
+                  </div>
                 </div>
                 <div class="field full" id="invite-team-section">
                   <label>Mannschaften und Rollen</label>

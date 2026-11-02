@@ -55,12 +55,12 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
   const reset = () => {
     selectedId = '';
     form.reset();
-    field('rsvp-admin-title').value = 'Sommerfest'; field('rsvp-admin-slug').value = 'sommerfest'; field('rsvp-admin-start').value = '';
-    field('rsvp-admin-description').value = 'Liebe Tennisfreunde, zum Abschluss der Punktspielsaison möchten wir mit euch feiern und laden alle Mitglieder, Eltern, Partner und Freunde herzlich zum Sommerfest ein. Für Speis und Trank ist gesorgt!';
+    field('rsvp-admin-title').value = ''; field('rsvp-admin-slug').value = ''; field('rsvp-admin-start').value = '';
+    field('rsvp-admin-description').value = '';
     field('rsvp-admin-deadline').value = ''; field('rsvp-admin-fees').value = ''; field('rsvp-admin-setup').value = ''; field('rsvp-admin-cleanup').value = '';
-    field('rsvp-admin-youth-note').value = 'Wir planen Jugendvereinsmeisterschaften in den Klassen U10 gemischt, U12 männlich, U15 männlich, U18 männlich und U18 weiblich. Termine und Modus werden nach den Anmeldungen bekannt gegeben.';
-    ($<HTMLSelectElement>('rsvp-admin-status')!).value = 'draft'; field('rsvp-admin-enabled').checked = true;
-    field('rsvp-admin-tournament-youth').checked = true; field('rsvp-admin-tournament-women').checked = false; field('rsvp-admin-tournament-men').checked = false;
+    field('rsvp-admin-youth-note').value = '';
+    ($<HTMLSelectElement>('rsvp-admin-status')!).value = 'draft'; field('rsvp-admin-enabled').checked = false;
+    field('rsvp-admin-tournament-youth').checked = false; field('rsvp-admin-tournament-women').checked = false; field('rsvp-admin-tournament-men').checked = false;
     if (imageInput) imageInput.value = ''; renderImage(); verifiedResponses = [];
     if (pdfButton) pdfButton.disabled = true; if (select) select.value = '';
     if (list) list.innerHTML = '<p class="muted">Noch keine Rückmeldungen – zuerst einen Termin speichern.</p>';
@@ -104,7 +104,7 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
   const refresh = async (preferredId = '') => {
     const { data, error } = await supabase.from('events').select('*').order('starts_at', { ascending: false }).limit(250);
     if (error) { message('Veranstaltungen konnten nicht geladen werden: ' + error.message, true); return; }
-    events = data ?? []; const relevant = events.filter(e => e.rsvp_enabled || e.id === preferredId || e.slug === 'sommerfest');
+    events = data ?? []; const relevant = events;
     select.innerHTML = '<option value="">Neue Veranstaltung</option>' + relevant.map(e => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.title)} · ${escapeHtml(formatDateTime(e.starts_at))} (${escapeHtml(e.status)})</option>`).join('');
     if (preferredId && relevant.some(e => e.id === preferredId)) select.value = preferredId; fill();
   };
@@ -132,7 +132,7 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
       if (file) {
         message('Veranstaltung gespeichert. Bild wird optimiert und hochgeladen …');const previous=events.find(row=>row.id===data.id)?.hero_image_path||null;try{await replaceMediaImage({directory:`events/${data.id}`,file,oldPath:previous,persistPath:async(path)=>{const {error}=await supabase.from('events').update({hero_image_path:path}).eq('id',data.id);return {error};}});}catch(error){message('Veranstaltung gespeichert, Bild fehlgeschlagen: '+(error instanceof Error?error.message:'Unbekannter Fehler'),true);await refresh(data.id);return;}
       }
-      message(status === 'published' ? 'Veranstaltung veröffentlicht. Veranstaltungsbild ist gespeichert.' : 'Veranstaltung als Entwurf gespeichert. Veranstaltungsbild ist gespeichert.'); await refresh(data.id);
+      message(status === 'published' ? 'Veranstaltung veröffentlicht.' : 'Veranstaltung als Entwurf gespeichert.'); await refresh(data.id);
     } catch (error) { message('Speichern fehlgeschlagen: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'), true); }
     finally { button.disabled = false; button.textContent = 'Veranstaltung speichern'; }
   });

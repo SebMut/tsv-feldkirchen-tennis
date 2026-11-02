@@ -492,6 +492,15 @@ export async function loadAdvancedUsers(base: BaseState) {
           </select>
         </label>
       </div>
+      <div class="card flat user-global-permissions">
+        <strong>Globale Berechtigungen (unabhängig von Mannschaften)</strong>
+        ${user.global_role === 'super_admin' ? '<p class="muted">SuperAdmins haben alle globalen Rechte.</p>' : `
+          <div class="grid">
+            ${[['events','Veranstaltungen hinzufügen'],['news','News hinzufügen'],['ticker','Liveticker (alle Mannschaften)']].map(([permission,label]) =>
+              `<label><input type="checkbox" data-user-permission value="${permission}" ${(user.global_permissions ?? []).includes(permission) ? 'checked' : ''} /> ${label}</label>`
+            ).join('')}
+          </div>`}
+      </div>
       <div class="user-team-permissions ${user.global_role === 'super_admin' ? 'is-super' : ''}">
         ${user.global_role === 'super_admin' ? '<p class="muted">SuperAdmins benötigen keine einzelnen Mannschaftszuordnungen.</p>' : `
         <div class="grid">${base.teams.map((team) => {
@@ -522,7 +531,8 @@ export async function loadAdvancedUsers(base: BaseState) {
         role: card.querySelector<HTMLSelectElement>(`[data-user-team-role="${box.dataset.userTeam}"]`)?.value || 'editor',
       }));
 
-      const roleResult = await supabase.functions.invoke('admin-users', { body: { action: 'set_role', user_id: userId, global_role: globalRole } });
+      const globalPermissions = globalRole === 'super_admin' ? [] : Array.from(card.querySelectorAll<HTMLInputElement>('[data-user-permission]:checked')).map((box) => box.value);
+      const roleResult = await supabase.functions.invoke('admin-users', { body: { action: 'set_role', user_id: userId, global_role: globalRole, global_permissions: globalPermissions } });
       if (roleResult.error || roleResult.data?.error) return reportStatus(roleResult.data?.error || roleResult.error?.message || 'Rolle konnte nicht gespeichert werden.', 'error');
 
       const membershipResult = await supabase.functions.invoke('admin-users', { body: { action: 'memberships', user_id: userId, memberships } });
