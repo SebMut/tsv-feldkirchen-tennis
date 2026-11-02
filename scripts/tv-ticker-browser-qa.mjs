@@ -148,7 +148,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       assert.match(await page.locator('#tv-ticker-countdown').innerText(),/\d+ s/);
     },page);
     await check('TV scoreboard: completed encounters disappear from running-only mode',async()=>{
-      model.encounters[0]={...model.encounters[0],status:'finished',winner:'tsv',finished_at:now,
+      model.encounters[0]={...model.encounters[0],status:'finished',winner:'tsv',finished_at:new Date(Date.now()).toISOString(),
         result_text:'6:2 7:6',tiebreak_points:{'2':[8,6]}};
       await page.clock.fastForward(30000);
       await page.waitForFunction(id=>!document.querySelector('[data-tv-match="'+id+'"]'),ids[0],{timeout:9000});
