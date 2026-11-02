@@ -157,6 +157,71 @@ import MainLayout from '../../layouts/MainLayout.astro';
     :global(.live-scorecenter .status-pill){font-size:.55rem}
     :global(.live-scorecenter .scorecenter-back){padding:0 10px}
   }
+
+  /* Dense match view on notebooks: keep results and both club names readable
+     while eliminating oversized header/score paddings. */
+  @media (min-width: 601px) and (max-width: 1600px) {
+    :global(.live-scorecenter .scorecenter-head){padding:10px 0 12px}
+    :global(.live-scorecenter .live-match-heading){gap:3px}
+    :global(.live-scorecenter .live-match-heading h1){font-size:1.24rem}
+    :global(.live-scorecenter .scorecenter-shell){width:min(780px,100%);padding:9px 9px 27px}
+    :global(.live-scorecenter .live-score-topline){min-height:31px;padding:5px 11px}
+    :global(.live-scorecenter .live-scoreboard){grid-template-columns:minmax(0,1fr) 96px minmax(0,1fr);padding:11px 12px 10px;gap:6px}
+    :global(.live-scorecenter .live-team){gap:4px}
+    :global(.live-scorecenter .live-team img),:global(.live-scorecenter .live-team .live-opponent-mark){width:37px;height:37px;min-width:37px}
+    :global(.live-scorecenter .live-team strong){font-size:.82rem}
+    :global(.live-scorecenter .live-scoreboard__score strong){font-size:2.15rem}
+    :global(.live-scorecenter .live-match-progress){padding:7px 12px 9px}
+    :global(.live-scorecenter .live-match-progress__info){margin-bottom:4px}
+    :global(.live-scorecenter .scorecenter-tabs){height:39px}
+    :global(.live-scorecenter .live-encounters__toolbar){padding:8px 10px 6px}
+    :global(.live-scorecenter .live-encounters__filters button){min-height:32px;padding:5px 10px}
+    :global(.live-scorecenter .live-encounter-group){margin-bottom:7px}
+    :global(.live-scorecenter .live-encounter-group__title){height:32px}
+    :global(.live-scorecenter .live-encounter-row__head){min-height:27px;padding:3px 9px}
+    :global(.live-scorecenter .live-encounter-side){padding:6px 9px}
+    :global(.live-scorecenter .live-encounter-side img),:global(.live-scorecenter .live-encounter-side .live-opponent-mark){flex-basis:23px;width:23px;height:23px}
+    :global(.live-scorecenter .live-encounter-result){padding:4px 3px}
+    :global(.live-scorecenter .scorecenter-section-title){height:32px}
+    :global(.live-scorecenter .timeline-row){padding:7px 10px}
+  }
+  /* Compact portrait layout, including a small TSV badge next to the player.
+     Do not hide tie-break superscripts or change the numeric order. */
+  @media (max-width: 600px) {
+    :global(.live-scorecenter .scorecenter-head){padding:8px 0 9px}
+    :global(.live-scorecenter .scorecenter-head .container){width:calc(100% - 18px)}
+    :global(.live-scorecenter .live-match-heading){gap:2px}
+    :global(.live-scorecenter .live-match-heading h1){font-size:1rem;line-height:1.15}
+    :global(.live-scorecenter .live-match-heading__meta),:global(.live-scorecenter .live-match-heading__venue){font-size:.64rem}
+    :global(.live-scorecenter .live-match-heading__venue a){min-height:28px;padding:4px 7px}
+    :global(.live-scorecenter .scorecenter-shell){padding-bottom:70px}
+    :global(.live-scorecenter .live-score-topline){min-height:27px;padding:4px 9px}
+    :global(.live-scorecenter .live-scoreboard){grid-template-columns:minmax(0,1fr) 68px minmax(0,1fr);padding:9px 6px 8px;gap:3px}
+    :global(.live-scorecenter .live-team){gap:3px}
+    :global(.live-scorecenter .live-team img),:global(.live-scorecenter .live-team .live-opponent-mark){width:30px;height:30px;min-width:30px}
+    :global(.live-scorecenter .live-team strong){font-size:.72rem;line-height:1.15}
+    :global(.live-scorecenter .live-scoreboard__score strong){font-size:1.9rem}
+    :global(.live-scorecenter .live-scoreboard__score>span){font-size:.5rem}
+    :global(.live-scorecenter .live-match-progress){padding:6px 8px 7px}
+    :global(.live-scorecenter .live-match-progress__info){margin-bottom:3px}
+    :global(.live-scorecenter .scorecenter-tabs){height:37px;padding:0 9px;gap:18px}
+    :global(.live-scorecenter .live-encounters__toolbar){padding:5px 7px}
+    :global(.live-scorecenter .live-encounters__filters button){min-height:32px;padding:4px 3px}
+    :global(.live-scorecenter .live-encounter-group){margin-bottom:5px}
+    :global(.live-scorecenter .live-encounter-group__title){height:29px;padding:0 8px}
+    :global(.live-scorecenter .live-encounter-row__head){min-height:25px;padding:3px 7px}
+    :global(.live-scorecenter .live-encounter-row__identity){gap:4px}
+    :global(.live-scorecenter .live-encounter-row__flags){gap:3px}
+    :global(.live-scorecenter .live-encounter-matchup){grid-template-columns:minmax(0,1fr) 66px minmax(0,1fr)}
+    :global(.live-scorecenter .live-encounter-side){padding:5px 6px;gap:4px}
+    :global(.live-scorecenter .live-encounter-side--tsv img){display:block;width:16px;height:16px;flex:0 0 16px;min-width:16px}
+    :global(.live-scorecenter .live-encounter-side strong){font-size:.67rem;line-height:1.15}
+    :global(.live-scorecenter .live-encounter-result){padding:4px 2px}
+    :global(.live-scorecenter .live-encounter-result strong){font-size:1rem!important}
+    :global(.live-scorecenter .live-set-scores){font-size:.55rem!important}
+    :global(.live-scorecenter .scorecenter-section-title){height:30px;padding:0 9px}
+    :global(.live-scorecenter .timeline-row){padding:6px 8px}
+  }
   @media(prefers-reduced-motion:reduce){:global(.live-scorecenter .live-badge.is-running .live-dot){animation:none}}
 </style>
 <script>
