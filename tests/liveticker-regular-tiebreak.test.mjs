@@ -65,7 +65,7 @@ test('admin +/- tie-break writes the same match encounter row through existing R
   assert.match(admin,/tiebreak_points: tiebreakPoints/);
   assert.match(admin,/\.select\('id,result_text,status,tiebreak_points'\)/);
   assert.match(admin,/tiebreakMismatch/);
-  assert.match(admin,/setScores\[index\] === '6:6'/);
+  assert.match(admin,/setScore !== '6:6'/);
   const tv=read('src/scripts/tv-live-ticker.ts');
   assert.match(tv,/tiebreak_points,winner,finished_at/);
   assert.match(tv,/tv-ticker__tb-point/);
