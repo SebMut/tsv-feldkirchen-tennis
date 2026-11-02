@@ -2375,3 +2375,34 @@ main.main--flush{padding:0}
 .rsvp-admin-results-heading h3{margin:0}
 .rsvp-admin-results-heading .button{min-width:135px}
 @media(max-width:540px){.rsvp-admin-results-heading .button{width:100%;justify-content:center}}
+
+/* Pulsierender Live-Ticker nur, wenn mindestens ein Spiel tatsächlich live ist. */
+@keyframes tsvLiveMenuPulse{
+  0%,100% {background:#c40b1c;box-shadow:0 0 0 0 rgb(227 6 19 / .37);transform:scale(1)}
+  50% {background:#e30613;box-shadow:0 0 0 6px rgb(227 6 19 / .13);transform:scale(1.035)}
+}
+.desktop-nav a.js-live-nav-link.has-live-match,
+.site-header--light .desktop-nav a.js-live-nav-link.has-live-match,
+.mobile-nav a.js-live-nav-link.has-live-match{
+  color:#fff!important;background:#c40b1c;border-radius:9px;
+  padding:10px 12px;animation:tsvLiveMenuPulse 1.65s ease-in-out infinite;
+  font-weight:950;text-decoration:none;
+}
+.mobile-nav a.js-live-nav-link.has-live-match{display:block;width:100%;box-sizing:border-box}
+.mobile-dock__tab.js-live-nav-link.has-live-match{
+  color:#fff!important;background:#c40b1c;border-radius:12px;
+  animation:tsvLiveMenuPulse 1.65s ease-in-out infinite;
+}
+.js-live-nav-link.has-live-match::after{
+  content:"● LIVE";font-size:.66em;letter-spacing:.03em;
+  font-weight:950;margin-left:6px;white-space:nowrap;
+}
+.mobile-dock__tab.js-live-nav-link.has-live-match::after{
+  display:none;
+}
+.mobile-dock__tab.js-live-nav-link.has-live-match span::after{
+  content:" ●";font-size:.75em;
+}
+@media(prefers-reduced-motion:reduce){
+  .js-live-nav-link.has-live-match{animation:none!important;transform:none!important}
+}
