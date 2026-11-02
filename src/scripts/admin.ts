@@ -8,6 +8,7 @@ import { initEventRsvpAdmin } from './event-rsvp-admin';
 import { initEditorialComposer } from './editorial-composer';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
 import { summarizeSetResult, homeAwaySetScore, validateSetScore, adjustSetScore } from '../lib/tennis-score.mjs';
+import { adjustRegularTiebreak, readRegularTiebreak, regularSetFromTiebreak, regularSetDisplayHtml, validateRegularTiebreak } from '../lib/regular-tiebreak.mjs';
 
 type Row = Record<string, any>;
 const state: {
@@ -1351,13 +1352,44 @@ async function refreshMatches() {
     const firstSetCompleted = !!setScores[0] && validateSetScore(setScores[0], 0).complete;
     const afterTwoSets = summarizeSetResult(`${setScores[0]} ${setScores[1]}`);
     const thirdSetAllowed = afterTwoSets.tsvSets === 1 && afterTwoSets.opponentSets === 1;
+    const regularTiebreaks = encounter.tiebreak_points || {};
+    const tiebreakStepper = (setIndex: number) => {
+      if (setIndex > 1) return '';
+      const setScore = setScores[setIndex] || '';
+      const stored = readRegularTiebreak(regularTiebreaks, setIndex);
+      if (setScore !== '6:6' && !(stored && ['7:6','6:7'].includes(setScore))) return '';
+      const current = stored || [0,0];
+      const finished = validateRegularTiebreak(current).complete;
+      const counter = (side: 'tsv' | 'opponent') => {
+        const value = current[side === 'tsv' ? 0 : 1];
+        const button = (delta: number) => {
+          const next = adjustRegularTiebreak(current, side, delta);
+          return `<button type="button" class="encounter-set-stepper__control" data-enc-tb-step="${setIndex}"
+            data-enc-tb-side="${side}" data-enc-tb-delta="${delta}"
+            aria-label="Tiebreak Satz ${setIndex+1}, ${side === 'tsv' ? 'TSV' : 'Gegner'}, ${delta === 1 ? 'plus' : 'minus'}"
+            ${next.valid ? '' : 'disabled'}>${delta === 1 ? '+' : '−'}</button>`;
+        };
+        return `<div class="encounter-set-stepper" aria-label="Tiebreak ${side === 'tsv' ? 'TSV' : 'Gegner'}">
+          ${button(1)}<strong>${value}</strong>${button(-1)}</div>`;
+      };
+      return `<section class="encounter-regular-tiebreak" aria-label="Tiebreak Satz ${setIndex + 1}">
+        <strong>Tiebreak · ${setIndex+1}. Satz</strong><small>${finished
+          ? 'Entschieden · Korrektur über Minus möglich'
+          : 'Ab 7 Punkten mit 2 Punkten Abstand beendet'}</small>
+        <div class="encounter-regular-tiebreak__names"><span>TSV</span><span>Gegner</span></div>
+        <div class="encounter-set-steppers">${counter('tsv')}${counter('opponent')}</div>
+      </section>`;
+    };
     const stepper = (setIndex: number, side: 'tsv' | 'opponent') => {
       const current = setScores[setIndex] ? setScores[setIndex].split(':').map(Number) : [0, 0];
       const digit = current[side === 'tsv' ? 0 : 1];
       const permitted = setIndex === 0 || (setIndex === 1 ? firstSetCompleted : thirdSetAllowed);
       const button = (delta: number) => {
         const next = adjustSetScore(setScores[setIndex], setIndex, side, delta);
-        const disabled = !permitted || !next.valid;
+        // At 6:6 the regular-game counters stop; tie-break points decide 7:6.
+        const tiebreak = setIndex < 2 && setScores[setIndex] === '6:6';
+        const disabled = !permitted || !next.valid || (tiebreak && delta > 0)
+          || (setIndex < 2 && !!readRegularTiebreak(regularTiebreaks, setIndex));
         return `<button class="encounter-set-stepper__control" type="button" data-enc-step="${setIndex}" data-enc-side="${side}" data-enc-delta="${delta}" aria-label="${setIndex + 1}. Satz ${side === 'tsv' ? 'TSV' : 'Gegner'} ${delta > 0 ? 'erhöhen' : 'verringern'}" ${disabled ? 'disabled' : ''}>${delta > 0 ? '+' : '−'}</button>`;
       };
       return `<div class="encounter-set-stepper" aria-label="${side === 'tsv' ? 'TSV' : 'Gegner'} Punkte in Satz ${setIndex + 1}">
@@ -1388,7 +1420,8 @@ async function refreshMatches() {
                     type="button" data-enc-set="${index}" aria-label="${label}${index === 2 ? ' Match-Tiebreak' : ''}: ${setScores[index] || 'noch kein Ergebnis'}"
                     ${(index === 1 && !firstSetCompleted) || (index === 2 && !thirdSetAllowed)
                       ? 'disabled title="Bitte zuerst den vorherigen Satz beenden"' : ''}>
-                    <span>${label}</span><strong>${setScores[index] || '–'}</strong>
+                    <span>${label}</span><strong>${setScores[index]
+                      ? regularSetDisplayHtml(setScores[index], index, regularTiebreaks, true) : '–'}</strong>
                     ${setScores[index] && !validateSetScore(setScores[index], index).complete
                       ? '<small>Zwischenstand</small>'
                       : index === 2 ? '<small>Match-Tiebreak</small>' : ''}
@@ -1396,6 +1429,7 @@ async function refreshMatches() {
                   <div class="encounter-set-steppers" role="group" aria-label="${label}: TSV und Gegner einzeln zählen">
                     ${stepper(index, 'tsv')}${stepper(index, 'opponent')}
                   </div>
+                  ${tiebreakStepper(index)}
                 </div>`).join('')}
             </div>
             <input type="hidden" data-enc-result value="${escapeHtml(encounter.result_text || '')}" />
@@ -1578,7 +1612,7 @@ async function refreshMatches() {
       .from('match_encounters')
       .update({ ...patch, updated_by: state.user.id, updated_at: new Date().toISOString() })
       .eq('id', encounterId)
-      .select('id,result_text,status')
+      .select('id,result_text,status,tiebreak_points')
       .maybeSingle();
     // Confirm the persisted values returned by Supabase, not merely an HTTP 2xx.
     // This protects the instant-score UI against an empty/unchanged UPDATE result.
@@ -1586,7 +1620,9 @@ async function refreshMatches() {
       && data.result_text !== patch.result_text;
     const statusMismatch = data && Object.prototype.hasOwnProperty.call(patch, 'status')
       && data.status !== patch.status;
-    if (error || !data || scoreMismatch || statusMismatch) {
+    const tiebreakMismatch = data && Object.prototype.hasOwnProperty.call(patch, 'tiebreak_points')
+      && JSON.stringify(data.tiebreak_points || {}) !== JSON.stringify(patch.tiebreak_points || {});
+    if (error || !data || scoreMismatch || statusMismatch || tiebreakMismatch) {
       const reason = error?.message || (!data
         ? 'Keine geänderte Begegnung zurückgegeben. Bitte Rechte prüfen.'
         : 'Supabase hat den angeforderten Zwischenstand nicht bestätigt. Bitte erneut laden und prüfen.');
@@ -1597,7 +1633,7 @@ async function refreshMatches() {
         feedback.dataset.tone = 'error';
       }
     }
-    return !!data && !error && !scoreMismatch && !statusMismatch;
+    return !!data && !error && !scoreMismatch && !statusMismatch && !tiebreakMismatch;
   };
 
   const refreshChangedEncounter = async (encounterId: string, message: string) => {
@@ -1782,11 +1818,11 @@ async function refreshMatches() {
       // validated Supabase write path. Disable controls while it is pending so
       // two fast taps cannot overwrite each other with a stale result.
       let setSaving = false;
-      const persistSetScore = async (setIndex: number, score: string, dialogFeedback?: HTMLElement) => {
+      const persistSetScore = async (setIndex: number, score: string, dialogFeedback?: HTMLElement, tiebreakUpdate?: number[]) => {
         if (setSaving) return false;
         const current = parseEncounterSetScores(encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.value);
         const previous = current[setIndex] || '';
-        if (score === previous) return true;
+        if (score === previous && !tiebreakUpdate) return true;
         if (!score && current.slice(setIndex + 1).some(Boolean)
           && !window.confirm('Wenn du diesen Satz löschst, werden auch die folgenden Sätze entfernt. Fortfahren?')) return false;
         const next = [...current];
@@ -1808,7 +1844,21 @@ async function refreshMatches() {
         if (next.slice(setIndex + 1).some((value, offset) => value && value !== normalized.scores[setIndex + 1 + offset])
           && !window.confirm('Dieser Satz ist noch nicht beendet. Bereits eingetragene Folgesätze werden entfernt. Fortfahren?')) return false;
         const resultText = formatEncounterSetScores(normalized.scores);
-        const controls = Array.from(encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-step], [data-enc-set]'));
+        const tiebreakPoints: Record<string, number[]> = { ...(encounter.tiebreak_points || {}) };
+        // Removing or correcting a regular set must not leave stale point data.
+        for (let idx = 0; idx < 2; idx++) {
+          if (normalized.scores[idx] !== current[idx]) delete tiebreakPoints[String(idx + 1)];
+          if (!['6:6','7:6','6:7'].includes(normalized.scores[idx])) delete tiebreakPoints[String(idx + 1)];
+        }
+        if (tiebreakUpdate && setIndex < 2) {
+          const verification = validateRegularTiebreak(tiebreakUpdate);
+          if (!verification.valid || score !== regularSetFromTiebreak(tiebreakUpdate)) {
+            reportError('Ungültiger Tiebreak: mindestens 7 Punkte und 2 Punkte Vorsprung erforderlich.');
+            return false;
+          }
+          tiebreakPoints[String(setIndex + 1)] = tiebreakUpdate;
+        }
+        const controls = Array.from(encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-step], [data-enc-tb-step], [data-enc-set]'));
         const dialog = $<HTMLDialogElement>('#encounter-set-dialog');
         const modalControls = dialog?.open ? Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')) : [];
         const controlStates = [...controls, ...modalControls].map(button => ({ button, disabled: button.disabled }));
@@ -1832,6 +1882,7 @@ async function refreshMatches() {
           const now = new Date().toISOString();
           const patch = {
             result_text: resultText,
+            tiebreak_points: tiebreakPoints,
             status: normalized.complete ? 'finished' : resultText ? 'live' : encounter.status === 'finished' ? 'scheduled' : encounter.status,
             winner: normalized.winner,
             finished_at: normalized.complete ? now : null,
@@ -1861,6 +1912,23 @@ async function refreshMatches() {
           });
         }
       };
+      encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-tb-step]').forEach(button => {
+        button.addEventListener('click', async () => {
+          if (setSaving || button.disabled) return;
+          const index = Number(button.dataset.encTbStep);
+          const side = button.dataset.encTbSide;
+          const delta = Number(button.dataset.encTbDelta);
+          if (![0,1].includes(index) || (side !== 'tsv' && side !== 'opponent')) return;
+          const currentScores = parseEncounterSetScores(encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.value);
+          if (!['6:6','7:6','6:7'].includes(currentScores[index])) return;
+          const prior = readRegularTiebreak(encounter.tiebreak_points, index) || [0,0];
+          const updated = adjustRegularTiebreak(prior, side, delta);
+          if (!updated.valid) return localFeedback(updated.message || 'Ungültiger Tiebreak-Stand.', 'error');
+          const score = regularSetFromTiebreak(updated.points);
+          if (!score) return localFeedback('Tiebreak-Stand konnte nicht ermittelt werden.', 'error');
+          await persistSetScore(index, score, undefined, updated.points);
+        });
+      });
       encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-step]').forEach(button => {
         button.addEventListener('click', async () => {
           if (setSaving || button.disabled) return;
