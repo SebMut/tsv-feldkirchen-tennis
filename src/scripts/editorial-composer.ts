@@ -193,10 +193,11 @@ export function initEditorialComposer(access: Access) {
       const oldNews = editing?.news, oldEvent = editing?.event;
       let newsId: string | null = oldNews?.id || null, eventId: string | null = oldEvent?.id || null;
       const teamId = editing?.kind === 'event' ? (oldEvent?.team_id || null) : (access.canNews ? val('team') || null : null);
-      // First stage news and event as drafts. Publish only after both and the image succeed.
+      // New records start as drafts. Existing published records keep their visibility
+      // if a later image upload or linked event update fails.
       if (access.canNews && editing?.kind !== 'event') {
         const patch = { title: val('title'), body: val('body'), excerpt: val('excerpt') || null,
-          team_id: teamId, status: 'draft', published_at: null };
+          team_id: teamId, status: oldNews?.status || 'draft', published_at: oldNews?.published_at || null };
         const result = newsId
           ? await supabase.from('news').update(patch).eq('id', newsId).select('id').single()
           : await supabase.from('news').insert({ ...patch, slug: 'beitrag-' + crypto.randomUUID(), author_id: access.user.id }).select('id').single();
@@ -212,7 +213,7 @@ export function initEditorialComposer(access: Access) {
           tournament_men_enabled: on('rsvp') && on('tournaments') && on('men') };
         const patch = { title: val('title'), description: val('body'), category: 'club',
           starts_at: iso(val('start'))!, ends_at: iso(val('end')), location_name: val('location') || null,
-          team_id: teamId, status: 'draft', rsvp_enabled: on('rsvp'),
+          team_id: teamId, status: oldEvent?.status || 'draft', rsvp_enabled: on('rsvp'),
           rsvp_deadline: on('rsvp') ? iso(val('deadline')) : null, rsvp_details: details };
         const result = eventId
           ? await supabase.from('events').update(patch).eq('id', eventId).select('id').single()
@@ -262,7 +263,7 @@ export function initEditorialComposer(access: Access) {
       window.dispatchEvent(new CustomEvent('tsv:editorial-content-changed'));
     } catch (error) {
       notice((error instanceof Error ? error.message : 'Speichern fehlgeschlagen.') +
-        ' Möglicherweise wurde ein Entwurf angelegt. Bitte die Liste prüfen, bevor du es erneut versuchst.', true);
+        ' Einzelne Änderungen können bereits gespeichert sein. Bitte die Liste prüfen, bevor du es erneut versuchst.', true);
       await refresh();
     } finally {
       busy = false;
