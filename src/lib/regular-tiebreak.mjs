@@ -58,9 +58,8 @@ export function regularTiebreakLabel(points, setIndex, isHome = true) {
   return isHome ? entry.join(':') : entry.slice().reverse().join(':');
 }
 
-/** Numbers and HTML superscripts follow the familiar tennis score notation:
- * in a finished 7:6 set, only the loser's tie-break points are superscripted;
- * while at 6:6, both running point scores are shown.
+/** Numbers and HTML superscripts show both players' tie-break points:
+ * next to both large game counts at 6:6 and after a finished 7:6/6:7 set.
  * All values are validated integers (never untrusted HTML).
  */
 export function regularSetDisplayValues(score, setIndex, points, isHome = true) {
@@ -71,10 +70,10 @@ export function regularSetDisplayValues(score, setIndex, points, isHome = true) 
   let smallTsv = null, smallRival = null;
   if (tie && (tsvGames === 6 && rivalGames === 6)) {
     [smallTsv, smallRival] = tie;
-  } else if (tie && (tsvGames === 7 && rivalGames === 6 || tsvGames === 6 && rivalGames === 7)
+  } else if (tie && ((tsvGames === 7 && rivalGames === 6) || (tsvGames === 6 && rivalGames === 7))
     && validateRegularTiebreak(tie).complete) {
-    if (tsvGames === 6) smallTsv = tie[0];
-    else smallRival = tie[1];
+    // Both values are shown, including the winner's (e.g. 7⁸ : 6⁶).
+    [smallTsv, smallRival] = tie;
   }
   return isHome
     ? { first:tsvGames, second:rivalGames, smallFirst:smallTsv, smallSecond:smallRival }
