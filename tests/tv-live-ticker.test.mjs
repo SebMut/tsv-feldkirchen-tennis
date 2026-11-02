@@ -48,7 +48,7 @@ test('TV polls every 30 seconds and preserves last good scoreboard when offline'
   assert.match(client, /if \(!lastSuccessful\)/);
   assert.match(client, /sync\.classList\.add\('tv-ticker__sync--error'\)/);
   assert.match(client, /sync\.classList\.remove\('tv-ticker__sync--error'\)/);
-  assert.match(client, /Die Anzeige startet automatisch/);
+  assert.match(client, /Live-Spiele erscheinen hier automatisch/);
 });
 
 test('three encounters side by side at TV width, two at medium and one on small screens', () => {
