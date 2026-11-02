@@ -1,41 +1,31 @@
-/** Read-only public TV timing; editable by super admins in site_settings. */
+// Validated public TV timings (seconds), edited by super admins in site_settings.
 export const DEFAULT_TV_TIMING = Object.freeze({
-  refresh_seconds: 30,
-  finished_every_seconds: 300,
-  finished_show_seconds: 30,
+  poll_seconds: 30,
+  recap_every_seconds: 300,
+  recap_duration_seconds: 30,
   highlight_seconds: 300,
 });
-const LIMITS = Object.freeze({
-  refresh_seconds: [5, 600],
-  finished_every_seconds: [20, 3600],
-  finished_show_seconds: [5, 900],
-  highlight_seconds: [5, 3600],
-});
-export function normalizeTvTiming(value) {
-  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  const normalized = {};
-  for (const [key, [min, max]] of Object.entries(LIMITS)) {
-    const given = source[key];
-    normalized[key] = Number.isInteger(given) && given >= min && given <= max
-      ? given : DEFAULT_TV_TIMING[key];
-  }
-  // Display cannot consume an entire cycle; there must be an active-only phase.
-  normalized.finished_show_seconds = Math.min(normalized.finished_show_seconds,
-    normalized.finished_every_seconds - 1);
-  return normalized;
+const integerInRange = (value, min, max, fallback) => {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= min && n <= max ? n : fallback;
+};
+export function readTvTiming(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const every = integerInRange(source.recap_every_seconds, 10, 3600, 300);
+  return {
+    poll_seconds: integerInRange(source.poll_seconds, 5, 600, 30),
+    recap_every_seconds: every,
+    recap_duration_seconds: integerInRange(source.recap_duration_seconds, 1, every - 1, Math.min(30, every - 1)),
+    highlight_seconds: integerInRange(source.highlight_seconds, 5, 3600, 300),
+  };
 }
-export function tvFinishedPhase(nowMs, sessionStartedMs, timing, hasCompleted) {
-  if (!hasCompleted) return false;
-  const elapsed = Math.max(0, nowMs - sessionStartedMs);
-  const every = timing.finished_every_seconds * 1000;
-  const visible = timing.finished_show_seconds * 1000;
-  return elapsed >= every && elapsed % every < visible;
+export function recapIsActive(timing, atMs, startMs) {
+  const cycleMs = timing.recap_every_seconds * 1000;
+  const elapsed = Math.max(0, atMs - startMs);
+  return elapsed >= cycleMs && elapsed % cycleMs < timing.recap_duration_seconds * 1000;
 }
-export function tvHighlightWinner(encounter, nowMs, timing) {
-  if (encounter?.status !== 'finished' || !encounter.finished_at) return null;
-  const age = nowMs - new Date(encounter.finished_at).getTime();
-  if (!(age >= 0 && age < timing.highlight_seconds * 1000)) return null;
-  if (encounter.winner === 'tsv') return 'tsv';
-  if (encounter.winner === 'opponent') return 'opponent';
-  return null;
+export function withinHighlight(finishedAt, timing, atMs) {
+  if (!finishedAt) return false;
+  const finished = new Date(finishedAt).getTime();
+  return Number.isFinite(finished) && atMs >= finished && atMs - finished < timing.highlight_seconds * 1000;
 }
