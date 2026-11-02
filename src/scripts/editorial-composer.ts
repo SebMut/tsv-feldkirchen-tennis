@@ -223,6 +223,12 @@ export function initEditorialComposer(access: Access) {
         if (!editing) editing = { kind: 'event', event: { id: eventId } };
         else editing.event = { ...(editing.event || {}), id: eventId };
       } else if (eventId && access.canEvents) {
+        // When an event becomes a plain news item, keep its image visible in news.
+        // The archived event retains its storage reference so no shared file is removed.
+        if (newsId && oldEvent?.hero_image_path && !oldNews?.hero_image_path) {
+          const inherited = await supabase.from('news').update({ hero_image_path: oldEvent.hero_image_path }).eq('id', newsId);
+          if (inherited.error) throw Error('Veranstaltungsbild konnte nicht in die Neuigkeit übernommen werden: ' + inherited.error.message);
+        }
         // Existing registrations remain intact when the calendar option is switched off.
         const { error } = await supabase.from('events').update({ status: 'archived', rsvp_enabled: false }).eq('id', eventId);
         if (error) throw Error('Alter Termin konnte nicht archiviert werden: ' + error.message);
