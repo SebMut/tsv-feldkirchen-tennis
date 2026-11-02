@@ -18,6 +18,11 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
     teams:teamIds.map((id,i)=>({id,name:['Herren','Damen','Junioren'][i],active:true})),
   };
   const context=await browser.newContext({viewport:{width:1920,height:1080},locale:'de-DE',reducedMotion:'reduce'});
+  await context.route(/\/rest\/v1\/site_settings\?/,async route => {
+    await route.fulfill({status:200,contentType:'application/json',
+      headers:{'access-control-allow-origin':'*'},
+      body:JSON.stringify([{value:{poll_seconds:30,recap_every_seconds:300,recap_duration_seconds:30,highlight_seconds:300}}])});
+  });
   await context.route(/\/rest\/v1\/(match_live_state|matches|match_encounters|team_seasons|teams)\?/,async route=>{
     const pathname=new URL(route.request().url()).pathname;
     const value=pathname.endsWith('/match_live_state')?model.states
@@ -33,7 +38,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
     await check('TV scoreboard: three independent fixtures and home-away ordering',async()=>{
       await page.locator('.tv-ticker__match').first().waitFor({state:'visible',timeout:15000});
       assert.equal(await page.locator('.tv-ticker__match').count(),3);
-      assert.equal(await page.locator('.tv-ticker__game').count(),6);
+      assert.equal(await page.locator('.tv-ticker__game').count(),3);
       assert.equal(await page.locator('.tv-ticker__match.is-live').count(),0);
       assert.match(await page.locator('#tv-ticker-count').innerText(),/3 Begegnungen live/);
       assert.match(await page.locator('.tv-ticker__match').first().innerText(),/Herren gegen TV Dürnbach II/);
@@ -56,7 +61,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
     await check('TV scoreboard: polls new scores every 30 seconds without navigation',async()=>{
       const first=page.locator('[data-tv-match="'+ids[0]+'"]');
       model.states[0]={...model.states[0],home_score:2,updated_at:new Date().toISOString()};
-      model.encounters[0]={...model.encounters[0],status:'finished',result_text:'6:2 6:3'};
+      model.encounters[0]={...model.encounters[0],status:'finished',winner:'tsv',finished_at:now,result_text:'6:2 6:3'};
       await new Promise(resolve=>setTimeout(resolve,350));
       await page.clock.fastForward(30000);
       await page.waitForFunction(id=>{
@@ -65,7 +70,23 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
           item.querySelectorAll('.tv-ticker__game.is-finished').length===1;
       },ids[0],{timeout:9000});
       assert.match(await first.locator('.tv-ticker__score').innerText(),/2/);
+      assert.equal(await first.locator('.tv-ticker__game.is-won.is-celebrating').count(),1);
+      assert.equal(await first.locator('.tv-ticker__game .tv-ticker__player-logo').count(),1);
+      assert.match(await first.locator('.tv-ticker__game.is-won').innerText(),/🏆/);
+      assert.match(await page.locator('#tv-ticker-countdown').innerText(),/\d+ s/);
       assert.equal(await page.locator('.tv-ticker__match').count(),3);
+    },page);
+    await check('TV scoreboard: defeat uses red indication, completed scores recap after five minutes',async()=>{
+      model.encounters[2]={...model.encounters[2],status:'finished',winner:'opponent',finished_at:now,result_text:'1:6 2:6'};
+      await page.clock.fastForward(30000);
+      await page.waitForFunction(()=>document.querySelectorAll('.tv-ticker__game.is-lost').length===1,null,{timeout:9000});
+      assert.match(await page.locator('.tv-ticker__game.is-lost').innerText(),/😢/);
+      // After five minutes, previous results appear during the 30-second recap window.
+      await page.clock.fastForward(240000);
+      await page.waitForFunction(()=>document.querySelectorAll('.tv-ticker__game.is-finished').length>=2,null,{timeout:9000});
+      assert.match(await page.locator('#tv-ticker-recap').innerText(),/Rückblick/);
+      await page.clock.fastForward(31000);
+      await page.waitForFunction(()=>document.querySelectorAll('.tv-ticker__game.is-finished').length===0,null,{timeout:9000});
     },page);
     await check('TV scoreboard: one live fixture spans the full TV width',async()=>{
       await page.setViewportSize({width:1920,height:1080});
