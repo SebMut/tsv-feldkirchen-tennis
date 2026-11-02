@@ -487,7 +487,7 @@ export async function loadAdvancedUsers(base: BaseState) {
         </div>
         <label>Globale Rolle
           <select data-user-global ${isSelf ? 'title="Den eigenen SuperAdmin-Zugang nicht versehentlich herabstufen"' : ''}>
-            <option value="user" ${user.global_role === 'user' ? 'selected' : ''}>Mannschafts-Nutzer</option>
+            <option value="user" ${user.global_role === 'user' ? 'selected' : ''}>Standard-Nutzer (ausgewählte Rechte)</option>
             <option value="super_admin" ${user.global_role === 'super_admin' ? 'selected' : ''}>SuperAdmin</option>
           </select>
         </label>
@@ -502,6 +502,7 @@ export async function loadAdvancedUsers(base: BaseState) {
           </div>`}
       </div>
       <div class="user-team-permissions ${user.global_role === 'super_admin' ? 'is-super' : ''}">
+        <p class="muted">Mannschaftsrollen gelten nur für die zugewiesene Mannschaft. „Nur Liveticker“ erlaubt keine Mannschafts- oder Kaderänderungen. Manager/Editor dürfen Mannschaft und Kader bearbeiten, aber News und Veranstaltungen nur mit separat gesetzter globaler Berechtigung.</p>
         ${user.global_role === 'super_admin' ? '<p class="muted">SuperAdmins benötigen keine einzelnen Mannschaftszuordnungen.</p>' : `
         <div class="grid">${base.teams.map((team) => {
           const membership = membershipMap.get(team.id) as Row | undefined;
@@ -532,14 +533,28 @@ export async function loadAdvancedUsers(base: BaseState) {
       }));
 
       const globalPermissions = globalRole === 'super_admin' ? [] : Array.from(card.querySelectorAll<HTMLInputElement>('[data-user-permission]:checked')).map((box) => box.value);
-      const roleResult = await supabase.functions.invoke('admin-users', { body: { action: 'set_role', user_id: userId, global_role: globalRole, global_permissions: globalPermissions } });
-      if (roleResult.error || roleResult.data?.error) return reportStatus(roleResult.data?.error || roleResult.error?.message || 'Rolle konnte nicht gespeichert werden.', 'error');
-
-      const membershipResult = await supabase.functions.invoke('admin-users', { body: { action: 'memberships', user_id: userId, memberships } });
-      if (membershipResult.error || membershipResult.data?.error) return reportStatus(membershipResult.data?.error || membershipResult.error?.message || 'Mannschaftsrechte konnten nicht gespeichert werden.', 'error');
-
-      reportStatus('Benutzerrechte gespeichert.', 'success');
-      loadAdvancedUsers(base);
+      const saveButton = card.querySelector<HTMLButtonElement>('[data-save-user]')!;
+      if (saveButton.disabled) return;
+      saveButton.disabled = true;
+      saveButton.textContent = 'Speichert …';
+      try {
+        const result = await supabase.functions.invoke('admin-users', {
+          body: { action: 'save_permissions', user_id: userId, global_role: globalRole,
+            global_permissions: globalPermissions, memberships },
+        });
+        if (result.error || result.data?.error || result.data?.ok !== true) {
+          reportStatus(result.data?.error || result.error?.message || 'Rechte konnten nicht gespeichert werden. Bitte erneut versuchen.', 'error');
+          await loadAdvancedUsers(base);
+          return;
+        }
+        reportStatus('Alle Rechte und Mannschaftsrollen wurden gemeinsam gespeichert.', 'success');
+        await loadAdvancedUsers(base);
+      } catch (error) {
+        reportStatus('Speichern fehlgeschlagen: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'), 'error');
+      } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = 'Rechte speichern';
+      }
     });
 
     card.querySelector<HTMLButtonElement>('[data-send-access]')?.addEventListener('click', async () => {
