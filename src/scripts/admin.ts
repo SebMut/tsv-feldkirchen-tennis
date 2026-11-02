@@ -2065,7 +2065,7 @@ async function addNews(event: Event){
  const linked=await supabase.from('events').select('id').eq('external_url',`news:${newsId}`).maybeSingle();
  if(linked.error)return status(`Beitrag gespeichert, Termin konnte nicht geprüft werden: ${linked.error.message}`,'error');
  if(eventStart){
-   const eventPatch={title,description:body,category:'club',starts_at:new Date(eventStart).toISOString(),ends_at:eventEnd?new Date(eventEnd).toISOString():null,location_name:editorialInput('news-event-location')?.value.trim()||null,team_id:teamId,status:publication==='published'?'published':publication==='archived'?'archived':'draft',external_url:`news:${newsId}`};
+   const eventPatch={title,excerpt:editorialInput('news-excerpt')?.value.trim()||null,description:body,category:'club',starts_at:new Date(eventStart).toISOString(),ends_at:eventEnd?new Date(eventEnd).toISOString():null,location_name:editorialInput('news-event-location')?.value.trim()||null,team_id:teamId,status:publication==='published'?'published':publication==='archived'?'archived':'draft',external_url:`news:${newsId}`};
    const eventResult=linked.data?await supabase.from('events').update(eventPatch).eq('id',linked.data.id):await supabase.from('events').insert({...eventPatch,slug:`news-${newsId}`,created_by:state.user.id});
    if(eventResult.error)return status(`Beitrag gespeichert, Kalendertermin fehlgeschlagen: ${eventResult.error.message}`,'error');
  }else if(linked.data){
