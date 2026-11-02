@@ -7,20 +7,20 @@ const live = read('src/pages/live/index.astro');
 const global = read('src/styles/global.css');
 const pub = read('src/scripts/public.ts');
 
-test('event and news cards have precisely equal 16:9 image frames', () => {
-  assert.match(actual, /:global\(\.content-card__media\)\{display:block;position:relative;aspect-ratio:16\/9;overflow:hidden/);
-  assert.match(actual, /:global\(\.content-card__media img\)\{display:block;position:absolute;inset:0;width:100%;height:100%/);
-  assert.match(actual, /:global\(\.content-card--event \.content-card__media--poster\)\{aspect-ratio:16\/9;overflow:hidden/);
-  assert.match(actual, /:global\(\.content-card--event \.content-card__media--poster img\)\{width:100%;height:100%;object-fit:contain\}/);
+test('news and events share the original 1773 × 885 banner ratio without a white top gap', () => {
+  assert.match(actual, /:global\(\.content-card__media\)\{display:block;position:relative;aspect-ratio:1773\/885;overflow:hidden;background:#fff;padding:0!important;line-height:0\}/);
+  assert.match(actual, /:global\(\.content-card__media img\)\{display:block;position:absolute;inset:0;width:100%;height:100%;margin:0!important;padding:0!important/);
+  assert.match(actual, /:global\(\.content-card--event \.content-card__media--poster\)\{aspect-ratio:1773\/885;overflow:hidden;padding:0!important\}/);
+  assert.match(actual, /:global\(\.content-card--event \.content-card__media--poster img\)\{width:100%;height:100%;object-fit:cover\}/);
   assert.match(actual, /event\.hero_image_path \? ' content-card__media--poster'/);
   assert.doesNotMatch(actual, /content-card__media--trim-frame/);
   assert.doesNotMatch(actual, /transform:scale\(1\.02\)/);
 });
 
-test('desktop and mobile both preserve the entire poster without cropping', () => {
-  assert.match(actual, /object-fit:contain/);
-  assert.doesNotMatch(actual, /content-card__media img\)\{[^}]*object-fit:cover/);
-  assert.match(actual, /@media\(max-width:760px\)[\s\S]*?:global\(\.content-card__media\)\{aspect-ratio:16\/9\}/);
+test('desktop and mobile both fill the media without white letterboxing', () => {
+  assert.match(actual, /object-fit:cover/);
+  assert.doesNotMatch(actual, /content-card__media img\)\{[^}]*object-fit:contain/);
+  assert.match(actual, /@media\(max-width:760px\)[\s\S]*?:global\(\.content-card__media\)\{aspect-ratio:1773\/885\}/);
   assert.doesNotMatch(actual, /content-card__media\)\{aspect-ratio:auto/);
   assert.match(actual, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(actual, /grid-template-columns:1fr/);

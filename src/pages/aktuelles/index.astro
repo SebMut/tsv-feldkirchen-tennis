@@ -139,11 +139,12 @@ import MainLayout from '../../layouts/MainLayout.astro';
   .event-news__head h2{margin:2px 0 0;color:#193c2c}
   .content-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
   :global(.content-card){overflow:hidden;border:1px solid #dfe7e1;border-radius:20px;background:#fff;box-shadow:0 10px 30px rgb(25 60 44 / .08)}
-  /* Same image-frame height for all cards at any width. Preserve full poster artwork. */
-  :global(.content-card__media){display:block;position:relative;aspect-ratio:16/9;overflow:hidden;background:#fff}
-  :global(.content-card__media img){display:block;position:absolute;inset:0;width:100%;height:100%;margin:0!important;border:0!important;border-radius:0!important;object-fit:contain}
-  :global(.content-card--event .content-card__media--poster){aspect-ratio:16/9;overflow:hidden;background:#fff}
-  :global(.content-card--event .content-card__media--poster img){width:100%;height:100%;object-fit:contain}
+  /* Exact aspect ratio of the supplied event banner: no letterboxing above or below.
+     All content cards share this frame; other photos fill it by cropping their edges. */
+  :global(.content-card__media){display:block;position:relative;aspect-ratio:1773/885;overflow:hidden;background:#fff;padding:0!important;line-height:0}
+  :global(.content-card__media img){display:block;position:absolute;inset:0;width:100%;height:100%;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;object-fit:cover}
+  :global(.content-card--event .content-card__media--poster){aspect-ratio:1773/885;overflow:hidden;padding:0!important}
+  :global(.content-card--event .content-card__media--poster img){width:100%;height:100%;object-fit:cover}
   :global(.content-card__body){padding:18px 20px 20px}
   :global(.content-card__meta){display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;margin:0 0 11px;color:#68756e;font-size:.74rem;font-weight:750;letter-spacing:.025em}
   :global(.content-card__badge){display:inline-flex;align-items:center;min-height:24px;padding:4px 9px;border-radius:999px;background:#e30613;color:#fff;font-size:.66rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
@@ -164,7 +165,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
     .event-news__head h2{font-size:1.45rem}
     .content-card-grid{grid-template-columns:1fr;gap:16px}
     :global(.content-card){border-radius:17px;box-shadow:0 7px 22px rgb(25 60 44 / .075)}
-    :global(.content-card__media){aspect-ratio:16/9}
+    :global(.content-card__media){aspect-ratio:1773/885}
     :global(.content-card__body){padding:15px 16px 16px}
     :global(.content-card__meta){margin-bottom:9px;font-size:.7rem}
     :global(.content-card h2),:global(.content-card h3){margin-bottom:8px;font-size:1.22rem;line-height:1.2}
