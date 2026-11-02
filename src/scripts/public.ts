@@ -221,14 +221,12 @@ async function renderSponsorPlacements(
     </div>`;
 }
 
-// Portrait IDs identify a particular team and season, not the venue.
-// Without a verified ID, link to the official club-filtered tennis.de team search.
-const TENNIS_DE_CLUB_SEARCH_URL =
-  'https://www.tennis.de/spielen/spielbetrieb/mannschaftssuche.html?verband=btv&verein=01012#teamview/23391';
-
-function tennisDeTeamDestination(teamSeason: Row | undefined): { href: string; isDirect: boolean } {
+// BTV group links are sourced from the automatic BTV source registry.
+// Their group IDs are NOT tennis.de team portrait IDs. Do not send a team to
+// the generic tennis.de club search when its direct portrait is unknown.
+function tennisDeTeamDestination(teamSeason: Row | undefined): { href: string; isDirect: true } | null {
   const portrait = officialTennisDePortraitUrl(teamSeason);
-  return { href: portrait || TENNIS_DE_CLUB_SEARCH_URL, isDirect: !!portrait };
+  return portrait ? { href: portrait, isDirect: true } : null;
 }
 
 function officialTennisDePortraitUrl(teamSeason: Row | undefined): string | null {
@@ -787,7 +785,7 @@ export async function loadTeams() {
               ${matchRouteButton(featured)}
               ${isLive ? `<a href="/live/?match=${encodeURIComponent(featured.id)}">Zum Liveticker</a>` : ''}
             </div>` : '<p class="muted">Derzeit kein nächstes Punktspiel eingetragen.</p>'}
-          <div class="actions"><a class="button" href="${detailUrl}">Mannschaft öffnen</a><a class="button ghost" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Gruppe ↗' : 'BTV Verein ↗'}</a><a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer" aria-label="${tennisDeTarget.isDirect ? 'Offizielles tennis.de Mannschaftsporträt' : 'Offizielle tennis.de Mannschaftssuche für TSV Feldkirchen'} – ${escapeHtml(team.name)} – ${escapeHtml(activeCode)}">${tennisDeTarget.isDirect ? 'tennis.de Portrait ↗' : 'tennis.de Team suchen ↗'}</a></div>
+          <div class="actions"><a class="button" href="${detailUrl}">Mannschaft öffnen</a><a class="button ghost" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Gruppe ↗' : 'BTV Verein ↗'}</a>${tennisDeTarget ? `<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer" aria-label="Offizielles tennis.de Mannschaftsporträt – ${escapeHtml(team.name)} – ${escapeHtml(activeCode)}">tennis.de Portrait ↗</a>` : ''}</div>
         </article>`;
     }).join('');
   };
@@ -873,7 +871,7 @@ export async function loadTeamDetail(slug: string) {
   const head = document.querySelector<HTMLElement>('#team-header');
   if (head) head.innerHTML = `
     <section class="hero">
-      <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${current ? `<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer">${tennisDeTarget.isDirect ? 'tennis.de Mannschaftsporträt ↗' : 'tennis.de Mannschaftssuche ↗'}</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarFeedUrl({team: slug}))}">Kalender abonnieren</a></div></div>
+      <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${current && tennisDeTarget ? `<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer">tennis.de Mannschaftsporträt ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarFeedUrl({team: slug}))}">Kalender abonnieren</a></div></div>
       <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" /></div>
     </section>
   `;
