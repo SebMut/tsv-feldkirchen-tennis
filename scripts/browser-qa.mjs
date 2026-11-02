@@ -138,7 +138,7 @@ async function roleQA(role){
 }
 try{
   await fs.mkdir(out,{recursive:true});
-  server=spawn('npm',['run','preview','--','--host','127.0.0.1','--port','4321','--strictPort'],{env:{...process.env,PREVIEW_BASE:process.env.PREVIEW_BASE||'/'},stdio:['ignore','pipe','pipe']});
+  server=spawn(process.execPath,[path.resolve('node_modules/astro/astro.js'),'preview','--host','127.0.0.1','--port','4321','--strictPort'],{env:{...process.env,PREVIEW_BASE:process.env.PREVIEW_BASE||'/'},stdio:['ignore','pipe','pipe']});
   server.stdout.on('data',()=>{});server.stderr.on('data',()=>{});
   await waitForServer();
   browser=await chromium.launch({headless:true});
@@ -151,6 +151,9 @@ try{
 finally{
   try{await browser?.close();}catch{}
   if(server&&server.exitCode===null)server.kill('SIGTERM');
+  server?.stdout?.destroy();
+  server?.stderr?.destroy();
+  server?.unref();
   report.finished=new Date().toISOString();
   await fs.mkdir(out,{recursive:true});
   await fs.writeFile(path.join(out,'report.json'),JSON.stringify(report,null,2)+'\n');
