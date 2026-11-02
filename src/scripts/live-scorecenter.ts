@@ -3,6 +3,24 @@ function splitScore(value: string) {
   return match ? [match[1], match[2]] : null;
 }
 
+function enhanceSetColumns(result: HTMLElement) {
+  const sets = result.querySelector<HTMLElement>(':scope > span');
+  if (!sets || sets.dataset.columns === 'true') return;
+  const values = (sets.textContent || '')
+    .split('·')
+    .map((value) => splitScore(value))
+    .filter((value): value is string[] => !!value);
+  if (!values.length) return;
+  sets.dataset.columns = 'true';
+  sets.classList.add('ticker-running-encounter__sets');
+  sets.innerHTML = values.map((value, index) => `
+    <span class="ticker-running-encounter__set">
+      <small>Satz ${index + 1}</small>
+      <b>${value[0]}</b>
+      <b>${value[1]}</b>
+    </span>`).join('');
+}
+
 function ensureModal() {
   let modal = document.querySelector<HTMLElement>('#live-match-modal');
   if (modal) return modal;
@@ -42,6 +60,7 @@ function openModal(card: HTMLElement) {
   const detail = card.querySelector<HTMLAnchorElement>('.ticker-overview-feature__action');
   if (title) title.textContent = matchTitle;
   if (body) body.innerHTML = running?.innerHTML || '<p class="live-match-modal__empty">Aktuell ist kein Einzel oder Doppel live.</p>';
+  if (body) body.querySelectorAll<HTMLElement>('.ticker-running-encounter__result').forEach(enhanceSetColumns);
   if (footer) footer.innerHTML = detail ? `<a href="${detail.href}">Alle Einzel & Doppel ansehen →</a>` : '';
   modal.hidden = false;
   document.documentElement.classList.add('live-modal-open');
@@ -61,12 +80,16 @@ function enhanceCenter(center: HTMLElement) {
       }
     }
 
-    card.querySelectorAll<HTMLElement>('.ticker-running-encounter__result > strong').forEach((result) => {
-      if (result.dataset.split) return;
-      const values = splitScore(result.textContent || '');
-      if (!values) return;
-      result.dataset.split = 'true';
-      result.innerHTML = `<span>${values[0]}</span><span>${values[1]}</span>`;
+    card.querySelectorAll<HTMLElement>('.ticker-running-encounter__result').forEach((result) => {
+      const total = result.querySelector<HTMLElement>(':scope > strong');
+      if (total && !total.dataset.split) {
+        const values = splitScore(total.textContent || '');
+        if (values) {
+          total.dataset.split = 'true';
+          total.innerHTML = `<span>${values[0]}</span><span>${values[1]}</span>`;
+        }
+      }
+      enhanceSetColumns(result);
     });
 
     if (!card.dataset.modalReady) {
