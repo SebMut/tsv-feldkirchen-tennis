@@ -102,6 +102,20 @@ export async function runTickerBrowserRehearsal({browser,url,check}){
             format==='4_2'?2:3);
         }
       },left);
+      await check('ticker '+format+' compact match view at notebook and phone widths',async()=>{
+        for(const [page,kind] of [[left,'laptop'],[right,'phone']]){
+          const widths=await page.evaluate(()=>({
+            document:document.documentElement.scrollWidth,viewport:innerWidth,
+            header:document.querySelector('.live-scoreboard')?.getBoundingClientRect().height,
+            row:document.querySelector('.live-encounter-row')?.getBoundingClientRect().height,
+            logo:getComputedStyle(document.querySelector('.live-encounter-side--tsv img')).display,
+          }));
+          assert.ok(widths.document<=widths.viewport+3,kind+' horizontal scroll: '+JSON.stringify(widths));
+          assert.ok(widths.header<235,kind+' total scoreboard too tall: '+JSON.stringify(widths));
+          assert.ok(widths.row<150,kind+' individual match too tall: '+JSON.stringify(widths));
+          assert.notEqual(widths.logo,'none',kind+' TSV identity must remain visible');
+        }
+      },right);
       await check('ticker '+format+' two-context polling convergence',async()=>{
         model.encounters[0]={...model.encounters[0],status:'finished',result_text:'6:3 6:4',winner:'tsv'};
         model.state={...model.state,home_score:1,updated_at:new Date().toISOString()};
