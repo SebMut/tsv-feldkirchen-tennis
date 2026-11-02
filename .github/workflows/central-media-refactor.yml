@@ -1,0 +1,45 @@
+name: One-shot central media refactor
+
+on:
+  push:
+    branches:
+      - feature/astro-supabase-foundation
+    paths:
+      - scripts/refactor-central-media.mjs
+      - .github/workflows/central-media-refactor.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/astro-supabase-foundation
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Apply central media refactor
+        run: node scripts/refactor-central-media.mjs
+      - name: Build and audit
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis
+          PUBLIC_PREVIEW_MODE: "true"
+        run: |
+          npm run build
+          npm run audit:site
+      - name: Remove one-shot refactor files
+        run: rm -f scripts/refactor-central-media.mjs .github/workflows/central-media-refactor.yml
+      - name: Commit verified refactor
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "refactor: centralize Supabase media uploads"
+          git push origin HEAD:feature/astro-supabase-foundation
