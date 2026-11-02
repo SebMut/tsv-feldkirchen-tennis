@@ -193,8 +193,7 @@ function renderNewsReferenceOptions(preferredValue?: string) {
 }
 
 async function refreshNewsReferenceEvents() {
-  const teamIds = allowedTeamIds('edit');
-  if (!state.isSuper && !hasGlobalPermission('news') && !teamIds.length) {
+  if (!hasGlobalPermission('news')) {
     state.newsReferenceEvents = [];
     renderNewsReferenceOptions();
     return;
@@ -203,7 +202,6 @@ async function refreshNewsReferenceEvents() {
     .select('id,title,team_id,starts_at,status,external_url')
     .neq('status', 'archived')
     .order('starts_at', { ascending: false });
-  if (!state.isSuper && !hasGlobalPermission('news')) query = query.in('team_id', teamIds);
   const { data, error } = await query;
   state.newsReferenceEvents = error ? [] : data ?? [];
   if (error) status('Termine für den News-Bezug konnten nicht geladen werden: ' + error.message, 'error');
@@ -1824,10 +1822,8 @@ async function addMatch(event: Event) {
 const editorialInput = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 async function refreshNews(){
  const target=document.getElementById('news-admin-list');if(!target)return;
- const ids=allowedTeamIds('edit');
- if(!state.isSuper&&!hasGlobalPermission('news')&&!ids.length){target.textContent='Keine Redaktionsberechtigung.';return;}
+ if(!hasGlobalPermission('news')){target.textContent='Keine Berechtigung für News. Ein SuperAdmin kann die globale Berechtigung „News hinzufügen“ vergeben.';return;}
  let query=supabase.from('news').select('*').order('created_at',{ascending:false});
- if(!state.isSuper&&!hasGlobalPermission('news'))query=query.in('team_id',ids);
  const {data,error}=await query;
  if(error){target.textContent='Beiträge derzeit nicht abrufbar.';status(error.message,'error');return;}
  const rows=data??[];
@@ -1879,8 +1875,8 @@ async function addNews(event: Event){
  if(!title||!body)return status('Titel und Text fehlen.','error');
  if(eventEnd&&!eventStart)return status('Für ein Ende muss auch ein Beginn eingetragen sein.','error');
  if(eventStart&&eventEnd&&new Date(eventEnd).getTime()<new Date(eventStart).getTime())return status('Das Terminende darf nicht vor dem Beginn liegen.','error');
- if(!hasGlobalPermission('news')&&(!teamId||!canEditTeamId(teamId)))return status('Keine Redaktionsberechtigung.','error');
- if(eventStart&&!hasGlobalPermission('events')&&(!teamId||!canEditTeamId(teamId)))return status('Für einen Kalendertermin wird zusätzlich die Veranstaltungsberechtigung benötigt.','error');
+ if(!hasGlobalPermission('news'))return status('Für News benötigst du die globale Berechtigung „News hinzufügen“.','error');
+ if(eventStart&&!hasGlobalPermission('events'))return status('Für einen Kalendertermin benötigst du zusätzlich „Veranstaltungen hinzufügen“.','error');
  if(matchId){
    const match=state.matches.find(m=>m.id===matchId);
    const ts=state.teamSeasons.find(x=>x.id===match?.team_season_id);
@@ -2335,7 +2331,7 @@ async function startApp(user: any) {
 
   const canEditAny = state.isSuper || ownMemberships().some((m) => ['manager', 'editor'].includes(m.role));
   const canTickAny = hasGlobalPermission('ticker') || ownMemberships().some((m) => ['manager', 'editor', 'ticker'].includes(m.role));
-  const canNews = canEditAny || hasGlobalPermission('news');
+  const canNews = hasGlobalPermission('news');
   const canEvents = hasGlobalPermission('events');
   document.querySelectorAll<HTMLElement>('[data-editor-only]').forEach((el) => el.classList.toggle('hidden', !canEditAny));
   document.querySelectorAll<HTMLElement>('[data-ticker-only]').forEach((el) => el.classList.toggle('hidden', !canTickAny));
@@ -2348,7 +2344,7 @@ async function startApp(user: any) {
   $('#auth-box')?.classList.add('hidden');
   $('#admin-app')?.classList.remove('hidden');
   const line = $('#admin-userline');
-  if (line) line.textContent = `${state.profile?.display_name || user.email} · ${state.isSuper ? 'SuperAdmin' : 'Mannschafts-Nutzer'}`;
+  if (line) line.textContent = `${state.profile?.display_name || user.email} · ${state.isSuper ? 'SuperAdmin' : canEditAny ? 'Mannschafts-Editor' : canTickAny ? 'Liveticker' : (canNews || canEvents) ? 'Vereinsredaktion' : 'Standard-Nutzer'}`;
   $('[data-super-only]')?.classList.toggle('hidden', !state.isSuper);
   document.querySelectorAll<HTMLElement>('[data-super-only]').forEach((el) => el.classList.toggle('hidden', !state.isSuper));
 
