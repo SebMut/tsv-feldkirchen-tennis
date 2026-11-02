@@ -110,3 +110,14 @@ test('running-set progress is shown on public match and live overview',()=>{
   assert.ok(script.includes('ticker-running-encounter__current'));
   assert.ok(script.includes("currentSet.split(':').reverse().join(':')"));
 });
+
+test('a saved interim score activates the public ticker and checks for a persisted database row',()=>{
+  const admin=read('src/scripts/admin.ts');
+  assert.match(admin,/if \(resultText && !\(await ensureMatchLive\(\)\)\)/);
+  assert.match(admin,/status: normalized\.complete \? 'finished' : resultText \? 'live'/);
+  assert.match(admin,/\.select\('id,result_text,status'\)/);
+  assert.match(admin,/\.maybeSingle\(\)/);
+  assert.match(admin,/if \(error \|\| !data\)/);
+  assert.match(admin,/Zwischenstand gespeichert/);
+  assert.match(admin,/Speichern fehlgeschlagen/);
+});
