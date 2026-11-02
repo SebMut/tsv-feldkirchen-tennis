@@ -33,6 +33,34 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       :pathname.endsWith('/team_seasons')?model.seasons:model.teams;
     await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(value)});
   });
+  // Compare real DOM boundaries, not only CSS declarations: the first and
+  // second player rows must be flush with the corresponding set-score cells.
+  const assertAlignedScoreRows=async(label)=>{
+    const boundaries=await page.evaluate(()=>{
+      const game=document.querySelector('.tv-ticker__game.is-live');
+      if(!game)return {missing:true};
+      const playerRows=[...game.querySelectorAll('.tv-ticker__players>div')];
+      const columns=[...game.querySelectorAll('.tv-ticker__set')];
+      const rows=columns.map(col=>[...col.children].filter(el=>el.matches('span')));
+      const r=el=>{const box=el.getBoundingClientRect();return {top:box.top,bottom:box.bottom}};
+      return {players:playerRows.map(r),columns:rows.map(c=>c.map(r)),
+        viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth};
+    });
+    assert.equal(boundaries.missing,undefined,label+' live game was not rendered');
+    assert.equal(boundaries.players.length,2,label+' must have two name rows');
+    assert.ok(boundaries.columns.length>=3,label+' must show all set columns');
+    for(const [n,col] of boundaries.columns.entries()){
+      assert.equal(col.length,2,label+' score column '+n+' has wrong number of rows');
+      for(let i=0;i<2;i++){
+        for(const edge of ['top','bottom']){
+          const difference=Math.abs(boundaries.players[i][edge]-col[i][edge]);
+          assert.ok(difference<=1.1,label+' misaligned '+edge+' for player '+i+', set column '+n+
+            ' by '+difference.toFixed(1)+'px: '+JSON.stringify(boundaries));
+        }
+      }
+    }
+    assert.ok(boundaries.scrollWidth<=boundaries.viewport+3,label+' horizontal overflow');
+  };
   const page=await context.newPage();
   try{
     await page.clock.install();
@@ -50,6 +78,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       const css=await page.locator('.tv-ticker__grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
       assert.equal(css.trim().split(/\s+/).length,3,'TV width should show three fixture columns');
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+3),true,'TV horizontal overflow');
+      await assertAlignedScoreRows('1920px TV');
     },page);
     await check('TV scoreboard: tie-break points are small beside each 6:6 game count',async()=>{
       const game=page.locator('[data-tv-match="'+ids[1]+'"] .tv-ticker__game.is-live');
@@ -76,6 +105,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       assert.ok(metrics.score<105,'laptop scoreboard too tall: '+JSON.stringify(metrics));
       assert.ok(metrics.game<125,'laptop individual match too tall: '+JSON.stringify(metrics));
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+3),true);
+      await assertAlignedScoreRows('1366px laptop');
       await page.setViewportSize({width:1920,height:1080});
     },page);
     await check('TV scoreboard: two columns tablet, one smartphone',async()=>{
@@ -86,6 +116,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       grid=await page.locator('.tv-ticker__grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
       assert.equal(grid.trim().split(/\s+/).length,1);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+3),true,'mobile TV layout overflows');
+      await assertAlignedScoreRows('390px phone');
       const compact=await page.evaluate(()=>{
         const r=selector=>document.querySelector(selector)?.getBoundingClientRect().height;
         return {header:r('.tv-ticker__header'),heading:r('.tv-ticker__match-head'),
@@ -99,6 +130,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       assert.equal(await page.locator('.tv-ticker__tb-point').count(),2,'tie-break digits must remain on phone');
       await page.setViewportSize({width:320,height:720});
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+3),true,'320px ticker overflow');
+      await assertAlignedScoreRows('320px phone');
       await page.setViewportSize({width:390,height:844});
     },page);
     await check('TV scoreboard: polls new scores every 30 seconds without navigation',async()=>{
@@ -151,6 +183,52 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       assert.equal(await page.locator('.tv-ticker__grid--single').count(),1);
       const grid=await page.locator('.tv-ticker__grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
       assert.equal(grid.trim().split(/\s+/).length,1,'one live team must use full horizontal room');
+    },page);
+    await check('Spieltag live modal: all name separators align with scores and tiebreaks',async()=>{
+      await page.goto(url('/spieltag/'),{waitUntil:'domcontentloaded'});
+      const modal=page.locator('#live-match-modal');
+      await modal.waitFor({state:'attached',timeout:15000});
+      await modal.evaluate(el=>{
+        el.hidden=false;
+        const body=el.querySelector('.live-match-modal__body');
+        body.innerHTML=`<article class="ticker-running-encounter">
+          <div class="ticker-running-encounter__line">
+            <div class="ticker-running-encounter__player"><strong>TSV Feldkirchen Spieler</strong></div>
+            <div class="ticker-running-encounter__result">
+              <small>Zwischenstand</small>
+              <strong data-split="true"><span>1</span><span>0</span></strong>
+              <span class="ticker-running-encounter__sets" data-columns="true">
+                <span class="ticker-running-encounter__set"><small>1</small>
+                  <b>6<sup class="ticker-set-tiebreak">6</sup></b><b>6<sup class="ticker-set-tiebreak">8</sup></b>
+                </span>
+                <span class="ticker-running-encounter__set"><small>2</small><b>4</b><b>3</b></span>
+                <span class="ticker-running-encounter__set"><small>3</small><b>–</b><b>–</b></span>
+              </span>
+            </div>
+            <div class="ticker-running-encounter__player ticker-running-encounter__player--guest"><strong>Gegner 1</strong></div>
+          </div></article>`;
+      });
+      for(const width of [1366,390,320]){
+        await page.setViewportSize({width,height:900});
+        const measurements=await page.evaluate(()=>{
+          const root=document.querySelector('.live-match-modal__body .ticker-running-encounter__line');
+          const names=[...root.querySelectorAll(':scope > .ticker-running-encounter__player')];
+          const totals=[...root.querySelectorAll('.ticker-running-encounter__result>strong>span')];
+          const sets=[...root.querySelectorAll('.ticker-running-encounter__set')].map(col=>[...col.querySelectorAll('b')]);
+          const rect=el=>{const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom}};
+          return {name:names.map(rect),total:totals.map(rect),sets:sets.map(col=>col.map(rect)),
+            scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth};
+        });
+        assert.equal(measurements.name.length,2);
+        assert.equal(measurements.total.length,2);
+        for(const [name,rows] of [['total',measurements.total],...measurements.sets.map((x,i)=>['set '+(i+1),x])]){
+          for(let i=0;i<2;i++)for(const edge of ['top','bottom']){
+            const delta=Math.abs(measurements.name[i][edge]-rows[i][edge]);
+            assert.ok(delta<=1.1,width+'px modal '+name+' '+edge+' is off by '+delta.toFixed(1)+'px: '+JSON.stringify(measurements));
+          }
+        }
+        assert.ok(measurements.scrollWidth<=measurements.viewport+3,width+'px modal overflow');
+      }
     },page);
   }finally{await context.close();}
 }
