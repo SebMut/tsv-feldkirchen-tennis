@@ -99,6 +99,21 @@ async function deviceQA(device){
     assert.match(new URL(page.url()).pathname,/\/aktuelles\/$/,'Incorrect redirection to calendar');
     assert.ok((await card.locator('.content-card__full-text').innerText()).trim().length>5);
   },page);
+  await check(device.name+' event short text in public card',async()=>{
+    await page.goto(url('/aktuelles/'));
+    const platzabbau = page.locator('#event-news-list .content-card--event').filter({hasText:'Platzabbau'}).first();
+    if(new Date() >= new Date('2026-11-09T00:00:00+01:00')){
+      outcome(device.name+' Platzabbau fixture availability','skipped','The November 2026 event has finished');
+      return;
+    }
+    await platzabbau.waitFor({state:'visible',timeout:14000});
+    const shortText = await platzabbau.locator('.content-card__description').innerText();
+    assert.match(shortText,/10:30 Uhr/,'Stored event excerpt is missing in the public card');
+    assert.match(shortText,/machen wir unsere Tennisplätze gemeinsam winterfest/);
+    assert.doesNotMatch(shortText,/Und danach wird.s gemütlich/,'Long description incorrectly replaced the short text');
+    const fullText = await platzabbau.locator('.content-card__full-text').innerText();
+    assert.match(fullText,/Brotzeit/,'Long description was lost');
+  },page);
   await check(device.name+' calendar modal Escape',async()=>{
     await page.goto(url('/termine/'));
     const day=page.locator('#calendar-month-grid button[data-calendar-day]').first();
@@ -137,6 +152,14 @@ async function roleQA(role){
     }
     if(role.code==='NEWS'||role.code==='EVENTS'){
       await page.locator('.admin-nav button[data-panel="news"]').click();
+      if(role.code==='EVENTS'){
+        const existing=page.locator('#editorial-compose-list .admin-edit-item').filter({hasText:'Platzabbau'}).first();
+        if(await existing.count()){
+          await existing.locator('[data-compose-edit]').click();
+          assert.match(await page.locator('#editorial-compose-excerpt').inputValue(),/10:30 Uhr/,'Event excerpt was not reloaded from Supabase');
+          await page.locator('#editorial-compose-reset').click();
+        }
+      }
       const withEvent=page.locator('#editorial-compose-event');
       assert.equal(await withEvent.isDisabled(),true,'single-role user may not toggle unauthorized content type');
       assert.equal(await withEvent.isChecked(),role.code==='EVENTS','incorrect editorial mode for role');
