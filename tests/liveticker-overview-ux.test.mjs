@@ -19,7 +19,7 @@ test('Live-Ticker overview displays a match scoreboard and a running-encounter l
 });
 
 test('fetches only public, live-marked singles and doubles for all active fixtures', () => {
-  assert.match(publicScript, /from\('match_encounters'\)[\s\S]*?select\('match_id,discipline,position,status,sort_order,tsv_player_1_name,tsv_player_2_name,opponent_slot_1,opponent_slot_2,result_text'\)/);
+  assert.match(publicScript, /from\('match_encounters'\)[\s\S]*?select\('match_id,discipline,position,status,sort_order,tsv_player_1_name,tsv_player_2_name,opponent_slot_1,opponent_slot_2,result_text,tiebreak_points'\)/);
   assert.ok(publicScript.includes(".in('match_id', liveMatches.map((match: Row) => match.id))"));
   assert.ok(publicScript.includes(".eq('status', 'live')"));
   assert.ok(publicScript.includes("matchEncounters = activeEncounters.filter((row: Row) => row.match_id === match.id)"));
@@ -48,9 +48,9 @@ test('each live encounter clearly shows discipline, players, interim score and s
   assert.ok(publicScript.includes('ticker-running-encounter__result'));
   assert.ok(publicScript.includes('escapeHtml(homePlayers)'));
   assert.ok(publicScript.includes('escapeHtml(guestPlayers)'));
-  assert.ok(publicScript.includes('escapeHtml(sets.join'));
+  assert.ok(publicScript.includes("sets.join(' · ')"));
   assert.ok(publicScript.includes('encounter.result_text'));
-  assert.ok(publicScript.includes('summary.scores.filter(Boolean)'));
+  assert.ok(publicScript.includes('summary.scores.map'));
 });
 
 test('no active encounter is explained and failed fetch does not fake scores', () => {
