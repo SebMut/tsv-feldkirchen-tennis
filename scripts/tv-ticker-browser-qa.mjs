@@ -17,6 +17,8 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
     seasons:seasonIds.map((id,i)=>({id,team_id:teamIds[i],is_published:true})),
     teams:teamIds.map((id,i)=>({id,name:['Herren','Damen','Junioren'][i],active:true})),
   };
+  // In the synthetic second team an unfinished 6:6 tie-break is running.
+  model.encounters[2]={...model.encounters[2],result_text:'6:6',tiebreak_points:{'1':[5,4]}};
   const context=await browser.newContext({viewport:{width:1920,height:1080},locale:'de-DE',reducedMotion:'reduce'});
   await context.route(/\/rest\/v1\/site_settings\?/,async route => {
     await route.fulfill({status:200,contentType:'application/json',
@@ -48,6 +50,19 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       const css=await page.locator('.tv-ticker__grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
       assert.equal(css.trim().split(/\s+/).length,3,'TV width should show three fixture columns');
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+3),true,'TV horizontal overflow');
+    },page);
+    await check('TV scoreboard: tie-break points are small beside each 6:6 game count',async()=>{
+      const game=page.locator('[data-tv-match="'+ids[1]+'"] .tv-ticker__game.is-live');
+      assert.equal(await game.locator('.tv-ticker__tb-point').count(),2,'live 6:6 should show points for both players');
+      const points=await game.locator('.tv-ticker__tb-point').allTextContents();
+      // This team is playing away, so the opponent comes first.
+      assert.deepEqual(points,['4','5']);
+      const sizes=await game.locator('.tv-ticker__set').first().evaluate(el=>({
+        game:parseFloat(getComputedStyle(el.querySelector('.tv-ticker__set-value')).fontSize),
+        small:parseFloat(getComputedStyle(el.querySelector('.tv-ticker__tb-point')).fontSize),
+      }));
+      assert.ok(sizes.small<sizes.game,'tiebreak superscripts must be visually smaller');
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+3),true);
     },page);
     await check('TV scoreboard: two columns tablet, one smartphone',async()=>{
       await page.setViewportSize({width:1100,height:900});
