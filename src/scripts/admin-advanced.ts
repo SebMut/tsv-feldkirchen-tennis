@@ -554,6 +554,22 @@ async function prefillReport(base: BaseState) {
   }
 }
 
+type AuditedTeamRights = { id: string; name: string; role: string | null; team_edit: boolean;
+  roster_edit: boolean; ticker: boolean; news: boolean; events: boolean };
+function renderPermissionMatrix(teams: AuditedTeamRights[]) {
+  const allowed = (value: boolean) => '<span class="permission-matrix__value ' +
+    (value ? 'is-allowed' : 'is-denied') + '">' + (value ? '✓ Ja' : '– Nein') + '</span>';
+  return '<div class="permission-matrix__scroll"><table class="permission-matrix"><thead><tr>' +
+    '<th scope="col">Mannschaft</th><th scope="col">Mannschaft bearbeiten</th>' +
+    '<th scope="col">Kader bearbeiten</th><th scope="col">Liveticker</th>' +
+    '<th scope="col">News</th><th scope="col">Veranstaltungen</th></tr></thead><tbody>' +
+    teams.map(team => '<tr><th scope="row">' + escapeHtml(team.name) +
+      (team.role ? '<small> · ' + escapeHtml(team.role) + '</small>' : '') + '</th>' +
+      [team.team_edit, team.roster_edit, team.ticker, team.news, team.events]
+        .map(value => '<td>' + allowed(value) + '</td>').join('') + '</tr>').join('') +
+    '</tbody></table></div>';
+}
+
 export async function loadAdvancedUsers(base: BaseState) {
   if (!base.isSuper) return;
   const { data, error } = await supabase.functions.invoke('admin-users', { body: { action: 'list' } });
@@ -603,6 +619,22 @@ export async function loadAdvancedUsers(base: BaseState) {
             </select>
           </div>`;
         }).join('')}</div>`}</div>
+      <details class="user-permission-audit">
+        <summary>Gespeicherte Rechte · Matrix anzeigen</summary>
+        <p class="muted">Die Matrix zeigt die zuletzt geladenen Rechte. Nach Änderungen zuerst speichern und dann serverseitig prüfen.</p>
+        <div data-user-rights-matrix>${renderPermissionMatrix(base.teams.map(team => {
+          const membership = membershipMap.get(team.id) as Row | undefined;
+          const isSuper = user.global_role === 'super_admin';
+          const edit = isSuper || ['manager', 'editor'].includes(membership?.role || '');
+          const ticker = isSuper || (user.global_permissions ?? []).includes('ticker') || !!membership;
+          return { id: team.id, name: team.name, role: membership?.role || null,
+            team_edit: edit, roster_edit: edit, ticker,
+            news: isSuper || (user.global_permissions ?? []).includes('news'),
+            events: isSuper || (user.global_permissions ?? []).includes('events') };
+        }))}</div>
+        <button type="button" class="button secondary" data-test-user-rights>Rechte testen (Server)</button>
+        <p class="user-permission-audit__feedback" data-user-rights-feedback role="status" aria-live="polite"></p>
+      </details>
       <div class="actions" style="margin-top:12px">
         <button class="button" data-save-user>Rechte speichern</button>
         ${user.last_sign_in_at ? '' : '<button class="button secondary" data-send-access>Zugangs-Mail erneut senden</button>'}
@@ -612,6 +644,27 @@ export async function loadAdvancedUsers(base: BaseState) {
   }).join('')}</div>`;
 
   target.querySelectorAll<HTMLElement>('[data-user-card]').forEach((card) => {
+    card.querySelector<HTMLButtonElement>('[data-test-user-rights]')?.addEventListener('click', async (event) => {
+      const button = event.currentTarget as HTMLButtonElement;
+      const feedback = card.querySelector<HTMLElement>('[data-user-rights-feedback]');
+      const matrix = card.querySelector<HTMLElement>('[data-user-rights-matrix]');
+      if (!feedback || !matrix || button.disabled) return;
+      button.disabled = true;
+      feedback.textContent = 'Gespeicherte Berechtigungen werden auf dem Server geprüft …';
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-users', {
+          body: { action: 'audit_permissions', user_id: card.dataset.userCard },
+        });
+        if (error || data?.ok !== true || !Array.isArray(data?.teams))
+          throw Error(data?.error || error?.message || 'Berechtigungsprüfung nicht verfügbar.');
+        matrix.innerHTML = renderPermissionMatrix(data.teams);
+        feedback.textContent = 'Serverseitig geprüft: ' + formatDateTime(data.checked_at) +
+          ' · Es wurden ausschließlich gespeicherte Rechte geprüft, keine Daten verändert.';
+      } catch (error) {
+        feedback.textContent = 'Prüfung fehlgeschlagen: ' +
+          (error instanceof Error ? error.message : 'Unbekannter Fehler');
+      } finally { button.disabled = false; }
+    });
     card.querySelector<HTMLButtonElement>('[data-save-user]')?.addEventListener('click', async () => {
       const userId = card.dataset.userCard!;
       const globalRole = card.querySelector<HTMLSelectElement>('[data-user-global]')?.value || 'user';
