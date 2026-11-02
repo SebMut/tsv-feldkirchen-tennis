@@ -283,6 +283,44 @@ Deno.serve(async (req: Request) => {
     return Response.json({ ok: true }, { headers: cors });
   }
 
+  if (action === "save_permissions") {
+    const userId = String(body.user_id ?? "");
+    const globalRole = String(body.global_role ?? "");
+    const permissions = readGlobalPermissions(body.global_permissions);
+    if (!/^[0-9a-f-]{36}$/i.test(userId) || !allowedRoles.has(globalRole) || !permissions) {
+      return Response.json({ error: "Ungültige Benutzerkennung oder globale Berechtigung." }, { status: 400, headers: cors });
+    }
+    if (!Array.isArray(body.memberships)) {
+      return Response.json({ error: "Mannschaftsrollen fehlen." }, { status: 400, headers: cors });
+    }
+    const rawMemberships = body.memberships;
+    const memberships: Array<{team_id:string;role:string}> = [];
+    for (const item of rawMemberships) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return Response.json({error:"Ungültige Mannschaftszuordnung."},{status:400,headers:cors});
+      }
+      const raw = item as Record<string,unknown>;
+      const teamId = String(raw.team_id ?? "");
+      const role = String(raw.role ?? "");
+      if (!/^[0-9a-f-]{36}$/i.test(teamId) || !allowedTeamRoles.has(role)) {
+        return Response.json({error:"Ungültige Mannschaft oder Rolle."},{status:400,headers:cors});
+      }
+      memberships.push({team_id:teamId,role});
+    }
+    if (memberships.length !== new Set(memberships.map(m => m.team_id)).size ||
+        (globalRole === "super_admin" && (memberships.length > 0 || permissions.length > 0))) {
+      return Response.json({error:"Doppelte oder widersprüchliche Berechtigungen."},{status:400,headers:cors});
+    }
+    const {error} = await admin.rpc("admin_apply_user_permissions", {
+      target_user:userId,
+      desired_role:globalRole,
+      desired_permissions:permissions,
+      desired_memberships:memberships,
+    });
+    if (error) return Response.json({error:"Benutzerrechte konnten nicht gespeichert werden: "+error.message},{status:409,headers:cors});
+    return Response.json({ok:true},{headers:cors});
+  }
+
   if (action === "set_role") {
     const userId = String(body.user_id ?? "");
     const globalRole = String(body.global_role ?? "");
