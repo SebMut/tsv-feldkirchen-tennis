@@ -35,3 +35,62 @@
 .live-match-modal__body .ticker-running-encounter__result{grid-column:2;grid-row:1/4;align-self:stretch!important;display:flex!important;align-items:stretch!important;justify-content:flex-end!important;gap:0!important;margin:0!important;padding:0!important;border:0!important;border-left:1px solid #18333d!important;border-radius:0!important;background:transparent!important;color:#fff!important;text-align:center!important}.live-match-modal__body .ticker-running-encounter__result>small:first-child,.live-match-modal__body .ticker-running-encounter__current{display:none!important}.live-match-modal__body .ticker-running-encounter__result>strong{order:2;display:grid!important;grid-template-rows:30px 44px 44px!important;min-width:42px!important;border-left:1px solid #18333d!important}.live-match-modal__body .ticker-running-encounter__result>strong:before{content:'E';display:flex;align-items:center;justify-content:center;color:#82949b;font-size:.62rem;font-weight:800}.live-match-modal__body .ticker-running-encounter__result>strong>span{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:44px!important;margin:0!important;padding:0!important;color:#fff!important;font-size:1.22rem!important;line-height:1!important;font-weight:900!important;box-sizing:border-box!important}.live-match-modal__body .ticker-running-encounter__sets{order:1;display:flex!important;width:auto!important;max-width:none!important;margin:0!important;color:#fff!important;font-size:inherit!important;line-height:1!important;font-weight:inherit!important;white-space:nowrap!important;text-align:center!important}.live-match-modal__body .ticker-running-encounter__sets:before{display:none!important}.live-match-modal__body .ticker-running-encounter__set{display:grid!important;grid-template-rows:30px 44px 44px!important;min-width:46px!important;border-left:1px solid #102a34!important}.live-match-modal__body .ticker-running-encounter__set small{display:flex!important;align-items:center;justify-content:center;color:#82949b!important;font-size:.56rem!important;line-height:1!important;font-weight:750!important;white-space:nowrap}.live-match-modal__body .ticker-running-encounter__set b{display:flex!important;align-items:center!important;justify-content:center!important;height:44px!important;margin:0!important;padding:0!important;color:#b7c2c7;font-size:.78rem;line-height:1!important;font-weight:650;box-sizing:border-box!important}.live-match-modal__empty{padding:28px 18px;margin:0;color:#aeb9be;background:#06141b}.live-match-modal__footer{background:#07151d;border-top:1px solid #18333d;padding-bottom:env(safe-area-inset-bottom)}.live-match-modal__footer a{display:flex;justify-content:flex-end;padding:15px 18px;color:#ff315b;font-weight:850;text-decoration:none}
 .matchday-page--ticker .matchday-live-center{margin-bottom:12px!important}
 @media(max-width:680px){.matchday-page--ticker .matchday-hero{display:none!important}.matchday-page--ticker .matchday-dashboard{margin-top:0!important;padding-top:10px!important}.matchday-page--ticker #live-center{margin-inline:0!important}#live-center .ticker-overview-feature__intro{padding:11px 12px 9px!important}#live-center .ticker-overview-feature__intro>h2{font-size:1rem!important}#live-center .ticker-overview-feature__match-title{padding:9px 11px!important}#live-center .ticker-overview-feature__score{padding:4px 11px!important;grid-template-columns:minmax(0,1fr) 48px!important}#live-center .ticker-overview-feature__team>strong{font-size:.84rem!important}.live-match-modal{align-items:flex-end;padding:12px 10px max(12px,env(safe-area-inset-bottom))}.live-match-modal__sheet{width:100%;height:min(76dvh,640px);max-height:calc(100dvh - 48px);border-radius:18px 18px 14px 14px}.live-match-modal__header{padding:14px}.live-match-modal__body .ticker-running-encounter__line{padding-left:15px!important;padding-right:8px!important}.live-match-modal__body .ticker-running-encounter__player strong{font-size:.86rem!important}.live-match-modal__body .ticker-running-encounter__set{min-width:39px!important}.live-match-modal__body .ticker-running-encounter__result>strong{min-width:38px!important}.live-match-modal__body .ticker-running-encounter__set small{font-size:.5rem!important}.live-match-modal__body .ticker-running-encounter__set b{font-size:.72rem!important}.live-match-modal__body .ticker-running-encounter__result>strong>span{font-size:1.16rem!important}.live-match-modal__footer a{justify-content:center;font-size:.88rem}}
+
+/* In the popup, player names and every set column share identical header and
+   score-row tracks. The two full-width rules also cross all columns in one
+   continuous stroke, including the names, total score and tie-break digits. */
+.live-match-modal__body .ticker-running-encounter__line{
+  --live-score-header:30px;
+  --live-score-player:44px;
+  position:relative!important;
+  grid-template-rows:var(--live-score-header) repeat(2,var(--live-score-player))!important;
+  min-height:calc(var(--live-score-header) + 2 * var(--live-score-player))!important;
+  padding-bottom:0!important;
+  box-sizing:border-box!important;
+}
+.live-match-modal__body .ticker-running-encounter__line::before,
+.live-match-modal__body .ticker-running-encounter__line::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  height:1px;
+  z-index:2;
+  pointer-events:none;
+  background:#24424c;
+}
+.live-match-modal__body .ticker-running-encounter__line::before{
+  top:var(--live-score-header);
+}
+.live-match-modal__body .ticker-running-encounter__line::after{
+  top:calc(var(--live-score-header) + var(--live-score-player));
+}
+.live-match-modal__body .ticker-running-encounter__player{
+  height:var(--live-score-player)!important;
+  min-height:0!important;
+  max-height:var(--live-score-player)!important;
+  overflow:hidden!important;
+}
+.live-match-modal__body .ticker-running-encounter__result,
+.live-match-modal__body .ticker-running-encounter__result>strong,
+.live-match-modal__body .ticker-running-encounter__set{
+  height:calc(var(--live-score-header) + 2 * var(--live-score-player))!important;
+  min-height:0!important;
+}
+.live-match-modal__body .ticker-running-encounter__result>strong,
+.live-match-modal__body .ticker-running-encounter__set{
+  grid-template-rows:var(--live-score-header) repeat(2,var(--live-score-player))!important;
+}
+.live-match-modal__body .ticker-running-encounter__set b,
+.live-match-modal__body .ticker-running-encounter__result>strong>span{
+  height:var(--live-score-player)!important;
+  min-height:0!important;
+  max-height:var(--live-score-player)!important;
+  box-sizing:border-box!important;
+  line-height:1!important;
+}
+.live-match-modal__body .ticker-set-tiebreak{
+  line-height:1!important;
+  position:relative;
+  top:-.32em;
+}
