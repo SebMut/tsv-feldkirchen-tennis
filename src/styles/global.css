@@ -2482,3 +2482,15 @@ main.main--flush{padding:0}
   .encounter-set-stepper>strong{font-size:1.05rem}
   .encounter-set-stepper__control{min-height:32px;font-size:1.22rem}
 }
+
+/* Satz 1/2: Tie-break erst bei 6:6. Normale Satzspiele groß,
+   Tie-break-Punkte als kleine hochgestellte Zahlen wie bei Tennis.de. */
+.ticker-set-score{display:inline-flex;align-items:baseline;white-space:nowrap;gap:0}
+.ticker-set-tiebreak{font-size:.62em;line-height:1;vertical-align:super;position:relative;top:-.32em;margin-left:1px;font-weight:800;color:inherit}
+.encounter-regular-tiebreak{min-width:0;display:grid;gap:5px;padding:9px 5px;border:1px solid #b7d2c1;border-radius:9px;background:#e9f5ee}
+.encounter-regular-tiebreak>strong{font-size:.78rem;color:#195432;text-align:center}
+.encounter-regular-tiebreak>small{font-size:.63rem;line-height:1.4;text-align:center;color:#4b6956}
+.encounter-regular-tiebreak__names{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;font-size:.68rem;font-weight:850;text-align:center;color:#286346}
+.encounter-regular-tiebreak .encounter-set-stepper__control{background:#d7f5df;border-color:#78b494}
+.encounter-regular-tiebreak .encounter-set-stepper__control[data-enc-tb-delta="-1"]{background:#fff2f2;border-color:#e3c1c1}
+@media(max-width:440px){.encounter-regular-tiebreak{padding:7px 3px}.encounter-regular-tiebreak>small{font-size:.6rem}}
