@@ -85,6 +85,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <p class="admin-nav__label">Verwaltung</p>
             <button type="button" data-panel="seasons" data-super-only><span aria-hidden="true" class="admin-nav__symbol">◷</span> Saisons</button>
             <button type="button" data-panel="users" data-super-only><span aria-hidden="true" class="admin-nav__symbol">♧</span> Benutzer</button>
+            <button type="button" data-panel="operations" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⚑</span> Systemstatus</button>
             <button type="button" data-panel="audit" data-super-only><span aria-hidden="true" class="admin-nav__symbol">↺</span> Änderungsverlauf</button>
             <button type="button" data-panel="settings" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⚙</span> Einstellungen</button>
             <button type="button" data-panel="account"><span aria-hidden="true" class="admin-nav__symbol">◎</span> Mein Konto</button>
@@ -641,6 +642,45 @@ import MainLayout from '../../layouts/MainLayout.astro';
                   <p id="tv-timing-feedback" class="tv-timing-settings__feedback" role="status" aria-live="polite" hidden></p>
                 </fieldset>
                 <div class="field"><button class="button" type="submit">Einstellungen speichern</button></div>
+              </form>
+            </div>
+          </section>
+
+          <section id="panel-operations" class="admin-panel" data-super-only>
+            <div class="card">
+              <div class="page-head">
+                <div><p class="eyebrow">Betrieb &amp; Sicherheit</p><h2>Systemstatus</h2>
+                  <p class="muted">Nur für SuperAdmins. Live-Abfrage aus Supabase, BTV-Protokollen, Storage und Datenbank-Cronjobs.</p></div>
+                <button type="button" id="ops-refresh" class="button secondary">Status aktualisieren</button>
+              </div>
+              <div id="ops-health-summary" class="ops-health-grid" role="status" aria-live="polite">Systemstatus wird geladen …</div>
+              <div class="ops-health-details">
+                <section><h3>Fehlende Medien</h3><div id="ops-missing-media">Wird geprüft …</div></section>
+                <section><h3>Hintergrundfunktionen (Datenbank-Cron)</h3><div id="ops-cron-jobs">Wird geprüft …</div></section>
+              </div>
+              <p class="muted">Die Anzeige wertet BTV-Importe und PostgreSQL-Cron aus. Externe Edge-Function-Logs, GitHub-Workflows und verwaltete Supabase-Backups sind nicht automatisch Teil dieser Datenbankprüfung.</p>
+            </div>
+            <div class="card ops-restore">
+              <h2>Backup und Wiederherstellung prüfen</h2>
+              <p class="muted">Ein Backup gilt erst als überprüft, nachdem es in einer getrennten Testumgebung tatsächlich wiederhergestellt und kontrolliert wurde. Die Bestätigung dokumentiert nur diesen manuellen Nachweis.</p>
+              <div id="ops-restore-last" role="status" aria-live="polite">Noch kein Prüfprotokoll geladen.</div>
+              <form id="ops-restore-form" class="form-grid">
+                <div class="field">
+                  <label for="ops-restore-method">Geprüfte Wiederherstellung</label>
+                  <select id="ops-restore-method" required>
+                    <option value="logical_restore">Logischer Datenbank-Dump (isolierte Testdatenbank)</option>
+                    <option value="managed_backup_restore">Supabase-Backup / PITR in isolierter Umgebung</option>
+                  </select>
+                </div>
+                <div class="field full">
+                  <label for="ops-restore-notes">Prüfprotokoll: Backup-Datum, Testumgebung und Ergebnis</label>
+                  <textarea id="ops-restore-notes" required minlength="12" maxlength="500" rows="3" placeholder="Backup-Zeitpunkt, Testumgebung, geprüfte Tabellen/Medien, Restore-Ergebnis"></textarea>
+                </div>
+                <div class="field full">
+                  <label><input id="ops-restore-confirmed" type="checkbox" required /> Ich bestätige, dass ich die Wiederherstellung tatsächlich durchgeführt und überprüft habe.</label>
+                </div>
+                <div class="field full"><button type="submit" class="button">Prüfung dokumentieren</button></div>
+                <p id="ops-restore-feedback" class="field full" role="status" aria-live="polite"></p>
               </form>
             </div>
           </section>
