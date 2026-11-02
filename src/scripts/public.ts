@@ -431,6 +431,8 @@ export async function loadHome() {
       : { data: [], error: null };
     const scoreRows = [...(scoreResult.data ?? []), ...liveStates];
     if (liveCenter) {
+      liveCenter.classList.remove('is-loading');
+      liveCenter.removeAttribute('aria-busy');
       if (liveMatches.length) {
         const running = await supabase.from('match_encounters')
           .select('match_id,discipline,position,status,sort_order,tsv_player_1_name,tsv_player_2_name,opponent_slot_1,opponent_slot_2,result_text,tiebreak_points')
@@ -568,6 +570,11 @@ export async function loadHome() {
       await renderSponsorPlacements('#home-sponsors', ['home']);
     }
   } catch (error) {
+    if (liveCenter?.classList.contains('is-loading')) {
+      liveCenter.classList.remove('is-loading');
+      liveCenter.classList.add('hidden');
+      liveCenter.removeAttribute('aria-busy');
+    }
     console.warn('Öffentliche Startseiten-Daten konnten nicht geladen werden:', error);
     if (facility?.textContent?.match(/geladen|ermittelt/i)) errorText(facility, 'Anlagenstatus momentan nicht abrufbar.');
     for (const target of [todayTarget, upcomingTarget, recentTarget, newsTarget]) {
