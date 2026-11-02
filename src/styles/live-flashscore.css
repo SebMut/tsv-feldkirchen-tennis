@@ -94,3 +94,19 @@
   position:relative;
   top:-.32em;
 }
+
+/* Keep the modal inside a 320px viewport while preserving aligned lines. */
+@media(max-width:360px){
+  .live-match-modal{padding:8px 5px max(8px,env(safe-area-inset-bottom))!important}
+  .live-match-modal__sheet{min-width:0;max-width:100%}
+  .live-match-modal__body{overflow-x:hidden}
+  .live-match-modal__body .ticker-running-encounter__line{
+    min-width:0;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    padding-left:8px!important;
+    padding-right:5px!important;
+  }
+  .live-match-modal__body .ticker-running-encounter__set{min-width:31px!important}
+  .live-match-modal__body .ticker-running-encounter__result>strong{min-width:33px!important}
+  .live-match-modal__body .ticker-running-encounter__player strong{font-size:.77rem!important}
+}
