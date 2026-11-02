@@ -7,69 +7,156 @@ import MainLayout from '../../layouts/MainLayout.astro';
   headerVariant="light"
   mainClass="main--flush"
 >
-  <div class="matchday-page live-page-refresh live-page-compact">
-    <section class="matchday-hero matchday-hero--compact">
+  <div class="matchday-page live-page-refresh live-scorecenter">
+    <section class="scorecenter-head">
       <div class="container">
-        <span class="matchday-badge">TENNIS · TSV FELDKIRCHEN</span>
         <div id="live-match-head"><p role="status">Spieltag wird geladen …</p></div>
       </div>
     </section>
 
-    <div class="container matchday-dashboard">
-      <section class="matchday-panel matchday-live-panel">
+    <div class="container scorecenter-shell">
+      <section class="scorecenter-card">
         <div id="live-score" aria-live="polite" aria-atomic="true"></div>
+        <nav class="scorecenter-tabs" aria-label="Liveticker Bereiche">
+          <a href="#live-encounters">SPIELE</a>
+          <a href="#live-timeline">LIVE-MELDUNGEN</a>
+        </nav>
         <div id="live-encounters" class="live-encounters"></div>
-        <div class="live-timeline-section">
-          <div class="page-head">
-            <div><p class="matchday-kicker">Vom Spielfeld</p><h2>Live-Meldungen</h2></div>
-          </div>
+        <div class="live-timeline-section" id="live-timeline-section">
+          <div class="scorecenter-section-title"><strong>LIVE-MELDUNGEN</strong></div>
           <div id="live-timeline" class="timeline"></div>
         </div>
       </section>
       <section id="live-sponsor" class="hidden" aria-label="Sponsor des Spieltags"></section>
-      <p><a class="matchday-action" href="/spieltag/">← Zur Spieltagszentrale</a></p>
+      <p class="scorecenter-back"><a href="/spieltag/">← Alle Live-Spiele</a></p>
     </div>
   </div>
 </MainLayout>
 <style>
-  :global(.live-page-compact .live-match-heading){gap:4px}
-  :global(.live-page-compact .live-match-heading h1){font-size:clamp(1.45rem,3vw,2.55rem)}
-  :global(.live-page-compact .live-page-refresh .matchday-live-panel),
-  :global(.live-page-compact .matchday-live-panel){padding:clamp(12px,2vw,22px)}
-  :global(.live-page-compact .live-score-topline){margin-bottom:10px}
-  :global(.live-page-compact .live-scoreboard){grid-template-columns:minmax(0,1fr) minmax(105px,.45fr) minmax(0,1fr);gap:8px}
-  :global(.live-page-compact .live-team){min-height:76px;padding:9px 12px}
-  :global(.live-page-compact .live-team img),
-  :global(.live-page-compact .live-team .live-opponent-mark){width:38px;height:38px}
-  :global(.live-page-compact .live-scoreboard__score strong){font-size:clamp(2.2rem,5vw,4rem)}
-  :global(.live-page-compact .live-match-progress){margin-top:10px;padding-top:10px}
-  :global(.live-page-compact .live-encounters){margin-top:16px;padding-top:14px;gap:14px}
-  :global(.live-page-compact .live-encounters__toolbar h2){font-size:1.25rem}
-  :global(.live-page-compact .live-encounter-group){gap:6px}
-  :global(.live-page-compact .live-encounter-group__title){padding-bottom:6px}
-  :global(.live-page-compact .live-encounter-list){gap:5px}
-  :global(.live-page-compact .live-encounter-row){padding:8px 10px;gap:6px;border-radius:11px}
-  :global(.live-page-compact .live-encounter-number){min-width:29px;height:29px;border-radius:7px;font-size:.72rem}
-  :global(.live-page-compact .live-encounter-row__identity>strong){font-size:.82rem}
-  :global(.live-page-compact .live-encounter-matchup){grid-template-columns:minmax(0,1fr) minmax(92px,.32fr) minmax(0,1fr);gap:6px}
-  :global(.live-page-compact .live-encounter-side){padding:7px 8px;border-radius:8px}
-  :global(.live-page-compact .live-encounter-side img),
-  :global(.live-page-compact .live-encounter-side .live-opponent-mark){width:26px;height:26px}
-  :global(.live-page-compact .live-encounter-side strong){font-size:.78rem}
-  :global(.live-page-compact .live-encounter-result){padding:6px 5px;border-radius:8px;gap:2px}
-  :global(.live-page-compact .live-encounter-result strong){font-size:1.35rem}
-  :global(.live-page-compact .live-set-scores){font-size:.65rem}
-  :global(.live-page-compact .live-timeline-section){margin-top:18px}
-  @media(max-width:740px){
-    :global(.live-page-compact .live-scoreboard){grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr);gap:4px}
-    :global(.live-page-compact .live-scoreboard .live-team){min-height:88px;padding:6px 4px}
-    :global(.live-page-compact .live-encounter-row){padding:7px}
-    :global(.live-page-compact .live-encounter-matchup){grid-template-columns:minmax(0,1fr) 76px minmax(0,1fr);gap:4px}
-    :global(.live-page-compact .live-encounter-side){padding:6px 3px}
-    :global(.live-page-compact .live-encounter-side strong){font-size:clamp(.65rem,2.3vw,.76rem)}
-    :global(.live-page-compact .live-encounter-result strong){font-size:1.2rem}
-    :global(.live-page-compact .live-encounter-row__head){gap:5px}
+  :global(.live-scorecenter){background:#eef1f3;min-height:100vh;color:#071f27}
+  :global(.live-scorecenter .scorecenter-head){background:#06242d;color:#fff;padding:18px 0 20px;border-bottom:1px solid #173b44}
+  :global(.live-scorecenter .live-match-heading){display:grid;gap:5px;text-align:left}
+  :global(.live-scorecenter .live-match-heading .eyebrow){display:none}
+  :global(.live-scorecenter .live-match-heading h1){margin:0;font-size:clamp(1.15rem,3vw,1.55rem);font-weight:800;letter-spacing:-.02em;color:#fff}
+  :global(.live-scorecenter .live-match-heading h1 span){font-size:.72em;color:#9fb0b5;font-weight:500}
+  :global(.live-scorecenter .live-match-heading__meta){margin:0;color:#b8c5c9;font-size:.78rem;gap:6px}
+  :global(.live-scorecenter .live-match-heading__venue){font-size:.76rem;color:#b8c5c9;gap:8px}
+  :global(.live-scorecenter .live-match-heading__venue .match-venue),:global(.live-scorecenter .live-match-heading__venue .match-venue strong),:global(.live-scorecenter .live-match-heading__venue .match-venue small){color:inherit}
+  :global(.live-scorecenter .live-match-heading__venue a){min-height:30px;padding:5px 10px;border-radius:5px;background:#173b44;color:#fff;border:0;font-size:.7rem}
+  :global(.live-scorecenter .scorecenter-shell){width:min(860px,100%);padding:14px 10px 42px}
+  :global(.live-scorecenter .scorecenter-card){background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgb(0 0 0 / .12)}
+  :global(.live-scorecenter #live-score){padding:0}
+  :global(.live-scorecenter .live-score-topline){min-height:39px;margin:0;padding:8px 14px;background:#f5f6f7;border-bottom:1px solid #e0e4e6;display:flex;align-items:center}
+  :global(.live-scorecenter .live-score-status){display:flex;align-items:center;gap:8px}
+  :global(.live-scorecenter .live-badge){padding:0;background:transparent!important;color:#6e7c81;font-size:.68rem;letter-spacing:.03em;font-weight:800}
+  :global(.live-scorecenter .live-badge.is-running){color:#e30613}
+  :global(.live-scorecenter .live-badge .live-dot){width:7px;height:7px;background:#9ba6aa;box-shadow:none}
+  :global(.live-scorecenter .live-badge.is-running .live-dot){background:#e30613;animation:scorePulse 1.2s infinite}
+  :global(.live-scorecenter .live-score-topline__hint){font-size:.68rem;color:#849095}
+  :global(.live-scorecenter .live-score-topline__updated){margin-left:auto;font-size:.66rem;color:#849095}
+  :global(.live-scorecenter .live-scoreboard){display:grid;grid-template-columns:1fr 110px 1fr;gap:8px;align-items:center;padding:22px 14px 18px;background:#fff}
+  :global(.live-scorecenter .live-team){display:grid;justify-items:center;text-align:center;gap:7px;min-width:0;min-height:0;padding:0;background:transparent!important;border:0!important;border-radius:0}
+  :global(.live-scorecenter .live-team img),:global(.live-scorecenter .live-team .live-opponent-mark){width:52px;height:52px;object-fit:contain;border-radius:8px}
+  :global(.live-scorecenter .live-team .live-opponent-mark){display:grid;place-items:center;background:#e9edef;color:#53646a;font-weight:900;font-size:1rem}
+  :global(.live-scorecenter .live-team>div){display:grid;gap:3px;justify-items:center;min-width:0}
+  :global(.live-scorecenter .live-team span){font-size:.65rem;color:#849095;text-transform:uppercase;letter-spacing:.04em}
+  :global(.live-scorecenter .live-team strong){font-size:.9rem;line-height:1.2;color:#132d35;overflow-wrap:anywhere}
+  :global(.live-scorecenter .live-scoreboard__score){display:grid;justify-items:center;gap:4px;text-align:center}
+  :global(.live-scorecenter .live-scoreboard__score>span){font-size:.62rem;color:#879398;text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+  :global(.live-scorecenter .live-scoreboard__score strong){display:flex;align-items:center;gap:7px;font-size:2.7rem;line-height:1;font-weight:900;color:#0b2730;letter-spacing:-.06em}
+  :global(.live-scorecenter .live-scoreboard__score strong b){font-weight:900}
+  :global(.live-scorecenter .live-scoreboard__score strong i){font-style:normal;color:#9ca7ab;font-size:.72em;font-weight:400}
+  :global(.live-scorecenter .live-match-progress){margin:0;padding:10px 14px 12px;border-top:1px solid #edf0f1;background:#fff}
+  :global(.live-scorecenter .live-match-progress__info){display:flex;justify-content:space-between;gap:8px;margin:0 0 7px;color:#6d7a7f;font-size:.68rem}
+  :global(.live-scorecenter .live-match-progress__info strong){color:#334a51}
+  :global(.live-scorecenter .live-match-progress__track){height:3px;background:#e6eaec;border-radius:0}
+  :global(.live-scorecenter .live-match-progress__track>span){background:#e30613;border-radius:0}
+  :global(.live-scorecenter .scorecenter-tabs){height:48px;display:flex;align-items:stretch;border-top:1px solid #e0e4e6;border-bottom:1px solid #d9dfe1;background:#fff;padding:0 14px;gap:26px}
+  :global(.live-scorecenter .scorecenter-tabs a){display:flex;align-items:center;position:relative;text-decoration:none;color:#56666c;font-size:.73rem;font-weight:800;letter-spacing:.03em}
+  :global(.live-scorecenter .scorecenter-tabs a:first-child){color:#e30613}
+  :global(.live-scorecenter .scorecenter-tabs a:first-child:after){content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:#e30613;border-radius:3px 3px 0 0}
+  :global(.live-scorecenter .live-encounters){display:block;margin:0;padding:0;background:#eef1f3}
+  :global(.live-scorecenter .live-encounters__toolbar){display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 12px 8px}
+  :global(.live-scorecenter .live-encounters__toolbar>div:first-child){display:none}
+  :global(.live-scorecenter .live-encounters__filters){display:flex;width:100%;gap:5px;padding:0;border:0;background:transparent;border-radius:0}
+  :global(.live-scorecenter .live-encounters__filters button){min-height:34px;padding:6px 12px;border:1px solid #d8dde0;border-radius:5px;background:#fff;color:#647278;font-size:.7rem;font-weight:800;justify-content:center}
+  :global(.live-scorecenter .live-encounters__filters button span){min-width:18px;height:18px;background:#edf0f1;font-size:.64rem}
+  :global(.live-scorecenter .live-encounters__filters button.is-active){background:#e30613;color:#fff;border-color:#e30613;box-shadow:none}
+  :global(.live-scorecenter .live-encounters__filters button.is-active span){background:#fff;color:#e30613}
+  :global(.live-scorecenter .live-encounter-group){display:block;margin:0 0 10px;background:#fff;border-top:1px solid #dce1e3;border-bottom:1px solid #dce1e3}
+  :global(.live-scorecenter .live-encounter-group__title){display:flex;align-items:center;justify-content:space-between;height:38px;padding:0 12px;background:#0b313b;color:#fff;border:0}
+  :global(.live-scorecenter .live-encounter-group__title h3){margin:0;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+  :global(.live-scorecenter .live-encounter-group__title>span){font-size:.65rem;color:#b9c7cb}
+  :global(.live-scorecenter .live-encounter-list){display:block}
+  :global(.live-scorecenter .live-encounter-row){display:block;margin:0;padding:0;border:0;border-bottom:1px solid #e5e9eb;border-radius:0;background:#fff!important;box-shadow:none!important}
+  :global(.live-scorecenter .live-encounter-row:last-child){border-bottom:0}
+  :global(.live-scorecenter .live-encounter-row.is-live){box-shadow:inset 3px 0 0 #e30613!important;background:#fffafb!important}
+  :global(.live-scorecenter .live-encounter-row__head){display:flex;align-items:center;justify-content:space-between;min-height:31px;padding:5px 10px;border-bottom:1px solid #f0f2f3;background:#fafbfb}
+  :global(.live-scorecenter .live-encounter-row__identity){display:flex;align-items:center;gap:7px}
+  :global(.live-scorecenter .live-encounter-number){display:grid;place-items:center;min-width:25px;height:21px;padding:0 4px;border-radius:3px;background:#e9edef;color:#526269;font-size:.62rem;font-weight:900}
+  :global(.live-scorecenter .is-live .live-encounter-number){background:#ffe6e9;color:#c80b1a}
+  :global(.live-scorecenter .live-encounter-row__identity>strong){font-size:.68rem;color:#647278;font-weight:800}
+  :global(.live-scorecenter .live-encounter-row__flags){display:flex;align-items:center;gap:6px}
+  :global(.live-scorecenter .live-result-note){font-size:.62rem;color:#7c898e}
+  :global(.live-scorecenter .status-pill){padding:3px 6px;border-radius:3px;background:#eef1f2;color:#66757a;font-size:.6rem;font-weight:800}
+  :global(.live-scorecenter .status-pill.live){background:#e30613;color:#fff}
+  :global(.live-scorecenter .live-encounter-matchup){display:grid;grid-template-columns:minmax(0,1fr) 92px minmax(0,1fr);gap:0;align-items:stretch}
+  :global(.live-scorecenter .live-encounter-side){display:flex;align-items:center;gap:8px;min-width:0;padding:10px 11px;background:#fff!important;border-radius:0!important}
+  :global(.live-scorecenter .live-encounter-side--opponent){flex-direction:row-reverse;text-align:right}
+  :global(.live-scorecenter .live-encounter-side img),:global(.live-scorecenter .live-encounter-side .live-opponent-mark){flex:0 0 27px;width:27px;height:27px;object-fit:contain;border-radius:4px}
+  :global(.live-scorecenter .live-encounter-side .live-opponent-mark){display:grid;place-items:center;background:#edf0f1;color:#6a797e;font-size:.65rem;font-weight:900}
+  :global(.live-scorecenter .live-encounter-side>div){display:grid;gap:1px;min-width:0}
+  :global(.live-scorecenter .live-encounter-side span){font-size:.57rem;color:#8a969a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :global(.live-scorecenter .live-encounter-side strong){font-size:.75rem;color:#172f37;line-height:1.2;overflow-wrap:anywhere}
+  :global(.live-scorecenter .live-encounter-result){display:grid;place-items:center;align-content:center;gap:1px;padding:6px 3px;background:#f5f7f8!important;border:0!important;border-left:1px solid #e5e9eb!important;border-right:1px solid #e5e9eb!important;border-radius:0!important;text-align:center}
+  :global(.live-scorecenter .live-encounter-result strong){font-size:1.15rem!important;line-height:1;color:#102a32;white-space:nowrap;font-variant-numeric:tabular-nums}
+  :global(.live-scorecenter .live-encounter-result span),:global(.live-scorecenter .live-set-scores){font-size:.57rem!important;color:#7b898e;line-height:1.25}
+  :global(.live-scorecenter .live-set-winner){font-size:.56rem;color:#18804b;font-weight:800}
+  :global(.live-scorecenter .live-encounter-empty){margin:10px;padding:14px;background:#fff;border:1px solid #dce1e3;border-radius:6px;color:#65757a}
+  :global(.live-scorecenter .live-timeline-section){margin:0;background:#eef1f3;padding-top:2px}
+  :global(.live-scorecenter .scorecenter-section-title){height:38px;display:flex;align-items:center;padding:0 12px;background:#0b313b;color:#fff;font-size:.73rem;letter-spacing:.04em}
+  :global(.live-scorecenter .timeline){display:block;background:#fff}
+  :global(.live-scorecenter .timeline-row){display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid #e5e9eb}
+  :global(.live-scorecenter .timeline-row strong){font-size:.75rem;color:#263e45}
+  :global(.live-scorecenter .timeline-row .match-meta){font-size:.62rem;color:#8a969a}
+  :global(.live-scorecenter .timeline-row .score){font-size:1rem;color:#132e36}
+  :global(.live-scorecenter .timeline>.muted){margin:0;padding:14px 12px;font-size:.75rem;color:#7d898e}
+  :global(.live-scorecenter .scorecenter-back){margin:12px 2px 0}
+  :global(.live-scorecenter .scorecenter-back a){color:#4e6066;font-size:.75rem;font-weight:800;text-decoration:none}
+  @keyframes scorePulse{0%,100%{opacity:1}50%{opacity:.25}}
+  @media(max-width:600px){
+    :global(.live-scorecenter .scorecenter-head){padding:12px 0 14px}
+    :global(.live-scorecenter .scorecenter-head .container){width:calc(100% - 24px)}
+    :global(.live-scorecenter .live-match-heading h1){font-size:1.05rem}
+    :global(.live-scorecenter .live-match-heading__meta){font-size:.68rem}
+    :global(.live-scorecenter .scorecenter-shell){padding:0 0 70px;width:100%}
+    :global(.live-scorecenter .scorecenter-card){border-radius:0;box-shadow:none}
+    :global(.live-scorecenter .live-score-topline){padding:7px 10px}
+    :global(.live-scorecenter .live-score-topline__hint),:global(.live-scorecenter .live-score-topline__updated){display:none}
+    :global(.live-scorecenter .live-scoreboard){grid-template-columns:minmax(0,1fr) 76px minmax(0,1fr);padding:16px 8px 14px;gap:3px}
+    :global(.live-scorecenter .live-team img),:global(.live-scorecenter .live-team .live-opponent-mark){width:43px;height:43px}
+    :global(.live-scorecenter .live-team strong){font-size:.76rem}
+    :global(.live-scorecenter .live-scoreboard__score strong){font-size:2.2rem;gap:4px}
+    :global(.live-scorecenter .live-scoreboard__score>span){font-size:.52rem}
+    :global(.live-scorecenter .live-match-progress){padding:8px 10px 10px}
+    :global(.live-scorecenter .live-match-progress__info){font-size:.61rem}
+    :global(.live-scorecenter .scorecenter-tabs){height:44px;padding:0 10px;gap:22px;overflow-x:auto}
+    :global(.live-scorecenter .scorecenter-tabs a){font-size:.68rem;white-space:nowrap}
+    :global(.live-scorecenter .live-encounters__toolbar){padding:9px 8px 6px}
+    :global(.live-scorecenter .live-encounters__filters button){flex:1;padding:5px 4px;font-size:.65rem}
+    :global(.live-scorecenter .live-encounter-group){margin-bottom:8px}
+    :global(.live-scorecenter .live-encounter-matchup){grid-template-columns:minmax(0,1fr) 67px minmax(0,1fr)}
+    :global(.live-scorecenter .live-encounter-side){padding:8px 6px;gap:5px}
+    :global(.live-scorecenter .live-encounter-side img),:global(.live-scorecenter .live-encounter-side .live-opponent-mark){display:none}
+    :global(.live-scorecenter .live-encounter-side span){font-size:.5rem}
+    :global(.live-scorecenter .live-encounter-side strong){font-size:.68rem}
+    :global(.live-scorecenter .live-encounter-result strong){font-size:1rem!important}
+    :global(.live-scorecenter .live-set-scores){font-size:.5rem!important}
+    :global(.live-scorecenter .live-result-note){display:none}
+    :global(.live-scorecenter .status-pill){font-size:.55rem}
+    :global(.live-scorecenter .scorecenter-back){padding:0 10px}
   }
+  @media(prefers-reduced-motion:reduce){:global(.live-scorecenter .live-badge.is-running .live-dot){animation:none}}
 </style>
 <script>
   import { loadLiveTicker } from '../../scripts/public';
