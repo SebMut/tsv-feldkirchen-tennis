@@ -1556,19 +1556,22 @@ async function refreshMatches() {
   trackMatchDrafts(target);
 
   const updateEncounter = async (encounterId: string, patch: Row) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('match_encounters')
       .update({ ...patch, updated_by: state.user.id, updated_at: new Date().toISOString() })
-      .eq('id', encounterId);
-    if (error) {
-      status(error.message, 'error');
+      .eq('id', encounterId)
+      .select('id,result_text,status')
+      .maybeSingle();
+    if (error || !data) {
+      const reason = error?.message || 'Keine geänderte Begegnung zurückgegeben. Bitte Rechte prüfen.';
+      status(reason, 'error');
       const feedback = target.querySelector<HTMLElement>(`[data-encounter-id="${encounterId}"] [data-enc-feedback]`);
       if (feedback) {
-        feedback.textContent = 'Speichern fehlgeschlagen: ' + error.message;
+        feedback.textContent = 'Speichern fehlgeschlagen: ' + reason;
         feedback.dataset.tone = 'error';
       }
     }
-    return !error;
+    return !!data && !error;
   };
 
   const refreshChangedEncounter = async (encounterId: string, message: string) => {
@@ -1816,17 +1819,20 @@ async function refreshMatches() {
             feedback.classList.remove('hidden');
             feedback.textContent = 'Ergebnis wird gespeichert …';
             try {
-              if ((normalized.complete || encounter.status === 'finished') && !(await ensureMatchLive())) {
-                feedback.textContent = 'Der Spieltag konnte nicht live geschaltet werden.';
+              // A valid interim set is meant to be visible immediately. Start the
+              // existing ticker first, then persist the individual encounter as live.
+              if (resultText && !(await ensureMatchLive())) {
+                feedback.textContent = 'Spieltag konnte nicht live geschaltet werden. Zwischenstand wurde nicht gespeichert.';
+                feedback.dataset.tone = 'error';
                 return;
               }
               const now = new Date().toISOString();
               const patch = {
                 result_text: resultText,
-                status: normalized.complete ? 'finished' : encounter.status === 'finished' ? 'live' : encounter.status,
+                status: normalized.complete ? 'finished' : resultText ? 'live' : encounter.status === 'finished' ? 'scheduled' : encounter.status,
                 winner: normalized.winner,
                 finished_at: normalized.complete ? now : null,
-                ...(normalized.complete ? { started_at: encounter.started_at || now } : {}),
+                ...((normalized.complete || resultText) ? { started_at: encounter.started_at || now } : {}),
               };
               if (await updateEncounter(encounterId, patch)) {
                 const hidden = encounterCard.querySelector<HTMLInputElement>('[data-enc-result]');
@@ -1839,7 +1845,8 @@ async function refreshMatches() {
                   `[data-encounter-id="${encounterId}"] [data-enc-set="${setIndex}"]`
                 )?.focus({ preventScroll: true });
               } else {
-                feedback.textContent = 'Speichern fehlgeschlagen. Bitte erneut versuchen.';
+                feedback.textContent = 'Speichern fehlgeschlagen. Bitte Rechte und Fehlermeldung im Adminbereich prüfen.';
+                feedback.dataset.tone = 'error';
               }
             } finally {
               if (dialog.open) buttons.forEach((button) => { button.disabled = false; });
