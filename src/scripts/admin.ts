@@ -8,7 +8,7 @@ import { initEventRsvpAdmin } from './event-rsvp-admin';
 import { initEditorialComposer } from './editorial-composer';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
 import { summarizeSetResult, homeAwaySetScore, validateSetScore, adjustSetScore } from '../lib/tennis-score.mjs';
-import { adjustRegularTiebreak, readRegularTiebreak, regularSetFromTiebreak, regularSetDisplayHtml, validateRegularTiebreak } from '../lib/regular-tiebreak.mjs';
+import { adjustRegularTiebreak, readRegularTiebreak, regularTiebreakScore, regularSetFromTiebreak, regularSetDisplayHtml, validateRegularTiebreak } from '../lib/regular-tiebreak.mjs';
 
 type Row = Record<string, any>;
 const state: {
@@ -1924,9 +1924,10 @@ async function refreshMatches() {
           const prior = readRegularTiebreak(encounter.tiebreak_points, index) || [0,0];
           const updated = adjustRegularTiebreak(prior, side, delta);
           if (!updated.valid) return localFeedback(updated.message || 'Ungültiger Tiebreak-Stand.', 'error');
-          const score = regularSetFromTiebreak(updated.points);
-          if (!score) return localFeedback('Tiebreak-Stand konnte nicht ermittelt werden.', 'error');
-          await persistSetScore(index, score, undefined, updated.points);
+          const points = regularTiebreakScore(updated.points);
+          const score = regularSetFromTiebreak(points);
+          if (!score || !points) return localFeedback('Tiebreak-Stand konnte nicht ermittelt werden.', 'error');
+          await persistSetScore(index, score, undefined, points);
         });
       });
       encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-step]').forEach(button => {
