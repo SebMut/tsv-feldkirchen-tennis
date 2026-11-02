@@ -17,7 +17,7 @@ test('event card poster, headline and Details open full text without calendar na
   assert.match(aktuell, /const href = `#event-\$\{event\.id\}`/);
   assert.match(aktuell, /data-open-detail aria-label/);
   assert.match(aktuell, /<h3><a href="\$\{href\}" data-open-detail>/);
-  assert.match(aktuell, /<a href="\$\{href\}" data-open-detail>Details lesen →<\/a>/);
+  assert.match(aktuell, /<a href="\$\{href\}" data-open-detail data-detail-toggle-label aria-expanded="false">Details lesen →<\/a>/);
   assert.match(aktuell, /<details class="content-card__details" data-expanded-details>/);
   assert.match(aktuell, /<div class="content-card__full-text">\$\{fullDescription\}<\/div>/);
   assert.match(aktuell, /white-space:pre-wrap/);
@@ -48,4 +48,16 @@ test('news cards also open complete text from their image and headline', () => {
   assert.match(aktuell, /link\.dataset\.openDetail = ''/);
   assert.match(aktuell, /details\.dataset\.expandedDetails = ''/);
   assert.match(aktuell, /card\.classList\.add\('content-card', 'content-card--news'\)/);
+});
+
+test('event and news details can be collapsed again using links or native summary', () => {
+  assert.match(aktuell, /const shouldOpen = !found\.details\.open;/);
+  assert.match(aktuell, /found\.details\.open = shouldOpen;/);
+  assert.match(aktuell, /if \(!shouldOpen\) \{ clearDetailUrl\(id\); return; \}/);
+  assert.match(aktuell, /Details schließen ↑/);
+  assert.match(aktuell, /aria-expanded/);
+  assert.match(aktuell, /Weniger anzeigen ↑/);
+  assert.match(aktuell, /document\.addEventListener\('toggle', event =>/);
+  assert.match(aktuell, /if \(!details\.open && card\.id\) clearDetailUrl\(card\.id\);/);
+  assert.match(aktuell, /if \(changed\) history\.replaceState\(history\.state, '', url\);/);
 });
