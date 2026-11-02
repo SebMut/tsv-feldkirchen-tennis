@@ -1,0 +1,49 @@
+name: Lighthouse Mobile UX
+on:
+  push:
+    branches:
+      - feature/astro-supabase-foundation
+    paths:
+      - 'src/**'
+      - 'scripts/lighthouse-audit.mjs'
+      - '.github/workflows/lighthouse.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '15 6 * * 1'
+permissions:
+  contents: read
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Install pinned Lighthouse and Chromium
+        run: |
+          npm install --no-save --package-lock=false lighthouse@12.8.2 playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Build site
+        run: npm run build
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis
+          PUBLIC_PREVIEW_MODE: 'true'
+      - name: Lighthouse report (mobile)
+        run: |
+          echo "CHROME_PATH=$(node -e 'console.log(require("playwright").chromium.executablePath())')" >> "$GITHUB_ENV"
+          node scripts/lighthouse-audit.mjs
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis
+          PUBLIC_PREVIEW_MODE: 'true'
+      - name: Keep performance, accessibility and best-practice reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-mobile-reports
+          path: artifacts/lighthouse/
+          retention-days: 30
+          if-no-files-found: warn
