@@ -2634,3 +2634,29 @@ main.main--flush{padding:0}
     width:32px;min-height:36px;
   }
 }
+
+
+/* Consistent admin accessibility and user-permission overview. */
+.user-permission-audit{margin-top:12px;padding:12px;border:1px solid #d5e2d9;border-radius:12px;background:#f8fbf9;min-width:0}
+.user-permission-audit>summary{cursor:pointer;font-weight:800;color:#194d30;min-height:42px;display:list-item;padding:9px 4px}
+.user-permission-audit>summary:focus-visible{outline:3px solid #b31e33;outline-offset:3px}
+.user-permission-audit>.muted{margin:8px 0}
+.user-permission-audit>[data-test-user-rights]{margin-top:10px;min-height:44px}
+.user-permission-audit__feedback{min-height:1.25em;font-size:.83rem;margin:8px 0 0;overflow-wrap:anywhere}
+.permission-matrix__scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;border:1px solid #d8e5dd;border-radius:9px}
+.permission-matrix{width:100%;border-collapse:collapse;font-size:.78rem;text-align:center}
+.permission-matrix th,.permission-matrix td{padding:9px 8px;border-bottom:1px solid #e0e8e2;vertical-align:middle}
+.permission-matrix th:first-child{text-align:left;min-width:138px}
+.permission-matrix thead th{font-size:.73rem;font-weight:800;background:#edf5ee;min-width:91px}
+.permission-matrix tbody tr:last-child>th,.permission-matrix tbody tr:last-child>td{border-bottom:0}
+.permission-matrix th small{display:block;font-weight:500;color:#617269}
+.permission-matrix__value{font-weight:800;white-space:nowrap}
+.permission-matrix__value.is-allowed{color:#17633b}
+.permission-matrix__value.is-denied{color:#69766d}
+@media(max-width:600px){
+  .user-admin-card,.user-team-card{min-width:0}
+  .user-permission-audit{padding:8px}
+  .permission-matrix{font-size:.72rem}
+  .permission-matrix th,.permission-matrix td{padding:8px 5px}
+  .user-admin-card .actions>.button{min-height:44px;white-space:normal}
+}
