@@ -3,17 +3,17 @@ import MainLayout from '../../layouts/MainLayout.astro';
 ---
 <MainLayout title="Aktuelles | TSV Feldkirchen Tennis" description="News, Veranstaltungen und Spielberichte der Tennisabteilung TSV Feldkirchen.">
   <div class="container stack aktuelles-page">
-    <div class="page-head"><div><p class="eyebrow">Vereinsleben</p><h1>Aktuelles</h1><p class="muted">Neuigkeiten, Veranstaltungen und wichtige Infos rund um die Tennisabteilung.</p></div></div>
+    <div class="page-head aktuelles-page__head"><div><p class="eyebrow">Aktuelles</p><h1>Neuigkeiten & Veranstaltungen</h1><p class="muted">Alles Wichtige rund um die Tennisabteilung auf einen Blick.</p></div></div>
     <section id="event-news" class="event-news" aria-labelledby="event-news-title" hidden>
       <div class="event-news__head">
-        <div><p class="eyebrow">Veranstaltungen</p><h2 id="event-news-title">Das ist bei uns los</h2></div>
+        <div><p class="eyebrow">Termine</p><h2 id="event-news-title">Demnächst bei uns</h2></div>
         <a href="/termine/" class="button ghost">Alle Termine →</a>
       </div>
-      <div id="event-news-list" class="event-news__grid"></div>
+      <div id="event-news-list" class="content-card-grid"></div>
     </section>
-    <section aria-labelledby="news-title">
+    <section class="news-section" aria-labelledby="news-title">
       <div class="event-news__head"><div><p class="eyebrow">Neuigkeiten</p><h2 id="news-title">Aus der Tennisabteilung</h2></div></div>
-      <div id="news-list" class="grid two"><p class="muted">Aktuelle Beiträge werden ermittelt …</p></div>
+      <div id="news-list" class="content-card-grid"><p class="muted">Aktuelle Beiträge werden ermittelt …</p></div>
     </section>
   </div>
 </MainLayout>
@@ -35,6 +35,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
   const cleanTitle = (value: unknown) => plainText(value)
     .replace(/^[–—-]+\s*/, '')
     .replace(/[!]+\s*$/, '')
+    .replace(/[🍂🎾🍻🥨]+\s*$/u, '')
     .trim();
 
   if (section && list) {
@@ -59,34 +60,25 @@ import MainLayout from '../../layouts/MainLayout.astro';
     if (rows.length) {
       section.hidden = false;
       list.innerHTML = rows.map((event: any) => {
-        const href = event.rsvp_enabled && event.slug
-          ? `/veranstaltung/?slug=${encodeURIComponent(event.slug)}`
-          : '/termine/';
+        const href = event.rsvp_enabled && event.slug ? `/veranstaltung/?slug=${encodeURIComponent(event.slug)}` : '/termine/';
         const description = plainText(event.description) || 'Alle Informationen zur Veranstaltung findest du im Kalender.';
         const linkedNewsId = typeof event.slug === 'string' ? /^news-([0-9a-f-]{36})$/i.exec(event.slug)?.[1] : undefined;
         return `
-          <article class="event-news-card">
-            <a class="event-news-card__image" href="${href}" aria-label="${escapeHtml(cleanTitle(event.title))} öffnen">
-              <img data-event-news-id="${escapeHtml(linkedNewsId || '')}" src="/images/veranstaltung-ai.svg" alt="Stimmungsbild zur Veranstaltung ${escapeHtml(cleanTitle(event.title))}" loading="lazy" />
-              <span>Veranstaltung</span>
+          <article class="content-card content-card--event">
+            <a class="content-card__media" href="${href}" aria-label="${escapeHtml(cleanTitle(event.title))} öffnen">
+              <img data-event-news-id="${escapeHtml(linkedNewsId || '')}" src="/images/veranstaltung-ai.svg" alt="${escapeHtml(cleanTitle(event.title))}" loading="lazy" />
             </a>
-            <div class="event-news-card__body">
-              <p class="event-news-card__date">${event.all_day ? 'Ganztägig · ' : ''}${escapeHtml(formatDateTime(event.starts_at))}</p>
+            <div class="content-card__body">
+              <div class="content-card__meta"><span class="content-card__badge">Veranstaltung</span><time>${event.all_day ? 'Ganztägig · ' : ''}${escapeHtml(formatDateTime(event.starts_at))}</time></div>
               <h3><a href="${href}">${escapeHtml(cleanTitle(event.title))}</a></h3>
-              <p class="event-news-card__description">${escapeHtml(description)}</p>
-              <div class="event-news-card__footer">
-                <span class="event-news-card__place">📍 ${escapeHtml(event.location_name || 'TSV Feldkirchen')}</span>
-                <a class="event-news-card__link" href="${href}">${event.rsvp_enabled ? 'Teilnahme & Details' : 'Termin ansehen'} →</a>
-              </div>
+              <p class="content-card__description">${escapeHtml(description)}</p>
+              <div class="content-card__footer"><span>📍 ${escapeHtml(event.location_name || 'TSV Feldkirchen')}</span><a href="${href}">${event.rsvp_enabled ? 'Details & Teilnahme' : 'Details'} →</a></div>
             </div>
           </article>`;
       }).join('');
 
       if (linkedNewsIds.size) {
-        const { data: linkedNews } = await supabase
-          .from('news')
-          .select('id,hero_image_path')
-          .in('id', [...linkedNewsIds]);
+        const { data: linkedNews } = await supabase.from('news').select('id,hero_image_path').in('id', [...linkedNewsIds]);
         (linkedNews ?? []).forEach((article: any) => {
           if (!article.hero_image_path) return;
           const image = list.querySelector<HTMLImageElement>(`img[data-event-news-id="${article.id}"]`);
@@ -98,35 +90,82 @@ import MainLayout from '../../layouts/MainLayout.astro';
 
   await loadNews();
   newsList?.querySelectorAll<HTMLElement>('article.card').forEach(card => {
-    const title = card.querySelector('h2')?.textContent?.trim() || '';
-    if (eventTitles.has(title)) card.remove();
+    const rawTitle = card.querySelector('h2')?.textContent?.trim() || '';
+    if (eventTitles.has(rawTitle)) { card.remove(); return; }
+
+    card.classList.add('content-card', 'content-card--news');
+    card.classList.remove('card');
+    const image = card.querySelector<HTMLImageElement>(':scope > img');
+    if (image) {
+      const media = document.createElement('div');
+      media.className = 'content-card__media';
+      image.removeAttribute('style');
+      image.parentNode?.insertBefore(media, image);
+      media.appendChild(image);
+    }
+    const label = card.querySelector<HTMLElement>('.news-reschedule-label');
+    const date = card.querySelector<HTMLElement>('.eyebrow');
+    const title = card.querySelector<HTMLElement>('h2');
+    const excerpt = card.querySelector<HTMLElement>('p.muted');
+    const details = card.querySelector<HTMLDetailsElement>('details');
+    const body = document.createElement('div');
+    body.className = 'content-card__body';
+    const meta = document.createElement('div');
+    meta.className = 'content-card__meta';
+    const badge = document.createElement('span');
+    badge.className = 'content-card__badge';
+    badge.textContent = label?.textContent?.trim() || 'Neuigkeit';
+    meta.appendChild(badge);
+    if (date) { date.className = ''; meta.appendChild(date); }
+    body.appendChild(meta);
+    if (title) { title.textContent = cleanTitle(title.textContent); body.appendChild(title); }
+    if (excerpt) { excerpt.className = 'content-card__description'; excerpt.textContent = plainText(excerpt.textContent); body.appendChild(excerpt); }
+    if (details) {
+      details.className = 'content-card__details';
+      const summary = details.querySelector('summary');
+      if (summary) summary.textContent = 'Weiterlesen →';
+      body.appendChild(details);
+    }
+    label?.remove();
+    card.appendChild(body);
   });
 </script>
 <style>
-  .aktuelles-page{padding-bottom:42px}
-  .event-news{margin-bottom:12px}
+  .aktuelles-page{padding-bottom:calc(130px + env(safe-area-inset-bottom));gap:34px}
+  .aktuelles-page__head{padding-bottom:4px}
+  .aktuelles-page__head h1{max-width:760px;color:#193c2c}
+  .event-news,.news-section{margin:0}
   .event-news__head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}
   .event-news__head h2{margin:2px 0 0;color:#193c2c}
-  .event-news__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
-  .event-news-card{overflow:hidden;border:1px solid #dfe7e1;border-radius:20px;background:#fff;box-shadow:0 10px 28px rgb(25 60 44 / .08)}
-  .event-news-card__image{position:relative;display:block;aspect-ratio:16/8;overflow:hidden;background:#193c2c}
-  .event-news-card__image img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .25s ease}
-  .event-news-card:hover .event-news-card__image img{transform:scale(1.025)}
-  .event-news-card__image span{position:absolute;left:14px;top:14px;padding:6px 10px;border-radius:999px;background:#e30613;color:#fff;font-size:.7rem;font-weight:850;letter-spacing:.06em;text-transform:uppercase;text-decoration:none}
-  .event-news-card__body{padding:18px 20px 20px}
-  .event-news-card__date{margin:0 0 8px;color:#b51224;font-size:.78rem;font-weight:850;text-transform:uppercase;letter-spacing:.055em}
-  .event-news-card h3{margin:0 0 10px;font-size:clamp(1.18rem,2vw,1.5rem);line-height:1.2;letter-spacing:-.015em}
-  .event-news-card h3 a{color:#193c2c;text-decoration:none}
-  .event-news-card__description{margin:0;color:#65736b;font-size:.98rem;line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-  .event-news-card__footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid #edf1ee}
-  .event-news-card__place{color:#40564a;font-size:.85rem;font-weight:650}
-  .event-news-card__link{flex:none;color:#e30613;font-size:.88rem;font-weight:850;text-decoration:none}
+  .content-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+  :global(.content-card){overflow:hidden;border:1px solid #dfe7e1;border-radius:20px;background:#fff;box-shadow:0 10px 30px rgb(25 60 44 / .08)}
+  :global(.content-card__media){display:block;aspect-ratio:16/8.5;overflow:hidden;background:#edf2ef}
+  :global(.content-card__media img){display:block;width:100%;height:100%;margin:0!important;border:0!important;border-radius:0!important;object-fit:cover}
+  :global(.content-card__body){padding:18px 20px 20px}
+  :global(.content-card__meta){display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;margin:0 0 11px;color:#68756e;font-size:.74rem;font-weight:750;letter-spacing:.025em}
+  :global(.content-card__badge){display:inline-flex;align-items:center;min-height:24px;padding:4px 9px;border-radius:999px;background:#e30613;color:#fff;font-size:.66rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+  :global(.content-card h2),:global(.content-card h3){margin:0 0 10px;color:#193c2c;font-size:clamp(1.18rem,2vw,1.48rem);line-height:1.18;letter-spacing:-.018em}
+  :global(.content-card h2 a),:global(.content-card h3 a){color:inherit;text-decoration:none}
+  :global(.content-card__description){display:-webkit-box;margin:0;overflow:hidden;color:#617068;font-size:.96rem;line-height:1.52;-webkit-box-orient:vertical;-webkit-line-clamp:3}
+  :global(.content-card__footer){display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:16px;padding-top:13px;border-top:1px solid #edf1ee;color:#40564a;font-size:.83rem;font-weight:650}
+  :global(.content-card__footer a){flex:none;color:#d5091a;font-weight:850;text-decoration:none}
+  :global(.content-card__details){margin-top:14px;padding-top:12px;border-top:1px solid #edf1ee}
+  :global(.content-card__details summary){cursor:pointer;list-style:none;color:#d5091a;font-size:.86rem;font-weight:850}
+  :global(.content-card__details summary::-webkit-details-marker){display:none}
+  :global(.content-card__details p){margin:12px 0 0;color:#53635b;font-size:.9rem;line-height:1.55}
+  :global(.content-card--news:not(:has(.content-card__media)) .content-card__body){padding-top:20px}
   @media(max-width:760px){
-    .event-news__head{align-items:flex-start}.event-news__head .button{font-size:.78rem;padding:8px 10px}
-    .event-news__grid{grid-template-columns:1fr;gap:14px}
-    .event-news-card{border-radius:16px}.event-news-card__image{aspect-ratio:16/8.5}.event-news-card__body{padding:15px 16px 16px}
-    .event-news-card h3{font-size:1.24rem;line-height:1.18;margin-bottom:8px}
-    .event-news-card__description{font-size:.93rem;line-height:1.48;-webkit-line-clamp:2}
-    .event-news-card__footer{margin-top:13px;padding-top:12px;align-items:flex-end}.event-news-card__place{font-size:.8rem}.event-news-card__link{font-size:.82rem}
+    .aktuelles-page{gap:28px;padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+    .aktuelles-page__head{padding-top:4px}.aktuelles-page__head h1{font-size:clamp(2rem,9vw,2.65rem);line-height:1.02}
+    .event-news__head{align-items:flex-end;margin-bottom:13px}.event-news__head .button{font-size:.76rem;padding:8px 10px}
+    .event-news__head h2{font-size:1.45rem}
+    .content-card-grid{grid-template-columns:1fr;gap:16px}
+    :global(.content-card){border-radius:17px;box-shadow:0 7px 22px rgb(25 60 44 / .075)}
+    :global(.content-card__media){aspect-ratio:16/8.8}
+    :global(.content-card__body){padding:15px 16px 16px}
+    :global(.content-card__meta){margin-bottom:9px;font-size:.7rem}
+    :global(.content-card h2),:global(.content-card h3){margin-bottom:8px;font-size:1.22rem;line-height:1.2}
+    :global(.content-card__description){font-size:.92rem;line-height:1.48;-webkit-line-clamp:2}
+    :global(.content-card__footer){margin-top:13px;padding-top:11px;font-size:.79rem}
   }
 </style>
