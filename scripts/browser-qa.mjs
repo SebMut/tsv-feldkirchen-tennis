@@ -99,6 +99,59 @@ async function deviceQA(device){
     assert.match(new URL(page.url()).pathname,/\/aktuelles\/$/,'Incorrect redirection to calendar');
     assert.ok((await card.locator('.content-card__full-text').innerText()).trim().length>5);
   },page);
+  await check(device.name+' event details open, collapse and deep link',async()=>{
+    await page.goto(url('/aktuelles/'));
+    const card=page.locator('#event-news-list .content-card--event').first();
+    try{await card.waitFor({state:'visible',timeout:13000});}
+    catch{ outcome(device.name+' event toggle fixture','skipped','No upcoming published event');return; }
+    const details=card.locator('details[data-expanded-details]');
+    const link=card.locator('a[data-detail-toggle-label]');
+    const id=await card.getAttribute('id');
+    assert.ok(id?.startsWith('event-'));
+    assert.equal(await details.evaluate(el=>el.open),false);
+    await link.click();
+    assert.equal(await details.evaluate(el=>el.open),true,'first click must open');
+    assert.match(await link.innerText(),/Details schließen/,'link did not offer to close');
+    assert.equal(await link.getAttribute('aria-expanded'),'true');
+    assert.equal(new URL(page.url()).searchParams.get('event'),id.slice(6));
+    await link.click();
+    assert.equal(await details.evaluate(el=>el.open),false,'second click must collapse');
+    assert.match(await link.innerText(),/Details lesen/);
+    assert.equal(await link.getAttribute('aria-expanded'),'false');
+    assert.equal(new URL(page.url()).searchParams.has('event'),false,'closed event still selected in URL');
+    assert.equal(new URL(page.url()).hash,'','closing must remove deep-link hash');
+
+    const summary=details.locator('summary');
+    await summary.click();
+    assert.equal(await details.evaluate(el=>el.open),true,'native summary must open');
+    await summary.click();
+    assert.equal(await details.evaluate(el=>el.open),false,'native summary must close');
+
+    await page.goto(url('/aktuelles/?event='+id.slice(6)+'#'+id));
+    await card.waitFor({state:'visible',timeout:13000});
+    assert.equal(await details.evaluate(el=>el.open),true,'direct event URL must open details');
+    await link.click();
+    assert.equal(await details.evaluate(el=>el.open),false,'direct-linked details must collapse');
+    assert.equal(new URL(page.url()).hash,'');
+  },page);
+  await check(device.name+' news details open and collapse',async()=>{
+    await page.goto(url('/aktuelles/'));
+    const card=page.locator('#news-list .content-card--news').first();
+    try{await card.waitFor({state:'visible',timeout:13000});}
+    catch{ outcome(device.name+' news toggle fixture','skipped','No published news card');return; }
+    const details=card.locator('details[data-expanded-details]');
+    const titleLink=card.locator('h2 a[data-open-detail]');
+    await titleLink.click();
+    assert.equal(await details.evaluate(el=>el.open),true,'news title click must open');
+    await titleLink.click();
+    assert.equal(await details.evaluate(el=>el.open),false,'news title second click must close');
+    assert.equal(new URL(page.url()).searchParams.has('news'),false);
+    const summary=details.locator('summary');
+    await summary.click();
+    assert.equal(await details.evaluate(el=>el.open),true);
+    await summary.click();
+    assert.equal(await details.evaluate(el=>el.open),false);
+  },page);
   await check(device.name+' event short text in public card',async()=>{
     await page.goto(url('/aktuelles/'));
     const platzabbau = page.locator('#event-news-list .content-card--event').filter({hasText:'Platzabbau'}).first();
