@@ -133,56 +133,78 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       await assertAlignedScoreRows('320px phone');
       await page.setViewportSize({width:390,height:844});
     },page);
-    await check('TV scoreboard: polls new scores every 30 seconds without navigation',async()=>{
+    await check('TV scoreboard: 30-second poll updates running match without navigation',async()=>{
       const first=page.locator('[data-tv-match="'+ids[0]+'"]');
       model.states[0]={...model.states[0],home_score:2,updated_at:new Date().toISOString()};
-      model.encounters[0]={...model.encounters[0],status:'finished',winner:'tsv',finished_at:now,
-        result_text:'6:2 7:6',tiebreak_points:{'2':[8,6]}};
       await new Promise(resolve=>setTimeout(resolve,350));
       await page.clock.fastForward(30000);
       await page.waitForFunction(id=>{
         const item=document.querySelector('[data-tv-match="'+id+'"]');
-        return item?.querySelector('.tv-ticker__score-values strong')?.textContent?.trim()==='2' &&
-          item.querySelectorAll('.tv-ticker__game.is-finished').length===1;
+        return item?.querySelector('.tv-ticker__score-values strong')?.textContent?.trim()==='2';
       },ids[0],{timeout:9000});
       assert.match(await first.locator('.tv-ticker__score').innerText(),/2/);
-      // Even after the tiebreak is decided, both winner (8) and loser (6)
-      // retain their small raised points next to the large 7:6 games.
-      const raised=await first.locator('.tv-ticker__game.is-won .tv-ticker__tb-point').allTextContents();
-      assert.deepEqual(raised,['8','6']);
-      assert.equal(await first.locator('.tv-ticker__game.is-won.is-celebrating').count(),1);
-      assert.equal(await first.locator('.tv-ticker__game .tv-ticker__player-logo').count(),1);
-      assert.match(await first.locator('.tv-ticker__game.is-won').innerText(),/🏆/);
+      assert.equal(await page.locator('#tv-ticker-board').getAttribute('data-view-mode'),'live');
+      assert.equal(await page.locator('.tv-ticker__game.is-finished').count(),0);
       assert.match(await page.locator('#tv-ticker-countdown').innerText(),/\d+ s/);
-      assert.equal(await page.locator('.tv-ticker__match').count(),3);
     },page);
-    await check('TV scoreboard: defeat uses red indication, completed scores recap after five minutes',async()=>{
+    await check('TV scoreboard: completed encounters disappear from running-only mode',async()=>{
+      model.encounters[0]={...model.encounters[0],status:'finished',winner:'tsv',finished_at:now,
+        result_text:'6:2 7:6',tiebreak_points:{'2':[8,6]}};
+      await page.clock.fastForward(30000);
+      await page.waitForFunction(id=>!document.querySelector('[data-tv-match="'+id+'"]'),ids[0],{timeout:9000});
+      assert.equal(await page.locator('#tv-ticker-board').getAttribute('data-view-mode'),'live');
+      assert.equal(await page.locator('.tv-ticker__game.is-finished').count(),0);
+      assert.equal(await page.locator('.tv-ticker__game.is-live').count(),2);
+      assert.match(await page.locator('#tv-ticker-view-title').innerText(),/Jetzt live dabei/);
+      assert.match(await page.locator('#tv-ticker-count').innerText(),/2 Begegnungen live/);
+    },page);
+    await check('TV scoreboard: recap shows only finished encounters and then restores live mode',async()=>{
       model.encounters[2]={...model.encounters[2],status:'finished',winner:'opponent',finished_at:now,result_text:'1:6 2:6'};
       await page.clock.fastForward(30000);
-      await page.waitForFunction(()=>document.querySelectorAll('.tv-ticker__game.is-lost').length===1,null,{timeout:9000});
+      await page.waitForFunction(id=>!document.querySelector('[data-tv-match="'+id+'"]'),ids[2],{timeout:9000});
+      assert.equal(await page.locator('.tv-ticker__game.is-live').count(),1);
+      assert.equal(await page.locator('.tv-ticker__game.is-finished').count(),0);
+      // 5-minute cycle from page start; the preceding polls took 90 seconds.
+      await page.clock.fastForward(210000);
+      await page.waitForFunction(()=>{
+        const board=document.querySelector('#tv-ticker-board');
+        return board?.dataset.viewMode==='finished' &&
+          board.querySelectorAll('.tv-ticker__game.is-finished').length===2;
+      },null,{timeout:9000});
+      assert.equal(await page.locator('.tv-ticker__game.is-live').count(),0,
+        'No running matches are allowed in the finished-results view');
+      assert.equal(await page.locator('.tv-ticker__match').count(),2,
+        'Only matches with finished encounters have recap cards');
+      assert.match(await page.locator('#tv-ticker-view-title').innerText(),/Beendete Partien/);
+      assert.match(await page.locator('#tv-ticker-recap').innerText(),/Nur beendete Partien/);
+      const raised=await page.locator('[data-tv-match="'+ids[0]+'"] .tv-ticker__game.is-won .tv-ticker__tb-point').allTextContents();
+      assert.deepEqual(raised,['8','6']);
+      assert.equal(await page.locator('.tv-ticker__game.is-won.is-celebrating').count(),1);
+      assert.match(await page.locator('.tv-ticker__game.is-won').innerText(),/🏆/);
       assert.match(await page.locator('.tv-ticker__game.is-lost').innerText(),/😢/);
-      // After five minutes, previous results appear during the 30-second recap window.
-      await page.clock.fastForward(240000);
-      await page.waitForFunction(()=>document.querySelectorAll('.tv-ticker__game.is-finished').length>=2,null,{timeout:9000});
-      assert.match(await page.locator('#tv-ticker-recap').innerText(),/Rückblick/);
       await page.clock.fastForward(31000);
-      await page.waitForFunction(()=>document.querySelectorAll('.tv-ticker__game.is-finished').length===0,null,{timeout:9000});
+      await page.waitForFunction(()=>{
+        const board=document.querySelector('#tv-ticker-board');
+        return board?.dataset.viewMode==='live' &&
+          board.querySelectorAll('.tv-ticker__game.is-live').length===1;
+      },null,{timeout:9000});
+      assert.equal(await page.locator('.tv-ticker__game.is-finished').count(),0);
+      assert.match(await page.locator('#tv-ticker-view-title').innerText(),/Jetzt live dabei/);
+      assert.match(await page.locator('#tv-ticker-recap').innerText(),/Nur laufende Partien/);
     },page);
-    await check('TV scoreboard: one live fixture spans the full TV width',async()=>{
+    await check('TV scoreboard: one running fixture spans full TV width',async()=>{
       await page.setViewportSize({width:1920,height:1080});
-      model.states=model.states.slice(0,1);
-      // A previous polling request can still be settling after a fake-clock jump.
-      // The real TV retries every cycle, so advance up to three intervals.
-      for(let attempt=0;attempt<3 && await page.locator('.tv-ticker__match').count()!==1;attempt++){
+      model.states=model.states.slice(1,2);
+      for(let attempt=0;attempt<3;attempt++){
         await new Promise(resolve=>setTimeout(resolve,350));
         await page.clock.fastForward(30000);
-        for(let n=0;n<12 && await page.locator('.tv-ticker__match').count()!==1;n++)
-          await new Promise(resolve=>setTimeout(resolve,125));
+        if(await page.locator('.tv-ticker__match').count()===1)break;
       }
-      assert.equal(await page.locator('.tv-ticker__match').count(),1,'only the still-running team should be present');
+      assert.equal(await page.locator('.tv-ticker__match').count(),1);
+      assert.equal(await page.locator('.tv-ticker__match').first().getAttribute('data-tv-match'),ids[1]);
       assert.equal(await page.locator('.tv-ticker__grid--single').count(),1);
       const grid=await page.locator('.tv-ticker__grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
-      assert.equal(grid.trim().split(/\s+/).length,1,'one live team must use full horizontal room');
+      assert.equal(grid.trim().split(/\s+/).length,1);
     },page);
     await check('Spieltag live modal: all name separators align with scores and tiebreaks',async()=>{
       await page.goto(url('/spieltag/'),{waitUntil:'domcontentloaded'});
