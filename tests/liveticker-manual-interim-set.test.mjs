@@ -108,16 +108,16 @@ test('running-set progress is shown on public match and live overview',()=>{
   assert.ok(script.includes('summary.inProgressSetIndex'));
   assert.ok(script.includes('live-set-in-progress'));
   assert.ok(script.includes('ticker-running-encounter__current'));
-  assert.ok(script.includes("currentSet.split(':').reverse().join(':')"));
+  assert.ok(script.includes('regularSetDisplayHtml(currentSet, currentIndex, encounter.tiebreak_points, !!match.is_home)'));
 });
 
 test('a saved interim score activates the public ticker and checks for a persisted database row',()=>{
   const admin=read('src/scripts/admin.ts');
   assert.match(admin,/if \(resultText && !\(await ensureMatchLive\(\)\)\)/);
   assert.match(admin,/status: normalized\.complete \? 'finished' : resultText \? 'live'/);
-  assert.match(admin,/\.select\('id,result_text,status'\)/);
+  assert.match(admin,/\.select\('id,result_text,status,tiebreak_points'\)/);
   assert.match(admin,/\.maybeSingle\(\)/);
-  assert.match(admin,/if \(error \|\| !data\)/);
+  assert.match(admin,/if \(error \|\| !data \|\| scoreMismatch \|\| statusMismatch \|\| tiebreakMismatch\)/);
   assert.match(admin,/Zwischenstand gespeichert/);
   assert.match(admin,/Speichern fehlgeschlagen/);
 });
@@ -153,10 +153,10 @@ test('third-set plus/minus continues the original match-tiebreak counting',()=>{
 
 test('instant scoreboard writes require confirmed Supabase row and real live-state transition',()=>{
   const admin=read('src/scripts/admin.ts');
-  assert.match(admin,/\.select\('id,result_text,status'\)\s*\.maybeSingle\(\)/);
+  assert.match(admin,/\.select\('id,result_text,status,tiebreak_points'\)\s*\.maybeSingle\(\)/);
   assert.match(admin,/data\.result_text !== patch\.result_text/);
   assert.match(admin,/data\.status !== patch\.status/);
-  assert.match(admin,/return !!data && !error && !scoreMismatch && !statusMismatch/);
+  assert.match(admin,/return !!data && !error && !scoreMismatch && !statusMismatch && !tiebreakMismatch/);
   assert.match(admin,/\.select\('match_id,status'\)\.maybeSingle\(\)/);
   assert.match(admin,/if \(error \|\| !data \|\| data\.status !== 'live'\)/);
   assert.match(admin,/Der Status wurde in Supabase nicht bestätigt/);
