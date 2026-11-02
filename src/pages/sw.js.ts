@@ -2,8 +2,8 @@ import type { APIRoute } from 'astro';
 const base = import.meta.env.BASE_URL;
 const source = `
 const BASE = ${JSON.stringify(base)};
-const CACHE = 'tsv-tennis-public-v4';
-const SHELL = [BASE, BASE+'termine/', BASE+'mannschaften/', BASE+'spieltag/'];
+const CACHE = 'tsv-tennis-public-v5';
+const SHELL = [BASE, BASE+'termine/', BASE+'mannschaften/'];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then(cache => Promise.allSettled(SHELL.map(path => cache.add(path)))));
   self.skipWaiting();
@@ -16,9 +16,16 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== location.origin) return;
-  // No private data, API requests or authenticated admin pages are cached.
+
+  const isLiveTickerPage = url.pathname.startsWith(BASE+'spieltag/') || url.pathname.startsWith(BASE+'live/');
+  if (isLiveTickerPage && request.mode === 'navigate') {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
+    return;
+  }
+
+  // No private data, API requests, authenticated admin pages or live-ticker pages are cached.
   if (!url.pathname.startsWith(BASE) || (url.pathname.startsWith(BASE+'admin/') || url.pathname.startsWith(BASE+'verwaltung/'))
-      || url.search || request.mode !== 'navigate') return;
+      || isLiveTickerPage || url.search || request.mode !== 'navigate') return;
   event.respondWith(fetch(request, { cache: 'no-store' }).then(response => {
     if (response.ok && response.type === 'basic') {
       const copy = response.clone();
@@ -28,4 +35,4 @@ self.addEventListener('fetch', (event) => {
   }).catch(() => caches.match(request).then(response => response || caches.match(BASE))));
 });
 `;
-export const GET: APIRoute = () => new Response(source, { headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control':'no-cache' } });
+export const GET: APIRoute = () => new Response(source, { headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control':'no-store, no-cache, must-revalidate, max-age=0' } });
