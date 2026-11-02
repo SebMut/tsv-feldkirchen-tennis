@@ -91,6 +91,44 @@ function teamSeasonLabel(ts: Row) {
 let teamSeasonFilterCode = 'winter-2026-2027';
 let rosterSeasonFilterCode = 'winter-2026-2027';
 
+// All seasons from Supabase after Winter 2026/27, including future seasons,
+// become available automatically without adding hard-coded HTML pills.
+function syncAdminSeasonPills() {
+  const seasons = state.seasons
+    .filter((season) => typeof season.code === 'string'
+      && /^(winter|sommer)-20\d{2}/.test(season.code)
+      && season.code !== 'sommer-2026')
+    .sort((a, b) => String(a.starts_on || '').localeCompare(String(b.starts_on || '')));
+  const published = new Set(seasons.map((season) => season.code));
+  const selected = seasons.find((season) => season.is_current && !season.archived_at)?.code
+    ?? seasons[0]?.code ?? 'winter-2026-2027';
+  if (!published.has(teamSeasonFilterCode)) teamSeasonFilterCode = selected;
+  if (!published.has(rosterSeasonFilterCode)) rosterSeasonFilterCode = selected;
+  for (const [containerId, attribute] of [
+    ['team-season-filter', 'data-team-season'],
+    ['roster-season-filter', 'data-roster-season'],
+  ]) {
+    const container = document.getElementById(containerId);
+    if (!container) continue;
+    container.querySelectorAll<HTMLButtonElement>('.admin-season-pill').forEach((button) => {
+      if (!published.has(button.getAttribute(attribute) || '')) button.remove();
+    });
+    for (const season of seasons) {
+      const existing = Array.from(container.querySelectorAll<HTMLButtonElement>('.admin-season-pill'))
+        .find((button) => button.getAttribute(attribute) === season.code);
+      if (existing) { existing.textContent = season.name; continue; }
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'admin-season-pill';
+      button.setAttribute(attribute, season.code);
+      button.setAttribute('aria-pressed', 'false');
+      button.textContent = season.name;
+      container.append(button);
+    }
+  }
+}
+
+
 function renderAdminTeamSeasonFilter(preferredId = '') {
   const select = $<HTMLSelectElement>('#team-select');
   if (!select) return;
@@ -2384,6 +2422,7 @@ async function startApp(user: any) {
   $('[data-super-only]')?.classList.toggle('hidden', !state.isSuper);
   document.querySelectorAll<HTMLElement>('[data-super-only]').forEach((el) => el.classList.toggle('hidden', !state.isSuper));
 
+  syncAdminSeasonPills();
   renderSelectors();
   bindNav();
   bindForms();
