@@ -16,7 +16,6 @@ import '../../styles/live-flashscore.css';
           <span class="matchday-badge">TSV Feldkirchen Tennis</span>
           <h1>Live-Ticker.<br /><span>Alle Begegnungen.</span></h1>
           <p>Laufende Punktspiele, die nächsten Begegnungen und die letzten Ergebnisse – direkt aus dem Spielbetrieb.</p>
-          <p><a class="button secondary" href="/spieltag/live-ticker/" aria-label="TV-Liveticker für Bildschirm oder Livestream öffnen">TV-Liveticker öffnen ↗</a></p>
         </div>
         <div class="matchday-hero__mark" aria-hidden="true">
           <img src={mediaUrl("branding/tennis-logo.png")} alt="" width="116" height="116" />
@@ -25,6 +24,7 @@ import '../../styles/live-flashscore.css';
     </section>
 
     <div class="container matchday-dashboard">
+      <div class="tv-ticker-launch"><a class="button secondary" href="/spieltag/live-ticker/" aria-label="TV-Liveticker für Bildschirm oder Livestream öffnen">TV-Liveticker für Bildschirm &amp; Livestream öffnen ↗</a></div>
       <section id="live-center" class="matchday-panel matchday-live-center hidden" aria-live="polite"></section>
 
       <section id="today-fixtures-panel" class="matchday-panel matchday-today-panel hidden" aria-labelledby="today-fixtures-title">
@@ -48,6 +48,11 @@ import '../../styles/live-flashscore.css';
     </div>
   </div>
 </MainLayout>
+<style>
+  :global(.tv-ticker-launch){display:flex;justify-content:flex-end;margin:0 0 18px}
+  :global(.tv-ticker-launch .button){font-size:.9rem;font-weight:850}
+  @media(max-width:680px){:global(.tv-ticker-launch){justify-content:stretch;margin-bottom:12px}:global(.tv-ticker-launch .button){width:100%;text-align:center;justify-content:center}}
+</style>
 <script>
   import { loadHome } from '../../scripts/public';
   import { enhanceLiveLastUpdated } from '../../scripts/live-last-updated';
