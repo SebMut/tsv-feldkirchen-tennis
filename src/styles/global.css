@@ -2460,3 +2460,25 @@ main.main--flush{padding:0}
 #editorial-compose-feedback.is-error{background:#fff0f1;color:#aa1523}
 @media(max-width:870px){.editorial-compose__devices{grid-template-columns:minmax(0,1fr)}.editorial-compose__screen--desktop{max-width:700px}.editorial-compose__phone{margin-inline:0}}
 @media(max-width:520px){.editorial-compose__options{padding:12px}.editorial-compose__choices{padding:12px}.editorial-compose__screen--desktop{padding:3px}.editorial-compose__phone{margin-inline:auto}}
+
+/* Direktzählung im Liveticker: getrennte TSV-/Gegner-Schaltflächen je Satz. */
+.encounter-set-cell{display:grid;grid-template-rows:auto 1fr;gap:6px;min-width:0;border:1px solid #dce5df;border-radius:13px;padding:6px;background:#f7faf8}
+.encounter-set-cell .encounter-set-button{width:100%;min-height:62px;border-radius:9px;gap:3px;padding:7px 3px}
+.encounter-set-cell .encounter-set-button>strong{font-size:1.24rem}
+.encounter-set-steppers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;min-width:0}
+.encounter-set-stepper{display:grid;grid-template-rows:36px 30px 36px;justify-items:stretch;align-items:stretch;gap:3px;min-width:0}
+.encounter-set-stepper>strong{display:grid;place-items:center;color:#1d3c2a;font-size:1.22rem;font-weight:900;font-variant-numeric:tabular-nums}
+.encounter-set-stepper__control{display:grid;place-items:center;min-width:0;min-height:34px;border:1px solid #a9c9b4;border-radius:8px;background:#e8f6ec;color:#145c30;font-size:1.32rem;font-weight:900;cursor:pointer;touch-action:manipulation}
+.encounter-set-stepper__control[data-enc-delta="-1"]{background:#fff0f0;border-color:#e4babb;color:#ae2030}
+.encounter-set-stepper__control:not(:disabled):hover{filter:brightness(.94)}
+.encounter-set-stepper__control:disabled{opacity:.32;cursor:not-allowed;filter:grayscale(1)}
+.encounter-set-stepper__control:focus-visible{outline:3px solid #e30613;outline-offset:2px}
+@media(max-width:440px){
+  .encounter-set-cell{padding:4px;gap:4px}
+  .encounter-set-cell .encounter-set-button{min-height:58px;padding:6px 2px}
+  .encounter-set-cell .encounter-set-button>strong{font-size:1.1rem}
+  .encounter-set-steppers{gap:3px}
+  .encounter-set-stepper{grid-template-rows:34px 26px 34px;gap:2px}
+  .encounter-set-stepper>strong{font-size:1.05rem}
+  .encounter-set-stepper__control{min-height:32px;font-size:1.22rem}
+}
