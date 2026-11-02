@@ -12,6 +12,7 @@ const url=route=>host+(base?'/'+base:'')+route;
 const report={started:new Date().toISOString(),base:base||'/',checks:[],passed:0,failed:0,skipped:0};
 const routes=['/','/aktuelles/','/mannschaften/','/spieltag/','/termine/','/live/','/veranstaltung/','/admin/'];
 let server,browser;
+let previewLogs='';
 function outcome(name,status,reason=''){
   report.checks.push({name,status,reason:String(reason).slice(0,1800)});
   report[status]++;
@@ -26,7 +27,7 @@ async function check(name,fn,page=null,privatePage=false){
 }
 async function waitForServer(){
   for(let n=0;n<75;n++){
-    if(server.exitCode!==null)throw Error('Preview server ended unexpectedly');
+    if(server.exitCode!==null)throw Error('Preview server ended unexpectedly: '+previewLogs.slice(-1500));
     try{const r=await fetch(url('/'),{signal:AbortSignal.timeout(1000)});if(r.ok)return;}catch{}
     await new Promise(resolve=>setTimeout(resolve,350));
   }
@@ -138,8 +139,9 @@ async function roleQA(role){
 }
 try{
   await fs.mkdir(out,{recursive:true});
-  server=spawn(process.execPath,[path.resolve('node_modules/astro/astro.js'),'preview','--host','127.0.0.1','--port','4321','--strictPort'],{env:{...process.env,PREVIEW_BASE:process.env.PREVIEW_BASE||'/'},stdio:['ignore','pipe','pipe']});
-  server.stdout.on('data',()=>{});server.stderr.on('data',()=>{});
+  server=spawn(path.resolve('node_modules/.bin/astro'),['preview','--host','127.0.0.1','--port','4321','--strictPort'],{env:{...process.env,PREVIEW_BASE:process.env.PREVIEW_BASE||'/'},stdio:['ignore','pipe','pipe']});
+  server.stdout.on('data',chunk=>{previewLogs=(previewLogs+chunk.toString()).slice(-6000);});
+  server.stderr.on('data',chunk=>{previewLogs=(previewLogs+chunk.toString()).slice(-6000);});
   await waitForServer();
   browser=await chromium.launch({headless:true});
   await deviceQA({name:'desktop',viewport:{width:1440,height:900},mobile:false});
