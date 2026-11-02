@@ -92,7 +92,7 @@ test('TV finished-score recap, victory duration and super-admin values are confi
   const admin=source('src/pages/admin/index.astro');
   const controller=source('src/scripts/admin-advanced.ts');
   for(const id of ['setting-tv-poll','setting-tv-recap-every','setting-tv-recap-for','setting-tv-highlight'])assert.ok(admin.includes(id));
-  assert.match(controller,/\['tv_ticker_timing'/);
+  assert.match(controller,/key: 'tv_ticker_timing'/);
   assert.match(client,/recapIsActive\(timing, now, startedAt\)/);
   assert.match(client,/withinHighlight\(e\.finished_at, timing, now\)/);
   assert.match(client,/e\.status === \(showRecap \? 'finished' : 'live'\)/);
