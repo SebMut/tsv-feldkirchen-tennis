@@ -106,6 +106,17 @@ import MainLayout from '../../layouts/MainLayout.astro';
     syncDetailsControls(card, details);
     if (!details.open && card.id) clearDetailUrl(card.id);
   }, true);
+  // Resolve direct links as soon as their cards exist, not only after the
+  // independent News request finishes loading.
+  const openFromUrl = () => {
+    const selected = new URLSearchParams(location.search);
+    const hash = location.hash.slice(1);
+    const candidate = /^(event|news)-[0-9a-f-]{36}$/i.test(hash) ? hash
+      : selected.get('event') ? `event-${selected.get('event')}`
+      : selected.get('news') ? `news-${selected.get('news')}` : '';
+    if (candidate) expandCard(candidate, true);
+  };
+  window.addEventListener('hashchange', openFromUrl);
 
   if (section && list) {
     const { data: events } = await supabase
@@ -153,6 +164,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             </div>
           </article>`;
       }).join('');
+      openFromUrl();
 
       if (linkedNewsIds.size) {
         const { data: linkedNews } = await supabase.from('news').select('id,hero_image_path').in('id', [...linkedNewsIds]);
@@ -217,16 +229,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
     card.appendChild(body);
   });
 
-  const openFromUrl = () => {
-    const selected = new URLSearchParams(location.search);
-    const hash = location.hash.slice(1);
-    const candidate = /^(event|news)-[0-9a-f-]{36}$/i.test(hash) ? hash
-      : selected.get('event') ? `event-${selected.get('event')}`
-      : selected.get('news') ? `news-${selected.get('news')}` : '';
-    if (candidate) expandCard(candidate, true);
-  };
   openFromUrl();
-  window.addEventListener('hashchange', openFromUrl);
   // On this combined page, an empty News collection must not contradict the
   // published event cards above it. Keep retrieval errors visible.
   const newsSection = document.querySelector<HTMLElement>('.news-section');
