@@ -245,8 +245,14 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
     },page);
 
     await check('Admin ticker: compact three-set and TieBreak controls on laptop and phones',async()=>{
-      await page.goto(url('/admin/'),{waitUntil:'domcontentloaded'});
-      await page.evaluate(()=>{
+      // Separate browser contexts guarantee genuine layout viewports; the TV
+      // page above runs with a fake clock for its recurring update checks.
+      for(const width of [1366,390,320]){
+        const testContext=await browser.newContext({viewport:{width,height:900},locale:'de-DE',reducedMotion:'reduce'});
+        try{
+          const testPage=await testContext.newPage();
+          await testPage.goto(url('/admin/'),{waitUntil:'domcontentloaded'});
+      await testPage.evaluate(()=>{
         const mock=document.createElement('section');
         mock.id='compact-ticker-qa';
         mock.style.cssText='position:fixed;left:0;top:0;width:100vw;box-sizing:border-box;padding:8px;background:#fff;z-index:100000;overflow:hidden';
@@ -277,16 +283,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
           </details></div></article></div>`;
         document.body.append(mock);
       });
-      for(const width of [1366,390,320]){
-        await page.setViewportSize({width,height:900});
-        // Drive the synthetic demo width explicitly as well: the same page
-        // has a previously installed fake clock and viewport transitions
-        // may not reflow its 100vw overlay before the next JS execution.
-        await page.locator('#compact-ticker-qa').evaluate((root,w)=>{
-          root.style.width=w+'px';
-          root.style.maxWidth=w+'px';
-        },width);
-        const m=await page.locator('#compact-ticker-qa').evaluate(root=>{
+        const m=await testPage.locator('#compact-ticker-qa').evaluate(root=>{
           const rect=e=>e.getBoundingClientRect();
           const cells=[...root.querySelectorAll('.encounter-set-cell')];
           const buttons=[...root.querySelectorAll('.encounter-set-stepper__control')];
@@ -307,6 +304,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
         assert.ok(m.tbHeight<110,width+'px TieBreak too tall '+JSON.stringify(m));
         assert.ok(m.editorHeight<315,width+'px editor still too tall '+JSON.stringify(m));
         assert.ok(m.scroll<=m.width+2,width+'px editor horizontal overflow '+JSON.stringify(m));
+        }finally{await testContext.close();}
       }
     },page);
   }finally{await context.close();}
