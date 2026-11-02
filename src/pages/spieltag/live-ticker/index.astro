@@ -1,0 +1,57 @@
+---
+import '../../../styles/tv-live-ticker.css';
+import { mediaUrl } from '../../../lib/supabase';
+
+const base = import.meta.env.BASE_URL;
+const preview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
+---
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#06151c" />
+    <meta name="description" content="TSV Feldkirchen Tennis: TV-Liveticker mit Begegnungen, Gesamtergebnissen, Einzel und Doppel. Alle 30 Sekunden aktualisiert." />
+    <link rel="canonical" href="https://www.tennis-tsvfeldkirchen.de/spieltag/live-ticker/" />
+    <link rel="icon" type="image/svg+xml" href={base + 'app-icon.svg'} />
+    {preview && <meta name="robots" content="noindex,nofollow" />}
+    <title>TV-Liveticker | TSV Feldkirchen Tennis</title>
+  </head>
+  <body class="tv-ticker">
+    <div class="tv-ticker__shell">
+      <header class="tv-ticker__header">
+        <div class="tv-ticker__heading">
+          <p class="tv-ticker__eyebrow"><span class="tv-ticker__live-dot" aria-hidden="true"></span> LIVE · TSV FELDKIRCHEN TENNIS</p>
+          <h1>Jetzt live dabei</h1>
+          <p class="tv-ticker__description">Begegnungen, Gesamtergebnisse, Einzel &amp; Doppel</p>
+        </div>
+        <div class="tv-ticker__identity">
+          <img src={mediaUrl('branding/tennis-logo.png')} width="64" height="64" alt="TSV Feldkirchen Tennis" />
+          <div>
+            <strong id="tv-ticker-count">Live-Ticker</strong>
+            <span id="tv-ticker-clock" aria-label="Aktuelle Uhrzeit">–</span>
+          </div>
+        </div>
+      </header>
+      <div class="tv-ticker__utility">
+        <span id="tv-ticker-sync" class="tv-ticker__sync" role="status">Live-Daten werden geladen …</span>
+        <div class="tv-ticker__tools">
+          <span>Aktualisierung alle 30 Sekunden</span>
+          <button type="button" id="tv-ticker-fullscreen" aria-label="Vollbild ein- oder ausschalten">⛶ Vollbild</button>
+          <a href={base + 'spieltag/'}>← Spieltag</a>
+        </div>
+      </div>
+      <main id="tv-ticker-board" class="tv-ticker__grid" aria-label="Laufende Begegnungen" aria-busy="true">
+        <section class="tv-ticker__empty" role="status">Laufende Begegnungen werden geladen …</section>
+      </main>
+      <footer class="tv-ticker__footer">
+        <span>TSV Feldkirchen Tennis · Live vom Spieltag</span>
+        <span>Automatisch alle 30 Sekunden · Ohne Seiten-Reload</span>
+      </footer>
+    </div>
+    <script>
+      import { initTvLiveTicker } from '../../../scripts/tv-live-ticker';
+      initTvLiveTicker();
+    </script>
+  </body>
+</html>
