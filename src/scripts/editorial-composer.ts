@@ -10,7 +10,8 @@ const input = (id: string) => el<HTMLInputElement>('editorial-compose-' + id)!;
 const val = (id: string) => input(id).value.trim();
 const on = (id: string) => input(id).checked;
 const iso = (stamp: string) => stamp ? new Date(stamp).toISOString() : null;
-const plain = (s: string) => s.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+const plain = (s: string) => s.replace(/\*\*/g, '').replace(/^\s*[🥨🎾🍂🍻📍]+\s*/u, '').replace(/\s+/g, ' ').trim();
+const cleanTitle = (s: string) => plain(s).replace(/^[–—-]+\s*/, '').replace(/[!]+\s*$/, '').replace(/[🍂🎾🍻🥨]+\s*$/u, '').trim();
 const localTime = (stamp: string | null | undefined) => stamp ? new Intl.DateTimeFormat('sv-SE', {
   timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',
   hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
@@ -84,7 +85,7 @@ export function initEditorialComposer(access: Access) {
     for (const [field, property] of [['fees','fee_note'],['setup','setup_note'],['cleanup','cleanup_note'],['youth-note','youth_note']]) {
       input(field).value = String(details[property] || '');
     }
-    input('youth').checked = details.tournament_youth_enabled === true;
+    input('youth').checked = !!entry.event?.rsvp_enabled && details.tournament_youth_enabled !== false;
     input('women').checked = details.tournament_women_enabled === true;
     input('men').checked = details.tournament_men_enabled === true;
     input('tournaments').checked = on('youth') || on('women') || on('men');
@@ -133,7 +134,7 @@ export function initEditorialComposer(access: Access) {
     }
   };
   const card = (image: string) => {
-    const title = escapeHtml(val('title')), body = escapeHtml(val('body'));
+    const title = escapeHtml(cleanTitle(val('title'))), body = escapeHtml(val('body'));
     const media = (source: string) => '<a href="#" class="content-card__media"><img src="' + escapeHtml(source) + '" alt="" /></a>';
     if (hasEvent()) {
       return '<article class="content-card content-card--event">' + media(image || '/images/veranstaltung-ai.svg') +
@@ -180,6 +181,9 @@ export function initEditorialComposer(access: Access) {
     if (busy) return;
     try { validate(); } catch (error) { return notice(error instanceof Error ? error.message : 'Ungültiger Beitrag.', true); }
     if (publication === 'published' && previewRevision !== revision) return notice('Bitte zuerst die aktuelle Vorschau prüfen.', true);
+    if (publication === 'published' && hasEvent() && new Date(val('start')).getTime() <= Date.now()) {
+      return notice('Zum Veröffentlichen bitte einen zukünftigen Veranstaltungstermin wählen.', true);
+    }
     busy = true;
     draft.disabled = publish.disabled = previewButton.disabled = true;
     notice('Beitrag wird ' + (publication === 'published' ? 'veröffentlicht' : 'als Entwurf gespeichert') + ' …');
