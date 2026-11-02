@@ -2608,3 +2608,13 @@ main.main--flush{padding:0}
 @media(prefers-reduced-motion:reduce){
   #panel-matches .encounter-set-stepper__control{transition:none}
 }
+
+/* TV timers have their own save action; errors must stay next to the fields,
+   rather than getting lost in the global admin notification at the page top. */
+.tv-timing-settings__actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px}
+.tv-timing-settings__actions>.button{min-height:40px}
+.tv-timing-settings__actions small{max-width:470px;line-height:1.35}
+.tv-timing-settings__feedback{margin:10px 0 0;padding:10px 12px;border-radius:8px;background:#eef5f0;color:#145a31;font-size:.84rem;font-weight:650}
+.tv-timing-settings__feedback[hidden]{display:none}
+.tv-timing-settings input[aria-invalid="true"]{outline:2px solid #be1e2d;outline-offset:2px}
+@media(max-width:520px){.tv-timing-settings__actions>.button{width:100%}}
