@@ -1708,14 +1708,14 @@ async function refreshMatches() {
           status('Der Liveticker wurde nach 24 Stunden geschlossen. Bitte zuerst bewusst "Ticker neu starten" wählen.', 'error');
           return false;
         }
-        const { error } = await supabase.from('match_live_state').update({
+        const { data, error } = await supabase.from('match_live_state').update({
           status: 'live',
           started_at: live.started_at || new Date().toISOString(),
           finished_at: null,
           updated_by: state.user.id,
-        }).eq('match_id', matchId);
-        if (error) {
-          status(error.message, 'error');
+        }).eq('match_id', matchId).select('match_id,status').maybeSingle();
+        if (error || !data || data.status !== 'live') {
+          status(error?.message || 'Liveticker konnte nicht gestartet werden. Der Status wurde in Supabase nicht bestätigt. Bitte Ticker-Berechtigung prüfen.', 'error');
           return false;
         }
         return true;
