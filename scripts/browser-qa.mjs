@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
+import { runTickerBrowserRehearsal } from './ticker-browser-qa.mjs';
 
 // Read-only browser QA. Screenshots and outcomes are saved, not published.
 const out=path.resolve('artifacts/browser-qa');
@@ -146,6 +147,7 @@ try{
   browser=await chromium.launch({headless:true});
   await deviceQA({name:'desktop',viewport:{width:1440,height:900},mobile:false});
   await deviceQA({name:'mobile',viewport:{width:390,height:844},mobile:true});
+  await runTickerBrowserRehearsal({browser,url,check});
   await roleQA({code:'TICKER',name:'ticker only',visible:{matches:true,teams:false,players:false,news:false,galleries:false,users:false}});
   await roleQA({code:'NEWS',name:'news only',visible:{news:true,matches:false,teams:false,players:false,users:false}});
   await roleQA({code:'EVENTS',name:'events only',visible:{news:true,matches:false,teams:false,players:false,users:false}});

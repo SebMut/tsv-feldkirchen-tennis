@@ -70,8 +70,8 @@ async function setupContext(browser,model,matchId,format,device){
     if(api.searchParams.get('id')!=='eq.'+matchId)return route.continue();
     const response=await route.fetch();
     const data=await response.json();
-    await route.fulfill({response,body:JSON.stringify(
-      data.map(m=>({...m,lineup_format:format,btv_result_text:null})))});
+    const updated=(m)=>({...m,lineup_format:format,btv_result_text:null});
+    await route.fulfill({response,body:JSON.stringify(Array.isArray(data)?data.map(updated):updated(data))});
   });
   return context;
 }
@@ -106,7 +106,7 @@ export async function runTickerBrowserRehearsal({browser,url,check}){
         model.encounters[0]={...model.encounters[0],status:'finished',result_text:'6:3 6:4',winner:'tsv'};
         model.state={...model.state,home_score:1,updated_at:new Date().toISOString()};
         await Promise.all([left.clock.fastForward(30000),right.clock.fastForward(30000)]);
-        await Promise.all([left.locator('#live-scoreboard-never-exists').count(),right.locator('#live-scoreboard-never-exists').count()]);
+
         await Promise.all([left.waitForFunction(()=>document.querySelectorAll('.live-encounter-row.is-finished').length===1,{timeout:9000}),
           right.waitForFunction(()=>document.querySelectorAll('.live-encounter-row.is-finished').length===1,{timeout:9000})]);
         for(const page of [left,right]){
