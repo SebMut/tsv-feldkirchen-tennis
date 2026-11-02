@@ -106,11 +106,10 @@ function renderMatch(row: LiveMatch, timing: TvTiming, now: number, showRecap: b
     ? '' : '<img src="' + escapeHtml(LOGO) + '" alt="TSV Feldkirchen Tennis" />';
   const played = encounters.filter(e => e.status === 'finished').length;
   const live = encounters.filter(e => e.status === 'live').length;
-  // Recent final results stay highlighted for the configured duration;
-  // older finals are presented during the scheduled recap window only.
-  const visibleEncounters = encounters.filter(e => e.status === 'live' ||
-    (e.status === 'finished' && (showRecap || withinHighlight(e.finished_at, timing, now))));
-  const showingFinished = visibleEncounters.some(e => e.status === 'finished');
+  // Two exclusive broadcast modes: recap replaces live encounters, never mixes.
+  // The winner/loser highlight applies whenever a finished game is visible.
+  const visibleEncounters = encounters.filter(e =>
+    e.status === (showRecap ? 'finished' : 'live'));
   const updates = [state.updated_at, ...encounters.map(e => e.updated_at)].filter(Boolean);
   const latest = updates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || state.updated_at;
   const order = (a: Row, b: Row) => {
@@ -125,7 +124,8 @@ function renderMatch(row: LiveMatch, timing: TvTiming, now: number, showRecap: b
     (match.is_home ? 'Heimspiel' : 'Auswärtsspiel') +
     (match.venue_name ? ' · ' + escapeHtml(String(match.venue_name)) : '') +
     '</p><p class="tv-ticker__changed">' + escapeHtml(changedAgo(latest)) +
-    '</p></div><span class="tv-ticker__running"><span aria-hidden="true">●</span> LIVE</span></div>' +
+    '</p></div><span class="tv-ticker__running"><span aria-hidden="true">●</span> ' +
+    (showRecap ? 'RÜCKBLICK' : 'LIVE') + '</span></div>' +
     '<div class="tv-ticker__score" aria-label="Gesamtergebnis Heim ' +
     Number(state.home_score ?? 0) + ', Gast ' + Number(state.away_score ?? 0) +
     '"><div class="tv-ticker__score-names"><div>' + homeLogo +
@@ -135,15 +135,12 @@ function renderMatch(row: LiveMatch, timing: TvTiming, now: number, showRecap: b
     Number(state.home_score ?? 0) + '</strong><strong>' + Number(state.away_score ?? 0) +
     '</strong></div></div>' +
     '<div class="tv-ticker__games-head"><strong>' +
-    (showRecap && showingFinished ? 'Rückblick · Beendete Spiele' : 'Aktuell auf dem Platz') +
+    (showRecap ? 'Beendete Partien' : 'Aktuell auf dem Platz') +
     '</strong><span>' + played + '/' + encounters.length + ' beendet · ' + live +
     ' live</span></div>' +
     '<div class="tv-ticker__games">' +
-    (visibleEncounters.length ? [...visibleEncounters].sort(order)
-       .map(e => renderEncounter(match, e, timing, now)).join('')
-      : '<p class="tv-ticker__no-games">' +
-        (played ? 'Beendete Spiele erscheinen im nächsten Rückblick.' : 'Noch kein Einzel oder Doppel live geschaltet.') +
-        '</p>') +
+    [...visibleEncounters].sort(order)
+       .map(e => renderEncounter(match, e, timing, now)).join('') +
     '</div><a class="tv-ticker__detail" href="' + escapeHtml(url) +
     '">Spieldetails &amp; alle Sätze ansehen ↗</a></article>';
 }
@@ -198,6 +195,8 @@ export function initTvLiveTicker() {
   const clock = document.querySelector<HTMLElement>('#tv-ticker-clock');
   const countdown = document.querySelector<HTMLElement>('#tv-ticker-countdown');
   const recapNotice = document.querySelector<HTMLElement>('#tv-ticker-recap');
+  const viewTitle = document.querySelector<HTMLElement>('#tv-ticker-view-title');
+  const viewLabel = document.querySelector<HTMLElement>('#tv-ticker-view-label');
   const fullscreen = document.querySelector<HTMLButtonElement>('#tv-ticker-fullscreen');
   if (!board || !count || !sync || !clock) return;
   let inFlight = false;
@@ -225,21 +224,37 @@ export function initTvLiveTicker() {
     const finished = currentMatches.flatMap(m => m.encounters)
       .filter(e => e.status === 'finished');
     const showRecap = recapIsActive(timing, now, startedAt) && finished.length > 0;
-    const highlightedIds = finished
+    const highlightedIds = showRecap ? finished
       .filter(e => withinHighlight(e.finished_at, timing, now))
-      .map(e => e.match_id + ':' + e.discipline + ':' + e.position).join('|');
+      .map(e => e.match_id + ':' + e.discipline + ':' + e.position).join('|') : '';
     const signature = String(showRecap) + ':' + highlightedIds;
     if (!force && signature === viewSignature) return;
     viewSignature = signature;
-    board!.classList.toggle('tv-ticker__grid--single', currentMatches.length === 1);
-    board!.classList.toggle('tv-ticker__grid--pair', currentMatches.length === 2);
-    board!.innerHTML = currentMatches.length
-      ? currentMatches.map(m => renderMatch(m, timing, now, showRecap)).join('')
-      : '<section class="tv-ticker__empty" role="status"><div class="tv-ticker__empty-mark" aria-hidden="true">🎾</div><h2>Aktuell läuft keine Begegnung</h2><p>Die Anzeige startet automatisch, sobald ein Spiel live geschaltet wird.</p></section>';
+    const status = showRecap ? 'finished' : 'live';
+    const visibleMatches = currentMatches.filter(m =>
+      m.encounters.some(e => e.status === status));
+    board!.dataset.viewMode = showRecap ? 'finished' : 'live';
+    board!.setAttribute('aria-label', showRecap ? 'Beendete Partien' : 'Laufende Partien');
+    board!.classList.toggle('tv-ticker__grid--single', visibleMatches.length === 1);
+    board!.classList.toggle('tv-ticker__grid--pair', visibleMatches.length === 2);
+    board!.innerHTML = visibleMatches.length
+      ? visibleMatches.map(m => renderMatch(m, timing, now, showRecap)).join('')
+      : '<section class="tv-ticker__empty" role="status"><div class="tv-ticker__empty-mark" aria-hidden="true">🎾</div><h2>' +
+        (showRecap ? 'Noch keine beendeten Partien' : 'Aktuell läuft keine Partie') +
+        '</h2><p>' +
+        (showRecap ? 'Sobald ein Spiel beendet ist, erscheint es im Rückblick.' :
+          'Live-Spiele erscheinen hier automatisch, sobald sie gestartet sind.') +
+        '</p></section>';
+    if (viewTitle) viewTitle.textContent = showRecap ? 'Beendete Partien' : 'Jetzt live dabei';
+    if (viewLabel) viewLabel.textContent = showRecap
+      ? 'RÜCKBLICK · TSV FELDKIRCHEN TENNIS' : 'LIVE · TSV FELDKIRCHEN TENNIS';
+    document.body.classList.toggle('tv-ticker--recap', showRecap);
     if (recapNotice) recapNotice.textContent = showRecap
-      ? 'Rückblick: beendete Spiele für ' + timing.recap_duration_seconds + ' Sekunden'
-      : 'Nur laufende Spiele · Rückblick alle ' + timing.recap_every_seconds + ' Sekunden';
-    count!.textContent = currentMatches.length === 1 ? '1 Begegnung live' : currentMatches.length + ' Begegnungen live';
+      ? 'Nur beendete Partien · Rückblick für ' + timing.recap_duration_seconds + ' Sekunden'
+      : 'Nur laufende Partien · Rückblick alle ' + timing.recap_every_seconds + ' Sekunden';
+    count!.textContent = showRecap
+      ? (visibleMatches.length === 1 ? '1 Begegnung im Rückblick' : visibleMatches.length + ' Begegnungen im Rückblick')
+      : (visibleMatches.length === 1 ? '1 Begegnung live' : visibleMatches.length + ' Begegnungen live');
   };
   const refresh = async () => {
     if (inFlight) return;
