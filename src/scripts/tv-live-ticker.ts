@@ -54,7 +54,8 @@ function renderEncounter(match: Row, encounter: Row) {
   };
   const round = oriented && result?.hasResult
     ? '<div class="tv-ticker__set tv-ticker__set--total"><small>S</small><span>' +
-      oriented.homeSets + '</span><span>' + oriented.awaySets + '</span></div>' : '';
+      oriented.homeSets + '</span><span>' + oriented.awaySets + '</span></div>'
+    : '<div class="tv-ticker__set tv-ticker__set--total"><small>S</small><span>–</span><span>–</span></div>';
   const resultText = visible && !result?.hasResult && encounter.result_text
     ? '<p class="tv-ticker__result-note">' + escapeHtml(encounter.result_text) + '</p>' : '';
   return '<article class="tv-ticker__game' +
@@ -73,7 +74,7 @@ function renderEncounter(match: Row, encounter: Row) {
 
 function renderMatch(row: LiveMatch) {
   const { match, state, teamName, encounters } = row;
-  const club = 'TSV Feldkirchen ' + teamName;
+  const club = teamName.toLowerCase().startsWith('tsv feldkirchen') ? teamName : 'TSV Feldkirchen ' + teamName;
   const home = match.is_home ? club : String(match.opponent || 'Gegner');
   const away = match.is_home ? String(match.opponent || 'Gegner') : club;
   const homeLogo = match.is_home
