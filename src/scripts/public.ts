@@ -2,6 +2,7 @@ import { calendarFeedUrl, mediaUrl, supabase } from '../lib/supabase';
 import { escapeHtml, formatDateTime } from '../lib/ui';
 import { officialBtvTeamDestination } from '../lib/btv-group-url';
 import { summarizeSetResult, homeAwaySetScore } from '../lib/tennis-score.mjs';
+import { regularSetDisplayHtml } from '../lib/regular-tiebreak.mjs';
 
 type Row = Record<string, any>;
 
@@ -13,22 +14,20 @@ function publicEncounterSetResult(match: Row, encounter: Row) {
     return `<span>Ergebnis</span><strong>${escapeHtml(encounter.result_text || '–')}</strong>`;
   }
   const { homeSets, awaySets } = homeAwaySetScore(result, !!match.is_home);
-  const scores = result.scores.filter(Boolean).map((value) => {
-    if (match.is_home) return value;
-    const [tsv, opponent] = value.split(':');
-    return `${opponent}:${tsv}`;
-  });
+  const scores = result.scores.map((value, index) =>
+    value ? regularSetDisplayHtml(value, index, encounter.tiebreak_points, !!match.is_home) : ''
+  ).filter(Boolean);
   const currentIndex = result.inProgressSetIndex;
   const currentRaw = currentIndex == null ? null : result.scores[currentIndex];
-  const currentScore = currentRaw && !match.is_home
-    ? currentRaw.split(':').reverse().join(':') : currentRaw;
+  const currentScore = currentRaw && currentIndex != null
+    ? regularSetDisplayHtml(currentRaw, currentIndex, encounter.tiebreak_points, !!match.is_home) : '';
   const final = encounter.status === 'finished' && result.complete;
   const winnerName = result.winner === 'tsv' ? 'TSV Feldkirchen' : match.opponent;
   return `
     <span>${final ? 'Endstand' : 'Zwischenstand'} · Heim : Gast</span>
     <strong>${homeSets} : ${awaySets}</strong>
-    <small class="live-set-scores">Sätze: ${escapeHtml(scores.join(' · '))}</small>
-    ${currentScore ? `<small class="live-set-in-progress">Aktuell im ${currentIndex! + 1}. Satz: ${escapeHtml(currentScore)}</small>` : ''}
+    <small class="live-set-scores">Sätze: ${scores.join(' · ')}</small>
+    ${currentScore ? `<small class="live-set-in-progress">Aktuell im ${currentIndex! + 1}. Satz: ${currentScore}</small>` : ''}
     ${final ? `<small class="live-set-winner">${escapeHtml(winnerName)} gewinnt</small>` : ''}
   `;
 }
@@ -50,15 +49,13 @@ function renderLiveEncounterPreview(match: Row, encounter: Row): string {
     || (encounter.discipline === 'singles' ? `Gegner ${encounter.position}` : 'Doppelgegner noch offen');
   const homePlayers = match.is_home ? tsvNames : opponentNames;
   const guestPlayers = match.is_home ? opponentNames : tsvNames;
-  const sets = summary.scores.filter(Boolean).map((score: string) => {
-    if (match.is_home) return score;
-    const [tsv, opponent] = score.split(':');
-    return `${opponent}:${tsv}`;
-  });
+  const sets = summary.scores.map((score: string, index: number) =>
+    score ? regularSetDisplayHtml(score, index, encounter.tiebreak_points, !!match.is_home) : ''
+  ).filter(Boolean);
   const currentIndex = summary.inProgressSetIndex;
   const currentSet = currentIndex == null ? null : summary.scores[currentIndex];
-  const currentScore = currentSet && !match.is_home
-    ? currentSet.split(':').reverse().join(':') : currentSet;
+  const currentScore = currentSet && currentIndex != null
+    ? regularSetDisplayHtml(currentSet, currentIndex, encounter.tiebreak_points, !!match.is_home) : '';
   const encounterType = encounter.discipline === 'singles' ? 'Einzel' : 'Doppel';
   const encounterNumber = Number(encounter.position) || 1;
   return `
@@ -78,8 +75,8 @@ function renderLiveEncounterPreview(match: Row, encounter: Row): string {
           : 'Noch kein Satz eingetragen'}">
           <small>${summary.hasResult ? 'Satzstand' : 'Läuft gerade'}</small>
           <strong>${summary.hasResult ? `${oriented.homeSets} : ${oriented.awaySets}` : '– : –'}</strong>
-          <span>${sets.length ? escapeHtml(sets.join(' · ')) : 'Noch kein Satz eingetragen'}</span>
-          ${currentScore ? `<small class="ticker-running-encounter__current">Aktuell Satz ${currentIndex! + 1}: ${escapeHtml(currentScore)}</small>` : ''}
+          <span>${sets.length ? sets.join(' · ') : 'Noch kein Satz eingetragen'}</span>
+          ${currentScore ? `<small class="ticker-running-encounter__current">Aktuell Satz ${currentIndex! + 1}: ${currentScore}</small>` : ''}
         </div>
         <div class="ticker-running-encounter__player ticker-running-encounter__player--guest">
           <small>Gast</small>
