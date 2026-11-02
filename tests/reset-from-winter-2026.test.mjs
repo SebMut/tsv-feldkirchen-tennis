@@ -31,6 +31,10 @@ test('public and admin selection now starts at Winter 2026/27',()=>{
  assert.match(admin,/let teamSeasonFilterCode = 'winter-2026-2027'/);
  assert.match(admin,/let rosterSeasonFilterCode = 'winter-2026-2027'/);
  assert.doesNotMatch(publicJs,/seasonByCode.get\('sommer-2026'\)/);
+ assert.match(admin,/function syncAdminSeasonPills\(\)/);
+ assert.match(admin,/syncAdminSeasonPills\(\);/);
+ assert.match(admin,/button\.textContent = season\.name/);
+ assert.match(admin,/season\.code !== 'sommer-2026'/);
  assert.match(publicJs,/const publishedSeasons = reference.seasons.filter/);
  assert.match(home,/data-season="sommer-2027"/);
 });
