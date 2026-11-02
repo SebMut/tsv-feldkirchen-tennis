@@ -27,5 +27,5 @@ test('Spieltag modal uses full-width aligned separators and identical grid rows'
   assert.match(modalCss, /\.ticker-running-encounter__result>strong,\s*\.live-match-modal__body \.ticker-running-encounter__set\{/);
   assert.match(browser, /Spieltag live modal: all name separators align with scores and tiebreaks/);
   assert.match(browser, /for\(const width of \[1366,390,320\]\)/);
-  assert.match(browser, /\.ticker-set-tiebreak/);
+  assert.match(browser, /ticker-set-tiebreak/);
 });
