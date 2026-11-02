@@ -4,12 +4,12 @@ import MainLayout from '../../layouts/MainLayout.astro';
 <MainLayout title="Aktuelles | TSV Feldkirchen Tennis" description="News, Veranstaltungen und Spielberichte der Tennisabteilung TSV Feldkirchen.">
   <div class="container stack aktuelles-page">
     <div class="page-head aktuelles-page__head"><div><p class="eyebrow">Aktuelles</p><h1>Neuigkeiten & Veranstaltungen</h1><p class="muted">Alles Wichtige rund um die Tennisabteilung auf einen Blick.</p></div></div>
-    <section id="event-news" class="event-news" aria-labelledby="event-news-title" hidden>
+    <section id="event-news" class="event-news" aria-labelledby="event-news-title" aria-busy="true">
       <div class="event-news__head">
         <div><p class="eyebrow">Termine</p><h2 id="event-news-title">Demnächst bei uns</h2></div>
         <a href="/termine/" class="button ghost">Alle Termine →</a>
       </div>
-      <div id="event-news-list" class="content-card-grid"></div>
+      <div id="event-news-list" class="content-card-grid"><p class="muted">Veranstaltungen werden geladen …</p></div>
     </section>
     <section class="news-section" aria-label="Weitere Neuigkeiten">
       <div id="news-list" class="content-card-grid"><p class="muted">Aktuelle Beiträge werden ermittelt …</p></div>
@@ -137,9 +137,9 @@ import MainLayout from '../../layouts/MainLayout.astro';
       if (match) linkedNewsIds.add(match[1]);
     });
 
+    section.setAttribute('aria-busy','false');
     if (rows.length) {
-      section.hidden = false;
-      list.innerHTML = rows.map((event: any) => {
+      list.innerHTML = rows.map((event: any, index: number) => {
         const href = `#event-${event.id}`;
         const signupHref = event.rsvp_enabled && event.slug ? `/veranstaltung/?slug=${encodeURIComponent(event.slug)}` : null;
         const description = plainText(event.excerpt || event.description) || 'Weitere Informationen zur Veranstaltung folgen.';
@@ -149,7 +149,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
         return `
           <article id="event-${escapeHtml(event.id)}" class="content-card content-card--event">
             <a class="content-card__media${event.hero_image_path ? ' content-card__media--poster' : ''}" href="${href}" data-open-detail aria-label="${escapeHtml(cleanTitle(event.title))} vollständig lesen">
-              <img data-event-news-id="${escapeHtml(linkedNewsId || '')}" data-event-has-image="${event.hero_image_path ? 'true' : 'false'}" src="${escapeHtml(eventImage)}" alt="${escapeHtml(cleanTitle(event.title))}" loading="lazy" />
+              <img data-event-news-id="${escapeHtml(linkedNewsId || '')}" data-event-has-image="${event.hero_image_path ? 'true' : 'false'}" src="${escapeHtml(eventImage)}" alt="${escapeHtml(cleanTitle(event.title))}" width="1773" height="885" loading="${index === 0 ? 'eager' : 'lazy'}" fetchpriority="${index === 0 ? 'high' : 'auto'}" decoding="async" />
             </a>
             <div class="content-card__body">
               <div class="content-card__meta"><span class="content-card__badge">Veranstaltung</span><time>${event.all_day ? 'Ganztägig · ' : ''}${escapeHtml(formatDateTime(event.starts_at))}</time></div>
@@ -174,6 +174,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
           if (image && image.dataset.eventHasImage !== 'true') image.src = mediaUrl(article.hero_image_path);
         });
       }
+    } else {
+      section.hidden = true;
     }
   }
 
@@ -245,6 +247,9 @@ import MainLayout from '../../layouts/MainLayout.astro';
 </script>
 <style>
   .aktuelles-page{padding-bottom:calc(130px + env(safe-area-inset-bottom));gap:34px}
+  #event-news[aria-busy="true"] #event-news-list{min-height:300px;align-content:start}
+  #news-list:has(> p.muted:only-child){min-height:240px;align-content:start}
+  .aktuelles-page{min-height:calc(100dvh + 100px)}
   .aktuelles-page__head{padding-bottom:4px}
   .aktuelles-page__head h1{max-width:760px;color:#193c2c}
   .event-news,.news-section{margin:0}
