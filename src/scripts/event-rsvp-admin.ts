@@ -108,8 +108,12 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     const { data, error } = await supabase.from('events').select('*').order('starts_at', { ascending: false }).limit(250);
     if (error) { message('Veranstaltungen konnten nicht geladen werden: ' + error.message, true); return; }
     events = data ?? []; const relevant = events.filter(e => !String(e.external_url || '').startsWith('news:'));
-    select.innerHTML = '<option value="">Neue Veranstaltung</option>' + relevant.map(e => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.title)} · ${escapeHtml(formatDateTime(e.starts_at))} (${escapeHtml(e.status)})</option>`).join('');
-    if (preferredId && relevant.some(e => e.id === preferredId)) select.value = preferredId; fill();
+    // Linked events appear only in the RSVP/PDF selector, never as duplicate standalone public cards.
+    const linkedRsvps = events.filter(e => String(e.external_url || '').startsWith('news:') && e.rsvp_enabled);
+    const option = (e: Row) => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.title)} · ${escapeHtml(formatDateTime(e.starts_at))} (${escapeHtml(e.status)})</option>`;
+    select.innerHTML = '<option value="">Neue Veranstaltung</option>' + relevant.map(option).join('')
+      + (linkedRsvps.length ? '<optgroup label="Mit Beiträgen verknüpfte Anmeldungen / PDF">' + linkedRsvps.map(option).join('') + '</optgroup>' : '');
+    if (preferredId && [...relevant, ...linkedRsvps].some(e => e.id === preferredId)) select.value = preferredId; fill();
   };
 
   pdfButton?.addEventListener('click', () => { const event = events.find(row => row.id === selectedId); if(!event){message('Bitte zuerst eine Veranstaltung auswählen.',true);return} if(pdfButton.disabled) return; try { downloadRsvpPdf({title:String(event.title),slug:String(event.slug),starts_at:String(event.starts_at),rsvp_details:event.rsvp_details||{}},verifiedResponses); message('PDF mit den bestätigten Rückmeldungen wurde erstellt.'); } catch (error) { message('PDF konnte nicht erstellt werden: '+(error instanceof Error ? error.message : 'Unbekannter Fehler'),true); } });
@@ -154,10 +158,12 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
         }
       }
       await refresh(data.id);
+      window.dispatchEvent(new CustomEvent('tsv:editorial-content-changed'));
       message(file ? 'Veranstaltung und neues Bild gespeichert. Unter „Aktuelles“ wird die neue Datei verwendet.'
         : status === 'published' ? 'Veranstaltung veröffentlicht.' : 'Veranstaltung als Entwurf gespeichert.');
     } catch (error) { message('Speichern fehlgeschlagen: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'), true); }
     finally { button.disabled = false; button.textContent = 'Veranstaltung speichern'; }
   });
+  window.addEventListener('tsv:editorial-content-changed', () => void refresh(selectedId));
   reset(); void refresh();
 }
