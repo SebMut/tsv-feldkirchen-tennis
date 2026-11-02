@@ -62,10 +62,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
         const href = event.rsvp_enabled && event.slug ? `/veranstaltung/?slug=${encodeURIComponent(event.slug)}` : '/termine/';
         const description = plainText(event.description) || 'Alle Informationen zur Veranstaltung findest du im Kalender.';
         const linkedNewsId = typeof event.slug === 'string' ? /^news-([0-9a-f-]{36})$/i.exec(event.slug)?.[1] : undefined;
+        const eventImage = event.hero_image_path ? mediaUrl(event.hero_image_path) : '/images/veranstaltung-ai.svg';
         return `
           <article class="content-card content-card--event">
             <a class="content-card__media" href="${href}" aria-label="${escapeHtml(cleanTitle(event.title))} öffnen">
-              <img data-event-news-id="${escapeHtml(linkedNewsId || '')}" src="/images/veranstaltung-ai.svg" alt="${escapeHtml(cleanTitle(event.title))}" loading="lazy" />
+              <img data-event-news-id="${escapeHtml(linkedNewsId || '')}" data-event-has-image="${event.hero_image_path ? 'true' : 'false'}" src="${escapeHtml(eventImage)}" alt="${escapeHtml(cleanTitle(event.title))}" loading="lazy" />
             </a>
             <div class="content-card__body">
               <div class="content-card__meta"><span class="content-card__badge">Veranstaltung</span><time>${event.all_day ? 'Ganztägig · ' : ''}${escapeHtml(formatDateTime(event.starts_at))}</time></div>
@@ -81,7 +82,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
         (linkedNews ?? []).forEach((article: any) => {
           if (!article.hero_image_path) return;
           const image = list.querySelector<HTMLImageElement>(`img[data-event-news-id="${article.id}"]`);
-          if (image) image.src = mediaUrl(article.hero_image_path);
+          if (image && image.dataset.eventHasImage !== 'true') image.src = mediaUrl(article.hero_image_path);
         });
       }
     }
