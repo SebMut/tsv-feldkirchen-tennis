@@ -16,3 +16,6 @@ allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/avif"]
 
 [functions.event-rsvp-email]
 verify_jwt = false # Public visitor endpoint; Turnstile and one-time email token checked in function.
+
+[functions.ticker-timeout-email]
+verify_jwt = false
