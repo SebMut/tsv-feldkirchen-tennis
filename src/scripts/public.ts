@@ -545,11 +545,11 @@ export async function loadHome() {
         ...upcomingClubEvents.map(item => ({
           title: item.title, image: item.hero_image_path, when: item.starts_at,
           label: 'Veranstaltung',
-          href: item.rsvp_enabled && item.slug ? `/veranstaltung/?slug=${encodeURIComponent(item.slug)}` : '/termine/',
+          href: `/aktuelles/?event=${encodeURIComponent(item.id)}#event-${encodeURIComponent(item.id)}`,
         })),
         ...announcedNews.map(item => ({
           title: item.title, image: item.hero_image_path, when: item.published_at,
-          label: 'News', href: '/aktuelles/',
+          label: 'News', href: `/aktuelles/?news=${encodeURIComponent(item.id)}#news-${encodeURIComponent(item.id)}`,
         })),
       ].slice(0, 3);
       newsTarget.innerHTML = homeItems.length ? homeItems.map(item => `
@@ -1633,7 +1633,7 @@ export async function loadNews() {
   if (!target) return;
   const { data, error } = await supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false });
   target.innerHTML = data?.length ? data.map((item: Row) => `
-    <article class="card ${item.slug?.startsWith('btv-spielverlegung-') ? 'news-card--reschedule' : ''}">
+    <article id="news-${escapeHtml(item.id)}" class="card ${item.slug?.startsWith('btv-spielverlegung-') ? 'news-card--reschedule' : ''}">
       ${item.hero_image_path ? `<img src="${escapeHtml(mediaUrl(item.hero_image_path))}" alt="" loading="lazy" style="border-radius:14px;aspect-ratio:16/9;object-fit:cover;margin-bottom:16px">` : ''}
       ${item.slug?.startsWith('btv-spielverlegung-') ? '<p class="news-reschedule-label">BTV · Spielverlegung</p>' : ''}
       <p class="eyebrow">${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : 'Aktuelles'}</p>
