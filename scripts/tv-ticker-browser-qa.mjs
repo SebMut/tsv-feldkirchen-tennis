@@ -279,13 +279,20 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       });
       for(const width of [1366,390,320]){
         await page.setViewportSize({width,height:900});
+        // Drive the synthetic demo width explicitly as well: the same page
+        // has a previously installed fake clock and viewport transitions
+        // may not reflow its 100vw overlay before the next JS execution.
+        await page.locator('#compact-ticker-qa').evaluate((root,w)=>{
+          root.style.width=w+'px';
+          root.style.maxWidth=w+'px';
+        },width);
         const m=await page.locator('#compact-ticker-qa').evaluate(root=>{
           const rect=e=>e.getBoundingClientRect();
           const cells=[...root.querySelectorAll('.encounter-set-cell')];
           const buttons=[...root.querySelectorAll('.encounter-set-stepper__control')];
           const tb=root.querySelector('.encounter-regular-tiebreak');
           const editor=root.querySelector('.encounter-set-editor');
-          return {width:root.clientWidth,scroll:root.scrollWidth,
+          return {width:root.clientWidth,scroll:root.scrollWidth,viewport:innerWidth,
             cellHeights:cells.map(x=>rect(x).height),headerHeights:cells.map(x=>rect(x.querySelector('.encounter-set-button')).height),
             buttons:buttons.map(x=>({height:rect(x).height,left:rect(x).left,right:rect(x).right})),
             tbHeight:rect(tb).height,editorHeight:rect(editor).height,
