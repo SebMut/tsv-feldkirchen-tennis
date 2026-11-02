@@ -2660,3 +2660,45 @@ main.main--flush{padding:0}
   .permission-matrix th,.permission-matrix td{padding:8px 5px}
   .user-admin-card .actions>.button{min-height:44px;white-space:normal}
 }
+
+
+/* Unified responsive UI tokens across public pages and administration.
+   Keep deliberate hero, poster, logo and broadcast-specific styles intact. */
+:root{
+  --ui-space-xs:6px;--ui-space-sm:10px;--ui-space-md:16px;--ui-space-lg:24px;
+  --ui-card-radius:14px;--ui-control-radius:9px;--ui-focus:#bd1026;
+}
+:where(.card,.team-card,.content-card,.gallery-item,.user-admin-card){min-width:0}
+:where(.team-card,.content-card,.user-admin-card){border-radius:var(--ui-card-radius)}
+:where(.team-card,.content-card) :is(h2,h3){line-height:1.22;overflow-wrap:anywhere}
+:where(.team-card,.content-card) :is(p,.muted){line-height:1.5}
+:where(.team-card,.content-card) img{max-width:100%}
+:where(.team-card__image-link img,.home-news-item__image,.gallery-item img){object-position:center;object-fit:cover}
+:where(.content-card__media:not(.content-card__media--poster)) img{object-fit:cover;object-position:center}
+:where(.button,.admin-nav button,.field input,.field select,.field textarea){border-radius:var(--ui-control-radius)}
+:where(a,button,summary,input,select,textarea,[role="button"]):focus-visible{
+  outline:3px solid var(--ui-focus);outline-offset:3px;
+}
+:where(.field input,.field select,.field textarea){min-width:0}
+:where(.admin-panel,.admin-shell,.table-wrap,.form-grid,.grid,.team-grid){min-width:0}
+:where(dialog[open]){max-width:calc(100vw - 20px);max-height:calc(100dvh - 24px);overflow:auto}
+:where(dialog)::backdrop{background:rgb(6 19 16 / .68)}
+@media(max-width:600px){
+  :where(.card,.user-admin-card){padding:clamp(11px,3.5vw,18px)}
+  :where(.form-grid,.grid,.team-grid){gap:12px}
+  :where(.actions){gap:8px}
+  :where(.actions>.button,.user-permission-audit>.button){min-height:44px}
+  :where(.page-head){gap:12px;margin-bottom:18px}
+  :where(.page-head h1){font-size:clamp(1.7rem,8vw,2.5rem);line-height:1.07}
+}
+@media(max-width:360px){
+  .container{width:calc(100% - 18px)}
+  :where(.card,.user-admin-card){padding:10px}
+  :where(.button){max-width:100%;padding-inline:10px;white-space:normal}
+  :where(.admin-panel,.admin-shell,.table-wrap){max-width:100%}
+  :where(dialog[open]){width:calc(100vw - 12px);max-width:calc(100vw - 12px);max-height:calc(100dvh - 12px)}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  :where(.team-card__image-link img){transition:none}
+}
