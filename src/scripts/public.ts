@@ -431,8 +431,7 @@ export async function loadHome() {
       : { data: [], error: null };
     const scoreRows = [...(scoreResult.data ?? []), ...liveStates];
     if (liveCenter) {
-      liveCenter.classList.remove('is-loading');
-      liveCenter.removeAttribute('aria-busy');
+      // Hold the loading state until all dependent fixture cards have settled.
       if (liveMatches.length) {
         const running = await supabase.from('match_encounters')
           .select('match_id,discipline,position,status,sort_order,tsv_player_1_name,tsv_player_2_name,opponent_slot_1,opponent_slot_2,result_text,tiebreak_points')
@@ -533,6 +532,11 @@ export async function loadHome() {
       ? '<p class="muted">Ergebnisse momentan nicht abrufbar.</p>'
       : finishedPast.length ? finishedPast.map(m => matchRow(m, reference, scoreRows)).join('')
       : '<p class="muted">Noch keine bestätigten Spielergebnisse vorhanden.</p>';
+    // Reveal the complete live/today/upcoming/recent state in one layout update.
+    if (liveCenter?.classList.contains('is-loading')) {
+      liveCenter.classList.remove('is-loading');
+      liveCenter.removeAttribute('aria-busy');
+    }
     if (newsTarget) {
       const upcomingClubEvents = (homeEventsResult.data ?? []).filter(item =>
         new Date(item.starts_at).getTime() >= now.getTime() - 86400000);
