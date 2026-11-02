@@ -31,6 +31,13 @@ export function adjustRegularTiebreak(points, side, change) {
   }
   const existing = regularTiebreakScore(points ?? [0,0]);
   if (!existing) return { valid: false, complete: false, points, message: 'Tiebreak-Zähler ist ungültig.' };
+  // Once a tie-break has ended, only undoing the winner's last point may
+  // reopen it. A fresh + click cannot extend an already finished tie-break.
+  if (validateRegularTiebreak(existing).complete &&
+      (change !== -1 || (side === 'tsv' ? 0 : 1) !== (existing[0] > existing[1] ? 0 : 1))) {
+    return { valid: false, complete: true, points: existing,
+      message: 'Tiebreak beendet. Den letzten Siegerpunkt mit − korrigieren.' };
+  }
   const next = [...existing];
   next[side === 'tsv' ? 0 : 1] += change;
   const test = validateRegularTiebreak(next);
@@ -49,4 +56,36 @@ export function regularTiebreakLabel(points, setIndex, isHome = true) {
   const entry = readRegularTiebreak(points, setIndex);
   if (!entry) return '';
   return isHome ? entry.join(':') : entry.slice().reverse().join(':');
+}
+
+/** Numbers and HTML superscripts follow the familiar tennis score notation:
+ * in a finished 7:6 set, only the loser's tie-break points are superscripted;
+ * while at 6:6, both running point scores are shown.
+ * All values are validated integers (never untrusted HTML).
+ */
+export function regularSetDisplayValues(score, setIndex, points, isHome = true) {
+  const games = /^([0-9]{1,2}):([0-9]{1,2})$/.exec(String(score || ''));
+  if (!games) return null;
+  const [tsvGames, rivalGames] = [Number(games[1]), Number(games[2])];
+  const tie = readRegularTiebreak(points, setIndex);
+  let smallTsv = null, smallRival = null;
+  if (tie && (tsvGames === 6 && rivalGames === 6)) {
+    [smallTsv, smallRival] = tie;
+  } else if (tie && (tsvGames === 7 && rivalGames === 6 || tsvGames === 6 && rivalGames === 7)
+    && validateRegularTiebreak(tie).complete) {
+    if (tsvGames === 6) smallTsv = tie[0];
+    else smallRival = tie[1];
+  }
+  return isHome
+    ? { first:tsvGames, second:rivalGames, smallFirst:smallTsv, smallSecond:smallRival }
+    : { first:rivalGames, second:tsvGames, smallFirst:smallRival, smallSecond:smallTsv };
+}
+
+export function regularSetDisplayHtml(score, setIndex, points, isHome = true) {
+  const values = regularSetDisplayValues(score, setIndex, points, isHome);
+  if (!values) return '';
+  const value = (games, small) => String(games) +
+    (small === null ? '' : '<sup class="ticker-set-tiebreak" aria-label="Tiebreak-Punkte ' + small + '">' + small + '</sup>');
+  return '<span class="ticker-set-score">' + value(values.first, values.smallFirst) +
+    ' : ' + value(values.second, values.smallSecond) + '</span>';
 }
