@@ -42,6 +42,7 @@ export function initEditorialComposer(access: Access) {
     el<HTMLElement>('editorial-compose-event-fields')!.hidden = !hasEvent();
     el<HTMLElement>('editorial-compose-rsvp-fields')!.hidden = !(hasEvent() && on('rsvp'));
     el<HTMLElement>('editorial-compose-tournament-fields')!.hidden = !(hasEvent() && on('rsvp') && on('tournaments'));
+    input('team').disabled = !!editing?.news?.match_id || !!editing?.news?.related_event_id;
     const teamField = input('team').closest<HTMLElement>('.field');
     if (teamField) teamField.hidden = !access.canNews || editing?.kind === 'event';
   };
@@ -186,7 +187,7 @@ export function initEditorialComposer(access: Access) {
       const eventActive = !!hasEvent();
       const oldNews = editing?.news, oldEvent = editing?.event;
       let newsId: string | null = oldNews?.id || null, eventId: string | null = oldEvent?.id || null;
-      const teamId = access.canNews && editing?.kind !== 'event' ? val('team') || null : null;
+      const teamId = editing?.kind === 'event' ? (oldEvent?.team_id || null) : (access.canNews ? val('team') || null : null);
       // First stage news and event as drafts. Publish only after both and the image succeed.
       if (access.canNews && editing?.kind !== 'event') {
         const patch = { title: val('title'), body: val('body'), excerpt: val('excerpt') || null,
@@ -196,6 +197,7 @@ export function initEditorialComposer(access: Access) {
           : await supabase.from('news').insert({ ...patch, slug: 'beitrag-' + crypto.randomUUID(), author_id: access.user.id }).select('id').single();
         if (result.error || !result.data) throw Error('News konnte nicht gespeichert werden: ' + (result.error?.message || 'Keine Berechtigung'));
         newsId = result.data.id;
+        if (!editing) editing = { kind: 'news', news: { id: newsId } };
       }
       if (eventActive) {
         const details = { ...(oldEvent?.rsvp_details || {}),
@@ -213,6 +215,8 @@ export function initEditorialComposer(access: Access) {
               external_url: newsId ? 'news:' + newsId : null, created_by: access.user.id }).select('id').single();
         if (result.error || !result.data) throw Error('Veranstaltung konnte nicht gespeichert werden: ' + (result.error?.message || 'Keine Berechtigung'));
         eventId = result.data.id;
+        if (!editing) editing = { kind: 'event', event: { id: eventId } };
+        else editing.event = { ...(editing.event || {}), id: eventId };
       } else if (eventId && access.canEvents) {
         // Existing registrations remain intact when the calendar option is switched off.
         const { error } = await supabase.from('events').update({ status: 'archived', rsvp_enabled: false }).eq('id', eventId);
