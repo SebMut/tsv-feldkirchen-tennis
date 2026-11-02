@@ -2727,3 +2727,24 @@ main.main--flush{padding:0}
   .ops-health-details{grid-template-columns:minmax(0,1fr)}
   .ops-health-tile{padding:10px}
 }
+
+
+/* Live fixtures arrive asynchronously. Reserve the mobile visible viewport
+   until the result is known, so upcoming fixtures cannot jump past the reader
+   when a live match appears or the temporary placeholder is removed. */
+.matchday-page--ticker .matchday-live-center.is-loading{
+  background:#edf4ef;color:#203c2c;
+  border-color:#cbdcd0;
+  min-height:300px;
+}
+.matchday-page--ticker .matchday-live-center.is-loading .muted{
+  color:#385947;
+}
+@media(max-width:680px){
+  .matchday-page--ticker .matchday-live-center.is-loading{
+    min-height:calc(100dvh - 65px);
+    display:grid;
+    place-items:center;
+    padding:20px;
+  }
+}
