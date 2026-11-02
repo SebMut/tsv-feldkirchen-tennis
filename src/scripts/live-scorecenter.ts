@@ -15,7 +15,7 @@ function enhanceSetColumns(result: HTMLElement) {
   sets.classList.add('ticker-running-encounter__sets');
   sets.innerHTML = values.map((value, index) => `
     <span class="ticker-running-encounter__set">
-      <small>Satz ${index + 1}</small>
+      <small aria-label="Satz ${index + 1}">${index + 1}</small>
       <b>${value[0]}</b>
       <b>${value[1]}</b>
     </span>`).join('');
@@ -45,12 +45,17 @@ function ensureModal() {
   return modal;
 }
 
+let lastModalTrigger: HTMLElement | null = null;
+
 function closeModal(modal: HTMLElement) {
   modal.hidden = true;
   document.documentElement.classList.remove('live-modal-open');
+  if (lastModalTrigger?.isConnected) lastModalTrigger.focus();
+  lastModalTrigger = null;
 }
 
 function openModal(card: HTMLElement) {
+  lastModalTrigger = card;
   const modal = ensureModal();
   const title = modal.querySelector<HTMLElement>('#live-match-modal-title');
   const body = modal.querySelector<HTMLElement>('.live-match-modal__body');
@@ -118,9 +123,22 @@ export function initLiveScorecenter() {
   ensureModal();
 
   document.addEventListener('keydown', (event) => {
+    const modal = document.querySelector<HTMLElement>('#live-match-modal');
+    if (!modal || modal.hidden) return;
     if (event.key === 'Escape') {
-      const modal = document.querySelector<HTMLElement>('#live-match-modal');
-      if (modal && !modal.hidden) closeModal(modal);
+      event.preventDefault();
+      closeModal(modal);
+    } else if (event.key === 'Tab') {
+      const focusable = Array.from(modal.querySelectorAll<HTMLElement>('a[href],button:not([disabled])'))
+        .filter(element => element.getClientRects().length > 0);
+      if (!focusable.length) { event.preventDefault(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
     }
   });
 
