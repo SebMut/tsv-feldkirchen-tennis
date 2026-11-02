@@ -84,8 +84,8 @@ export function regularSetDisplayValues(score, setIndex, points, isHome = true) 
 export function regularSetDisplayHtml(score, setIndex, points, isHome = true) {
   const values = regularSetDisplayValues(score, setIndex, points, isHome);
   if (!values) return '';
-  const value = (games, small) => String(games) +
-    (small === null ? '' : '<sup class="ticker-set-tiebreak" aria-label="Tiebreak-Punkte ' + small + '">' + small + '</sup>');
+  const value = (games, small) => '<span class="ticker-set-side">' + String(games) +
+    (small === null ? '' : '<sup class="ticker-set-tiebreak" aria-label="Tiebreak-Punkte ' + small + '">' + small + '</sup>') + '</span>';
   return '<span class="ticker-set-score">' + value(values.first, values.smallFirst) +
-    ' : ' + value(values.second, values.smallSecond) + '</span>';
+    '<span class="ticker-set-separator"> : </span>' + value(values.second, values.smallSecond) + '</span>';
 }
