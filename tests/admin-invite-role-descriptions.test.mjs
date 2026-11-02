@@ -9,14 +9,14 @@ test('invitation explains each global permission and its scope', () => {
     assert.match(page, new RegExp('data-invite-permission value="' + permission + '"'));
   }
   for (const phrase of ['Veranstaltungen für den gesamten Verein', 'News für den gesamten Verein',
-    'bestehende Begegnungen aller Mannschaften', 'Verknüpfte Kalendertermine benötigen zusätzlich']) {
+    'bestehende Begegnungen aller Mannschaften', 'Kalendertermine benötigen zusätzlich die globale Veranstaltungsberechtigung']) {
     assert.ok(page.includes(phrase), phrase);
   }
 });
 
 test('invitation explains manager, editor and limited team ticker without overstating manager privileges', () => {
   for (const phrase of ['Mannschaftsrollen erklärt', 'Manager', 'Editor', 'Nur Liveticker',
-    'gleichen Mannschafts-Bearbeitungsrechte wie Editor', 'nur für die ausgewählte Mannschaft']) {
+    'dieselben Mannschaftsrechte wie Editor', 'nur für die ausgewählte Mannschaft']) {
     assert.ok(page.includes(phrase), phrase);
   }
   assert.match(page, /id="invite-teams"/);
