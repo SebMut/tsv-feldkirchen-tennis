@@ -47,7 +47,9 @@ test('unified publishing reuses existing tables, authorized roles, images and ca
   assert.ok(composer.includes("slug: newsId ? 'news-' + newsId"));
   assert.ok(composer.includes('replaceMediaImage('));
   assert.ok(composer.includes("directory: table + '/' + id"));
-  assert.ok(composer.includes("status: 'draft'"));
+  assert.ok(composer.includes("status: oldNews?.status || 'draft'"));
+  assert.ok(composer.includes("status: oldEvent?.status || 'draft'"));
+  assert.ok(composer.includes("published_at: oldNews?.published_at || null"));
   assert.ok(composer.includes("status: 'archived', rsvp_enabled: false"));
   assert.ok(composer.includes('oldEvent?.team_id || null'));
 });
