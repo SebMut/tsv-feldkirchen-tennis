@@ -129,6 +129,19 @@ import MainLayout from '../../layouts/MainLayout.astro';
     label?.remove();
     card.appendChild(body);
   });
+
+  // On this combined page, an empty News collection must not contradict the
+  // published event cards above it. Keep retrieval errors visible.
+  const newsSection = document.querySelector<HTMLElement>('.news-section');
+  const hasPublishedEvents = !!list?.querySelector('.content-card--event');
+  const hasVisibleNews = !!newsList?.querySelector('.content-card--news');
+  const newsMessage = newsList?.textContent?.trim() || '';
+  const newsLoadFailed = newsMessage.includes('Beiträge sind momentan nicht abrufbar.');
+  if (!hasVisibleNews && hasPublishedEvents && !newsLoadFailed) {
+    if (newsSection) newsSection.hidden = true;
+  } else if (!hasVisibleNews && !hasPublishedEvents && newsMessage === 'Noch keine Beiträge veröffentlicht.') {
+    if (newsList) newsList.textContent = 'Derzeit sind keine Neuigkeiten oder Veranstaltungen veröffentlicht.';
+  }
 </script>
 <style>
   .aktuelles-page{padding-bottom:calc(130px + env(safe-area-inset-bottom));gap:34px}
