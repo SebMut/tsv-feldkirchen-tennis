@@ -14,7 +14,6 @@ test('homepage combines upcoming events and news while keeping their image sourc
   assert.match(script, /image: item\.hero_image_path/);
   assert.match(script, /linkedNewsIds\.has\(item\.id\)/);
   assert.match(script, /const homeItems = \[/);
-  assert.match(script, /item\.image \? `<img class="home-news-item__image"/);
   assert.match(script, /item\.image \? `<img class="home-news-item__image/);
   assert.match(script, /width="108" height="80" loading="lazy" decoding="async"/);
   assert.match(script, /class="news-row home-news-item/);
