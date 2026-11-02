@@ -150,3 +150,21 @@ test('third-set plus/minus continues the original match-tiebreak counting',()=>{
   assert.equal(adjustSetScore('0:0',2,'tsv',-1).valid,false);
   assert.equal(adjustSetScore('99:98',2,'tsv',1).valid,false);
 });
+
+test('instant scoreboard writes require confirmed Supabase row and real live-state transition',()=>{
+  const admin=read('src/scripts/admin.ts');
+  assert.match(admin,/\.select\('id,result_text,status'\)\s*\.maybeSingle\(\)/);
+  assert.match(admin,/data\.result_text !== patch\.result_text/);
+  assert.match(admin,/data\.status !== patch\.status/);
+  assert.match(admin,/return !!data && !error && !scoreMismatch && !statusMismatch/);
+  assert.match(admin,/\.select\('match_id,status'\)\.maybeSingle\(\)/);
+  assert.match(admin,/if \(error \|\| !data \|\| data\.status !== 'live'\)/);
+  assert.match(admin,/Der Status wurde in Supabase nicht bestätigt/);
+  const sql=read('scripts/qa-ticker-rls-rollback.sql');
+  assert.match(sql,/set local role authenticated/);
+  assert.match(sql,/where tm\.role='ticker' and tm\.active and m\.is_published/);
+  assert.match(sql,/result_text='1:0'/);
+  assert.match(sql,/status='live'/);
+  assert.equal((sql.match(/\brollback;/g)||[]).length,2);
+  assert.equal((sql.match(/\bcommit;/g)||[]).length,0);
+});
