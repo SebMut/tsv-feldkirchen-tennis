@@ -1235,7 +1235,7 @@ async function refreshMatches() {
   const visibleMatches = state.matches.filter((match) => {
     const matchStatus = liveMap.get(match.id)?.status || 'scheduled';
     if (filter === 'all') return true;
-    if (filter === 'finished') return matchStatus === 'finished';
+    if (filter === 'finished') return matchStatus === 'finished' || matchStatus === 'expired';
     // Include recent games so a delayed ticker update is still easy to find.
     return matchStatus === 'live' || (matchStatus !== 'finished' && new Date(match.starts_at).getTime() >= now - 7 * 86400000);
   });
@@ -1289,7 +1289,7 @@ async function refreshMatches() {
           <p class="muted"><strong>Spielort:</strong> ${escapeHtml(match.venue_name || 'Noch nicht eingetragen')}${match.venue_address ? ' · '+escapeHtml(match.venue_address) : ''}</p>
         </div>
         <div class="match-admin-score">
-          <span class="status-pill ${live.status === 'live' ? 'live' : ''}">${live.status === 'live' ? 'LIVE' : live.status === 'finished' ? 'Beendet' : 'Geplant'}</span>
+          <span class="status-pill ${live.status === 'live' ? 'live' : live.status === 'expired' ? 'closed' : ''}">${live.status === 'live' ? 'LIVE' : live.status === 'finished' ? 'Beendet' : live.status === 'expired' ? 'Ticker automatisch geschlossen' : 'Geplant'}</span>
           <strong>TSV ${clubScore} : ${opponentScore}</strong>
         </div>
       </div>
@@ -1316,9 +1316,10 @@ async function refreshMatches() {
         <div class="phase8-progress" aria-label="${finished} von ${expected} Begegnungen abgeschlossen"><span style="width:${pct}%"></span></div>
         <p>Satzergebnisse antippen – der Zwischenstand und der Sieger werden automatisch berechnet.</p>
       </div>
+      ${live.status === 'expired' ? '<p class="match-draft-warning" role="status">Der Liveticker wurde nach 24 Stunden automatisch geschlossen. Ergebnisse bleiben gespeichert. Erneut live starten nur, wenn der Spieltag wirklich noch läuft.</p>' : ''}
       <div class="match-admin-toolbar">
         <div class="match-admin-toolbar__primary">
-          <button class="button button--hot" data-live-action="start" type="button" ${live.status === 'live' ? 'disabled' : ''}>${live.status === 'live' ? 'Spieltag ist live' : 'Spieltag live starten'}</button>
+          <button class="button button--hot" data-live-action="start" type="button" ${live.status === 'live' ? 'disabled' : ''}>${live.status === 'live' ? 'Spieltag ist live' : live.status === 'expired' ? 'Ticker bewusst neu starten' : 'Spieltag live starten'}</button>
           <a class="button secondary" href="/live/?match=${match.id}" target="_blank" rel="noopener noreferrer">Live-Seite ansehen ↗</a>
         </div>
         <details class="match-admin-more">
@@ -1444,6 +1445,7 @@ async function refreshMatches() {
       const action = button.dataset.liveAction;
       if (button.disabled) return;
       if (action === 'finish' && !window.confirm('Den ganzen Spieltag wirklich beenden?')) return;
+      if (action === 'start' && live.status === 'expired' && !window.confirm('Der Ticker wurde nach 24 Stunden automatisch geschlossen. Soll er wirklich für weitere 24 Stunden neu gestartet werden?')) return;
       if (action === 'reset' && !window.confirm('Den Liveticker wirklich auf „Geplant“ zurücksetzen? Aufstellungen und gespeicherte Ergebnisse bleiben erhalten.')) return;
       button.disabled = true;
       const patch = action === 'start'
@@ -1491,6 +1493,10 @@ async function refreshMatches() {
 
       const ensureMatchLive = async () => {
         if (live.status === 'live') return true;
+        if (live.status === 'expired') {
+          status('Der Liveticker wurde nach 24 Stunden geschlossen. Bitte zuerst bewusst "Ticker neu starten" wählen.', 'error');
+          return false;
+        }
         const { error } = await supabase.from('match_live_state').update({
           status: 'live',
           started_at: live.started_at || new Date().toISOString(),
