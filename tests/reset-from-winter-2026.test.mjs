@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const migration=read('supabase/migrations/20261102193000_remove_summer_2026.sql');
+const migration=read('supabase/migrations/20261102210000_remove_summer_2026.sql');
 const home=read('src/pages/mannschaften/index.astro');
 const adminPage=read('src/pages/admin/index.astro');
 const admin=read('src/scripts/admin.ts');
