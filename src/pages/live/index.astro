@@ -7,7 +7,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
   headerVariant="light"
   mainClass="main--flush"
 >
-  <div class="matchday-page live-page-refresh">
+  <div class="matchday-page live-page-refresh live-page-compact">
     <section class="matchday-hero matchday-hero--compact">
       <div class="container">
         <span class="matchday-badge">TENNIS · TSV FELDKIRCHEN</span>
@@ -31,6 +31,46 @@ import MainLayout from '../../layouts/MainLayout.astro';
     </div>
   </div>
 </MainLayout>
+<style>
+  :global(.live-page-compact .live-match-heading){gap:4px}
+  :global(.live-page-compact .live-match-heading h1){font-size:clamp(1.45rem,3vw,2.55rem)}
+  :global(.live-page-compact .live-page-refresh .matchday-live-panel),
+  :global(.live-page-compact .matchday-live-panel){padding:clamp(12px,2vw,22px)}
+  :global(.live-page-compact .live-score-topline){margin-bottom:10px}
+  :global(.live-page-compact .live-scoreboard){grid-template-columns:minmax(0,1fr) minmax(105px,.45fr) minmax(0,1fr);gap:8px}
+  :global(.live-page-compact .live-team){min-height:76px;padding:9px 12px}
+  :global(.live-page-compact .live-team img),
+  :global(.live-page-compact .live-team .live-opponent-mark){width:38px;height:38px}
+  :global(.live-page-compact .live-scoreboard__score strong){font-size:clamp(2.2rem,5vw,4rem)}
+  :global(.live-page-compact .live-match-progress){margin-top:10px;padding-top:10px}
+  :global(.live-page-compact .live-encounters){margin-top:16px;padding-top:14px;gap:14px}
+  :global(.live-page-compact .live-encounters__toolbar h2){font-size:1.25rem}
+  :global(.live-page-compact .live-encounter-group){gap:6px}
+  :global(.live-page-compact .live-encounter-group__title){padding-bottom:6px}
+  :global(.live-page-compact .live-encounter-list){gap:5px}
+  :global(.live-page-compact .live-encounter-row){padding:8px 10px;gap:6px;border-radius:11px}
+  :global(.live-page-compact .live-encounter-number){min-width:29px;height:29px;border-radius:7px;font-size:.72rem}
+  :global(.live-page-compact .live-encounter-row__identity>strong){font-size:.82rem}
+  :global(.live-page-compact .live-encounter-matchup){grid-template-columns:minmax(0,1fr) minmax(92px,.32fr) minmax(0,1fr);gap:6px}
+  :global(.live-page-compact .live-encounter-side){padding:7px 8px;border-radius:8px}
+  :global(.live-page-compact .live-encounter-side img),
+  :global(.live-page-compact .live-encounter-side .live-opponent-mark){width:26px;height:26px}
+  :global(.live-page-compact .live-encounter-side strong){font-size:.78rem}
+  :global(.live-page-compact .live-encounter-result){padding:6px 5px;border-radius:8px;gap:2px}
+  :global(.live-page-compact .live-encounter-result strong){font-size:1.35rem}
+  :global(.live-page-compact .live-set-scores){font-size:.65rem}
+  :global(.live-page-compact .live-timeline-section){margin-top:18px}
+  @media(max-width:740px){
+    :global(.live-page-compact .live-scoreboard){grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr);gap:4px}
+    :global(.live-page-compact .live-scoreboard .live-team){min-height:88px;padding:6px 4px}
+    :global(.live-page-compact .live-encounter-row){padding:7px}
+    :global(.live-page-compact .live-encounter-matchup){grid-template-columns:minmax(0,1fr) 76px minmax(0,1fr);gap:4px}
+    :global(.live-page-compact .live-encounter-side){padding:6px 3px}
+    :global(.live-page-compact .live-encounter-side strong){font-size:clamp(.65rem,2.3vw,.76rem)}
+    :global(.live-page-compact .live-encounter-result strong){font-size:1.2rem}
+    :global(.live-page-compact .live-encounter-row__head){gap:5px}
+  }
+</style>
 <script>
   import { loadLiveTicker } from '../../scripts/public';
   const matchId = new URLSearchParams(location.search).get('match');
