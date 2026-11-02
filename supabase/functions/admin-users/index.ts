@@ -145,6 +145,51 @@ Deno.serve(async (req: Request) => {
       teams }, { headers: cors });
   }
 
+  if (action === "system_health") {
+    const [integrity, btv, restore] = await Promise.all([
+      admin.rpc("admin_system_integrity"),
+      admin.from("btv_import_runs")
+        .select("status,started_at,completed_at,season_code,error_message")
+        .order("started_at", { ascending: false }).limit(12),
+      admin.from("site_settings").select("value,updated_at")
+        .eq("key", "ops_restore_check").maybeSingle(),
+    ]);
+    if (integrity.error || btv.error || restore.error) {
+      return Response.json({ error: "Systemüberwachung konnte nicht vollständig gelesen werden.",
+        details: [integrity.error?.message,btv.error?.message,restore.error?.message].filter(Boolean).join(" | ") },
+        { status: 503, headers: cors });
+    }
+    const runs = btv.data ?? [];
+    return Response.json({ ok: true, supabase_reachable: true, integrity: integrity.data,
+      btv_last_run: runs[0] ?? null,
+      btv_last_success: runs.find(row => row.status === "success") ?? null,
+      btv_failures_recent: runs.filter(row => row.status !== "success").length,
+      restore_check: restore.data?.value ?? null,
+      restore_check_updated_at: restore.data?.updated_at ?? null,
+    }, { headers: cors });
+  }
+
+  if (action === "record_restore_check") {
+    if (body.confirmed !== true || !["logical_restore","managed_backup_restore"].includes(String(body.method ?? ""))) {
+      return Response.json({ error: "Eine ausdrücklich bestätigte Wiederherstellungsprüfung ist erforderlich." },
+        { status: 400, headers: cors });
+    }
+    const notes = String(body.notes ?? "").trim().slice(0,500);
+    if (notes.length < 12)
+      return Response.json({ error: "Bitte Prüfumgebung und Ergebnis nachvollziehbar dokumentieren (mindestens 12 Zeichen)." },
+        { status: 400, headers: cors });
+    const value = { checked_at: new Date().toISOString(), checked_by: userData.user.id,
+      method: body.method, notes, result: "confirmed_by_admin" };
+    const { data, error } = await admin.from("site_settings").upsert(
+      { key: "ops_restore_check", value, is_public: false, updated_by: userData.user.id },
+      { onConflict: "key" }).select("key,value").single();
+    if (error || data?.key !== "ops_restore_check") {
+      return Response.json({ error: error?.message ?? "Wiederherstellungsprüfung wurde nicht bestätigt." },
+        { status: 503, headers: cors });
+    }
+    return Response.json({ ok: true, value: data.value }, { headers: cors });
+  }
+
   if (action === "invite") {
     const email = String(body.email ?? "").trim().toLowerCase();
     const displayName = String(body.display_name ?? "").trim();
