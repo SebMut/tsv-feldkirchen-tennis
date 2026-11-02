@@ -76,7 +76,8 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
     await check('TV scoreboard: polls new scores every 30 seconds without navigation',async()=>{
       const first=page.locator('[data-tv-match="'+ids[0]+'"]');
       model.states[0]={...model.states[0],home_score:2,updated_at:new Date().toISOString()};
-      model.encounters[0]={...model.encounters[0],status:'finished',winner:'tsv',finished_at:now,result_text:'6:2 6:3'};
+      model.encounters[0]={...model.encounters[0],status:'finished',winner:'tsv',finished_at:now,
+        result_text:'6:2 7:6',tiebreak_points:{'2':[8,6]}};
       await new Promise(resolve=>setTimeout(resolve,350));
       await page.clock.fastForward(30000);
       await page.waitForFunction(id=>{
@@ -85,6 +86,10 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
           item.querySelectorAll('.tv-ticker__game.is-finished').length===1;
       },ids[0],{timeout:9000});
       assert.match(await first.locator('.tv-ticker__score').innerText(),/2/);
+      // Even after the tiebreak is decided, both winner (8) and loser (6)
+      // retain their small raised points next to the large 7:6 games.
+      const raised=await first.locator('.tv-ticker__game.is-won .tv-ticker__tb-point').allTextContents();
+      assert.deepEqual(raised,['8','6']);
       assert.equal(await first.locator('.tv-ticker__game.is-won.is-celebrating').count(),1);
       assert.equal(await first.locator('.tv-ticker__game .tv-ticker__player-logo').count(),1);
       assert.match(await first.locator('.tv-ticker__game.is-won').innerText(),/🏆/);
