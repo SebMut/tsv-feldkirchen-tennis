@@ -2748,3 +2748,13 @@ main.main--flush{padding:0}
     padding:20px;
   }
 }
+
+
+/* Until the live/today/upcoming queries settle, the preliminary fixture rows
+   cannot be read meaningfully. Conceal their transient layout and reveal them
+   together with the finished data to avoid an unstable, jumping scoreboard. */
+.matchday-page--ticker:has(.matchday-live-center.is-loading) .matchday-fixture-grid,
+.matchday-page--ticker:has(.matchday-live-center.is-loading) .matchday-today-panel,
+body:has(.matchday-page--ticker .matchday-live-center.is-loading) .site-footer{
+  visibility:hidden;
+}
