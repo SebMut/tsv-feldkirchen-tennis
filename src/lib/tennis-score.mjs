@@ -92,3 +92,22 @@ export function homeAwaySetScore(result, isHome) {
     awaySets: isHome ? result.opponentSets : result.tsvSets,
   };
 }
+
+/** Adjust TSV/opponent game count, rejecting impossible tennis scores.
+ * Set 1 and 2 may end 6:x (x<=4), 7:5 or 7:6, never 7:4 or 7:7.
+ * Third-set match tiebreak follows the existing validation rules. */
+export function adjustSetScore(score, setIndex, side, change) {
+  if (![0, 1, 2].includes(setIndex) || !['tsv', 'opponent'].includes(side) || ![-1, 1].includes(change))
+    return {valid:false,score:String(score || ''),message:'Ungültige Zählerauswahl.'};
+  const parsed = score ? /^([0-9]{1,2}):([0-9]{1,2})$/.exec(score) : null;
+  if (score && !parsed) return {valid:false,score,message:'Der aktuelle Satzstand ist nicht lesbar.'};
+  const values = parsed ? [Number(parsed[1]),Number(parsed[2])] : [0,0];
+  const index = side === 'tsv' ? 0 : 1;
+  const next = values[index] + change;
+  if (next < 0 || next > (setIndex === 2 ? 99 : 7))
+    return {valid:false,score:String(score || ''),message:'Der Satzstand kann nicht weiter verändert werden.'};
+  values[index] = next;
+  const updated = values.join(':');
+  const check = validateSetScore(updated,setIndex);
+  return {valid:check.valid,score:check.valid ? updated : String(score || ''),message:check.message};
+}
