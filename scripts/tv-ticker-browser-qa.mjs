@@ -165,7 +165,7 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
       assert.equal(await page.locator('.tv-ticker__game.is-live').count(),1);
       assert.equal(await page.locator('.tv-ticker__game.is-finished').count(),0);
       // 5-minute cycle from page start; the preceding polls took 90 seconds.
-      await page.clock.fastForward(210000);
+      await page.clock.fastForward(211000);
       await page.waitForFunction(()=>{
         const board=document.querySelector('#tv-ticker-board');
         return board?.dataset.viewMode==='finished' &&
@@ -194,14 +194,14 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
     },page);
     await check('TV scoreboard: one running fixture spans full TV width',async()=>{
       await page.setViewportSize({width:1920,height:1080});
-      model.states=model.states.slice(1,2);
+      model.states=model.states.slice(2,3);
       for(let attempt=0;attempt<3;attempt++){
         await new Promise(resolve=>setTimeout(resolve,350));
         await page.clock.fastForward(30000);
         if(await page.locator('.tv-ticker__match').count()===1)break;
       }
       assert.equal(await page.locator('.tv-ticker__match').count(),1);
-      assert.equal(await page.locator('.tv-ticker__match').first().getAttribute('data-tv-match'),ids[1]);
+      assert.equal(await page.locator('.tv-ticker__match').first().getAttribute('data-tv-match'),ids[2]);
       assert.equal(await page.locator('.tv-ticker__grid--single').count(),1);
       const grid=await page.locator('.tv-ticker__grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
       assert.equal(grid.trim().split(/\s+/).length,1);
