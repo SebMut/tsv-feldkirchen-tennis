@@ -28,6 +28,8 @@ test('every newly uploaded event image is displayed through its relative Supabas
   assert.match(publicPage, /event\.hero_image_path \? mediaUrl\(event\.hero_image_path\)/);
   assert.match(publicPage, /data-event-has-image/);
   assert.doesNotMatch(publicPage, /content-card__media--trim-frame/);
-  assert.match(publicPage, /object-fit:contain/);
+  assert.match(publicPage, /aspect-ratio:1773\/885/);
+  assert.match(publicPage, /object-fit:cover/);
+  assert.doesNotMatch(publicPage, /content-card__media img\)\{[^}]*object-fit:contain/);
   assert.match(supabase, /storage\/v1\/object\/public\/media/);
 });
