@@ -1337,7 +1337,6 @@ async function refreshMatches() {
     const tsvSide = renderTsvSide(match, encounter);
     const opponentSide = renderOpponentSide(match, encounter);
     const summary = summarizeSetResult(encounter.result_text);
-    const orientedSets = homeAwaySetScore(summary, !!match.is_home);
     const statusLabel = encounter.status === 'live' ? 'LIVE' : encounter.status === 'finished' ? 'Beendet' : 'Geplant';
 
     const perMatchEncounters = encounterMap.get(match.id) ?? [];
@@ -1396,6 +1395,7 @@ async function refreshMatches() {
         ${button(1)}<strong>${digit}</strong>${button(-1)}
       </div>`;
     };
+    const tiebreakPanels = [0, 1].map(tiebreakStepper).filter(Boolean).join('');
     return `
       <details class="encounter-card ${encounter.status === 'live' ? 'is-live' : ''}" data-encounter-id="${encounter.id}" ${isOpen ? 'open' : ''}>
         <summary class="encounter-card__head">
@@ -1428,9 +1428,7 @@ async function refreshMatches() {
                   </div>
                 </div>`).join('')}
             </div>
-            <div class="encounter-tiebreaks">
-              ${[0, 1].map(tiebreakStepper).filter(Boolean).join('')}
-            </div>
+            ${tiebreakPanels ? `<div class="encounter-tiebreaks">${tiebreakPanels}</div>` : ''}
             <input type="hidden" data-enc-result value="${escapeHtml(encounter.result_text || '')}" />
             <p class="encounter-set-status" aria-live="polite">
               ${summary.hasResult
