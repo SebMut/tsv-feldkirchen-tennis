@@ -510,8 +510,8 @@ export async function loadAdvancedUsers(base: BaseState) {
             <label><input type="checkbox" data-user-team="${team.id}" ${membership ? 'checked' : ''}/> ${escapeHtml(team.name)}</label>
             <select data-user-team-role="${team.id}">
               <option value="manager" ${membership?.role === 'manager' ? 'selected' : ''}>Manager</option>
-              <option value="editor" ${!membership || membership.role === 'editor' ? 'selected' : ''}>Editor</option>
-              <option value="ticker" ${membership?.role === 'ticker' ? 'selected' : ''}>Nur Liveticker</option>
+              <option value="editor" ${membership?.role === 'editor' ? 'selected' : ''}>Editor</option>
+              <option value="ticker" ${!membership || membership.role === 'ticker' ? 'selected' : ''}>Nur Liveticker (Standard)</option>
             </select>
           </div>`;
         }).join('')}</div>`}</div>
@@ -542,12 +542,11 @@ export async function loadAdvancedUsers(base: BaseState) {
           body: { action: 'save_permissions', user_id: userId, global_role: globalRole,
             global_permissions: globalPermissions, memberships },
         });
-        if (result.error || result.data?.error || result.data?.ok !== true) {
+        if (result.error || result.data?.error || result.data?.ok !== true || result.data?.verified !== true) {
           reportStatus(result.data?.error || result.error?.message || 'Rechte konnten nicht gespeichert werden. Bitte erneut versuchen.', 'error');
-          await loadAdvancedUsers(base);
-          return;
+          return; // Keep unsaved selections visible so the administrator can correct and retry.
         }
-        reportStatus('Alle Rechte und Mannschaftsrollen wurden gemeinsam gespeichert.', 'success');
+        reportStatus('Alle Rechte und Mannschaftsrollen wurden gespeichert und in Supabase überprüft.', 'success');
         await loadAdvancedUsers(base);
       } catch (error) {
         reportStatus('Speichern fehlgeschlagen: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'), 'error');
