@@ -25,7 +25,7 @@ import '../../styles/live-flashscore.css';
 
     <div class="container matchday-dashboard">
       <div class="tv-ticker-launch"><a class="button secondary" href="/spieltag/live-ticker/" aria-label="TV-Liveticker für Bildschirm oder Livestream öffnen">TV-Liveticker für Bildschirm &amp; Livestream öffnen ↗</a></div>
-      <section id="live-center" class="matchday-panel matchday-live-center hidden" aria-live="polite"></section>
+      <section id="live-center" class="matchday-panel matchday-live-center is-loading" aria-live="polite" aria-busy="true"><p class="muted" role="status">Live-Begegnungen werden geladen …</p></section>
 
       <section id="today-fixtures-panel" class="matchday-panel matchday-today-panel hidden" aria-labelledby="today-fixtures-title">
         <p class="matchday-kicker">Heute</p>
