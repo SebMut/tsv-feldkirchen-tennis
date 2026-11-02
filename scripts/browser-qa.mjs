@@ -242,6 +242,24 @@ try{
   browser=await chromium.launch({headless:true});
   await deviceQA({name:'desktop',viewport:{width:1440,height:900},mobile:false});
   await deviceQA({name:'mobile',viewport:{width:390,height:844},mobile:true});
+  await deviceQA({name:'small-mobile',viewport:{width:320,height:640},mobile:true});
+  await check('keyboard focus and escape navigation',async()=>{
+    const context=await browser.newContext({viewport:{width:360,height:740},reducedMotion:'reduce'});
+    const page=await context.newPage();
+    try{
+      await page.goto(url('/termine/'),{waitUntil:'domcontentloaded'});
+      await page.keyboard.press('Tab');
+      const focused=await page.evaluate(()=>document.activeElement && document.activeElement!==document.body);
+      assert.ok(focused,'keyboard Tab should move focus to a control');
+      const focus=await page.evaluate(()=>({
+        tag:document.activeElement?.tagName,
+        outline:getComputedStyle(document.activeElement).outlineStyle,
+      }));
+      assert.notEqual(focus.outline,'none','focused control must have a visible focus outline');
+      await page.keyboard.press('Escape'); // must never throw or trap keyboard without a dialog.
+      await noOverflow(page,'/termine/ keyboard');
+    }finally{await context.close();}
+  });
   await runTickerBrowserRehearsal({browser,url,check});
   await runTvTickerBrowserQA({browser,url,check});
   await roleQA({code:'TICKER',name:'ticker only',visible:{matches:true,teams:false,players:false,news:false,galleries:false,users:false}});
