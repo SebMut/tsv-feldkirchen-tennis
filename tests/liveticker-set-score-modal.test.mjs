@@ -41,9 +41,9 @@ test('modal selection persists score through existing private encounter update',
   assert.match(page, /data-set-score-clear/);
   assert.match(page, /data-set-score-close/);
   assert.match(admin, /dialog\.showModal\(\)/);
-  assert.match(admin, /if \(await updateEncounter\(encounterId, patch\)\)/);
+  assert.match(admin, /if \(!\(await updateEncounter\(encounterId, patch\)\)\)/);
   assert.match(admin, /await refreshChangedEncounter\(encounterId, normalized\.complete/);
-  assert.match(admin, /if \(!score && next\.slice\(setIndex \+ 1\)\.some\(Boolean\)/);
+  assert.match(admin, /if \(!score && current\.slice\(setIndex \+ 1\)\.some\(Boolean\)/);
   assert.match(admin, /window\.confirm\('Wenn du diesen Satz löschst/);
   assert.match(admin, /dialog\.oncancel/);
 });
@@ -54,4 +54,19 @@ test('set buttons and dialog stay usable on small screens and with a keyboard', 
   assert.match(css, /\.encounter-set-button:focus-visible/);
   assert.match(css, /\.encounter-set-dialog__options\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(page, /aria-labelledby="encounter-set-dialog-title"/);
+});
+
+test('new plus and minus controls publish each valid step without a separate submit', () => {
+  assert.match(admin,/data-enc-step="\$\{setIndex\}"/);
+  assert.match(admin,/data-enc-side="\$\{side\}"/);
+  assert.match(admin,/data-enc-delta="\$\{delta\}"/);
+  assert.match(admin,/adjustSetScore\(current\[setIndex\] \|\| '', setIndex, side, change\)/);
+  assert.match(admin,/await persistSetScore\(setIndex, result\.score\)/);
+  assert.match(admin,/let setSaving = false;/);
+  assert.match(admin,/if \(setSaving\) return false;/);
+  assert.match(admin,/if \(resultText && !\(await ensureMatchLive\(\)\)\)/);
+  assert.match(admin,/if \(!\(await updateEncounter\(encounterId, patch\)\)\)/);
+  assert.match(admin,/await refreshChangedEncounter\(encounterId, normalized\.complete/);
+  assert.match(css,/\.encounter-set-stepper__control:disabled/);
+  assert.match(css,/\.encounter-set-stepper__control:focus-visible/);
 });
