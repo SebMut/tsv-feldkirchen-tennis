@@ -1803,8 +1803,9 @@ async function refreshMatches() {
         const controls = Array.from(encounterCard.querySelectorAll<HTMLButtonElement>('[data-enc-step], [data-enc-set]'));
         const dialog = $<HTMLDialogElement>('#encounter-set-dialog');
         const modalControls = dialog?.open ? Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')) : [];
+        const controlStates = [...controls, ...modalControls].map(button => ({ button, disabled: button.disabled }));
         setSaving = true;
-        [...controls, ...modalControls].forEach(button => { button.disabled = true; });
+        controlStates.forEach(({ button }) => { button.disabled = true; });
         if (dialogFeedback) {
           dialogFeedback.classList.remove('hidden');
           dialogFeedback.textContent = 'Ergebnis wird gespeichert und veröffentlicht …';
@@ -1847,8 +1848,8 @@ async function refreshMatches() {
           return false;
         } finally {
           setSaving = false;
-          [...controls, ...modalControls].forEach(button => {
-            if (button.isConnected) button.disabled = false;
+          controlStates.forEach(({ button, disabled }) => {
+            if (button.isConnected) button.disabled = disabled;
           });
         }
       };
