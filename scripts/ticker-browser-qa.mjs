@@ -107,8 +107,16 @@ export async function runTickerBrowserRehearsal({browser,url,check}){
         model.state={...model.state,home_score:1,updated_at:new Date().toISOString()};
         await Promise.all([left.clock.fastForward(30000),right.clock.fastForward(30000)]);
 
-        await Promise.all([left.waitForFunction(()=>document.querySelectorAll('.live-encounter-row.is-finished').length===1,{timeout:9000}),
-          right.waitForFunction(()=>document.querySelectorAll('.live-encounter-row.is-finished').length===1,{timeout:9000})]);
+        // page.waitForFunction uses requestAnimationFrame, which is frozen by
+        // the controlled Playwright clock. Observe DOM from Node's real clock.
+        const waitForRenderedUpdate=async(page)=>{
+          for(let attempt=0;attempt<80;attempt++){
+            if(await page.locator('.live-encounter-row.is-finished').count()===1)return;
+            await new Promise(resolve=>setTimeout(resolve,125));
+          }
+          throw Error('Second-device ticker did not converge after the polling interval');
+        };
+        await Promise.all([waitForRenderedUpdate(left),waitForRenderedUpdate(right)]);
         for(const page of [left,right]){
           assert.match(await page.locator('#live-score').innerText(),/1/);
           assert.equal(await page.locator('.live-encounter-row.is-finished').count(),1);
