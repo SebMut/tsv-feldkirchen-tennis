@@ -42,7 +42,7 @@ test('admin panel respects global permissions while preserving team-specific edi
   assert.match(admin, /const canEvents = hasGlobalPermission\('events'\)/);
   assert.match(admin, /hasGlobalPermission\('ticker'\)/);
   assert.match(admin, /initEventRsvpAdmin\(\{ isSuper: canEvents/);
-  assert.match(events, /const relevant = events;/);
+  assert.match(events, /const relevant = events\.filter\(e => !String\(e\.external_url \|\| ''\)\.startsWith\('news:'\)\)/);
 });
 
 test('global media write authorization is limited to existing news and events; other paths stay protected', () => {
