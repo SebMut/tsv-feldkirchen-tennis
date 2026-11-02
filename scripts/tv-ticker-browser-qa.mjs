@@ -216,8 +216,16 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
           const totals=[...root.querySelectorAll('.ticker-running-encounter__result>strong>span')];
           const sets=[...root.querySelectorAll('.ticker-running-encounter__set')].map(col=>[...col.querySelectorAll('b')]);
           const rect=el=>{const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom}};
+          const modal=document.querySelector('#live-match-modal');
+          const sheet=modal.querySelector('.live-match-modal__sheet').getBoundingClientRect();
+          const body=modal.querySelector('.live-match-modal__body');
+          const scrollWidth=document.documentElement.scrollWidth;
+          modal.hidden=true;
+          const backgroundScrollWidth=document.documentElement.scrollWidth;
+          modal.hidden=false;
           return {name:names.map(rect),total:totals.map(rect),sets:sets.map(col=>col.map(rect)),
-            scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth};
+            scrollWidth,backgroundScrollWidth,viewport:innerWidth,
+            sheetLeft:sheet.left,sheetRight:sheet.right,bodyScroll:body.scrollWidth,bodyWidth:body.clientWidth};
         });
         assert.equal(measurements.name.length,2);
         assert.equal(measurements.total.length,2);
@@ -227,7 +235,12 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
             assert.ok(delta<=1.1,width+'px modal '+name+' '+edge+' is off by '+delta.toFixed(1)+'px: '+JSON.stringify(measurements));
           }
         }
-        assert.ok(measurements.scrollWidth<=measurements.viewport+3,width+'px modal overflow');
+        assert.ok(measurements.sheetLeft>=-1 && measurements.sheetRight<=measurements.viewport+1,
+          width+'px modal exceeds viewport: '+JSON.stringify(measurements));
+        assert.ok(measurements.bodyScroll<=measurements.bodyWidth+2,
+          width+'px modal body overflows horizontally: '+JSON.stringify(measurements));
+        assert.ok(measurements.scrollWidth<=Math.max(measurements.viewport+3,measurements.backgroundScrollWidth+2),
+          width+'px modal introduces horizontal page overflow: '+JSON.stringify(measurements));
       }
     },page);
   }finally{await context.close();}
