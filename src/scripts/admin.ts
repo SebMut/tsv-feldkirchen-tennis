@@ -1359,8 +1359,7 @@ async function refreshMatches() {
       const stored = readRegularTiebreak(regularTiebreaks, setIndex);
       if (setScore !== '6:6' && !(stored && ['7:6','6:7'].includes(setScore))) return '';
       const current = stored || [0,0];
-      const finished = validateRegularTiebreak(current).complete;
-      const counter = (side: 'tsv' | 'opponent') => {
+       const counter = (side: 'tsv' | 'opponent') => {
         const value = current[side === 'tsv' ? 0 : 1];
         const button = (delta: number) => {
           const next = adjustRegularTiebreak(current, side, delta);
@@ -1369,15 +1368,16 @@ async function refreshMatches() {
             aria-label="Tiebreak Satz ${setIndex+1}, ${side === 'tsv' ? 'TSV' : 'Gegner'}, ${delta === 1 ? 'plus' : 'minus'}"
             ${next.valid ? '' : 'disabled'}>${delta === 1 ? '+' : '−'}</button>`;
         };
-        return `<div class="encounter-set-stepper" aria-label="Tiebreak ${side === 'tsv' ? 'TSV' : 'Gegner'}">
-          ${button(1)}<strong>${value}</strong>${button(-1)}</div>`;
+        return `<div class="encounter-tiebreak-counter" role="group" aria-label="Tiebreak ${side === 'tsv' ? 'TSV' : 'Gegner'}">
+          <span class="encounter-tiebreak-counter__label">${side === 'tsv' ? 'TSV' : 'Gegner'}</span>
+          ${button(-1)}<strong aria-live="off">${value}</strong>${button(1)}
+        </div>`;
       };
-      return `<section class="encounter-regular-tiebreak" aria-label="Tiebreak Satz ${setIndex + 1}">
-        <strong>Tiebreak · ${setIndex+1}. Satz</strong><small>${finished
-          ? 'Entschieden · Korrektur über Minus möglich'
-          : 'Ab 7 Punkten mit 2 Punkten Abstand beendet'}</small>
-        <div class="encounter-regular-tiebreak__names"><span>TSV</span><span>Gegner</span></div>
-        <div class="encounter-set-steppers">${counter('tsv')}${counter('opponent')}</div>
+      return `<section class="encounter-regular-tiebreak" aria-label="TieBreak Satz ${setIndex + 1}">
+        <strong class="encounter-regular-tiebreak__title">TieBreak</strong>
+        <div class="encounter-regular-tiebreak__counters">
+          ${counter('tsv')}${counter('opponent')}
+        </div>
       </section>`;
     };
     const stepper = (setIndex: number, side: 'tsv' | 'opponent') => {
@@ -1420,27 +1420,25 @@ async function refreshMatches() {
                     type="button" data-enc-set="${index}" aria-label="${label}${index === 2 ? ' Match-Tiebreak' : ''}: ${setScores[index] || 'noch kein Ergebnis'}"
                     ${(index === 1 && !firstSetCompleted) || (index === 2 && !thirdSetAllowed)
                       ? 'disabled title="Bitte zuerst den vorherigen Satz beenden"' : ''}>
-                    <span>${label}</span><strong>${setScores[index]
+                    <span>${label}</span><strong class="encounter-set-button__result">${setScores[index]
                       ? regularSetDisplayHtml(setScores[index], index, regularTiebreaks, true) : '–'}</strong>
-                    ${setScores[index] && !validateSetScore(setScores[index], index).complete
-                      ? '<small>Zwischenstand</small>'
-                      : index === 2 ? '<small>Match-Tiebreak</small>' : ''}
                   </button>
                   <div class="encounter-set-steppers" role="group" aria-label="${label}: TSV und Gegner einzeln zählen">
                     ${stepper(index, 'tsv')}${stepper(index, 'opponent')}
                   </div>
-                  ${tiebreakStepper(index)}
                 </div>`).join('')}
+            </div>
+            <div class="encounter-tiebreaks">
+              ${[0, 1].map(tiebreakStepper).filter(Boolean).join('')}
             </div>
             <input type="hidden" data-enc-result value="${escapeHtml(encounter.result_text || '')}" />
             <p class="encounter-set-status" aria-live="polite">
               ${summary.hasResult
-                ? `<strong>${encounter.status === 'finished' ? 'Endstand' : 'Zwischenstand'}: TSV ${summary.tsvSets} : ${summary.opponentSets} Gegner</strong>
-                   <span>Heim ${orientedSets.homeSets} : ${orientedSets.awaySets} Gast</span>`
-                : '<span>Noch kein Satz eingetragen.</span>'}
+                ? `<strong>${encounter.status === 'finished' ? 'Endstand' : 'Sätze'} ${summary.tsvSets}:${summary.opponentSets}</strong>`
+                : '<span>Bereit zur Eingabe</span>'}
               ${summary.winner && encounter.status === 'finished'
                 ? `<span class="encounter-set-status__winner">${summary.winner === 'tsv' ? 'TSV Feldkirchen' : escapeHtml(match.opponent)} gewinnt</span>`
-                : encounter.status === 'scheduled' && summary.hasResult ? '<span>Mit „Live anzeigen“ den Zwischenstand veröffentlichen.</span>' : ''}
+                : ''}
             </p>
             ${encounter.result_text && !setScores.some(Boolean) ? `<p class="encounter-set-legacy">Bisheriges Ergebnis: ${escapeHtml(encounter.result_text)}</p>` : ''}
           </div>
