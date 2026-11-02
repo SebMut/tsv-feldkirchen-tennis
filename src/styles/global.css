@@ -2600,7 +2600,7 @@ main.main--flush{padding:0}
   #panel-matches .encounter-regular-tiebreak{gap:5px;padding:6px}
   #panel-matches .encounter-tiebreak-counter__label{font-size:.64rem}
 }
-@media(max-width:420px){
+@media(max-width:370px){
   #panel-matches .encounter-regular-tiebreak__counters{grid-template-columns:minmax(0,1fr);gap:4px}
   #panel-matches .encounter-tiebreak-counter{grid-template-columns:45px 36px minmax(0,1fr) 36px}
   #panel-matches .encounter-card__head .status-pill{font-size:.6rem}
