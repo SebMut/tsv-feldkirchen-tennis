@@ -75,7 +75,7 @@ export function initEditorialComposer(access: Access) {
     input('body').value = String(entry.news?.body || entry.event?.description || '');
     input('excerpt').value = String(entry.news?.excerpt || '');
     input('team').value = String(record.team_id || '');
-    input('event').checked = !!entry.event;
+    input('event').checked = !!entry.event && (entry.kind === 'event' || entry.event.status !== 'archived');
     input('start').value = localTime(entry.event?.starts_at);
     input('end').value = localTime(entry.event?.ends_at);
     input('location').value = String(entry.event?.location_name || '');
@@ -109,8 +109,9 @@ export function initEditorialComposer(access: Access) {
     ];
     list.innerHTML = entries.length ? '<div class="admin-edit-list">' + entries.map((item, index) => {
       const record = item.news || item.event!;
+      const activeEvent = !!item.event && (item.kind === 'event' || item.event.status !== 'archived');
       return '<div class="admin-edit-item"><div><strong>' + escapeHtml(record.title || 'Ohne Titel') +
-        '</strong><p class="muted">' + (item.event ? 'Veranstaltung' : 'Neuigkeit') + ' · ' +
+        '</strong><p class="muted">' + (activeEvent ? 'Veranstaltung' : 'Neuigkeit') + ' · ' +
         escapeHtml(record.status || 'draft') + (item.event?.starts_at ? ' · ' + escapeHtml(formatDateTime(item.event.starts_at)) : '') +
         '</p></div><button type="button" class="button ghost" data-compose-edit="' + index + '">Bearbeiten</button></div>';
     }).join('') + '</div>' : '<p class="muted">Noch keine Beiträge vorhanden.</p>';
@@ -162,7 +163,7 @@ export function initEditorialComposer(access: Access) {
       revokeImage();
       const photo = input('image').files?.[0];
       if (photo) imageObjectUrl = URL.createObjectURL(photo);
-      const previous = editing?.event?.hero_image_path || editing?.news?.hero_image_path;
+      const previous = (hasEvent() ? editing?.event?.hero_image_path : editing?.news?.hero_image_path) || editing?.news?.hero_image_path;
       const html = card(imageObjectUrl || (previous ? mediaUrl(previous) : ''));
       for (const id of ['editorial-compose-desktop','editorial-compose-mobile']) {
         const target = el<HTMLElement>(id)!;
