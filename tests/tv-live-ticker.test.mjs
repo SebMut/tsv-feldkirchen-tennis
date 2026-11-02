@@ -97,3 +97,18 @@ test('TV finished-score recap, victory duration and super-admin values are confi
   assert.match(client,/withinHighlight\(e\.finished_at, timing, now\)/);
   assert.match(client,/\.filter\(e => e\.status === 'live' \|\|/);
 });
+
+test('compact notebook and smartphone layouts preserve branding, live results and touch controls', () => {
+  const livePage = source('src/pages/live/index.astro');
+  assert.match(styles, /@media \(max-width: 1600px\)/);
+  assert.match(styles, /@media \(max-width: 560px\)/);
+  assert.match(styles, /\.tv-ticker__score \{ grid-template-columns: minmax\(0,1fr\) 48px; min-height: 69px; \}/);
+  assert.match(styles, /\.tv-ticker__set \{ grid-template-rows: 16px minmax\(24px,1fr\) minmax\(24px,1fr\)/);
+  assert.match(styles, /\.tv-ticker__player-logo \{ width: 17px; height: 17px; \}/);
+  assert.match(styles, /\.tv-ticker__tools a,\.tv-ticker__tools button \{ padding: 4px 7px; min-height: 32px/);
+  assert.match(livePage, /@media \(min-width: 601px\) and \(max-width: 1600px\)/);
+  assert.match(livePage, /\.live-scorecenter \.live-scoreboard\)\{grid-template-columns:minmax\(0,1fr\) 68px minmax\(0,1fr\)/);
+  assert.match(livePage, /\.live-scorecenter \.live-encounter-side--tsv img\)\{display:block;width:16px;height:16px/);
+  assert.match(styles, /\.tv-ticker__tb-point/);
+  assert.match(livePage, /live-set-scores/);
+});
