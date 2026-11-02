@@ -364,13 +364,14 @@ export async function loadHome() {
     const midnightUtc = Date.UTC(year, month - 1, day);
     const start = new Date(midnightUtc - 2 * 3600000);
     const end = new Date(midnightUtc + 26 * 3600000);
-    const [facilityResult, activeResult, todayResult, upcomingResult, recentResult, newsResult, settingsResult, weatherResult] = await Promise.all([
+    const [facilityResult, activeResult, todayResult, upcomingResult, recentResult, newsResult, homeEventsResult, settingsResult, weatherResult] = await Promise.all([
       facility ? supabase.from('facility_status').select('*').limit(1) : Promise.resolve({ data: [], error: null }),
       supabase.from('match_live_state').select('*').eq('status', 'live'),
       supabase.from('matches').select('*').eq('is_published', true).gte('starts_at', start.toISOString()).lt('starts_at', end.toISOString()).order('starts_at').limit(50),
       supabase.from('matches').select('*').eq('is_published', true).gte('starts_at', now.toISOString()).order('starts_at').limit(15),
       recentTarget ? supabase.from('matches').select('*').eq('is_published', true).lt('starts_at', start.toISOString()).order('starts_at', { ascending: false }).limit(8) : Promise.resolve({ data: [], error: null }),
-      newsTarget ? supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(3) : Promise.resolve({ data: [], error: null }),
+      newsTarget ? supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(6) : Promise.resolve({ data: [], error: null }),
+      newsTarget ? supabase.from('events').select('id,slug,title,starts_at,hero_image_path,rsvp_enabled,external_url').eq('status', 'published').gte('starts_at', new Date(now.getTime() - 86400000).toISOString()).order('starts_at', { ascending: true }).limit(6) : Promise.resolve({ data: [], error: null }),
       document.querySelector('#home-team-count, #home-court-count')
         ? supabase.from('site_settings').select('key,value').in('key', ['team_count', 'court_count'])
         : Promise.resolve({ data: [], error: null }),
@@ -532,19 +533,39 @@ export async function loadHome() {
       ? '<p class="muted">Ergebnisse momentan nicht abrufbar.</p>'
       : finishedPast.length ? finishedPast.map(m => matchRow(m, reference, scoreRows)).join('')
       : '<p class="muted">Noch keine bestätigten Spielergebnisse vorhanden.</p>';
-    if (newsTarget) newsTarget.innerHTML = newsResult.error
-      ? '<p class="muted">Neuigkeiten momentan nicht abrufbar.</p>'
-      : newsResult.data?.length ? newsResult.data.map(item => `
-          <article class="news-row home-news-item ${item.hero_image_path ? 'home-news-item--with-image' : ''}">
-            <a class="home-news-item__link" href="/aktuelles/" aria-label="Nachricht ${escapeHtml(item.title)} öffnen">
-              ${item.hero_image_path ? `<img class="home-news-item__image" src="${escapeHtml(mediaUrl(item.hero_image_path))}" alt="" width="108" height="80" loading="lazy" decoding="async" />` : ''}
-              <span class="home-news-item__content">
-                <strong>${escapeHtml(item.title)}</strong>
-                <time class="match-meta" ${item.published_at ? `datetime="${escapeHtml(item.published_at)}"` : ''}>${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : ''}</time>
-              </span>
-            </a>
-          </article>`).join('')
-      : '<p class="muted">Noch keine aktuellen Beiträge.</p>';
+    if (newsTarget) {
+      const upcomingClubEvents = (homeEventsResult.data ?? []).filter(item =>
+        new Date(item.starts_at).getTime() >= now.getTime() - 86400000);
+      const linkedNewsIds = new Set(upcomingClubEvents
+        .map(item => typeof item.external_url === 'string' && item.external_url.startsWith('news:') ? item.external_url.slice(5) : '')
+        .filter(Boolean));
+      const announcedNews = (newsResult.data ?? []).filter(item =>
+        !linkedNewsIds.has(item.id) && !upcomingClubEvents.some(event => event.title === item.title));
+      const homeItems = [
+        ...upcomingClubEvents.map(item => ({
+          title: item.title, image: item.hero_image_path, when: item.starts_at,
+          label: 'Veranstaltung',
+          href: item.rsvp_enabled && item.slug ? `/veranstaltung/?slug=${encodeURIComponent(item.slug)}` : '/termine/',
+        })),
+        ...announcedNews.map(item => ({
+          title: item.title, image: item.hero_image_path, when: item.published_at,
+          label: 'News', href: '/aktuelles/',
+        })),
+      ].slice(0, 3);
+      newsTarget.innerHTML = homeItems.length ? homeItems.map(item => `
+        <article class="news-row home-news-item ${item.image ? 'home-news-item--with-image' : ''}">
+          <a class="home-news-item__link" href="${escapeHtml(item.href)}" aria-label="${escapeHtml(item.label + ': ' + item.title)} öffnen">
+            ${item.image ? `<img class="home-news-item__image" src="${escapeHtml(mediaUrl(item.image))}" alt="" width="108" height="80" loading="lazy" decoding="async" />` : ''}
+            <span class="home-news-item__content">
+              <strong>${escapeHtml(item.title)}</strong>
+              <time class="match-meta" ${item.when ? `datetime="${escapeHtml(item.when)}"` : ''}>${escapeHtml(item.label)} · ${item.when ? escapeHtml(formatDateTime(item.when)) : ''}</time>
+            </span>
+          </a>
+        </article>`).join('')
+        : newsResult.error && homeEventsResult.error
+          ? '<p class="muted">Aktuelles momentan nicht abrufbar.</p>'
+          : '<p class="muted">Noch keine aktuellen Beiträge oder Veranstaltungen.</p>';
+    }
     if (document.querySelector('#home-sponsors')) {
       await renderSponsorPlacements('#home-sponsors', ['home']);
     }
