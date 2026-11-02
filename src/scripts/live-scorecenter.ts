@@ -6,6 +6,22 @@ function splitScore(value: string) {
 function enhanceSetColumns(result: HTMLElement) {
   const sets = result.querySelector<HTMLElement>(':scope > span');
   if (!sets || sets.dataset.columns === 'true') return;
+  // Keep real tie-break superscripts when expanding compact scores into the
+  // scorecenter's aligned table. textContent would concatenate 7 and small 5.
+  const richSets = Array.from(sets.querySelectorAll<HTMLElement>('.ticker-set-score'));
+  if (richSets.length) {
+    sets.dataset.columns = 'true';
+    sets.classList.add('ticker-running-encounter__sets');
+    sets.innerHTML = richSets.map((value, index) => {
+      const sides = Array.from(value.querySelectorAll<HTMLElement>('.ticker-set-side'));
+      if (sides.length !== 2) return '';
+      return `<span class="ticker-running-encounter__set">
+        <small aria-label="Satz ${index + 1}">${index + 1}</small>
+        <b>${sides[0].innerHTML}</b><b>${sides[1].innerHTML}</b>
+      </span>`;
+    }).join('');
+    return;
+  }
   const values = (sets.textContent || '')
     .split('·')
     .map((value) => splitScore(value))
