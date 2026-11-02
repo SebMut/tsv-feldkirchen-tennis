@@ -18,6 +18,7 @@ test('6 singles + 3 doubles and 4 singles + 2 doubles are exercised in two isola
   assert.match(browser,/const a=await setupContext/);
   assert.match(browser,/const b=await setupContext/);
   assert.match(browser,/Promise\.all\(\[left\.clock\.fastForward\(30000\),right\.clock\.fastForward\(30000\)\]\)/);
+  assert.match(browser,/Both browser sessions must converge within 3 polling cycles/);
   assert.match(browser,/\.live-encounter-row\.is-finished/);
   assert.match(browser,/route\.fulfill/);
   assert.doesNotMatch(browser,/route\.request\(\)\.method\(\)\s*===?\s*['"]POST/);

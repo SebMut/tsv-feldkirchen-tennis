@@ -105,18 +105,22 @@ export async function runTickerBrowserRehearsal({browser,url,check}){
       await check('ticker '+format+' two-context polling convergence',async()=>{
         model.encounters[0]={...model.encounters[0],status:'finished',result_text:'6:3 6:4',winner:'tsv'};
         model.state={...model.state,home_score:1,updated_at:new Date().toISOString()};
-        await Promise.all([left.clock.fastForward(30000),right.clock.fastForward(30000)]);
+        // Wait until the real page has registered the 30-second polling timer.
+        // The initial rows can be in the DOM before initLiveMatch() finishes.
+        await new Promise(resolve=>setTimeout(resolve,450));
 
-        // page.waitForFunction uses requestAnimationFrame, which is frozen by
-        // the controlled Playwright clock. Observe DOM from Node's real clock.
-        const waitForRenderedUpdate=async(page)=>{
-          for(let attempt=0;attempt<80;attempt++){
-            if(await page.locator('.live-encounter-row.is-finished').count()===1)return;
+        // Advance timers on both isolated browser clocks. If the first refresh
+        // overlaps the initial request, the next polling tick must still converge.
+        const bothUpdated=async()=>(
+          await left.locator('.live-encounter-row.is-finished').count()===1
+          && await right.locator('.live-encounter-row.is-finished').count()===1
+        );
+        for(let attempt=0;attempt<3 && !(await bothUpdated());attempt++){
+          await Promise.all([left.clock.fastForward(30000),right.clock.fastForward(30000)]);
+          for(let n=0;n<12 && !(await bothUpdated());n++)
             await new Promise(resolve=>setTimeout(resolve,125));
-          }
-          throw Error('Second-device ticker did not converge after the polling interval');
-        };
-        await Promise.all([waitForRenderedUpdate(left),waitForRenderedUpdate(right)]);
+        }
+        assert.ok(await bothUpdated(),'Both browser sessions must converge within 3 polling cycles');
         for(const page of [left,right]){
           assert.match(await page.locator('#live-score').innerText(),/1/);
           assert.equal(await page.locator('.live-encounter-row.is-finished').count(),1);
