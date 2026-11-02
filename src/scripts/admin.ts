@@ -1857,6 +1857,7 @@ async function refreshMatches() {
           if (setSaving || button.disabled) return;
           const setIndex = Number(button.dataset.encStep);
           const side = button.dataset.encSide;
+          if (side !== 'tsv' && side !== 'opponent') return;
           const change = Number(button.dataset.encDelta);
           const current = parseEncounterSetScores(encounterCard.querySelector<HTMLInputElement>('[data-enc-result]')?.value);
           const result = adjustSetScore(current[setIndex] || '', setIndex, side, change);
