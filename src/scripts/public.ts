@@ -265,10 +265,13 @@ function matchRouteButton(match: Row): string {
 function matchVenueInfo(match: Row, includeRoute = false): string {
   const venue = typeof match.venue_name === 'string' ? match.venue_name.trim() : '';
   const address = typeof match.venue_address === 'string' ? match.venue_address.trim() : '';
+  const caution = typeof match.notes === 'string' && match.notes.includes('[Routing]')
+    ? match.notes.split('[Routing]')[1]?.trim() || '' : '';
   return `<div class="match-venue">
     <span class="match-venue__label">📍 Tatsächlicher Spielort</span>
     <strong>${escapeHtml(venue || address || 'Spielort noch nicht bekannt')}</strong>
     ${address ? `<small>${escapeHtml(address)}</small>` : venue ? '<small>Genaue Anschrift bitte vor der Fahrt prüfen.</small>' : ''}
+    ${caution ? `<small class="match-venue__warning">${escapeHtml(caution)}</small>` : ''}
     ${includeRoute ? matchRouteButton(match) : ''}
   </div>`;
 }

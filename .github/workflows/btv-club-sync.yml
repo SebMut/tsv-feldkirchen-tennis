@@ -11,6 +11,7 @@ on:
       - scripts/btv-schedule.mjs
       - scripts/btv-winter-schedule.mjs
       - scripts/sync-btv.mjs
+      - scripts/audit-winter-2026.mjs
       - .github/workflows/btv-club-sync.yml
   workflow_dispatch:
     inputs:
@@ -52,10 +53,8 @@ jobs:
         env:
           BTV_SEASON_YEAR: ${{ inputs.season_year }}
         run: node scripts/sync-btv.mjs
-      - name: Verify all 3 public winter group PDFs (read-only)
-        env:
-          BTV_SEASON_CODE: winter-2026-2027
-        run: node scripts/sync-btv.mjs
+      - name: Cross-check all 15 winter fixtures against the 3 official BTV PDFs (read-only)
+        run: node scripts/audit-winter-2026.mjs
 
   import:
     # No write unless *all* checks hold. This job does not run on the

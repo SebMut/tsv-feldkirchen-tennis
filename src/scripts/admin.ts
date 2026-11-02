@@ -369,6 +369,7 @@ function showPanel(name: string) {
   if (description) description.textContent = panelDescriptions[name] || '';
   if (panelPicker) panelPicker.value = name;
   if (name === 'news') selectEditorialKind(legacyEvents ? 'events' : selectedEditorialKind);
+  if (name === 'btv-import' && state.isSuper) void refreshWinterBtvHealth();
 }
 
 function applyDashboardTeamFilters() {
@@ -730,6 +731,59 @@ function initBtvSourceRegistry() {
     }
   });
   renderBtvSourceList();
+}
+
+
+// Read-only SuperAdmin surveillance: never infer that a configured workflow ran
+// merely because it has a schedule. Show the actual verified DB import timestamp.
+async function refreshWinterBtvHealth() {
+  if (!state.isSuper) return;
+  const node = $('#btv-sync-status');
+  if (!node) return;
+  node.textContent = 'Winter 2026/2027 wird geprüft …';
+  const winter = state.seasons.find(s => s.code === 'winter-2026-2027');
+  const teamIds = state.teamSeasons.filter(ts => ts.season_id === winter?.id).map(ts => ts.id);
+  if (!winter || teamIds.length !== 3) {
+    node.textContent = 'Winter 2026/2027: Erwartet werden drei Mannschaften. Bitte Saisonverwaltung prüfen.';
+    return;
+  }
+  const [runs, fixtures, players] = await Promise.all([
+    supabase.from('btv_import_runs')
+      .select('status,started_at,completed_at,source_fixture_count,conflicts_count,error_message')
+      .eq('season_code', 'winter-2026-2027').order('started_at', {ascending:false}).limit(1),
+    supabase.from('matches')
+      .select('id,team_season_id,venue_address,venue_name,external_url,is_home')
+      .in('team_season_id', teamIds),
+    supabase.from('team_players')
+      .select('team_season_id,public_visible').in('team_season_id', teamIds),
+  ]);
+  if (runs.error || fixtures.error || players.error) {
+    node.textContent = 'BTV-Prüfung nicht möglich: ' +
+      [runs.error?.message,fixtures.error?.message,players.error?.message].filter(Boolean).join(' · ');
+    return;
+  }
+  const latest = runs.data?.[0];
+  const games = fixtures.data || [];
+  const entries = players.data || [];
+  const missing = games.filter(game => !String(game.venue_address || '').trim()).length;
+  const invalidLinks = games.filter(game =>
+    !/^https:\/\/www\.btv\.de\/de\/spielbetrieb\/tabelle-spielplan\.html\?groupid=\d+$/.test(game.external_url || '')).length;
+  const updated = latest?.completed_at || latest?.started_at;
+  const age = updated ? (Date.now() - Date.parse(updated)) / 3600000 : Infinity;
+  const fresh = latest?.status === 'success' && latest?.source_fixture_count === 15 &&
+    latest?.conflicts_count === 0 && age <= 8;
+  const broken = games.length !== 15 || missing > 0 || invalidLinks > 0 || latest?.status !== 'success' || age > 24;
+  const last = updated ? formatDateTime(updated) : 'Noch kein Import protokolliert';
+  const hidden = entries.filter(entry => !entry.public_visible).length;
+  node.innerHTML = `<div class="card stack">
+    <strong>${broken ? '⚠ BTV-Abgleich: Handlungsbedarf' : fresh ? '✓ BTV-Abgleich aktuell' : '⚠ BTV-Abgleich prüfen'}</strong>
+    <p>Letzter Datenbank-Abgleich: <strong>${escapeHtml(last)}</strong> · ${Number.isFinite(age) ? Math.round(age) + ' Stunden alt' : 'unbekannt'}</p>
+    <p>Winter 2026/27: <strong>${games.length}/15 Begegnungen</strong> · <strong>${missing} fehlende Routenadressen</strong> · <strong>${invalidLinks} ungültige Spielplanlinks</strong></p>
+    <p>Kader: <strong>${entries.length} Zuordnungen</strong> · <strong>${hidden} nicht öffentlich sichtbar</strong>. Sichtbarkeit ist eine Freigabeentscheidung, kein Importfehler.</p>
+    <p class="muted">${age > 8 ? 'Der letzte BTV-Abgleich liegt über dem geplanten Sechs-Stunden-Rhythmus. Bitte GitHub Actions und den Importjob prüfen.' : 'BTV-Importprotokoll aktuell.'}
+    Ein Eintrag hier bestätigt nicht automatisch die korrekte Halleneinfahrt; diese wird getrennt verifiziert.</p>
+    ${latest?.status === 'failed' && latest.error_message ? `<p role="alert">Importfehler: ${escapeHtml(latest.error_message)}</p>` : ''}
+  </div>`;
 }
 
 function fillTeamForm() {
@@ -2427,6 +2481,7 @@ async function startApp(user: any) {
   bindNav();
   bindForms();
   initBtvSourceRegistry();
+  $<HTMLButtonElement>('#btv-sync-refresh')?.addEventListener('click', () => void refreshWinterBtvHealth());
   await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshNewsReferenceEvents(), refreshGalleries()]);
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
   await initAdvancedAdmin(state);
