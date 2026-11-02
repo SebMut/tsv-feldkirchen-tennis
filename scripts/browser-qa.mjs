@@ -135,6 +135,24 @@ async function roleQA(role){
     for(const [section,visible] of Object.entries(role.visible)){
       assert.equal(await page.locator('[data-panel="'+section+'"]').isVisible(),visible,role.name+' unexpected '+section+' permission');
     }
+    if(role.code==='NEWS'||role.code==='EVENTS'){
+      await page.locator('.admin-nav button[data-panel="news"]').click();
+      const withEvent=page.locator('#editorial-compose-event');
+      assert.equal(await withEvent.isDisabled(),true,'single-role user may not toggle unauthorized content type');
+      assert.equal(await withEvent.isChecked(),role.code==='EVENTS','incorrect editorial mode for role');
+      await page.locator('#editorial-compose-title').fill('Vorschau Testbeitrag');
+      await page.locator('#editorial-compose-body').fill('Dieser Text ist ausschließlich eine Vorschau und wird nicht gespeichert.');
+      if(role.code==='EVENTS')await page.locator('#editorial-compose-start').fill('2027-09-10T13:00');
+      await page.locator('#editorial-compose-preview-button').click();
+      assert.equal(await page.locator('#editorial-compose-desktop .content-card').isVisible(),true,'desktop card missing');
+      assert.equal(await page.locator('#editorial-compose-mobile .content-card').isVisible(),true,'mobile card missing');
+      assert.equal(await page.locator('#editorial-compose-publish').isEnabled(),true,'preview did not unlock publish');
+      await page.setViewportSize({width:390,height:844});
+      const bounds=await page.locator('#editorial-compose-mobile .content-card').boundingBox();
+      assert.ok(bounds && bounds.width<=390,'mobile preview overflows 390 px viewport');
+      await page.locator('#editorial-compose-title').fill('Vorschau nach Änderung');
+      assert.equal(await page.locator('#editorial-compose-publish').isDisabled(),true,'editing did not invalidate preview');
+    }
   },null,true);
   await context.close();
 }
