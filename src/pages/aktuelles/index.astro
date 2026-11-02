@@ -19,13 +19,14 @@ import MainLayout from '../../layouts/MainLayout.astro';
 </MainLayout>
 <script>
   import { loadNews } from '../../scripts/public';
-  import { supabase } from '../../lib/supabase';
+  import { mediaUrl, supabase } from '../../lib/supabase';
   import { escapeHtml, formatDateTime } from '../../lib/ui';
 
   const section = document.querySelector<HTMLElement>('#event-news');
   const list = document.querySelector<HTMLElement>('#event-news-list');
   const newsList = document.querySelector<HTMLElement>('#news-list');
   const linkedNewsIds = new Set<string>();
+  const eventTitles = new Set<string>();
 
   if (section && list) {
     const { data: events } = await supabase
@@ -41,6 +42,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
     });
 
     rows.forEach((event: any) => {
+      eventTitles.add(String(event.title || '').trim());
       const match = typeof event.slug === 'string' ? /^news-([0-9a-f-]{36})$/i.exec(event.slug) : null;
       if (match) linkedNewsIds.add(match[1]);
     });
@@ -77,16 +79,16 @@ import MainLayout from '../../layouts/MainLayout.astro';
         (linkedNews ?? []).forEach((article: any) => {
           if (!article.hero_image_path) return;
           const image = list.querySelector<HTMLImageElement>(`img[data-event-news-id="${article.id}"]`);
-          if (image) image.src = `${import.meta.env.PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${article.hero_image_path}`;
+          if (image) image.src = mediaUrl(article.hero_image_path);
         });
       }
     }
   }
 
   await loadNews();
-  linkedNewsIds.forEach(id => {
-    const duplicate = newsList?.querySelector<HTMLElement>(`[data-news-id="${id}"]`);
-    duplicate?.remove();
+  newsList?.querySelectorAll<HTMLElement>('article.card').forEach(card => {
+    const title = card.querySelector('h2')?.textContent?.trim() || '';
+    if (eventTitles.has(title)) card.remove();
   });
 </script>
 <style>
