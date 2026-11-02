@@ -89,7 +89,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
       list.innerHTML = rows.map((event: any) => {
         const href = `#event-${event.id}`;
         const signupHref = event.rsvp_enabled && event.slug ? `/veranstaltung/?slug=${encodeURIComponent(event.slug)}` : null;
-        const description = plainText(event.description) || 'Weitere Informationen zur Veranstaltung folgen.';
+        const description = plainText(event.excerpt || event.description) || 'Weitere Informationen zur Veranstaltung folgen.';
         const fullDescription = escapeHtml(String(event.description || description).trim()).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         const linkedNewsId = typeof event.slug === 'string' ? /^news-([0-9a-f-]{36})$/i.exec(event.slug)?.[1] : undefined;
         const eventImage = event.hero_image_path ? mediaUrl(event.hero_image_path) : '/images/veranstaltung-ai.svg';
