@@ -269,3 +269,94 @@ body.tv-ticker{margin:0;background:#041119;color:#f6f9fa;font-family:Inter,syste
 .tv-ticker--recap .tv-ticker__running{color:#ffce75}
 .tv-ticker--recap .tv-ticker__utility{background:#263024;border-color:#504c30}
 .tv-ticker--recap .tv-ticker__match-head{background:#293122;border-bottom-color:#626047}
+
+
+/* Compact matchday control: keep automatic rotation, but allow an explicit
+   accessible live/finished selection without mixing the two scoreboards. */
+.tv-ticker__view-switch{display:inline-flex;align-items:center;gap:2px;flex:none;padding:2px;border:1px solid #35525e;border-radius:7px;background:#071a23}
+.tv-ticker__view-switch button{appearance:none;min-height:32px;padding:5px 10px;border:0;border-radius:5px;background:transparent;color:#b7cbd3;font-size:.75rem;font-weight:850;cursor:pointer}
+.tv-ticker__view-switch button[aria-pressed="true"]{color:#fff;background:#b52140}
+.tv-ticker__view-switch button:focus-visible{outline:2px solid #ffacba;outline-offset:2px}
+.tv-ticker--recap .tv-ticker__view-switch button[aria-pressed="true"]{background:#8b6019}
+
+/* Information density is optimised for a laptop / tablet rather than reusing
+   full-size broadcast proportions on every viewport. Every player's baseline
+   remains aligned with the matching result and TieBreak superscript. */
+@media(max-width:1600px){
+  .tv-ticker__shell{padding:6px}
+  .tv-ticker__header{padding:9px 12px;gap:8px}
+  .tv-ticker__header h1{font-size:clamp(1.17rem,1.55vw,1.75rem)}
+  .tv-ticker__eyebrow{font-size:.66rem;margin-bottom:3px}
+  .tv-ticker__description{margin-top:2px}
+  .tv-ticker__identity img{width:37px;height:37px}
+  .tv-ticker__identity>div{gap:1px}
+  .tv-ticker__utility{padding:5px 10px;gap:7px;min-height:0}
+  .tv-ticker__view-switch button{min-height:30px;padding:4px 9px}
+  .tv-ticker__grid{padding:6px 0;gap:7px}
+  .tv-ticker__match-head{padding:6px 9px;gap:5px}
+  .tv-ticker__match-head h2{font-size:clamp(.88rem,1vw,1.07rem);margin:0 0 2px;line-height:1.13}
+  .tv-ticker__match-head p{margin:1px 0;font-size:.67rem;line-height:1.16}
+  .tv-ticker__match-head .tv-ticker__changed{font-size:.62rem}
+  .tv-ticker__score{min-height:58px;grid-template-columns:minmax(0,1fr) 46px}
+  .tv-ticker__score-names>div{padding:3px 7px;gap:5px}
+  .tv-ticker__score-names img{width:19px;height:19px}
+  .tv-ticker__score-names strong{font-size:.79rem;line-height:1.12}
+  .tv-ticker__score-values strong{font-size:1.3rem}
+  .tv-ticker__games-head{padding:5px 8px;gap:4px}
+  .tv-ticker__games-head strong{font-size:.74rem}
+  .tv-ticker__games-head span{font-size:.63rem}
+  .tv-ticker__game-top{padding:3px 7px}
+  .tv-ticker__game-top>strong{font-size:.7rem}
+  .tv-ticker__game-status{font-size:.61rem}
+  .tv-ticker__game-body{--tv-set-head:16px;--tv-set-player:23px}
+  .tv-ticker__players>div{padding:2px 6px;gap:4px;font-size:.73rem;line-height:1.1}
+  .tv-ticker__player-logo{width:17px;height:17px}
+  .tv-ticker__set{min-width:29px;font-size:.8rem}
+  .tv-ticker__set--total{min-width:31px}
+  .tv-ticker__set span{padding:1px}
+  .tv-ticker__detail{padding:6px 8px;font-size:.7rem}
+  .tv-ticker__footer{padding:4px 2px 8px}
+}
+@media(max-width:850px){
+  .tv-ticker__match-head{min-height:0}
+  .tv-ticker__grid{max-width:690px}
+  .tv-ticker__header{padding:8px 10px}
+  .tv-ticker__utility{padding:5px 8px;flex-wrap:wrap}
+  .tv-ticker__view-switch{margin-inline:auto 0}
+}
+@media(max-width:560px){
+  .tv-ticker__shell{padding:4px}
+  .tv-ticker__header{padding:6px 8px}
+  .tv-ticker__header h1{font-size:1.12rem}
+  .tv-ticker__identity img{width:26px;height:26px}
+  .tv-ticker__utility{gap:4px;padding:4px 6px}
+  .tv-ticker__sync{flex:1 1 100%;font-size:.62rem}
+  .tv-ticker__countdown{font-size:.65rem}
+  .tv-ticker__view-switch{margin-inline:0 auto}
+  .tv-ticker__view-switch button{min-height:32px;padding:5px 8px;font-size:.69rem}
+  .tv-ticker__tools{width:auto;margin-left:auto;gap:4px}
+  .tv-ticker__tools a,.tv-ticker__tools button{min-height:32px;padding:4px 6px}
+  .tv-ticker__match-head{padding:5px 7px}
+  .tv-ticker__match-head h2{font-size:.85rem}
+  .tv-ticker__match-head p{font-size:.61rem}
+  .tv-ticker__score{min-height:52px;grid-template-columns:minmax(0,1fr) 39px}
+  .tv-ticker__score-names>div{padding:2px 6px;gap:4px}
+  .tv-ticker__score-names img{width:16px;height:16px}
+  .tv-ticker__score-names strong{font-size:.72rem}
+  .tv-ticker__score-values strong{font-size:1.22rem}
+  .tv-ticker__games-head{padding:4px 6px}
+  .tv-ticker__game-top{padding:3px 6px}
+  .tv-ticker__game-body{--tv-set-head:14px;--tv-set-player:22px}
+  .tv-ticker__players>div{padding:1px 5px;font-size:.7rem}
+  .tv-ticker__player-logo{width:15px;height:15px}
+  .tv-ticker__set{min-width:27px;font-size:.77rem}
+  .tv-ticker__set--total{min-width:28px}
+  .tv-ticker__detail{padding:5px 7px}
+  .tv-ticker__footer{display:none}
+}
+@media(max-width:370px){
+  .tv-ticker__view-switch button{padding-inline:6px;font-size:.66rem}
+  .tv-ticker__set{min-width:25px}
+  .tv-ticker__set--total{min-width:26px}
+  .tv-ticker__players>div{font-size:.67rem}
+}
