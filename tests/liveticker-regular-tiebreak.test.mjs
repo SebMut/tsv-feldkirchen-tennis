@@ -61,7 +61,7 @@ test('admin +/- tie-break writes the same match encounter row through existing R
   const admin=read('src/scripts/admin.ts');
   assert.match(admin,/data-enc-tb-step/);
   assert.match(admin,/adjustRegularTiebreak\(prior, side, delta\)/);
-  assert.match(admin,/await persistSetScore\(index, score, undefined, updated\.points\)/);
+  assert.match(admin,/await persistSetScore\(index, score, undefined, points\)/);
   assert.match(admin,/tiebreak_points: tiebreakPoints/);
   assert.match(admin,/\.select\('id,result_text,status,tiebreak_points'\)/);
   assert.match(admin,/tiebreakMismatch/);
