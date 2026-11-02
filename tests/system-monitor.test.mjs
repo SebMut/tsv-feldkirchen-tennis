@@ -16,7 +16,7 @@ test('system health stays superadmin-only in edge function and SQL',()=>{
   assert.match(edge,/caller\?\.global_role !== "super_admin"/);
   assert.match(edge,/if \(action === "system_health"\)/);
   assert.match(edge,/admin\.rpc\("admin_system_integrity"\)/);
-  assert.match(sql,/auth\.jwt\(\)->>'role'\),''\) <> 'service_role'/);
+  assert.match(sql,/coalesce\(auth\.jwt\(\)->>'role',''\) <> 'service_role'/);
   assert.match(sql,/revoke all on function public\.admin_system_integrity\(\) from public,anon,authenticated/);
   assert.match(sql,/grant execute on function public\.admin_system_integrity\(\) to service_role/);
 });
