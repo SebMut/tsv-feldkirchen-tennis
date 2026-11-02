@@ -15,10 +15,10 @@ test('LIVE menu pulses conspicuously in desktop, mobile menu and dock only if Su
   assert.ok(header.includes('initLiveNavPulse()'));
   assert.ok((header.match(/js-live-nav-link/g)||[]).length>=3);
   assert.ok(nav.includes("from('match_live_state')"));
-  assert.ok(nav.includes(".eq('status','live').limit(1)"));
-  assert.ok(nav.includes('link.classList.toggle(\'has-live-match\',anyLive)'));
-  assert.ok(nav.includes('window.setInterval(()=>void refresh(),30000)'));
-  assert.ok(nav.includes("document.visibilityState==='visible'"));
+  assert.match(nav, /\.eq\('status',\s*'live'\)\s*\.limit\(1\)/);
+  assert.match(nav, /link\.classList\.toggle\('has-live-match',\s*anyLive\)/);
+  assert.match(nav, /window\.setInterval\(\(\)\s*=>\s*void refresh\(\),\s*30000\)/);
+  assert.match(nav, /document\.visibilityState\s*===\s*'visible'/);
   assert.ok(css.includes('@keyframes tsvLiveMenuPulse'));
   assert.ok(css.includes('.mobile-dock__tab.js-live-nav-link.has-live-match'));
   assert.ok(css.includes('.desktop-nav a.js-live-nav-link.has-live-match'));

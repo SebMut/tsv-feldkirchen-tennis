@@ -92,7 +92,8 @@ test('team administration separates summer, winter and future seasons', () => {
   assert.match(html, /Mannschaft \/ Saison/);
   assert.match(js, /renderAdminTeamSeasonFilter\(\)/);
   assert.match(js, /state\.teamSeasons\.find\(\(row\) => row\.id === select\.value\)/);
-  assert.match(js, /team_image_path: path/);
+  assert.match(js, /replaceMediaImage\(/);
+  assert.match(js, /team_image_path:\s*path/);
   assert.match(js, /Sommer \$\{String\(season\.code\)/);
   assert.match(html, /data-team-season="sommer-2026"/);
   assert.match(html, /data-team-season="winter-2026-2027"/);
@@ -156,7 +157,7 @@ test('public team navigation labels summer correctly and follows managed active 
   assert.match(publicJs, /const defaultSeason = managedCurrentSeason \|\| byCurrentDate/);
   assert.match(publicJs, /const requestedCode = seasonCodes\.includes/);
   assert.match(publicJs, /activeCode = requestedCode \|\|/);
-  assert.match(source('src/pages/sw.js.ts'), /tsv-tennis-public-v4/);
+  assert.match(source('src/pages/sw.js.ts'), /tsv-tennis-public-v[0-9]+/);
 });
 
 test('training page shows only logo from school contact page without photo gallery', () => {

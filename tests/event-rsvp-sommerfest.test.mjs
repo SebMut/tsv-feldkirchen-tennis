@@ -64,7 +64,7 @@ test('aggregated count never exposes participant names and supports all choices'
 });
 
 test('admins can schedule and publish real events, see private RSVP rows',()=>{
-  assert.ok(adminPage.includes('id="panel-rsvp-events" class="admin-panel" data-super-only'));
+  assert.ok(adminPage.includes('id="panel-rsvp-events" class="admin-panel" data-events-only'));
   assert.ok(adminPage.includes('id="rsvp-admin-start" type="datetime-local" required'));
   assert.ok(adminPage.includes('id="rsvp-admin-status"'));
   assert.ok(adminPage.includes('id="rsvp-admin-list"'));
@@ -72,7 +72,7 @@ test('admins can schedule and publish real events, see private RSVP rows',()=>{
   assert.ok(admin.includes("supabase.from('events').insert"));
   assert.ok(admin.includes("supabase.from('event_rsvps')"));
   assert.ok(admin.includes('escapeHtml(row.member_name)'));
-  assert.ok(init.includes('initEventRsvpAdmin({ isSuper: true, user: state.user })'));
+  assert.ok(init.includes('initEventRsvpAdmin({ isSuper: canEvents, user: state.user })'));
 });
 
 test('calendar links published signup events and controls are responsive',()=>{

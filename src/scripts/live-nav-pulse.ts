@@ -1,8 +1,7 @@
 import { supabase } from '../lib/supabase';
 
 /**
- * Shows Live-Ticker navigation only while a published match is really live.
- * On the mobile dock, Mannschaften occupies the same slot whenever nothing is live.
+ * Keep Live-Ticker navigation visible on all devices. Pulse red only when a match is live.
  */
 export function initLiveNavPulse() {
   const liveLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('.js-live-nav-link'));
@@ -11,8 +10,8 @@ export function initLiveNavPulse() {
 
   const apply = (anyLive: boolean) => {
     for (const link of liveLinks) {
-      link.hidden = !anyLive;
-      link.setAttribute('aria-hidden', String(!anyLive));
+      link.hidden = false;
+      link.setAttribute('aria-hidden', 'false');
       link.classList.toggle('has-live-match', anyLive);
       if (anyLive) {
         link.setAttribute('aria-label', 'Live-Ticker – jetzt läuft ein Spiel');
@@ -29,7 +28,7 @@ export function initLiveNavPulse() {
     document.documentElement.classList.toggle('has-live-match', anyLive);
   };
 
-  // Fail closed: until Supabase confirms a live match, no Live-Ticker menu item is shown.
+  // Fail closed on the LIVE animation: the menu remains visible when status is unknown.
   apply(false);
 
   let busy = false;
