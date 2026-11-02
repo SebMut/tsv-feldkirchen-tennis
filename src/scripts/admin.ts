@@ -7,7 +7,7 @@ import { initOfficialReportsPanel } from './official-reports-admin';
 import { initEventRsvpAdmin } from './event-rsvp-admin';
 import { initEditorialComposer } from './editorial-composer';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
-import { summarizeSetResult, homeAwaySetScore, validateSetScore, adjustSetScore } from '../lib/tennis-score.mjs';
+import { summarizeSetResult, validateSetScore, adjustSetScore } from '../lib/tennis-score.mjs';
 import { adjustRegularTiebreak, readRegularTiebreak, regularTiebreakScore, regularSetFromTiebreak, regularSetDisplayHtml, validateRegularTiebreak } from '../lib/regular-tiebreak.mjs';
 
 type Row = Record<string, any>;
@@ -1358,7 +1358,7 @@ async function refreshMatches() {
       const stored = readRegularTiebreak(regularTiebreaks, setIndex);
       if (setScore !== '6:6' && !(stored && ['7:6','6:7'].includes(setScore))) return '';
       const current = stored || [0,0];
-       const counter = (side: 'tsv' | 'opponent') => {
+      const counter = (side: 'tsv' | 'opponent') => {
         const value = current[side === 'tsv' ? 0 : 1];
         const button = (delta: number) => {
           const next = adjustRegularTiebreak(current, side, delta);
