@@ -186,6 +186,8 @@ export function initTvLiveTicker() {
     inFlight = true;
     try {
       const matches = await fetchLiveMatches();
+      board.classList.toggle('tv-ticker__grid--single', matches.length === 1);
+      board.classList.toggle('tv-ticker__grid--pair', matches.length === 2);
       board.innerHTML = matches.length
         ? matches.map(renderMatch).join('')
         : '<section class="tv-ticker__empty" role="status"><div class="tv-ticker__empty-mark" aria-hidden="true">🎾</div><h2>Aktuell läuft keine Begegnung</h2><p>Die Anzeige startet automatisch, sobald ein Spiel live geschaltet wird.</p></section>';
