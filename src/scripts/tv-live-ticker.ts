@@ -1,6 +1,7 @@
 import { mediaUrl, supabase } from '../lib/supabase';
 import { escapeHtml } from '../lib/ui';
 import { summarizeSetResult, homeAwaySetScore } from '../lib/tennis-score.mjs';
+import { regularSetDisplayValues } from '../lib/regular-tiebreak.mjs';
 import { readTvTiming, recapIsActive, withinHighlight } from '../lib/tv-ticker-timing.mjs';
 
 type Row = Record<string, any>;
@@ -53,10 +54,14 @@ function renderEncounter(match: Row, encounter: Row, timing: TvTiming, now: numb
     const value = scores[index];
     if (!value) return '<div class="tv-ticker__set"><small>' + (index + 1) + '</small><span>–</span><span>–</span></div>';
     const [tsv, rival] = value.split(':');
+    const side = regularSetDisplayValues(value, index, encounter.tiebreak_points, !!match.is_home);
+    const renderValue = (games: string, tie: number | null | undefined) =>
+      '<span class="tv-ticker__set-value">' + escapeHtml(games) +
+      (tie == null ? '' : '<sup class="tv-ticker__tb-point" aria-label="Tiebreak-Punkte ' + tie + '">' + tie + '</sup>') + '</span>';
     const home = match.is_home ? tsv : rival;
     const away = match.is_home ? rival : tsv;
-    return '<div class="tv-ticker__set"><small>' + (index + 1) + '</small><span>' +
-      escapeHtml(home) + '</span><span>' + escapeHtml(away) + '</span></div>';
+    return '<div class="tv-ticker__set"><small>' + (index + 1) + '</small>' +
+      renderValue(home, side?.smallFirst) + renderValue(away, side?.smallSecond) + '</div>';
   };
   const round = oriented && result?.hasResult
     ? '<div class="tv-ticker__set tv-ticker__set--total"><small>S</small><span>' +
@@ -162,7 +167,7 @@ async function fetchLiveMatches(): Promise<LiveMatch[]> {
   const seasonIds = [...new Set(matches.map(m => m.team_season_id).filter(Boolean))];
   const [encountersResult, seasonsResult] = await Promise.all([
     supabase.from('match_encounters')
-      .select('match_id,discipline,position,status,tsv_player_1_name,tsv_player_2_name,opponent_slot_1,opponent_slot_2,result_text,winner,finished_at,updated_at')
+      .select('match_id,discipline,position,status,tsv_player_1_name,tsv_player_2_name,opponent_slot_1,opponent_slot_2,result_text,tiebreak_points,winner,finished_at,updated_at')
       .in('match_id', publishedIds).order('position'),
     seasonIds.length ? supabase.from('team_seasons').select('id,team_id,is_published').in('id', seasonIds)
       : Promise.resolve({ data: [] as Row[], error: null }),
