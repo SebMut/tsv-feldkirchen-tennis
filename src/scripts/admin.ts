@@ -1580,8 +1580,16 @@ async function refreshMatches() {
       .eq('id', encounterId)
       .select('id,result_text,status')
       .maybeSingle();
-    if (error || !data) {
-      const reason = error?.message || 'Keine geänderte Begegnung zurückgegeben. Bitte Rechte prüfen.';
+    // Confirm the persisted values returned by Supabase, not merely an HTTP 2xx.
+    // This protects the instant-score UI against an empty/unchanged UPDATE result.
+    const scoreMismatch = data && Object.prototype.hasOwnProperty.call(patch, 'result_text')
+      && data.result_text !== patch.result_text;
+    const statusMismatch = data && Object.prototype.hasOwnProperty.call(patch, 'status')
+      && data.status !== patch.status;
+    if (error || !data || scoreMismatch || statusMismatch) {
+      const reason = error?.message || (!data
+        ? 'Keine geänderte Begegnung zurückgegeben. Bitte Rechte prüfen.'
+        : 'Supabase hat den angeforderten Zwischenstand nicht bestätigt. Bitte erneut laden und prüfen.');
       status(reason, 'error');
       const feedback = target.querySelector<HTMLElement>(`[data-encounter-id="${encounterId}"] [data-enc-feedback]`);
       if (feedback) {
@@ -1589,7 +1597,7 @@ async function refreshMatches() {
         feedback.dataset.tone = 'error';
       }
     }
-    return !!data && !error;
+    return !!data && !error && !scoreMismatch && !statusMismatch;
   };
 
   const refreshChangedEncounter = async (encounterId: string, message: string) => {
