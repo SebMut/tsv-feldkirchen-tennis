@@ -21,7 +21,7 @@ test('editing roles is one verified database transaction instead of separate rol
   assert.match(editing, /result\.data\?\.verified !== true/);
 });
 
-test('failed role edits retain the user's selections for retry instead of silently discarding them', () => {
+test("failed role edits retain the user selections for retry instead of silently discarding them", () => {
   const section = editing.slice(editing.indexOf("action: 'save_permissions'"), editing.indexOf("reportStatus('Alle Rechte und Mannschaftsrollen wurden gespeichert"));
   assert.match(section, /return; \/\/ Keep unsaved selections visible/);
   assert.doesNotMatch(section, /loadAdvancedUsers\(base\)/);
