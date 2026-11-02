@@ -634,6 +634,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
                     <div class="field"><label for="setting-tv-recap-for">Beendete Spiele anzeigen für (Sekunden)</label><input id="setting-tv-recap-for" type="number" min="1" max="3599" step="1" value="30" required /></div>
                     <div class="field"><label for="setting-tv-highlight">Neue Siege/Niederlagen hervorheben (Sekunden)</label><input id="setting-tv-highlight" type="number" min="5" max="3600" step="1" value="300" required /></div>
                   </div>
+                  <div class="tv-timing-settings__actions">
+                    <button id="save-tv-timing" class="button secondary" type="button">TV-Zeiten speichern</button>
+                    <small class="muted">Unabhängig von den anderen Website-Einstellungen. Der Rückblick muss kürzer als sein Wiederholungsabstand sein.</small>
+                  </div>
+                  <p id="tv-timing-feedback" class="tv-timing-settings__feedback" role="status" aria-live="polite" hidden></p>
                 </fieldset>
                 <div class="field"><button class="button" type="submit">Einstellungen speichern</button></div>
               </form>
