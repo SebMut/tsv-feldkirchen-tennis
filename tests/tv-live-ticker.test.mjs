@@ -95,7 +95,7 @@ test('TV finished-score recap, victory duration and super-admin values are confi
   assert.match(controller,/\['tv_ticker_timing'/);
   assert.match(client,/recapIsActive\(timing, now, startedAt\)/);
   assert.match(client,/withinHighlight\(e\.finished_at, timing, now\)/);
-  assert.match(client,/\.filter\(e => e\.status === 'live' \|\|/);
+  assert.match(client,/e\.status === \(showRecap \? 'finished' : 'live'\)/);
 });
 
 test('compact notebook and smartphone layouts preserve branding, live results and touch controls', () => {
@@ -111,4 +111,17 @@ test('compact notebook and smartphone layouts preserve branding, live results an
   assert.match(livePage, /\.live-scorecenter \.live-encounter-side--tsv img\)\{display:block;width:16px;height:16px/);
   assert.match(styles, /\.tv-ticker__tb-point/);
   assert.match(livePage, /live-set-scores/);
+});
+
+test('TV finished recap and live presentation are mutually exclusive', () => {
+  assert.match(client, /const status = showRecap \? 'finished' : 'live';/);
+  assert.match(client, /m\.encounters\.some\(e => e\.status === status\)/);
+  assert.match(client, /e\.status === \(showRecap \? 'finished' : 'live'\)/);
+  assert.match(client, /dataset\.viewMode = showRecap \? 'finished' : 'live'/);
+  assert.match(client, /viewTitle\.textContent = showRecap \? 'Beendete Partien' : 'Jetzt live dabei'/);
+  assert.match(client, /Nur beendete Partien/);
+  assert.match(client, /Nur laufende Partien/);
+  assert.doesNotMatch(client, /e\.status === 'finished' && \(showRecap \|\| withinHighlight/);
+  assert.match(page, /id="tv-ticker-view-title"/);
+  assert.match(page, /id="tv-ticker-view-label"/);
 });
