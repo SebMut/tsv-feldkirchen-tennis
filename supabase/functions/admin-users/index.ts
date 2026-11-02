@@ -318,7 +318,34 @@ Deno.serve(async (req: Request) => {
       desired_memberships:memberships,
     });
     if (error) return Response.json({error:"Benutzerrechte konnten nicht gespeichert werden: "+error.message},{status:409,headers:cors});
-    return Response.json({ok:true},{headers:cors});
+
+    // Verify the committed database state before displaying success.
+    const [profileResult, membershipResult] = await Promise.all([
+      admin.from("profiles").select("global_role,global_permissions").eq("id",userId).single(),
+      admin.from("team_memberships").select("team_id,role,active").eq("user_id",userId),
+    ]);
+    if (profileResult.error || membershipResult.error || !profileResult.data) {
+      return Response.json({
+        ok:false,verified:false,
+        error:"Die Rechte wurden geschrieben, konnten aber nicht nachgeprüft werden. Bitte die Benutzerverwaltung aktualisieren.",
+      },{status:503,headers:cors});
+    }
+    const saved = profileResult.data;
+    const wantedMemberships = globalRole === "super_admin" ? [] : memberships;
+    const normalize = (items: Array<{team_id:string;role:string}>) =>
+      items.map(m => m.team_id + ":" + m.role).sort().join("|");
+    const actualMembers = membershipResult.data ?? [];
+    const matched = saved.global_role === globalRole
+      && [...(saved.global_permissions ?? [])].sort().join("|") === [...permissions].sort().join("|")
+      && actualMembers.every(m => m.active === true)
+      && normalize(actualMembers) === normalize(wantedMemberships);
+    if (!matched) {
+      return Response.json({
+        ok:false,verified:false,
+        error:"Die gespeicherten Rechte stimmen nicht mit der Auswahl überein. Bitte neu laden und erneut prüfen.",
+      },{status:409,headers:cors});
+    }
+    return Response.json({ok:true,verified:true},{headers:cors});
   }
 
   if (action === "set_role") {
