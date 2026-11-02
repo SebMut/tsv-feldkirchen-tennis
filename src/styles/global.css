@@ -2618,3 +2618,19 @@ main.main--flush{padding:0}
 .tv-timing-settings__feedback[hidden]{display:none}
 .tv-timing-settings input[aria-invalid="true"]{outline:2px solid #be1e2d;outline-offset:2px}
 @media(max-width:520px){.tv-timing-settings__actions>.button{width:100%}}
+
+/* 320px phones: keep both TieBreak point counters on one row with
+   accessible 36px-high buttons instead of stacking them vertically. */
+@media(max-width:370px){
+  #panel-matches .encounter-regular-tiebreak__counters{
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;
+  }
+  #panel-matches .encounter-tiebreak-counter{
+    grid-template-columns:35px 32px minmax(0,1fr) 32px;
+    gap:2px;
+  }
+  #panel-matches .encounter-tiebreak-counter__label{font-size:.59rem}
+  #panel-matches .encounter-tiebreak-counter .encounter-set-stepper__control{
+    width:32px;min-height:36px;
+  }
+}
