@@ -110,6 +110,41 @@ Deno.serve(async (req: Request) => {
     return Response.json({ users }, { headers: cors });
   }
 
+  // Read-only, server-authorized permissions audit. Uses the current persisted
+  // profile and active memberships (the same inputs used by private.is_super_admin,
+  // private.can_edit_team, private.can_tick_team and has_global_permission).
+  // Never logs in as the target user, changes a role or executes a write.
+  if (action === "audit_permissions") {
+    const userId = String(body.user_id ?? "");
+    if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(userId))
+      return Response.json({ error: "Ungültige Benutzerkennung." }, { status: 400, headers: cors });
+    const [profileResult, membershipResult, teamResult] = await Promise.all([
+      admin.from("profiles").select("id,global_role,global_permissions").eq("id", userId).maybeSingle(),
+      admin.from("team_memberships").select("team_id,role,active").eq("user_id", userId),
+      admin.from("teams").select("id,name").order("name"),
+    ]);
+    if (profileResult.error || membershipResult.error || teamResult.error)
+      return Response.json({ error: "Die tatsächlichen Berechtigungen konnten nicht gelesen werden." }, { status: 503, headers: cors });
+    const profile = profileResult.data;
+    if (!profile) return Response.json({ error: "Benutzer nicht gefunden." }, { status: 404, headers: cors });
+    const superAdmin = profile.global_role === "super_admin";
+    const permissions = new Set<string>(profile.global_permissions ?? []);
+    const assigned = new Map((membershipResult.data ?? []).filter(m => m.active).map(m => [m.team_id, m.role]));
+    const news = superAdmin || permissions.has("news");
+    const events = superAdmin || permissions.has("events");
+    const globalTicker = superAdmin || permissions.has("ticker");
+    const teams = (teamResult.data ?? []).map(team => {
+      const role = assigned.get(team.id) ?? null;
+      const edit = superAdmin || role === "manager" || role === "editor";
+      const ticker = globalTicker || role === "manager" || role === "editor" || role === "ticker";
+      return { id: team.id, name: team.name, role, team_edit: edit, roster_edit: edit, ticker, news, events };
+    });
+    return Response.json({ ok: true, user_id: userId, checked_at: new Date().toISOString(),
+      source: "supabase_persisted_roles", super_admin: superAdmin,
+      globals: { news, events, ticker: globalTicker },
+      teams }, { headers: cors });
+  }
+
   if (action === "invite") {
     const email = String(body.email ?? "").trim().toLowerCase();
     const displayName = String(body.display_name ?? "").trim();
