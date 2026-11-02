@@ -261,3 +261,11 @@ body.tv-ticker{margin:0;background:#041119;color:#f6f9fa;font-family:Inter,syste
 @media(max-width:560px){
   .tv-ticker__game-body{--tv-set-head:16px;--tv-set-player:24px}
 }
+
+/* Distinct finished-results takeover, separate from the running scoreboard.
+   The header changes automatically when the recap window starts. */
+.tv-ticker--recap .tv-ticker__eyebrow{color:#f7c96b}
+.tv-ticker--recap .tv-ticker__live-dot{background:#efba4b;border-color:#957031;box-shadow:0 0 0 4px #2b2417;animation:none}
+.tv-ticker--recap .tv-ticker__running{color:#ffce75}
+.tv-ticker--recap .tv-ticker__utility{background:#263024;border-color:#504c30}
+.tv-ticker--recap .tv-ticker__match-head{background:#293122;border-bottom-color:#626047}
