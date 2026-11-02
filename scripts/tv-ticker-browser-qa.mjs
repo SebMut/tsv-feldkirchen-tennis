@@ -91,8 +91,15 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
     await check('TV scoreboard: one live fixture spans the full TV width',async()=>{
       await page.setViewportSize({width:1920,height:1080});
       model.states=model.states.slice(0,1);
-      await page.clock.fastForward(30000);
-      await page.waitForFunction(()=>document.querySelectorAll('.tv-ticker__match').length===1,null,{timeout:9000});
+      // A previous polling request can still be settling after a fake-clock jump.
+      // The real TV retries every cycle, so advance up to three intervals.
+      for(let attempt=0;attempt<3 && await page.locator('.tv-ticker__match').count()!==1;attempt++){
+        await new Promise(resolve=>setTimeout(resolve,350));
+        await page.clock.fastForward(30000);
+        for(let n=0;n<12 && await page.locator('.tv-ticker__match').count()!==1;n++)
+          await new Promise(resolve=>setTimeout(resolve,125));
+      }
+      assert.equal(await page.locator('.tv-ticker__match').count(),1,'only the still-running team should be present');
       assert.equal(await page.locator('.tv-ticker__grid--single').count(),1);
       const grid=await page.locator('.tv-ticker__grid').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
       assert.equal(grid.trim().split(/\s+/).length,1,'one live team must use full horizontal room');
