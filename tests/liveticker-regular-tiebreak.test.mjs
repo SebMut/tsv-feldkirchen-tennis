@@ -52,7 +52,8 @@ test('finished set shows small losing points; running 6:6 shows both scores',()=
     {first:6,second:6,smallFirst:8,smallSecond:6});
   assert.equal(regularSetDisplayValues('7:6',0,null,true).smallSecond,null,'legacy 7:6 remains unchanged');
   const html=regularSetDisplayHtml('7:6',0,pointMap,true);
-  assert.match(html,/7 : 6<sup class="ticker-set-tiebreak"/);
+  assert.match(html,/ticker-set-side">7<\/span>/);
+  assert.match(html,/ticker-set-side">6<sup class="ticker-set-tiebreak"/);
   assert.match(html,/aria-label="Tiebreak-Punkte 6"/);
   assert.doesNotMatch(regularSetDisplayHtml('8:10',2,pointMap,true),/sup/,'match tie-break uses normal large digits');
 });
@@ -71,6 +72,9 @@ test('admin +/- tie-break writes the same match encounter row through existing R
   assert.match(tv,/tv-ticker__tb-point/);
   const pub=read('src/scripts/public.ts');
   assert.match(pub,/regularSetDisplayHtml/);
+  const scorecenter=read('src/scripts/live-scorecenter.ts');
+  assert.match(scorecenter,/ticker-set-score/);
+  assert.match(scorecenter,/sides\[0\]\.innerHTML/);
   const migration=read('supabase/migrations/20261102214500_match_encounter_regular_tiebreak_points.sql');
   assert.match(migration,/alter table public\.match_encounters/);
   assert.doesNotMatch(migration,/create table|create policy/i);
