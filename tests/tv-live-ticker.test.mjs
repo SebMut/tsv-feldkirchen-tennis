@@ -133,15 +133,40 @@ test('TV timings have an independent save action that checks real stored values'
   assert.match(admin, /id="tv-timing-feedback"/);
   assert.match(controller, /async function saveTvTimeSettings\(base: BaseState\)/);
   assert.match(controller, /const input = readTvTimeForm\(\)/);
-  assert.match(controller, /from\('site_settings'\)\.upsert\(\{/);
-  assert.match(controller, /\.select\('key,value'\)\.single\(\)/);
+  assert.match(controller, /from\('site_settings'\)[\s\S]*?\.update\(\{ value: input\.value, updated_by: base\.user\.id \}\)/);
+  assert.match(controller, /\.select\('key,value'\)\.maybeSingle\(\)/);
   assert.match(controller, /\.select\('value'\)\.eq\('key', 'tv_ticker_timing'\)\.maybeSingle\(\)/);
   assert.match(controller, /\['#setting-tv-poll', 'Datenabfrage', 5, 600\]/);
   assert.match(controller, /Rückblick-Dauer/);
   assert.match(controller, /muss kürzer als der Rückblick-Abstand/);
-  assert.match(controller, /#save-tv-timing'\)\?\.addEventListener\('click'/);
+  assert.match(controller, /button\.addEventListener\('click', \(\) => void saveTvTimeSettings\(base\)\)/);
   const generalSave=controller.split('async function saveSettings(')[1]?.split('async function loadPlacements(')[0];
   assert.ok(generalSave);
   assert.doesNotMatch(generalSave, /tv_ticker_timing|readTvTimeForm|setting-tv-poll/,
     'Unrelated site settings may not overwrite TV-specific changes');
+});
+
+test('manual view tabs override automatic cycle without mixing live and finished results', () => {
+  assert.match(page, /data-tv-view="auto" aria-pressed="true"/);
+  assert.match(page, /data-tv-view="live" aria-pressed="false"/);
+  assert.match(page, /data-tv-view="finished" aria-pressed="false"/);
+  assert.match(page, /role="group" aria-label="Partienansicht"/);
+  assert.match(client, /viewOverride: 'live' \| 'finished' \| null = null/);
+  assert.match(client, /viewOverride === 'finished' \|\| \(viewOverride === null && scheduledRecap\)/);
+  assert.match(client, /button\.setAttribute\('aria-pressed', String\(selected\)\)/);
+  assert.match(client, /renderBoard\(true\)/);
+  assert.match(styles, /\.tv-ticker__view-switch button\[aria-pressed="true"\]/);
+  assert.match(styles, /--tv-set-head:14px;--tv-set-player:22px/);
+  assert.match(styles, /\.tv-ticker__score\{min-height:52px/);
+});
+
+test('TV timers bind immediately and update only the existing setting, with readback', () => {
+  const bootstrap=source('src/scripts/admin.ts');
+  const controller=source('src/scripts/admin-advanced.ts');
+  assert.match(bootstrap, /bindTvTimingControls\(state\);/);
+  assert.ok(bootstrap.indexOf('bindTvTimingControls(state);') < bootstrap.indexOf('await Promise.all([refreshDashboard()'));
+  assert.match(controller, /button\.dataset\.tvTimingBound = 'true'/);
+  assert.match(controller, /\.eq\('key', 'tv_ticker_timing'\)[\s\S]*?\.select\('key,value'\)\.maybeSingle\(\)/);
+  assert.doesNotMatch(controller.split('async function saveTvTimeSettings(')[1].split('async function saveSettings(')[0], /\.upsert\(/);
+  assert.match(controller, /Die TV-Zeiten konnten nicht aus Supabase zurückgelesen werden/);
 });
