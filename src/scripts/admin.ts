@@ -2215,9 +2215,9 @@ function renderInviteTeamCards() {
       <label class="invite-team-role">
         <span>Rolle</span>
         <select data-invite-team-role disabled>
-          <option value="editor" selected>Editor</option>
+          <option value="ticker" selected>Nur Liveticker (Standard)</option>
+          <option value="editor">Editor</option>
           <option value="manager">Manager</option>
-          <option value="ticker">Nur Liveticker</option>
         </select>
       </label>
     </div>
