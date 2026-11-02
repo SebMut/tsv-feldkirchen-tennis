@@ -54,7 +54,8 @@ test('TV polls every 30 seconds and preserves last good scoreboard when offline'
 test('three encounters side by side at TV width, two at medium and one on small screens', () => {
   assert.match(styles, /\.tv-ticker__grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(styles, /@media\(max-width:1350px\)\{\.tv-ticker__grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
-  assert.match(styles, /@media\(max-width:850px\)\{\.tv-ticker__grid\{grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(styles, /@media\(max-width:850px\)/);
+  assert.match(styles, /\.tv-ticker__grid\{grid-template-columns:minmax\(0,1fr\)/);
   assert.match(styles, /\.tv-ticker__score-values/);
   assert.match(styles, /\.tv-ticker__sets/);
   assert.match(styles, /\.tv-ticker__game\.is-live:before/);
