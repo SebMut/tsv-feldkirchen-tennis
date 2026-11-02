@@ -243,5 +243,64 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
           width+'px modal introduces horizontal page overflow: '+JSON.stringify(measurements));
       }
     },page);
+
+    await check('Admin ticker: compact three-set and TieBreak controls on laptop and phones',async()=>{
+      await page.goto(url('/admin/'),{waitUntil:'domcontentloaded'});
+      await page.evaluate(()=>{
+        const mock=document.createElement('section');
+        mock.id='compact-ticker-qa';
+        mock.style.cssText='position:fixed;left:0;top:0;width:100vw;box-sizing:border-box;padding:8px;background:#fff;z-index:100000;overflow:hidden';
+        mock.innerHTML=`<div id="panel-matches"><article class="match-admin-card">
+          <div class="encounter-editor"><details class="encounter-card" open>
+            <summary class="encounter-card__head"><span class="encounter-card__heading"><strong>Einzel 1</strong><small>TSV Spieler</small></span>
+              <span class="encounter-card__score"><small>Sätze</small><strong>0:0</strong></span></summary>
+            <div class="encounter-card__body">
+              <div class="encounter-result-row"><div class="encounter-set-editor">
+                <div class="encounter-set-editor__heading"><strong>Ergebnis</strong><span>TSV : Gegner</span></div>
+                <div class="encounter-set-grid">${[1,2,3].map(i=>`
+                  <div class="encounter-set-cell"><button class="encounter-set-button" type="button"><span>${i}. Satz</span><strong>6:6</strong></button>
+                    <div class="encounter-set-steppers">${[0,1].map(j=>`
+                      <div class="encounter-set-stepper"><button class="encounter-set-stepper__control">+</button>
+                        <strong>${j===0?6:4}</strong><button class="encounter-set-stepper__control">−</button></div>`).join('')}</div>
+                  </div>`).join('')}</div>
+                <div class="encounter-tiebreaks"><section class="encounter-regular-tiebreak">
+                  <strong class="encounter-regular-tiebreak__title">TieBreak</strong>
+                  <div class="encounter-regular-tiebreak__counters">${['TSV','Gegner'].map((name,i)=>`
+                    <div class="encounter-tiebreak-counter"><span class="encounter-tiebreak-counter__label">${name}</span>
+                      <button class="encounter-set-stepper__control" data-enc-tb-delta="-1">−</button>
+                      <strong>${i?4:5}</strong><button class="encounter-set-stepper__control">+</button></div>`).join('')}</div>
+                </section></div>
+                <p class="encounter-set-status"><strong>Sätze 0:0</strong></p>
+              </div><div class="encounter-actions"><button class="button">Live anzeigen</button><button class="button ghost">Zurücksetzen</button></div></div>
+              <details class="encounter-lineup"><summary>Aufstellung &amp; Gegner bearbeiten</summary></details>
+            </div>
+          </details></div></article></div>`;
+        document.body.append(mock);
+      });
+      for(const width of [1366,390,320]){
+        await page.setViewportSize({width,height:900});
+        const m=await page.locator('#compact-ticker-qa').evaluate(root=>{
+          const rect=e=>e.getBoundingClientRect();
+          const cells=[...root.querySelectorAll('.encounter-set-cell')];
+          const buttons=[...root.querySelectorAll('.encounter-set-stepper__control')];
+          const tb=root.querySelector('.encounter-regular-tiebreak');
+          const editor=root.querySelector('.encounter-set-editor');
+          return {width:root.clientWidth,scroll:root.scrollWidth,
+            cellHeights:cells.map(x=>rect(x).height),headerHeights:cells.map(x=>rect(x.querySelector('.encounter-set-button')).height),
+            buttons:buttons.map(x=>({height:rect(x).height,left:rect(x).left,right:rect(x).right})),
+            tbHeight:rect(tb).height,editorHeight:rect(editor).height,
+            tbLabel:tb.querySelector('.encounter-regular-tiebreak__title').textContent,
+            rowColumns:getComputedStyle(root.querySelector('.encounter-set-grid')).gridTemplateColumns.trim().split(/\s+/).length};
+        });
+        assert.equal(m.rowColumns,3,width+'px must retain all three sets');
+        assert.equal(m.tbLabel,'TieBreak',width+'px verbose title');
+        assert.ok(m.headerHeights.every(x=>x<=48),width+'px set headers still too tall '+JSON.stringify(m));
+        assert.ok(m.cellHeights.every(x=>x<165),width+'px set cards still too tall '+JSON.stringify(m));
+        assert.ok(m.buttons.every(x=>x.height>=32 && x.left>=-1 && x.right<=width+1),width+'px tap controls clipped '+JSON.stringify(m));
+        assert.ok(m.tbHeight<110,width+'px TieBreak too tall '+JSON.stringify(m));
+        assert.ok(m.editorHeight<315,width+'px editor still too tall '+JSON.stringify(m));
+        assert.ok(m.scroll<=m.width+2,width+'px editor horizontal overflow '+JSON.stringify(m));
+      }
+    },page);
   }finally{await context.close();}
 }
