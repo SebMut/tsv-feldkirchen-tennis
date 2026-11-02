@@ -35,7 +35,12 @@ const preview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       </header>
       <div class="tv-ticker__utility">
         <span id="tv-ticker-sync" class="tv-ticker__sync" role="status">Live-Daten werden geladen …</span>
-        <span id="tv-ticker-recap" class="tv-ticker__recap" aria-live="off">Nur laufende Spiele · Rückblick alle 300 Sekunden</span>
+        <div class="tv-ticker__view-switch" role="group" aria-label="Partienansicht">
+          <button type="button" data-tv-view="auto" aria-pressed="true" title="Automatisch zwischen Live und Rückblick wechseln">Auto</button>
+          <button type="button" data-tv-view="live" aria-pressed="false">Live</button>
+          <button type="button" data-tv-view="finished" aria-pressed="false">Beendet</button>
+        </div>
+        <span id="tv-ticker-recap" class="tv-ticker__recap" aria-live="polite">Nur laufende Spiele · Rückblick alle 300 Sekunden</span>
         <strong class="tv-ticker__countdown">Nächste Aktualisierung in <span id="tv-ticker-countdown">30 s</span></strong>
         <div class="tv-ticker__tools">
           <span>Aktualisierung gemäß TV-Einstellungen</span>
