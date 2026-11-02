@@ -49,6 +49,9 @@ import '../../styles/live-flashscore.css';
   </div>
 </MainLayout>
 <style>
+  :global(.matchday-live-center.is-loading){min-height:250px;display:grid;align-content:center;justify-items:center;text-align:center;background:#f5f8f6}
+  :global(.matchday-live-center.is-loading p){margin:0;font-weight:700}
+  @media(max-width:680px){:global(.matchday-live-center.is-loading){min-height:260px}}
   :global(.tv-ticker-launch){display:flex;justify-content:flex-end;margin:0 0 18px}
   :global(.tv-ticker-launch .button){font-size:.9rem;font-weight:850}
   @media(max-width:680px){:global(.tv-ticker-launch){justify-content:stretch;margin-bottom:12px}:global(.tv-ticker-launch .button){width:100%;text-align:center;justify-content:center}}
