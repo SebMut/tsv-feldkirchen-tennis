@@ -60,3 +60,17 @@ test('linked events remain usable for response PDF without duplicate standalone 
   assert.ok(events.includes('Mit Beiträgen verknüpfte Anmeldungen / PDF'));
   assert.ok(events.includes('tsv:editorial-content-changed'));
 });
+
+test('event short text persists separately from the invitation body, reloads into the editor, and renders in previews and public cards', () => {
+  const migration = read('supabase/migrations/20261102223000_events_editorial_excerpt.sql');
+  const aktuelles = read('src/pages/aktuelles/index.astro');
+  const legacyNewsEditor = read('src/scripts/admin.ts');
+  assert.match(migration, /alter table public\.events add column if not exists excerpt text;/);
+  assert.match(migration, /where slug = 'platzabbau-2026-11-07'/);
+  assert.ok(composer.includes("input('excerpt').value = String(entry.news?.excerpt || entry.event?.excerpt || '')"));
+  assert.ok(composer.includes("excerpt: val('excerpt') || null, description: val('body')"));
+  assert.ok(composer.includes("escapeHtml(plain(val('excerpt') || val('body')))"));
+  assert.ok(aktuelles.includes("plainText(event.excerpt || event.description)"));
+  assert.ok(aktuelles.includes("event.description || description"));
+  assert.ok(legacyNewsEditor.includes("excerpt:editorialInput('news-excerpt')?.value.trim()||null,description:body"));
+});
