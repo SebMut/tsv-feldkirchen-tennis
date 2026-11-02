@@ -6,6 +6,7 @@ import { initManualResultsPanel } from './manual-results-admin';
 import { initOfficialReportsPanel } from './official-reports-admin';
 import { initEventRsvpAdmin } from './event-rsvp-admin';
 import { initEditorialComposer } from './editorial-composer';
+import { initSystemMonitor } from './system-monitor';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
 import { summarizeSetResult, validateSetScore, adjustSetScore } from '../lib/tennis-score.mjs';
 import { adjustRegularTiebreak, readRegularTiebreak, regularTiebreakScore, regularSetFromTiebreak, regularSetDisplayHtml, validateRegularTiebreak } from '../lib/regular-tiebreak.mjs';
@@ -289,6 +290,7 @@ const panelDescriptions: Record<string, string> = {
   facility: 'Den aktuellen Anlagenstatus ändern.',
   seasons: 'Saisons anlegen und verwalten.',
   users: 'Zugänge einladen und Teamrechte verwalten.',
+  operations: 'Supabase, BTV, Bilder, Cronjobs und Wiederherstellungsprüfungen überwachen.',
   audit: 'Änderungen an Daten und Inhalten prüfen.',
   settings: 'Zentrale Einstellungen der Website bearbeiten.',
   account: 'Deine persönlichen Kontoeinstellungen ändern.',
@@ -2709,6 +2711,7 @@ async function startApp(user: any) {
   bindNav();
   bindForms();
   bindTvTimingControls(state); // Ready immediately, even while other admin data loads.
+  initSystemMonitor(state.isSuper);
   if (canNews || canEvents) {
     initEditorialComposer({ canNews, canEvents, user: state.user });
     window.addEventListener('tsv:editorial-content-changed', () => {
