@@ -38,7 +38,7 @@ test('admin panel respects global permissions while preserving team-specific edi
   assert.ok(page.includes('data-panel="news" data-editorial-only'));
   assert.ok(page.includes('data-editorial-tab="events" data-events-only'));
   assert.ok(page.includes('data-panel="teams" data-editor-only'));
-  assert.match(admin, /const canNews = canEditAny \|\| hasGlobalPermission\('news'\)/);
+  assert.match(admin, /const canNews = hasGlobalPermission\('news'\)/);
   assert.match(admin, /const canEvents = hasGlobalPermission\('events'\)/);
   assert.match(admin, /hasGlobalPermission\('ticker'\)/);
   assert.match(admin, /initEventRsvpAdmin\(\{ isSuper: canEvents/);

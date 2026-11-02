@@ -32,7 +32,7 @@ test('one navigation item respects separate global rights, including event-only 
   assert.ok(html.includes('data-panel="news" data-editorial-only'));
   assert.ok(html.includes('data-editorial-pane="news"'));
   assert.ok(html.includes('data-editorial-pane="events"'));
-  assert.ok(admin.includes('const canNews = canEditAny || hasGlobalPermission(\'news\')'));
+  assert.ok(admin.includes('const canNews = hasGlobalPermission(\'news\')'));
   assert.ok(admin.includes('const canEvents = hasGlobalPermission(\'events\')'));
   assert.ok(admin.includes('bindEditorialTabs(canNews, canEvents)'));
   assert.ok(admin.includes('canUseEditorialNews ? \'news\' : \'events\''));
