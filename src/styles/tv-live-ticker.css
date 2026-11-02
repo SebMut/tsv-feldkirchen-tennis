@@ -109,3 +109,97 @@ body.tv-ticker{margin:0;background:#041119;color:#f6f9fa;font-family:Inter,syste
 /* Small raised regular tie-break points, aligned to the appropriate player. */
 .tv-ticker__set-value{display:inline-flex!important;align-items:baseline;justify-content:center;white-space:nowrap;gap:0}
 .tv-ticker__tb-point{font-size:.57em;line-height:1;margin-left:1px;position:relative;top:-.32em;color:#ffd86a;font-weight:900}
+
+/* Compact scoreboards on laptops and phones. Keep the larger broadcast typography
+   on full-size TVs, and retain every name, set, tiebreak superscript and state. */
+@media (max-width: 1600px) {
+  .tv-ticker__shell { padding: 9px; }
+  .tv-ticker__header { min-height: 0; padding: 12px 16px; gap: 12px; }
+  .tv-ticker__header h1 { font-size: clamp(1.4rem, 1.85vw, 2rem); }
+  .tv-ticker__eyebrow { margin-bottom: 5px; }
+  .tv-ticker__description { margin-top: 4px; font-size: .76rem; }
+  .tv-ticker__identity img { width: 44px; height: 44px; }
+  .tv-ticker__utility { min-height: 0; padding: 7px 16px; gap: 8px; flex-wrap: wrap; }
+  .tv-ticker__tools { gap: 7px; }
+  .tv-ticker__tools a, .tv-ticker__tools button { padding: 5px 9px; min-height: 32px; }
+  .tv-ticker__grid { padding: 9px 0; gap: 9px; }
+  .tv-ticker__match-head { min-height: 0; padding: 9px 11px; gap: 7px; }
+  .tv-ticker__match-head h2 { margin-bottom: 4px; font-size: clamp(.88rem, 1.04vw, 1.12rem); }
+  .tv-ticker__match-head p { margin: 2px 0; line-height: 1.25; }
+  .tv-ticker__score { min-height: 80px; grid-template-columns: minmax(0,1fr) 60px; }
+  .tv-ticker__score-names>div { padding: 6px 9px; gap: 7px; }
+  .tv-ticker__score-names img { width: 21px; height: 21px; }
+  .tv-ticker__score-names strong { font-size: .86rem; }
+  .tv-ticker__score-values strong { font-size: 1.65rem; }
+  .tv-ticker__games-head { padding: 8px 10px; gap: 6px; }
+  .tv-ticker__game-top { padding: 6px 10px; }
+  .tv-ticker__game-body { min-height: 0; }
+  .tv-ticker__players>div { padding: 6px 9px; font-size: .79rem; line-height: 1.2; gap: 5px; }
+  .tv-ticker__player-logo { width: 20px; height: 20px; }
+  .tv-ticker__set { grid-template-rows: 18px minmax(26px,1fr) minmax(26px,1fr); min-width: 34px; }
+  .tv-ticker__set span { padding: 2px; }
+  .tv-ticker__set--total { min-width: 36px; }
+  .tv-ticker__detail { padding: 8px 10px; }
+  .tv-ticker__footer { padding: 7px 2px 12px; }
+}
+@media (max-width: 850px) {
+  .tv-ticker__shell { padding: 7px; }
+  .tv-ticker__grid { padding: 7px 0; gap: 8px; }
+  .tv-ticker__header { padding: 10px 12px; }
+  .tv-ticker__header h1 { font-size: 1.32rem; }
+  .tv-ticker__identity>div { gap: 2px; }
+  .tv-ticker__utility { padding: 7px 11px; column-gap: 12px; }
+  .tv-ticker__tools>span { display: none; }
+  .tv-ticker__match-head { padding: 9px 11px; }
+  .tv-ticker__match-head h2 { font-size: 1rem; }
+  .tv-ticker__score-names strong { font-size: .87rem; }
+  .tv-ticker__players>div { font-size: .78rem; }
+  .tv-ticker__set { min-width: 34px; }
+}
+@media (max-width: 560px) {
+  .tv-ticker__shell { padding: 5px; }
+  .tv-ticker__header { padding: 8px 10px; gap: 6px; }
+  .tv-ticker__header h1 { font-size: 1.15rem; }
+  .tv-ticker__eyebrow { font-size: .62rem; margin-bottom: 3px; gap: 6px; }
+  .tv-ticker__live-dot { width: 9px; height: 9px; border-width: 2px; }
+  .tv-ticker__identity img { width: 28px; height: 28px; display: block; }
+  .tv-ticker__identity strong { font-size: .7rem; }
+  .tv-ticker__identity span { font-size: .62rem; }
+  .tv-ticker__utility { padding: 5px 9px; gap: 5px; }
+  .tv-ticker__sync { flex: 1 1 100%; font-size: .67rem; }
+  .tv-ticker__countdown { margin-right: auto; font-size: .71rem; }
+  .tv-ticker__tools { width: auto; margin-left: auto; gap: 5px; }
+  .tv-ticker__tools a,.tv-ticker__tools button { padding: 4px 7px; min-height: 32px; font-size: .69rem; }
+  .tv-ticker__grid { padding: 6px 0; gap: 7px; }
+  .tv-ticker__match-head { min-height: 0; padding: 7px 9px; gap: 6px; }
+  .tv-ticker__match-head h2 { margin-bottom: 3px; font-size: .91rem; line-height: 1.18; }
+  .tv-ticker__match-head p { margin: 1px 0; font-size: .64rem; }
+  .tv-ticker__match-head .tv-ticker__changed { font-size: .59rem; }
+  .tv-ticker__running { font-size: .64rem; }
+  .tv-ticker__score { grid-template-columns: minmax(0,1fr) 48px; min-height: 69px; }
+  .tv-ticker__score-names>div { padding: 4px 8px; gap: 6px; }
+  .tv-ticker__score-names img { width: 18px; height: 18px; }
+  .tv-ticker__score-names strong { font-size: .77rem; }
+  .tv-ticker__score-values strong { font-size: 1.4rem; }
+  .tv-ticker__games-head { padding: 6px 8px; gap: 5px; }
+  .tv-ticker__games-head strong { font-size: .73rem; }
+  .tv-ticker__games-head span { font-size: .63rem; }
+  .tv-ticker__game-top { padding: 4px 8px; }
+  .tv-ticker__game-top>strong { font-size: .72rem; }
+  .tv-ticker__game-status { font-size: .62rem; }
+  .tv-ticker__game-body { min-height: 0; }
+  .tv-ticker__players>div { padding: 4px 7px; gap: 4px; font-size: .73rem; }
+  .tv-ticker__player-logo { width: 17px; height: 17px; }
+  .tv-ticker__win-icon { font-size: 1rem; }
+  .tv-ticker__set { grid-template-rows: 16px minmax(24px,1fr) minmax(24px,1fr); min-width: 28px; font-size: .81rem; }
+  .tv-ticker__set--total { min-width: 29px; }
+  .tv-ticker__set span { padding: 1px; }
+  .tv-ticker__detail { padding: 7px 9px; font-size: .73rem; }
+  .tv-ticker__footer { padding: 5px 2px 10px; gap: 3px; font-size: .62rem; }
+}
+@media (max-width: 370px) {
+  .tv-ticker__set { min-width: 26px; }
+  .tv-ticker__set--total { min-width: 27px; }
+  .tv-ticker__players>div { font-size: .7rem; }
+  .tv-ticker__identity img { display: none; }
+}
