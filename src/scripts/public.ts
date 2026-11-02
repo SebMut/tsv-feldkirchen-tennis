@@ -433,7 +433,7 @@ export async function loadHome() {
     if (liveCenter) {
       if (liveMatches.length) {
         const running = await supabase.from('match_encounters')
-          .select('match_id,discipline,position,status,sort_order,tsv_player_1_name,tsv_player_2_name,opponent_slot_1,opponent_slot_2,result_text')
+          .select('match_id,discipline,position,status,sort_order,tsv_player_1_name,tsv_player_2_name,opponent_slot_1,opponent_slot_2,result_text,tiebreak_points')
           .in('match_id', liveMatches.map((match: Row) => match.id))
           .eq('status', 'live')
           .order('sort_order')
