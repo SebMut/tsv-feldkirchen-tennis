@@ -13,6 +13,8 @@ test('event and news cards have precisely equal 16:9 image frames', () => {
   assert.match(actual, /:global\(\.content-card--event \.content-card__media--poster\)\{aspect-ratio:16\/9;overflow:hidden/);
   assert.match(actual, /:global\(\.content-card--event \.content-card__media--poster img\)\{width:100%;height:100%;object-fit:contain\}/);
   assert.match(actual, /event\.hero_image_path \? ' content-card__media--poster'/);
+  assert.match(actual, /event\.slug === 'platzabbau-2026-11-07' \? ' content-card__media--trim-frame'/);
+  assert.match(actual, /:global\(\.content-card--event \.content-card__media--trim-frame img\)\{object-fit:cover;object-position:center;transform:scale\(1\.02\)/);
 });
 
 test('desktop and mobile both preserve the entire poster without cropping', () => {
