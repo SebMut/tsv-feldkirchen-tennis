@@ -2318,6 +2318,42 @@ function bindForms() {
   });
 }
 
+let roleMonitorAttached = false;
+function watchPermissionChanges() {
+  if (roleMonitorAttached) return;
+  roleMonitorAttached = true;
+  const signature = (profile: Row | null, memberships: Row[]) => JSON.stringify({
+    global_role: profile?.global_role || 'user',
+    global_permissions: [...(profile?.global_permissions || [])].sort(),
+    teams: memberships.filter(row => row.active && row.user_id === state.user?.id)
+      .map(row => `${row.team_id}:${row.role}`).sort(),
+  });
+  const initial = signature(state.profile, state.memberships);
+  let checking = false;
+  const check = async () => {
+    if (checking || !state.user || document.visibilityState === 'hidden') return;
+    checking = true;
+    try {
+      const [profile, memberships] = await Promise.all([
+        supabase.from('profiles').select('global_role,global_permissions').eq('id', state.user.id).single(),
+        supabase.from('team_memberships').select('team_id,role,active,user_id').eq('user_id', state.user.id),
+      ]);
+      if (profile.error || memberships.error || !profile.data) return;
+      if (signature(profile.data, memberships.data || []) !== initial) {
+        status('Deine Berechtigungen wurden geändert. Die Ansicht wird aktualisiert.', 'info');
+        window.location.reload();
+      }
+    } finally {
+      checking = false;
+    }
+  };
+  window.addEventListener('focus', () => void check());
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void check();
+  });
+  window.setInterval(() => void check(), 60000);
+}
+
 async function startApp(user: any) {
   state.user = user;
   try {
@@ -2363,6 +2399,7 @@ async function startApp(user: any) {
   }
   const requestedPanel = new URLSearchParams(location.search).get('panel');
   showPanel(requestedPanel || 'dashboard');
+  watchPermissionChanges();
 }
 
 export async function initAdmin() {
