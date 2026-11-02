@@ -1,13 +1,90 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 ---
-<MainLayout title="Aktuelles | TSV Feldkirchen Tennis" description="News und Spielberichte der Tennisabteilung TSV Feldkirchen.">
-  <div class="container stack">
-    <div class="page-head"><div><p class="eyebrow">Vereinsleben</p><h1>Aktuelles</h1></div></div>
-    <div id="news-list" class="grid two"><p class="muted">Aktuelle Beiträge werden ermittelt …</p></div>
+<MainLayout title="Aktuelles | TSV Feldkirchen Tennis" description="News, Veranstaltungen und Spielberichte der Tennisabteilung TSV Feldkirchen.">
+  <div class="container stack aktuelles-page">
+    <div class="page-head"><div><p class="eyebrow">Vereinsleben</p><h1>Aktuelles</h1><p class="muted">Neuigkeiten, Veranstaltungen und wichtige Infos rund um die Tennisabteilung.</p></div></div>
+    <section id="event-news" class="event-news" aria-labelledby="event-news-title" hidden>
+      <div class="event-news__head">
+        <div><p class="eyebrow">Veranstaltungen</p><h2 id="event-news-title">Das ist bei uns los</h2></div>
+        <a href="/termine/" class="button ghost">Alle Termine →</a>
+      </div>
+      <div id="event-news-list" class="event-news__grid"></div>
+    </section>
+    <section aria-labelledby="news-title">
+      <div class="event-news__head"><div><p class="eyebrow">Neuigkeiten</p><h2 id="news-title">Aus der Tennisabteilung</h2></div></div>
+      <div id="news-list" class="grid two"><p class="muted">Aktuelle Beiträge werden ermittelt …</p></div>
+    </section>
   </div>
 </MainLayout>
 <script>
   import { loadNews } from '../../scripts/public';
+  import { supabase } from '../../lib/supabase';
+  import { escapeHtml, formatDateTime } from '../../lib/ui';
+
   loadNews();
+
+  const section = document.querySelector<HTMLElement>('#event-news');
+  const list = document.querySelector<HTMLElement>('#event-news-list');
+  if (section && list) {
+    const { data: events } = await supabase
+      .from('events')
+      .select('*')
+      .eq('status', 'published')
+      .order('starts_at', { ascending: true });
+
+    const now = Date.now();
+    const rows = (events ?? []).filter((event: any) => {
+      const end = event.ends_at ? new Date(event.ends_at).getTime() : new Date(event.starts_at).getTime() + 86400000;
+      return end >= now - 86400000;
+    });
+
+    if (rows.length) {
+      section.hidden = false;
+      list.innerHTML = rows.map((event: any) => {
+        const href = event.rsvp_enabled && event.slug
+          ? `/veranstaltung/?slug=${encodeURIComponent(event.slug)}`
+          : '/termine/';
+        const description = event.description || 'Gemeinsam Tennis und Vereinsleben erleben – alle Informationen zur Veranstaltung findest du hier.';
+        return `
+          <article class="event-news-card">
+            <a class="event-news-card__image" href="${href}" aria-label="${escapeHtml(event.title)} öffnen">
+              <img src="/images/veranstaltung-ai.svg" alt="Stimmungsbild zur Veranstaltung ${escapeHtml(event.title)}" loading="lazy" />
+              <span>Veranstaltung</span>
+            </a>
+            <div class="event-news-card__body">
+              <p class="event-news-card__date">${event.all_day ? 'Ganztägig · ' : ''}${escapeHtml(formatDateTime(event.starts_at))}</p>
+              <h3><a href="${href}">${escapeHtml(event.title)}</a></h3>
+              <p>${escapeHtml(description)}</p>
+              <div class="event-news-card__meta"><span>📍 ${escapeHtml(event.location_name || 'TSV Feldkirchen')}</span></div>
+              <a class="event-news-card__link" href="${href}">${event.rsvp_enabled ? 'Teilnahme & Details' : 'Termin ansehen'} →</a>
+            </div>
+          </article>`;
+      }).join('');
+    }
+  }
 </script>
+<style>
+  .aktuelles-page{padding-bottom:42px}
+  .event-news{margin-bottom:8px}
+  .event-news__head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .event-news__head h2{margin:2px 0 0;color:#193c2c}
+  .event-news__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+  .event-news-card{overflow:hidden;border:1px solid #dfe7e1;border-radius:20px;background:#fff;box-shadow:0 10px 28px rgb(25 60 44 / .08)}
+  .event-news-card__image{position:relative;display:block;aspect-ratio:16/7;overflow:hidden;background:#193c2c}
+  .event-news-card__image img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .25s ease}
+  .event-news-card:hover .event-news-card__image img{transform:scale(1.025)}
+  .event-news-card__image span{position:absolute;left:14px;top:14px;padding:7px 11px;border-radius:999px;background:#e30613;color:#fff;font-size:.76rem;font-weight:850;letter-spacing:.04em}
+  .event-news-card__body{padding:18px 20px 20px}
+  .event-news-card__date{margin:0 0 7px;color:#b51224;font-size:.78rem;font-weight:850;text-transform:uppercase;letter-spacing:.045em}
+  .event-news-card h3{margin:0 0 9px;font-size:clamp(1.15rem,2vw,1.55rem);line-height:1.18}
+  .event-news-card h3 a{color:#193c2c;text-decoration:none}
+  .event-news-card__body>p:not(.event-news-card__date){margin:0;color:#65736b;line-height:1.55}
+  .event-news-card__meta{margin-top:13px;color:#40564a;font-size:.88rem;font-weight:650}
+  .event-news-card__link{display:inline-flex;margin-top:15px;color:#e30613;font-weight:850;text-decoration:none}
+  @media(max-width:760px){
+    .event-news__head{align-items:flex-start}.event-news__head .button{font-size:.78rem;padding:8px 10px}
+    .event-news__grid{grid-template-columns:1fr;gap:14px}
+    .event-news-card{border-radius:16px}.event-news-card__image{aspect-ratio:16/8}.event-news-card__body{padding:15px 16px 17px}
+  }
+</style>
