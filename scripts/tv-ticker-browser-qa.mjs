@@ -160,10 +160,25 @@ export async function runTvTickerBrowserQA({browser, url, check}) {
     },page);
     await check('TV scoreboard: recap shows only finished encounters and then restores live mode',async()=>{
       model.encounters[2]={...model.encounters[2],status:'finished',winner:'opponent',finished_at:now,result_text:'1:6 2:6'};
+      // Let the previous mocked fetch resolve before advancing the fake clock:
+      // otherwise the next poll can be postponed past this clock jump.
+      await new Promise(resolve=>setTimeout(resolve,350));
       await page.clock.fastForward(30000);
       await page.waitForFunction(id=>!document.querySelector('[data-tv-match="'+id+'"]'),ids[2],{timeout:9000});
       assert.equal(await page.locator('.tv-ticker__game.is-live').count(),1);
       assert.equal(await page.locator('.tv-ticker__game.is-finished').count(),0);
+      // Switching modes must never mix completed and ongoing games.
+      await page.locator('[data-tv-view="finished"]').click();
+      assert.equal(await page.locator('#tv-ticker-board').getAttribute('data-view-mode'),'finished');
+      assert.equal(await page.locator('.tv-ticker__game.is-live').count(),0);
+      assert.equal(await page.locator('.tv-ticker__game.is-finished').count(),2);
+      assert.equal(await page.locator('[data-tv-view="finished"]').getAttribute('aria-pressed'),'true');
+      await page.locator('[data-tv-view="live"]').click();
+      assert.equal(await page.locator('#tv-ticker-board').getAttribute('data-view-mode'),'live');
+      assert.equal(await page.locator('.tv-ticker__game.is-live').count(),1);
+      assert.equal(await page.locator('.tv-ticker__game.is-finished').count(),0);
+      await page.locator('[data-tv-view="auto"]').click();
+      assert.equal(await page.locator('[data-tv-view="auto"]').getAttribute('aria-pressed'),'true');
       // 5-minute cycle from page start; the preceding polls took 90 seconds.
       await page.clock.fastForward(211000);
       await page.waitForFunction(()=>{
