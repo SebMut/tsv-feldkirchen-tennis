@@ -109,7 +109,7 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     if (error) { message('Veranstaltungen konnten nicht geladen werden: ' + error.message, true); return; }
     events = data ?? []; const relevant = events.filter(e => !String(e.external_url || '').startsWith('news:'));
     // Linked events appear only in the RSVP/PDF selector, never as duplicate standalone public cards.
-    const linkedRsvps = events.filter(e => String(e.external_url || '').startsWith('news:') && e.rsvp_enabled);
+    const linkedRsvps = events.filter(e => String(e.external_url || '').startsWith('news:'));
     const option = (e: Row) => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.title)} · ${escapeHtml(formatDateTime(e.starts_at))} (${escapeHtml(e.status)})</option>`;
     select.innerHTML = '<option value="">Neue Veranstaltung</option>' + relevant.map(option).join('')
       + (linkedRsvps.length ? '<optgroup label="Mit Beiträgen verknüpfte Anmeldungen / PDF">' + linkedRsvps.map(option).join('') + '</optgroup>' : '');
