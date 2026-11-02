@@ -125,3 +125,22 @@ test('TV finished recap and live presentation are mutually exclusive', () => {
   assert.match(page, /id="tv-ticker-view-title"/);
   assert.match(page, /id="tv-ticker-view-label"/);
 });
+
+test('TV timings have an independent save action that checks real stored values', () => {
+  const admin=source('src/pages/admin/index.astro');
+  const controller=source('src/scripts/admin-advanced.ts');
+  assert.match(admin, /id="save-tv-timing"[^>]*type="button"/);
+  assert.match(admin, /id="tv-timing-feedback"/);
+  assert.match(controller, /async function saveTvTimeSettings\(base: BaseState\)/);
+  assert.match(controller, /const input = readTvTimeForm\(\)/);
+  assert.match(controller, /from\('site_settings'\)\.upsert\(\{/);
+  assert.match(controller, /\.select\('key,value'\)\.single\(\)/);
+  assert.match(controller, /\.select\('value'\)\.eq\('key', 'tv_ticker_timing'\)\.maybeSingle\(\)/);
+  assert.match(controller, /\['#setting-tv-poll', 'Datenabfrage', 5, 600\]/);
+  assert.match(controller, /Rückblick-Dauer.*muss kürzer als der Rückblick-Abstand/);
+  assert.match(controller, /#save-tv-timing'\)\?\.addEventListener\('click'/);
+  const generalSave=controller.split('async function saveSettings(')[1]?.split('async function loadPlacements(')[0];
+  assert.ok(generalSave);
+  assert.doesNotMatch(generalSave, /tv_ticker_timing|readTvTimeForm|setting-tv-poll/,
+    'Unrelated site settings may not overwrite TV-specific changes');
+});
