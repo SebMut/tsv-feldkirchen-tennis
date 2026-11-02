@@ -221,7 +221,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
               <p class="eyebrow">Offizielle BTV-Quellen · TSV Feldkirchen (01012)</p>
               <h2>Automatischer BTV-Abgleich</h2>
               <p><strong>Offizielle Ergebnisse haben immer Vorrang.</strong> Ein manuell gepflegter Liveticker bleibt als Verlauf erhalten. Neue BTV-Endstände dürfen den öffentlichen Mannschaftsspielstand jederzeit korrigieren.</p>
-              <p class="muted">Geplanter Rhythmus: alle sechs Stunden. Die Datenbank wird stündlich auf fehlende oder veraltete BTV-Abgleiche überwacht. Achtung: GitHub-Zeitpläne laufen nur im Standardbranch; der Import im Entwicklungsbranch läuft nicht allein durch dessen Cron-Eintrag. Die tatsächlichen erfolgreichen Läufe stehen im Status unten. Die Importfreigabe bleibt serverseitig geschützt.</p>
+              <p class="muted">Geplanter Rhythmus: alle sechs Stunden. Die Datenbank wird stündlich auf fehlende oder veraltete BTV-Abgleiche überwacht. Achtung: GitHub-Zeitpläne laufen nur im Standardbranch; der Import im Entwicklungsbranch läuft nicht allein durch dessen Cron-Eintrag. Die tatsächlichen erfolgreichen Läufe stehen im Status unten. Der Import erfolgt nur wenn die Importfreigabe aktiviert ist. Ein Link allein aktiviert noch keinen Import.</p>
               <section class="btv-source-editor" aria-labelledby="btv-source-editor-title">
                 <div class="btv-source-editor__header">
                   <div>
