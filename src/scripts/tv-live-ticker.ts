@@ -272,17 +272,25 @@ export function initTvLiveTicker() {
       renderBoard(true);
     });
   });
+  // Keep polling aligned to the configured interval from ticker start. Starting
+  // the next timer after each network response accumulates latency and can skip
+  // an entire update when the TV clock advances exactly one interval.
+  const scheduleNextPoll = () => {
+    const interval = timing.poll_seconds * 1000;
+    const elapsed = Math.max(0, Date.now() - startedAt);
+    nextPollAt = startedAt + (Math.floor(elapsed / interval) + 1) * interval;
+  };
   const refresh = async () => {
     if (inFlight) return;
     inFlight = true;
-    nextPollAt = Date.now() + timing.poll_seconds * 1000;
+    scheduleNextPoll();
     try {
       const [matches, settingsResult] = await Promise.all([
         fetchLiveMatches(),
         supabase.from('site_settings').select('value').eq('key', 'tv_ticker_timing').maybeSingle(),
       ]);
       if (!settingsResult.error) timing = readTvTiming(settingsResult.data?.value);
-      nextPollAt = Date.now() + timing.poll_seconds * 1000;
+      scheduleNextPoll();
       currentMatches = matches;
       renderBoard(true);
       lastSuccessful = Date.now();
