@@ -40,7 +40,10 @@ test('TV only reads real published matches, active live states and original enco
 
 test('TV polls every 30 seconds and preserves last good scoreboard when offline', () => {
   assert.match(client, /const REFRESH_MS = 30_000/);
-  assert.match(client, /window\.setInterval\(\(\) => \{ void refresh\(\); \}, REFRESH_MS\);/);
+  assert.match(client, /window\.setInterval\(tick, 1000\)/);
+  assert.match(client, /Date\.now\(\) >= nextPollAt/);
+  assert.match(client, /timing\.poll_seconds \* 1000/);
+  assert.match(page, /id="tv-ticker-countdown"/);
   assert.match(client, /if \(inFlight\) return;/);
   assert.match(client, /if \(!lastSuccessful\)/);
   assert.match(client, /sync\.classList\.add\('tv-ticker__sync--error'\)/);
@@ -55,6 +58,10 @@ test('three encounters side by side at TV width, two at medium and one on small 
   assert.match(styles, /\.tv-ticker__score-values/);
   assert.match(styles, /\.tv-ticker__sets/);
   assert.match(styles, /\.tv-ticker__game\.is-live:before/);
+  assert.match(styles, /\.tv-ticker__game\.is-won/);
+  assert.match(styles, /\.tv-ticker__game\.is-lost/);
+  assert.match(client, /tv-ticker__player-logo/);
+  assert.match(client, /renderEncounter\(match, e, timing, now\)/);
   assert.match(styles, /@media\(prefers-reduced-motion:reduce\)/);
 });
 
@@ -63,4 +70,29 @@ test('set rendering always follows the stored TSV perspective even for away game
   assert.equal(result.winner, 'tsv');
   assert.deepEqual(homeAwaySetScore(result, true), {homeSets:2,awaySets:1});
   assert.deepEqual(homeAwaySetScore(result, false), {homeSets:1,awaySets:2});
+});
+
+test('TV finished-score recap, victory duration and super-admin values are configurable', async () => {
+  const {readTvTiming,recapIsActive,withinHighlight} = await import('../src/lib/tv-ticker-timing.mjs');
+  const normal=readTvTiming(null);
+  assert.equal(normal.poll_seconds,30);
+  assert.equal(normal.recap_every_seconds,300);
+  assert.equal(normal.recap_duration_seconds,30);
+  assert.equal(normal.highlight_seconds,300);
+  assert.equal(recapIsActive(normal,300000,0),true);
+  assert.equal(recapIsActive(normal,329999,0),true);
+  assert.equal(recapIsActive(normal,330000,0),false);
+  assert.equal(withinHighlight(new Date(0).toISOString(),normal,299999),true);
+  assert.equal(withinHighlight(new Date(0).toISOString(),normal,300000),false);
+  const quick=readTvTiming({poll_seconds:5,recap_every_seconds:20,recap_duration_seconds:5,highlight_seconds:5});
+  assert.equal(recapIsActive(quick,20000,0),true);
+  assert.equal(recapIsActive(quick,26000,0),false);
+  assert.equal(readTvTiming({poll_seconds:-1,recap_every_seconds:10,recap_duration_seconds:99}).poll_seconds,30);
+  const admin=source('src/pages/admin/index.astro');
+  const controller=source('src/scripts/admin-advanced.ts');
+  for(const id of ['setting-tv-poll','setting-tv-recap-every','setting-tv-recap-for','setting-tv-highlight'])assert.ok(admin.includes(id));
+  assert.match(controller,/\['tv_ticker_timing'/);
+  assert.match(client,/recapIsActive\(timing, now, startedAt\)/);
+  assert.match(client,/withinHighlight\(e\.finished_at, timing, now\)/);
+  assert.match(client,/\.filter\(e => e\.status === 'live' \|\|/);
 });
