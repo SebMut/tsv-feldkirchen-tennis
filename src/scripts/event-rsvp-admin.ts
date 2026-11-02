@@ -48,8 +48,11 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
   const renderImage = (path = '') => {
     if (!imagePreview) return;
     imagePreview.innerHTML = path
-      ? `<img src="${escapeHtml(mediaUrl(path))}" alt="Aktuelles Veranstaltungsbild" style="display:block;width:min(100%,520px);aspect-ratio:16/9;object-fit:cover;border-radius:14px" /><p class="muted">Dieses Bild wird bei der Veranstaltung unter „Aktuelles“ verwendet.</p>`
+      ? `<img src="${escapeHtml(mediaUrl(path))}" alt="Gespeichertes Veranstaltungsbild" style="display:block;width:min(100%,520px);aspect-ratio:16/9;object-fit:contain;background:#fff;border-radius:14px" /><p class="muted">Dieses Bild wird unter „Aktuelles“ angezeigt. <a href="${escapeHtml(mediaUrl(path))}" target="_blank" rel="noopener noreferrer">Gespeichertes Originalbild öffnen</a></p>`
       : '<p class="muted">Noch kein eigenes Veranstaltungsbild. Bis zum Upload wird das Standardbild verwendet.</p>';
+    imagePreview.querySelector<HTMLImageElement>('img')?.addEventListener('error', () => {
+      message('Das gespeicherte Veranstaltungsbild konnte nicht geladen werden. Bitte die Bild-URL über „Originalbild öffnen“ prüfen.', true);
+    });
     if (imageRemove) imageRemove.disabled = !path || !selectedId;
   };
   const reset = () => {
@@ -130,9 +133,29 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
       if (error || !data) { message('Veranstaltung konnte nicht gespeichert werden: ' + (error?.message || 'Keine Berechtigung'), true); return; }
       selectedId = data.id; const file = imageInput?.files?.[0];
       if (file) {
-        message('Veranstaltung gespeichert. Bild wird optimiert und hochgeladen …');const previous=events.find(row=>row.id===data.id)?.hero_image_path||null;try{await replaceMediaImage({directory:`events/${data.id}`,file,oldPath:previous,persistPath:async(path)=>{const {error}=await supabase.from('events').update({hero_image_path:path}).eq('id',data.id);return {error};}});}catch(error){message('Veranstaltung gespeichert, Bild fehlgeschlagen: '+(error instanceof Error?error.message:'Unbekannter Fehler'),true);await refresh(data.id);return;}
+        message('Veranstaltung gespeichert. Bild wird optimiert und hochgeladen …');
+        const previous=events.find(row=>row.id===data.id)?.hero_image_path||null;
+        try {
+          const newPath = await replaceMediaImage({
+            directory:`events/${data.id}`,file,oldPath:previous,
+            persistPath:async(path)=>{
+              const {data:stored,error}=await supabase.from('events').update({hero_image_path:path})
+                .eq('id',data.id).select('hero_image_path').single();
+              return {error:error || (stored?.hero_image_path === path ? null : {message:'Die neue Bildreferenz wurde nicht bestätigt.'})};
+            }
+          });
+          // The stored URL is unique for every upload. Show it immediately rather than
+          // leaving an earlier event image in the admin preview.
+          renderImage(newPath);
+        } catch(error) {
+          message('Veranstaltung gespeichert, Bild fehlgeschlagen: '+(error instanceof Error?error.message:'Unbekannter Fehler'),true);
+          await refresh(data.id);
+          return;
+        }
       }
-      message(status === 'published' ? 'Veranstaltung veröffentlicht.' : 'Veranstaltung als Entwurf gespeichert.'); await refresh(data.id);
+      await refresh(data.id);
+      message(file ? 'Veranstaltung und neues Bild gespeichert. Unter „Aktuelles“ wird die neue Datei verwendet.'
+        : status === 'published' ? 'Veranstaltung veröffentlicht.' : 'Veranstaltung als Entwurf gespeichert.');
     } catch (error) { message('Speichern fehlgeschlagen: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'), true); }
     finally { button.disabled = false; button.textContent = 'Veranstaltung speichern'; }
   });
