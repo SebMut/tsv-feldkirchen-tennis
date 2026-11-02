@@ -1,6 +1,7 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 import { mediaUrl } from '../../lib/supabase';
+import '../../styles/live-flashscore.css';
 ---
 <MainLayout
   title="Live-Ticker | TSV Feldkirchen Tennis"
@@ -56,33 +57,3 @@ import { mediaUrl } from '../../lib/supabase';
   loadHome();
   enhanceLiveLastUpdated();
 </script>
-
-<style>
-  :global(.matchday-page--ticker #live-center:not(.hidden)) { display: block; }
-  :global(.matchday-page--ticker #live-center .ticker-overview-match-list) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    align-items: start;
-  }
-  :global(.matchday-page--ticker #live-center .ticker-overview-feature) { height: 100%; min-width: 0; }
-  :global(.matchday-page--ticker #live-center .ticker-overview-feature__match-title) { overflow-wrap: anywhere; }
-  :global(.matchday-page--ticker #live-center .ticker-overview-feature__updated) {
-    display: block;
-    width: 100%;
-    margin-top: 5px;
-    color: #6b7771;
-    font-size: .76rem;
-    font-weight: 650;
-  }
-  :global(.matchday-page--ticker #live-center .ticker-running-encounters__list) { grid-template-columns: minmax(0, 1fr); }
-  :global(.matchday-page--ticker #live-center .ticker-overview-feature__footer) { margin-top: auto; }
-  @media (max-width: 860px) {
-    :global(.matchday-page--ticker #live-center .ticker-overview-match-list) { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  }
-  @media (max-width: 560px) {
-    :global(.matchday-page--ticker .matchday-dashboard) { gap: 14px; }
-    :global(.matchday-page--ticker #live-center) { padding-inline: 12px; }
-    :global(.matchday-page--ticker #live-center .ticker-overview-match-list) { gap: 12px; }
-  }
-</style>
