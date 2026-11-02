@@ -1,5 +1,5 @@
 import { mediaUrl, supabase } from '../lib/supabase';
-import { optimizeImage } from '../lib/images';
+import { replaceMediaImage, removeMediaImage, uploadGalleryImages, removeOwnedMediaPaths } from '../lib/media-upload';
 import { initAdvancedAdmin, loadAdvancedUsers } from './admin-advanced';
 import { initPhase8Admin } from './phase8';
 import { initManualResultsPanel } from './manual-results-admin';
@@ -694,19 +694,7 @@ async function saveTeam(event: Event) {
   if (seasonError) return status(seasonError.message, 'error');
 
   const file = $<HTMLInputElement>('#team-image')?.files?.[0];
-  if (file) {
-    const image = await optimizeImage(file);
-    const path = `teams/${teamId}/seasons/${ts.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
-    const { error: uploadError } = await supabase.storage.from('media').upload(path, image, { upsert: false });
-    if (uploadError) return status(uploadError.message, 'error');
-    const { error: imageError } = await supabase.from('team_seasons').update({ team_image_path: path }).eq('id', ts.id);
-    if (imageError) return status(imageError.message, 'error');
-
-    if (oldImagePath && oldImagePath !== path && oldImagePath.startsWith(`teams/${teamId}/seasons/${ts.id}/`)) {
-      await supabase.storage.from('media').remove([oldImagePath]);
-    }
-  }
-
+  if (file) { try { await replaceMediaImage({directory:`teams/${teamId}/seasons/${ts.id}`,file,oldPath:oldImagePath,persistPath:async(path)=>{const {error}=await supabase.from('team_seasons').update({team_image_path:path}).eq('id',ts.id);return {error};}}); } catch(error){return status(error instanceof Error?error.message:'Mannschaftsbild konnte nicht gespeichert werden.','error');} }
   await loadCore();
   renderSelectors();
   const teamSelect = $<HTMLSelectElement>('#team-select');
@@ -721,14 +709,7 @@ async function resetTeamImage() {
   const ts = state.teamSeasons.find((row) => row.id === teamSeasonId);
   const team = state.teams.find((row) => row.id === ts?.team_id);
   if (!ts || !team) return;
-  const currentPath = ts.team_image_path;
-  const { error } = await supabase.from('team_seasons').update({ team_image_path: null }).eq('id', ts.id);
-  if (error) return status(error.message, 'error');
-
-  if (currentPath && currentPath.startsWith(`teams/${team.id}/seasons/${ts.id}/`)) {
-    await supabase.storage.from('media').remove([currentPath]);
-  }
-
+  try { await removeMediaImage({path:ts.team_image_path,directory:`teams/${team.id}/seasons/${ts.id}`,clearReference:async()=>{const {error}=await supabase.from('team_seasons').update({team_image_path:null}).eq('id',ts.id);return {error};}}); } catch(error){return status(error instanceof Error?error.message:'Saisonbild konnte nicht entfernt werden.','error');}
   await loadCore();
   renderSelectors();
   const teamSelect = $<HTMLSelectElement>('#team-select');
@@ -956,20 +937,8 @@ async function savePlayer(event: Event) {
     if (linkError) return status(linkError.message, 'error');
   }
 
-  const file = $<HTMLInputElement>('#player-photo')?.files?.[0];
-  if (file) {
-    const image = await optimizeImage(file, 1200, 0.82);
-    const path = `teams/${ts.team_id}/players/${playerId}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
-    const { error: uploadError } = await supabase.storage.from('media').upload(path, image);
-    if (uploadError) return status(uploadError.message, 'error');
-    const { error: photoError } = await supabase.from('players').update({ photo_path: path }).eq('id', playerId);
-    if (photoError) return status(photoError.message, 'error');
-
-    if (oldPhotoPath && oldPhotoPath !== path && oldPhotoPath.includes(`/players/${playerId}/`)) {
-      await supabase.storage.from('media').remove([oldPhotoPath]);
-    }
-  }
-
+  const file=$<HTMLInputElement>('#player-photo')?.files?.[0];
+  if(file){try{await replaceMediaImage({directory:`teams/${ts.team_id}/players/${playerId}`,file,maxDimension:1200,quality:0.82,oldPath:oldPhotoPath,persistPath:async(path)=>{const {error}=await supabase.from('players').update({photo_path:path}).eq('id',playerId);return {error};}});}catch(error){return status(error instanceof Error?error.message:'Spielerfoto konnte nicht gespeichert werden.','error');}}
   resetPlayerForm();
   status(editId ? 'Spieler aktualisiert.' : 'Spieler hinzugefügt.', 'success');
   refreshPlayers();
@@ -1892,14 +1861,7 @@ async function addNews(event: Event){
    if(removed.error)return status(`Beitrag gespeichert, alter Kalendertermin konnte nicht entfernt werden: ${removed.error.message}`,'error');
  }
  const photo=document.getElementById('news-image');
- if(photo instanceof HTMLInputElement&&photo.files?.[0]){
-   let image;try{image=await optimizeImage(photo.files[0]);}catch{return status('Text gespeichert, Bildverarbeitung fehlgeschlagen.','error');}
-   const path=`${teamId?`teams/${teamId}`:'site'}/news/${result.data.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
-   const upload=await supabase.storage.from('media').upload(path,image);
-   if(upload.error)return status(`Text gespeichert, Bildfehler: ${upload.error.message}`,'error');
-   const saved=await supabase.from('news').update({hero_image_path:path}).eq('id',result.data.id);
-   if(saved.error)return status(`Text gespeichert, Bildverknüpfung fehlgeschlagen: ${saved.error.message}`,'error');
- }
+ if(photo instanceof HTMLInputElement&&photo.files?.[0]){const old=(await supabase.from('news').select('hero_image_path').eq('id',newsId).maybeSingle()).data?.hero_image_path||null;try{await replaceMediaImage({directory:teamId?`teams/${teamId}/news/${newsId}`:`news/${newsId}`,file:photo.files[0],oldPath:old,persistPath:async(path)=>{const {error}=await supabase.from('news').update({hero_image_path:path}).eq('id',newsId);return {error};}});}catch(error){return status('Text gespeichert, Bildfehler: '+(error instanceof Error?error.message:'Unbekannter Fehler'),'error');}}
  const form=document.getElementById('news-form');if(form instanceof HTMLFormElement)form.reset();
  editorialInput('news-edit-id').value='';
  editorialInput('news-status').value='draft';
@@ -1980,41 +1942,11 @@ async function refreshGalleries() {
 }
 
 async function addGallery(event: Event) {
-  event.preventDefault();
-  const teamId = $<HTMLSelectElement>('#gallery-team')?.value;
-  const title = $<HTMLInputElement>('#gallery-title')?.value.trim();
-  const matchId = $<HTMLSelectElement>('#gallery-match')?.value || null;
-  const files = Array.from($<HTMLInputElement>('#gallery-files')?.files ?? []);
-  if (!teamId || !title || !files.length) return;
-
-  const { data: gallery, error } = await supabase.from('galleries').insert({
-    title,
-    team_id: teamId,
-    match_id: matchId,
-    published: $<HTMLInputElement>('#gallery-published')?.checked ?? true,
-    created_by: state.user.id,
-  }).select().single();
-  if (error || !gallery) return status(error?.message || 'Galerie konnte nicht angelegt werden.', 'error');
-
-  for (const [index, file] of files.entries()) {
-    const image = await optimizeImage(file, 1800, 0.82);
-    const path = `teams/${teamId}/galleries/${gallery.id}/${Date.now()}-${index}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
-    const { error: uploadError } = await supabase.storage.from('media').upload(path, image);
-    if (uploadError) return status(uploadError.message, 'error');
-    const { error: itemError } = await supabase.from('gallery_items').insert({
-      gallery_id: gallery.id,
-      storage_path: path,
-      alt_text: `${title} – Bild ${index + 1}`,
-      sort_order: index,
-    });
-    if (itemError) return status(itemError.message, 'error');
-  }
-
-  ($<HTMLFormElement>('#gallery-form'))?.reset();
-  const published = $<HTMLInputElement>('#gallery-published');
-  if (published) published.checked = true;
-  status('Galerie gespeichert.', 'success');
-  refreshGalleries();
+ event.preventDefault();const teamId=$<HTMLSelectElement>('#gallery-team')?.value,title=$<HTMLInputElement>('#gallery-title')?.value.trim(),matchId=$<HTMLSelectElement>('#gallery-match')?.value||null,files=Array.from($<HTMLInputElement>('#gallery-files')?.files??[]);if(!teamId||!title||!files.length)return;
+ const {data:gallery,error}=await supabase.from('galleries').insert({title,team_id:teamId,match_id:matchId,published:$<HTMLInputElement>('#gallery-published')?.checked??true,created_by:state.user.id}).select().single();if(error||!gallery)return status(error?.message||'Galerie konnte nicht angelegt werden.','error');
+ const directory=matchId?`matches/${matchId}/gallery/${gallery.id}`:`teams/${teamId}/gallery/${gallery.id}`;
+ try{await uploadGalleryImages({directory,files,maxDimension:1800,quality:0.82,basename:'image',persistItem:async(path,index)=>{const {error}=await supabase.from('gallery_items').insert({gallery_id:gallery.id,storage_path:path,alt_text:`${title} – Bild ${index+1}`,sort_order:index});return {error};},rollbackItems:async()=>{const {error}=await supabase.from('gallery_items').delete().eq('gallery_id',gallery.id);await supabase.from('galleries').delete().eq('id',gallery.id);return {error};}});}catch(error){return status(error instanceof Error?error.message:'Galerie konnte nicht gespeichert werden.','error');}
+ ($<HTMLFormElement>('#gallery-form'))?.reset();const published=$<HTMLInputElement>('#gallery-published');if(published)published.checked=true;status('Galerie gespeichert.','success');refreshGalleries();
 }
 
 async function loadFacility() {
@@ -2137,12 +2069,7 @@ async function addSponsor(event: Event){
  if(result.error||!result.data)return status(result.error?.message||'Sponsor nicht gespeichert.','error');
  const input=document.getElementById('sponsor-logo');
  if(input instanceof HTMLInputElement&&input.files?.[0]){
-   let image;try{image=await optimizeImage(input.files[0],1400,0.9);}catch{return status('Sponsor gespeichert, Logo ungültig.','error');}
-   const path=`site/sponsors/${result.data.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
-   const upload=await supabase.storage.from('media').upload(path,image);
-   if(upload.error)return status('Sponsor gespeichert, Logo-Upload fehlgeschlagen: '+upload.error.message,'error');
-   const link=await supabase.from('sponsors').update({logo_path:path}).eq('id',result.data.id);
-   if(link.error)return status('Sponsor gespeichert, Logo nicht verknüpft: '+link.error.message,'error');
+   const old=editId?(await supabase.from('sponsors').select('logo_path').eq('id',result.data.id).maybeSingle()).data?.logo_path||null:null;try{await replaceMediaImage({directory:`site/sponsors/${result.data.id}`,file:input.files[0],maxDimension:1400,quality:0.9,oldPath:old,persistPath:async(path)=>{const {error}=await supabase.from('sponsors').update({logo_path:path}).eq('id',result.data.id);return {error};}});}catch(error){return status('Sponsor gespeichert, Logo fehlgeschlagen: '+(error instanceof Error?error.message:'Unbekannter Fehler'),'error');}
  }
  const form=document.getElementById('sponsor-form');if(form instanceof HTMLFormElement)form.reset();
  editorialInput('sponsor-edit-id').value='';
@@ -2163,12 +2090,7 @@ async function addOfficial(event: Event){
  if(result.error||!result.data)return status(result.error?.message||'Funktionär nicht gespeichert.','error');
  const input=document.getElementById('official-photo');
  if(input instanceof HTMLInputElement&&input.files?.[0]){
-   let image;try{image=await optimizeImage(input.files[0],1200,0.85);}catch{return status('Funktionär gespeichert, Bild ungültig.','error');}
-   const path=`site/officials/${result.data.id}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
-   const upload=await supabase.storage.from('media').upload(path,image);
-   if(upload.error)return status('Funktionär gespeichert, Bild-Upload fehlgeschlagen: '+upload.error.message,'error');
-   const link=await supabase.from('officials').update({photo_path:path}).eq('id',result.data.id);
-   if(link.error)return status('Funktionär gespeichert, Bild nicht verknüpft: '+link.error.message,'error');
+   const old=editId?(await supabase.from('officials').select('photo_path').eq('id',result.data.id).maybeSingle()).data?.photo_path||null:null;try{await replaceMediaImage({directory:`site/officials/${result.data.id}`,file:input.files[0],maxDimension:1200,quality:0.85,oldPath:old,persistPath:async(path)=>{const {error}=await supabase.from('officials').update({photo_path:path}).eq('id',result.data.id);return {error};}});}catch(error){return status('Funktionär gespeichert, Bild fehlgeschlagen: '+(error instanceof Error?error.message:'Unbekannter Fehler'),'error');}
  }
  const form=document.getElementById('official-form');if(form instanceof HTMLFormElement)form.reset();
  editorialInput('official-edit-id').value='';

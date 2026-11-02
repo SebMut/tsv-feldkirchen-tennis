@@ -1,5 +1,5 @@
 import { mediaUrl, supabase } from '../lib/supabase';
-import { optimizeImage } from '../lib/images';
+import { replaceMediaImage, removeMediaImage } from '../lib/media-upload';
 import { escapeHtml, formatDateTime } from '../lib/ui';
 import { downloadRsvpPdf, type RsvpPdfRow } from './rsvp-report-pdf';
 
@@ -112,11 +112,7 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
   pdfButton?.addEventListener('click', () => { const event = events.find(row => row.id === selectedId); if(!event){message('Bitte zuerst eine Veranstaltung auswählen.',true);return} if(pdfButton.disabled) return; try { downloadRsvpPdf({title:String(event.title),slug:String(event.slug),starts_at:String(event.starts_at),rsvp_details:event.rsvp_details||{}},verifiedResponses); message('PDF mit den bestätigten Rückmeldungen wurde erstellt.'); } catch (error) { message('PDF konnte nicht erstellt werden: '+(error instanceof Error ? error.message : 'Unbekannter Fehler'),true); } });
   imageRemove?.addEventListener('click', async () => {
     const event = events.find(row => row.id === selectedId); if (!event?.hero_image_path || !selectedId) return;
-    const oldPath = String(event.hero_image_path); imageRemove.disabled = true;
-    const { error } = await supabase.from('events').update({ hero_image_path: null }).eq('id', selectedId);
-    if (error) { imageRemove.disabled = false; message('Bild konnte nicht entfernt werden: ' + error.message, true); return; }
-    if (oldPath.startsWith(`events/${selectedId}/`)) await supabase.storage.from('media').remove([oldPath]);
-    message('Veranstaltungsbild entfernt. Das Standardbild wird wieder verwendet.'); await refresh(selectedId);
+    const oldPath=String(event.hero_image_path);imageRemove.disabled=true;try{await removeMediaImage({path:oldPath,directory:`events/${selectedId}`,clearReference:async()=>{const {error}=await supabase.from('events').update({hero_image_path:null}).eq('id',selectedId);return {error};}});message('Veranstaltungsbild entfernt. Das Standardbild wird wieder verwendet.');await refresh(selectedId);}catch(error){imageRemove.disabled=false;message('Bild konnte nicht entfernt werden: '+(error instanceof Error?error.message:'Unbekannter Fehler'),true);}
   });
   $<HTMLButtonElement>('rsvp-admin-new')?.addEventListener('click', reset); select.addEventListener('change', fill);
   form.addEventListener('submit', async (evt) => {
@@ -134,16 +130,7 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
       if (error || !data) { message('Veranstaltung konnte nicht gespeichert werden: ' + (error?.message || 'Keine Berechtigung'), true); return; }
       selectedId = data.id; const file = imageInput?.files?.[0];
       if (file) {
-        if (!['image/jpeg','image/png','image/webp','image/avif'].includes(file.type)) { message('Veranstaltung gespeichert, aber das Bildformat wird nicht unterstützt.', true); await refresh(data.id); return; }
-        if (file.size > 8 * 1024 * 1024) { message('Veranstaltung gespeichert, aber das Bild ist größer als 8 MB.', true); await refresh(data.id); return; }
-        message('Veranstaltung gespeichert. Bild wird optimiert und hochgeladen …');
-        const image = await optimizeImage(file, 2200, 0.84), path = `events/${data.id}/hero-${Date.now()}.webp`;
-        const { error: uploadError } = await supabase.storage.from('media').upload(path, image, { upsert: false, contentType: image.type });
-        if (uploadError) { message('Veranstaltung gespeichert, Bild-Upload fehlgeschlagen: ' + uploadError.message, true); await refresh(data.id); return; }
-        const previous = events.find(row => row.id === data.id)?.hero_image_path;
-        const { error: imageError } = await supabase.from('events').update({ hero_image_path: path }).eq('id', data.id);
-        if (imageError) { await supabase.storage.from('media').remove([path]); message('Veranstaltung gespeichert, Bild konnte aber nicht zugeordnet werden: ' + imageError.message, true); await refresh(data.id); return; }
-        if (previous && previous !== path && String(previous).startsWith(`events/${data.id}/`)) await supabase.storage.from('media').remove([previous]);
+        message('Veranstaltung gespeichert. Bild wird optimiert und hochgeladen …');const previous=events.find(row=>row.id===data.id)?.hero_image_path||null;try{await replaceMediaImage({directory:`events/${data.id}`,file,oldPath:previous,persistPath:async(path)=>{const {error}=await supabase.from('events').update({hero_image_path:path}).eq('id',data.id);return {error};}});}catch(error){message('Veranstaltung gespeichert, Bild fehlgeschlagen: '+(error instanceof Error?error.message:'Unbekannter Fehler'),true);await refresh(data.id);return;}
       }
       message(status === 'published' ? 'Veranstaltung veröffentlicht. Veranstaltungsbild ist gespeichert.' : 'Veranstaltung als Entwurf gespeichert. Veranstaltungsbild ist gespeichert.'); await refresh(data.id);
     } catch (error) { message('Speichern fehlgeschlagen: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'), true); }
