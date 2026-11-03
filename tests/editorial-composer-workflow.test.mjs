@@ -83,6 +83,6 @@ test('updates to published appointments keep status unless explicitly retracted'
   assert.ok(composer.includes("const keepPublished = isAlreadyPublished();"));
   assert.ok(composer.includes("void save(keepPublished ? 'published' : 'draft', keepPublished);"));
   assert.ok(composer.includes("window.confirm('Beitrag und Veranstaltung wirklich als Entwurf zurückziehen?"));
-  assert.ok(composer.includes("notice(preservingPublished ? 'Änderungen gespeichert."));
+  assert.ok(composer.includes("preservingPublished ? 'Änderungen gespeichert. Beitrag und Kalendertermin bleiben veröffentlicht."));
   assert.ok(composer.includes("status: oldEvent?.status || 'draft'"));
 });
