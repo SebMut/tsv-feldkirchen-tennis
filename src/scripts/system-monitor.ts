@@ -40,7 +40,28 @@ export function initSystemMonitor(isSuper: boolean) {
       const cronFailures=Number(checks.cron_failures_24h || 0);
       const cronUnhealthy=(checks.cron_jobs || []).some(job=>!job.active || job.last_status!=='succeeded');
       const backupFresh=health.restore_check?.checked_at && ageDays(health.restore_check.checked_at)<=30;
+      // This additional read-only check explains the scope of the current
+      // published BTV season without assuming future seasons already exist.
+      let seasonTile = tile('Aktuelle Saison','warning','Saisonumfang derzeit nicht prüfbar');
+      const {data: activeSeasons, error: seasonError} = await supabase
+        .from('seasons').select('id,name').eq('is_current',true).eq('is_published',true).limit(1);
+      const currentSeason = !seasonError ? activeSeasons?.[0] : null;
+      if (currentSeason) {
+        const {data: seasonTeams, error: teamsError} = await supabase
+          .from('team_seasons').select('id').eq('season_id',currentSeason.id).eq('is_published',true);
+        if (!teamsError) {
+          const ids = (seasonTeams || []).map(team => team.id);
+          const matches = ids.length
+            ? await supabase.from('matches').select('id').in('team_season_id',ids).eq('is_published',true)
+            : {data:[],error:null};
+          if (!matches.error) {
+            seasonTile = tile('Aktuelle Saison',ids.length?'ok':'warning',
+              currentSeason.name+': '+ids.length+' Teams · '+(matches.data || []).length+' veröffentlichte Spieltage. Diese Zahlen bewerten keine zukünftigen Runden.');
+          }
+        }
+      }
       root.innerHTML=[
+        seasonTile,
         tile('Supabase','ok','Erreichbar · '+formatDateTime(checks.checked_at || new Date().toISOString())),
         tile('BTV-Abgleich',goodBtv?'ok':'warning',
           health.btv_last_success?'Letzter Erfolg: '+formatDateTime(health.btv_last_success.completed_at):
