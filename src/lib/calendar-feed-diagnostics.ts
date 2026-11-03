@@ -19,8 +19,26 @@ export type IcsInspection = {
 /** Only public, published events are inspected. Draft details are never returned to visitors. */
 export async function inspectCalendarFeed(params: Record<string, string> = {}): Promise<IcsInspection> {
   const url = calendarFeedUrl(params);
-  const response = await fetch(url, { cache: 'no-store', headers: { Accept: 'text/calendar' } });
-  if (!response.ok) throw Error('Kalenderfeed nicht erreichbar (HTTP ' + response.status + ').');
+  let response: Response | null = null;
+  let lastError: unknown = null;
+  // A transient edge/network failure should not immediately masquerade as a missing event.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const fetched = await fetch(url, {
+        cache: 'no-store',
+        headers: { Accept: 'text/calendar' },
+        signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(10000) : undefined,
+      });
+      if (fetched.ok) { response = fetched; break; }
+      lastError = Error('Kalenderfeed nicht erreichbar (HTTP ' + fetched.status + ').');
+      if (fetched.status < 500) break;
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 400));
+  }
+  if (!response) throw Error('Kalenderfeed nicht erreichbar: ' +
+    (lastError instanceof Error ? lastError.message : 'Netzwerkfehler'));
   if (!(response.headers.get('content-type') || '').includes('text/calendar')) throw Error('Kalenderfeed liefert kein gültiges ICS-Format.');
   const source = await response.text();
   const unfolded = source.replace(/\r?\n[ \t]/g, '').replace(/\r\n/g, '\n');
