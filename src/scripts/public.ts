@@ -461,7 +461,7 @@ export async function loadHome() {
               const detailHref = `/live/?match=${encodeURIComponent(match.id)}`;
               const matchEncounters = activeEncounters.filter((row: Row) => row.match_id === match.id);
               return `
-                <article class="ticker-overview-feature">
+                <div class="ticker-overview-feature">
                   <div class="ticker-overview-feature__match-title">
                     <div>
                       <h3>${escapeHtml(team?.name || 'TSV Feldkirchen')} <span>gegen</span> ${escapeHtml(match.opponent)}</h3>
@@ -498,7 +498,7 @@ export async function loadHome() {
                     <span>Weitere Begegnungen und alle Satzdetails</span>
                     <a class="ticker-overview-feature__action" href="${detailHref}">Live-Ergebnisse &amp; alle Sätze ansehen <span aria-hidden="true">↗</span></a>
                   </div>
-                </article>`;
+                </div>`;
             }).join('')}
           </div>`;
       } else {
