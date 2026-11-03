@@ -74,3 +74,15 @@ test('event short text persists separately from the invitation body, reloads int
   assert.ok(aktuelles.includes("event.description || description"));
   assert.ok(legacyNewsEditor.includes("excerpt:editorialInput('news-excerpt')?.value.trim()||null,description:body"));
 });
+
+test('updates to published appointments keep status unless explicitly retracted', () => {
+  assert.ok(composer.includes("const isAlreadyPublished = () =>"));
+  assert.ok(composer.includes("draft.textContent = published ? 'Änderungen speichern (weiterhin öffentlich)'"));
+  assert.ok(composer.includes("unpublish.hidden = !published"));
+  assert.ok(composer.includes("!preservingPublished && previewRevision !== revision"));
+  assert.ok(composer.includes("const keepPublished = isAlreadyPublished();"));
+  assert.ok(composer.includes("void save(keepPublished ? 'published' : 'draft', keepPublished);"));
+  assert.ok(composer.includes("window.confirm('Beitrag und Veranstaltung wirklich als Entwurf zurückziehen?"));
+  assert.ok(composer.includes("notice(preservingPublished ? 'Änderungen gespeichert."));
+  assert.ok(composer.includes("status: oldEvent?.status || 'draft'"));
+});
