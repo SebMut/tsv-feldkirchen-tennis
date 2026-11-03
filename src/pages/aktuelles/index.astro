@@ -26,6 +26,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
   const newsList = document.querySelector<HTMLElement>('#news-list');
   const linkedNewsIds = new Set<string>();
   const eventTitles = new Set<string>();
+  const eventByNewsId = new Map<string, string>();
+  const eventByTitle = new Map<string, string>();
   const plainText = (value: unknown) => String(value || '')
     .replace(/\*\*/g, '')
     .replace(/^\s*[🥨🎾🍂🍻📍]+\s*/u, '')
@@ -133,7 +135,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
     const candidate = /^(event|news)-[0-9a-f-]{36}$/i.test(hash) ? hash
       : selected.get('event') ? `event-${selected.get('event')}`
       : selected.get('news') ? `news-${selected.get('news')}` : '';
-    if (candidate) expandCard(candidate, true);
+    const eventId = candidate.startsWith('news-') ? eventByNewsId.get(candidate.slice(5)) : undefined;
+    if (candidate) expandCard(eventId ? 'event-' + eventId : candidate, true);
   };
   window.addEventListener('hashchange', openFromUrl);
 
@@ -153,9 +156,14 @@ import MainLayout from '../../layouts/MainLayout.astro';
     });
 
     rows.forEach((event: any) => {
-      eventTitles.add(String(event.title || '').trim());
+      const eventTitle = String(event.title || '').trim();
+      eventTitles.add(eventTitle);
+      eventByTitle.set(eventTitle, String(event.id));
       const match = typeof event.slug === 'string' ? /^news-([0-9a-f-]{36})$/i.exec(event.slug) : null;
-      if (match) linkedNewsIds.add(match[1]);
+      if (match) {
+        linkedNewsIds.add(match[1]);
+        eventByNewsId.set(match[1], String(event.id));
+      }
     });
 
     section.setAttribute('aria-busy','false');
@@ -204,7 +212,14 @@ import MainLayout from '../../layouts/MainLayout.astro';
   const decorateNewsCards = () => {
   newsList?.querySelectorAll<HTMLElement>('article.card').forEach(card => {
     const rawTitle = card.querySelector('h2')?.textContent?.trim() || '';
-    if (eventTitles.has(rawTitle) || linkedNewsIds.has(card.id.slice(5))) { card.remove(); return; }
+    if (eventTitles.has(rawTitle) || linkedNewsIds.has(card.id.slice(5))) {
+      const newsId = card.id.slice(5);
+      const eventId = eventByNewsId.get(newsId) || eventByTitle.get(rawTitle);
+      if (eventId) eventByNewsId.set(newsId, eventId);
+      card.remove();
+      openFromUrl();
+      return;
+    }
 
     card.classList.add('content-card', 'content-card--news');
     card.classList.remove('card');
