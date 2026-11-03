@@ -70,6 +70,17 @@ function subscriptionEvents<T extends { team_id: string | null }>(
   });
 }
 
+/** Content-derived validators change for edits, unpublishing and filtered subscriptions. */
+async function contentEtag(contents: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(contents));
+  return '"sha256-' + Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2, "0")).join("") + '"';
+}
+
+function lastModifiedAt(items: Array<{ updated_at?: string | null; created_at?: string | null }>) {
+  const latest = items.reduce((time, item) => Math.max(time, Date.parse(item.updated_at || item.created_at || "") || 0), 0);
+  return latest ? new Date(latest).toUTCString() : null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "GET") return new Response("Method not allowed", { status: 405 });
   const url = new URL(req.url);
@@ -87,7 +98,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: events, error: ee } = await db.from("events")
     .select("id,title,description,starts_at,ends_at,all_day,location_name,address,external_url,status,team_id,created_at,updated_at")
-    .eq("status", "published").order("starts_at");
+    .order("starts_at");
   if (ee) return new Response(ee.message, { status: 500 });
 
   const fm = (matches ?? []).filter((m:any) => {
@@ -95,7 +106,9 @@ Deno.serve(async (req: Request) => {
     return (!teamSlug || team?.slug===teamSlug) && (!categorySlug || team?.team_categories?.slug===categorySlug);
   });
   const allowedIds=new Set(fm.map((m:any)=>m.team_seasons?.team_id).filter(Boolean));
-  const fe = subscriptionEvents(events ?? [], teamSlug, categorySlug, includeEvents, allowedIds);
+  // Query all statuses only internally so Last-Modified advances when an event is withdrawn.
+  // No drafts or archived records may appear in the public iCalendar body.
+  const fe = subscriptionEvents((events ?? []).filter((event:any) => event.status === "published"), teamSlug, categorySlug, includeEvents, allowedIds);
 
   const blocks:string[]=[];
   if (type!=="events") for (const m of fm as any[]) {
@@ -117,10 +130,19 @@ Deno.serve(async (req: Request) => {
 
   const name=teamSlug ? `TSV Feldkirchen Tennis – ${teamSlug}` : categorySlug ? `TSV Feldkirchen Tennis – ${categorySlug}` : "TSV Feldkirchen Tennis";
   const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//TSV Feldkirchen Tennis//Kalender//DE","CALSCALE:GREGORIAN",fold(`X-WR-CALNAME:${esc(name)}`),"REFRESH-INTERVAL;VALUE=DURATION:PT1H","X-PUBLISHED-TTL:PT1H",...blocks,"END:VCALENDAR",""].join("\r\n");
-  return new Response(ics,{headers:{
+  const etag = await contentEtag(ics);
+  const lastModified = lastModifiedAt([...(matches ?? []), ...(events ?? [])]);
+  const headers = new Headers({
     "Content-Type":"text/calendar; charset=utf-8",
     "Content-Disposition":'inline; filename="tsv-feldkirchen-tennis.ics"',
     "Cache-Control":"no-cache, max-age=0, must-revalidate",
     "Access-Control-Allow-Origin":"*",
-  }});
+    "Access-Control-Expose-Headers":"ETag, Last-Modified",
+    "ETag":etag,
+  });
+  if (lastModified) headers.set("Last-Modified", lastModified);
+  // Compare content, not timestamps: a withdrawn/deleted event must never get a stale 304.
+  const validators = (req.headers.get("if-none-match") || "").split(",").map(value => value.trim());
+  if (validators.includes(etag) || validators.includes("*")) return new Response(null,{status:304,headers});
+  return new Response(ics,{headers});
 });
