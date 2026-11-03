@@ -38,8 +38,11 @@ const activeMore = !active('/') && !activePlay && !active('/aktuelles/') && !act
   <a class:list={['mobile-dock__tab', { 'is-active': active('/') }]} href="/" aria-current={active('/') ? 'page' : undefined}>
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Startseite</span>
   </a>
-  <a class:list={['mobile-dock__tab', 'js-live-nav-link', { 'is-active': activePlay }]} href="/spieltag/" aria-current={activePlay ? 'page' : undefined}>
+  <a class:list={['mobile-dock__tab', 'js-live-nav-link', 'js-live-nav-dock-link', { 'is-active': activePlay }]} href="/spieltag/" aria-current={activePlay ? 'page' : undefined} hidden>
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h3l3-7 4 14 3-7h3"/><circle cx="20" cy="4" r="1.5" fill="currentColor" stroke="none"/></svg><span>Live-Ticker</span>
+  </a>
+  <a class:list={['mobile-dock__tab', 'js-live-nav-fallback', { 'is-active': active('/mannschaften/') }]} href="/mannschaften/" aria-current={active('/mannschaften/') ? 'page' : undefined}>
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="2"/><circle cx="16" cy="6" r="2"/><path d="M3 19v-3a5 5 0 0 1 10 0v3M13 19v-3a5 5 0 0 1 8 0v3"/></svg><span>Mannschaften</span>
   </a>
   <a class:list={['mobile-dock__tab', { 'is-active': active('/aktuelles/') }]} href="/aktuelles/" aria-current={active('/aktuelles/') ? 'page' : undefined}>
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg><span>Aktuelles</span>
