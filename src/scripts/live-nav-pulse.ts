@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 
 /**
- * Keep Live-Ticker navigation visible on all devices. Pulse red only when a match is live.
+ * Desktop/menu: always show Live-Ticker. Mobile dock: show Mannschaften until a match is live.\n * The existing red pulse appears only for confirmed LIVE matches.
  */
 export function initLiveNavPulse() {
   const liveLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('.js-live-nav-link'));
@@ -10,8 +10,10 @@ export function initLiveNavPulse() {
 
   const apply = (anyLive: boolean) => {
     for (const link of liveLinks) {
-      link.hidden = false;
-      link.setAttribute('aria-hidden', 'false');
+      // The dock has one shared slot: it switches to the teams link when idle.
+      // Desktop and the full menu must retain their existing Live-Ticker links.
+      link.hidden = link.classList.contains('js-live-nav-dock-link') && !anyLive;
+      link.setAttribute('aria-hidden', String(link.hidden));
       link.classList.toggle('has-live-match', anyLive);
       if (anyLive) {
         link.setAttribute('aria-label', 'Live-Ticker – jetzt läuft ein Spiel');
@@ -25,10 +27,14 @@ export function initLiveNavPulse() {
       fallback.hidden = anyLive;
       fallback.setAttribute('aria-hidden', String(anyLive));
     }
+    // A team page belongs to the dock tab while idle and to 'Mehr' while live.
+    if (fallbacks.some((fallback) => fallback.classList.contains('is-active'))) {
+      document.querySelector<HTMLElement>('.mobile-dock__more > summary')?.classList.toggle('is-active', anyLive);
+    }
     document.documentElement.classList.toggle('has-live-match', anyLive);
   };
 
-  // Fail closed on the LIVE animation: the menu remains visible when status is unknown.
+  // Until a LIVE state is confirmed, keep the Mannschaften dock tab visible.
   apply(false);
 
   let busy = false;
