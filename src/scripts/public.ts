@@ -1,4 +1,5 @@
 import { calendarFeedUrl, calendarSubscriptionUrl, mediaUrl, supabase } from '../lib/supabase';
+import { formatIcsTime, inspectCalendarFeed } from '../lib/calendar-feed-diagnostics';
 import { escapeHtml, formatDateTime } from '../lib/ui';
 import { officialBtvTeamDestination } from '../lib/btv-group-url';
 import { summarizeSetResult, homeAwaySetScore } from '../lib/tennis-score.mjs';
@@ -1269,6 +1270,10 @@ export async function loadCalendar() {
   const kindSelect = document.querySelector<HTMLSelectElement>('#calendar-kind');
   const rangeSelect = document.querySelector<HTMLSelectElement>('#calendar-range');
   const subscriptions = document.querySelector<HTMLElement>('#calendar-subscriptions');
+  const feedCheck = document.querySelector<HTMLButtonElement>('#calendar-check-feed');
+  const feedDiagnostic = document.querySelector<HTMLElement>('#calendar-feed-diagnostic');
+  let diagnosticParams: Record<string, string> = {};
+  let checkedFeedUrl = '';
   const viewSelect = document.querySelector<HTMLSelectElement>('#calendar-view');
   const favoriteSelect = document.querySelector<HTMLSelectElement>('#calendar-favorite');
   const includeEvents = document.querySelector<HTMLInputElement>('#calendar-include-events');
@@ -1469,12 +1474,48 @@ export async function loadCalendar() {
     const categoryOption = categorySelect.selectedOptions[0];
     if (teamSelect.value && teamOption?.dataset.slug) params.team = teamOption.dataset.slug;
     else if (categorySelect.value && categoryOption?.dataset.slug) params.category = categoryOption.dataset.slug;
+    diagnosticParams = params;
+    if (feedDiagnostic && checkedFeedUrl && checkedFeedUrl !== calendarFeedUrl(params)) {
+      feedDiagnostic.textContent = 'Filter geändert. Bitte die neue Abo-Auswahl erneut prüfen.';
+      checkedFeedUrl = '';
+    }
     subscriptions.innerHTML = `<a class="button" href="${escapeHtml(calendarSubscriptionUrl(params))}">Auswahl abonnieren</a>
       <a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({ type: 'matches' }))}">Alle Punktspiele</a>
       <a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({ type: 'events' }))}">Vereinstermine</a>
       <button type="button" class="button ghost" data-calendar-copy="${escapeHtml(calendarFeedUrl(params))}">Abo-Link kopieren (Google Kalender)</button>
       <button type="button" class="button ghost" data-calendar-copy="${escapeHtml(calendarFeedUrl({ type: 'events' }))}">Vereinstermine-Link kopieren</button>`;
   };
+
+  feedCheck?.addEventListener('click', async () => {
+    if (!feedDiagnostic || !feedCheck) return;
+    const params = { ...diagnosticParams };
+    const requestedUrl = calendarFeedUrl(params);
+    feedCheck.disabled = true;
+    feedDiagnostic.textContent = 'Öffentlichen ICS-Feed prüfen …';
+    try {
+      const result = await inspectCalendarFeed(params);
+      if (requestedUrl !== calendarFeedUrl(diagnosticParams)) {
+        feedDiagnostic.textContent = 'Während der Prüfung wurde die Auswahl geändert. Bitte erneut prüfen.';
+        return;
+      }
+      checkedFeedUrl = result.url;
+      const eventItems = result.entries.filter(item => item.kind === 'event');
+      const matchItems = result.entries.filter(item => item.kind === 'match');
+      const eventLines = eventItems.map(item =>
+        `<li><strong>${escapeHtml(item.title)}</strong><span> · ${escapeHtml(formatIcsTime(item.start))}${item.end ? ' bis ' + escapeHtml(formatIcsTime(item.end)) : ' · Keine Endzeit'}</span></li>`).join('');
+      feedDiagnostic.innerHTML = `<p><strong>ICS-Feed erreichbar.</strong> ${matchItems.length} Punktspiele, ${eventItems.length} veröffentlichte Veranstaltungen für diese Abo-Auswahl.</p>
+        <p class="muted">Geprüft: ${escapeHtml(new Date(result.checkedAt).toLocaleString('de-DE'))}. ${result.etag ? 'ETag vorhanden.' : 'ETag fehlt.'} ${result.lastModified ? 'Letzte Serveränderung: ' + escapeHtml(result.lastModified) + '.' : ''}</p>
+        ${eventItems.length ? '<ul class="calendar-feed-diagnostic__list">' + eventLines + '</ul>' :
+          '<p class="muted">Keine veröffentlichten Veranstaltungen in dieser Auswahl. Entwürfe erscheinen grundsätzlich nicht im Abo.</p>'}
+        <p class="muted">Wenn dein Kalender diese Termine noch nicht zeigt, liegt der nächste Abruf bei deiner Kalender-App.</p>`;
+    } catch (error) {
+      checkedFeedUrl = '';
+      feedDiagnostic.textContent = 'Prüfung fehlgeschlagen: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler') +
+        ' Bitte Internetverbindung oder Feed-Verfügbarkeit prüfen.';
+    } finally {
+      feedCheck.disabled = false;
+    }
+  });
 
   subscriptions.addEventListener('click', async (event) => {
     const button = (event.target as Element | null)?.closest<HTMLButtonElement>('button[data-calendar-copy]');
