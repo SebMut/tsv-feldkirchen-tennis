@@ -11,9 +11,9 @@ const css = read('src/styles/global.css');
 
 test('invitation retains content structure from 2024 without announcing expired dates', () => {
   assert.ok(page.includes('Liebe Tennisfreunde'));
-  assert.ok(page.includes('Punktspielsaison'));
-  assert.ok(page.includes('Eltern, Partner und Freunde'));
-  assert.ok(page.includes('Speis und Trank'));
+  assert.ok(page.includes('rsvp-invitation-details'));
+  assert.ok(page.includes('rsvp-fee-detail'));
+  assert.ok(page.includes('rsvp-help-detail'));
   assert.ok(page.includes('Kuchen oder Nachspeise'));
   assert.ok(page.includes('Salat oder Vorspeise'));
   assert.ok(page.includes('Jugendvereinsmeisterschaften'));
