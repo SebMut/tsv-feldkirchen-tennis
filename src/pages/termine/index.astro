@@ -115,7 +115,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
   .calendar-favorite-group{display:grid;grid-template-columns:auto minmax(180px,240px);align-items:center;gap:7px 10px;min-width:0}
   .calendar-favorite-group>label:first-child{font-size:.83rem;font-weight:800;color:#44554c}
   .calendar-favorite-group>select{min-width:0;width:100%;border:1px solid #cbd8cd;background:#fff;border-radius:9px;padding:9px;color:#22382b}
-  .calendar-include-events-toggle{grid-column:1/-1;display:flex;align-items:center;gap:9px;padding:6px 0 1px;font-size:.87rem;font-weight:750;color:#263f31;cursor:pointer;width:max-content;max-width:100%}
+  .phase8-calendar-preferences .calendar-favorite-group .calendar-include-events-toggle{grid-column:1/-1;display:flex;align-items:center;gap:9px;padding:6px 0 1px;font-size:.87rem;font-weight:750;color:#263f31;cursor:pointer;width:max-content;max-width:100%}
   .calendar-include-events-toggle input{width:19px;height:19px;accent-color:#087884;cursor:pointer;margin:0;flex:none}
   .calendar-include-events-toggle:focus-within{outline:2px solid #087884;outline-offset:3px;border-radius:4px}
   @media(max-width:680px){.calendar-favorite-group{grid-column:1/-1;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.calendar-favorite-group>select{grid-column:2;max-width:none}.calendar-include-events-toggle{grid-column:1/-1}}
