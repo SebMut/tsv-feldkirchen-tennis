@@ -2758,3 +2758,6 @@ main.main--flush{padding:0}
 body:has(.matchday-page--ticker .matchday-live-center.is-loading) .site-footer{
   visibility:hidden;
 }
+
+/* Hide the inactive dock destination even though dock tabs normally use flex. */
+.mobile-dock > .mobile-dock__tab[hidden]{display:none!important}
