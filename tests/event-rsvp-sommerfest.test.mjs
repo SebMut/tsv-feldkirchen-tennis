@@ -12,7 +12,9 @@ const sql=read('supabase/migrations/20261101190000_event_rsvp_sommerfest.sql');
 const css=read('src/styles/global.css');
 
 test('Sommerfest example is visibly marked as a demo until published',()=>{
-  assert.ok(page.includes('Sommerfest &amp; Jugendvereinsmeisterschaften'));
+  assert.ok(script.includes('Sommerfest & Jugendvereinsmeisterschaften (Vorlage)'));
+  assert.ok(page.includes('id="rsvp-heading"'));
+  assert.ok(page.includes('Veranstaltungsanmeldung'));
   assert.ok(page.includes('Beispielansicht'));
   assert.ok(page.includes('Antworten werden hier noch nicht gespeichert'));
   assert.ok(script.includes('if (!event) {'));
