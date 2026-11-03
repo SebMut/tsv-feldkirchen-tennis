@@ -675,15 +675,39 @@ export async function loadTeams() {
       `<button type="button" class="teams-category-chip" data-category="${escapeHtml(category.id)}" aria-pressed="false">${escapeHtml(category.name)}</button>`)
   ].join('');
 
-  const seasonIds = publishedTeamSeasons.map((ts: Row) => ts.id);
-  const matchResult = seasonIds.length
-    ? await supabase.from('matches').select('id,team_season_id,opponent,is_home,starts_at,venue_name,venue_address,notes').eq('is_published', true).in('team_season_id', seasonIds).order('starts_at')
-    : { data: [], error: null };
-  const matches = matchResult.data ?? [];
-  const stateResult = matches.length
-    ? await supabase.from('match_live_state').select('match_id,status,home_score,away_score').in('match_id', matches.map((m: Row) => m.id))
-    : { data: [], error: null };
-  const states = new Map((stateResult.data ?? []).map((s: Row) => [s.match_id, s]));
+  // Lade Begegnungen nur für die gewählte Saison; zurückliegende Runden werden erst bei Auswahl abgefragt.
+  const seasonMatchCache = new Map<string, { matches: Row[]; states: Map<string, Row> }>();
+  const seasonMatchPending = new Set<string>();
+  const seasonMatchErrors = new Map<string, string>();
+  const loadSeasonMatchCards = async (code: string) => {
+    if (seasonMatchCache.has(code) || seasonMatchPending.has(code)) return;
+    seasonMatchPending.add(code);
+    try {
+      const ids = teamsForSeason(seasonByCode.get(code)).map((ts: Row) => ts.id);
+      const matchResult = ids.length
+        ? await supabase.from('matches')
+          .select('id,team_season_id,opponent,is_home,starts_at,venue_name,venue_address,notes')
+          .eq('is_published', true).in('team_season_id', ids).order('starts_at')
+        : { data: [], error: null };
+      if (matchResult.error) throw matchResult.error;
+      const matches = matchResult.data ?? [];
+      const stateResult = matches.length
+        ? await supabase.from('match_live_state')
+          .select('match_id,status,home_score,away_score').in('match_id', matches.map((m: Row) => m.id))
+        : { data: [], error: null };
+      if (stateResult.error) throw stateResult.error;
+      seasonMatchCache.set(code, {
+        matches,
+        states: new Map((stateResult.data ?? []).map((state: Row) => [state.match_id, state])),
+      });
+      seasonMatchErrors.delete(code);
+    } catch {
+      seasonMatchErrors.set(code, 'Die Spieltermine konnten nicht geladen werden. Bitte erneut versuchen.');
+    } finally {
+      seasonMatchPending.delete(code);
+      if (code === activeCode) render();
+    }
+  };
 
   // Ein Kategorienlink aus dem Breadcrumb darf nicht in einer Saison ohne
   // Mannschaften dieser Gruppe landen (z. B. Junioren in der Winterrunde).
@@ -753,6 +777,18 @@ export async function loadTeams() {
         : `<div class="teams-empty"><span aria-hidden="true">${activeCode.startsWith('winter') ? '❄' : '☀'}</span><h3>Noch keine Mannschaften veröffentlicht</h3><p>${emptyMessage}</p></div>`;
       return;
     }
+    const error = seasonMatchErrors.get(activeCode);
+    if (error) {
+      target.innerHTML = `<div class="teams-empty" role="alert"><p>${escapeHtml(error)}</p><button type="button" class="button" data-retry-team-season>Erneut laden</button></div>`;
+      return;
+    }
+    const seasonMatches = seasonMatchCache.get(activeCode);
+    if (!seasonMatches) {
+      target.innerHTML = '<p class="muted" role="status" aria-live="polite">Begegnungen dieser Saison werden geladen …</p>';
+      void loadSeasonMatchCards(activeCode);
+      return;
+    }
+    const { matches, states } = seasonMatches;
     const now = Date.now();
     target.innerHTML = rows.map(({ ts, team }: {ts: Row; team: Row}) => {
       const teamMatches = matches.filter((m: Row) => m.team_season_id === ts.id);
@@ -792,6 +828,12 @@ export async function loadTeams() {
   };
 
   applyUrlState();
+  target.addEventListener('click', (event: MouseEvent) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-retry-team-season]');
+    if (!button) return;
+    seasonMatchErrors.delete(activeCode);
+    render();
+  });
   nav.addEventListener('click', (event: MouseEvent) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-season]');
     if (!button || !nav.contains(button) || button.dataset.season === activeCode) return;
@@ -886,15 +928,11 @@ export async function loadTeamDetail(slug: string) {
 
   if (!current) return;
 
-  const teamSeasonIds = teamSeasons.map((row: Row) => row.id);
-  const [{ data: links }, { data: matches }, { data: allTeamMatches }, { data: news }, { data: galleries }, standingsResult] = await Promise.all([
-    supabase.from('team_players').select('*').eq('team_season_id', current.id).eq('public_visible', true).order('is_captain', { ascending: false }).order('sort_order'),
+  const [{ data: links }, { data: matches }, { data: news }, { data: galleries }, standingsResult] = await Promise.all([
+    supabase.from('team_players').select('player_id,is_captain,sort_order').eq('team_season_id', current.id).eq('public_visible', true).order('is_captain', { ascending: false }).order('sort_order'),
     supabase.from('matches').select('*').eq('team_season_id', current.id).eq('is_published', true).order('starts_at'),
-    teamSeasonIds.length
-      ? supabase.from('matches').select('*').in('team_season_id', teamSeasonIds).eq('is_published', true).order('starts_at')
-      : Promise.resolve({ data: [] }),
-    supabase.from('news').select('*').eq('team_id', team.id).eq('status', 'published').order('published_at', { ascending: false }),
-    supabase.from('galleries').select('*').eq('team_id', team.id).eq('published', true).order('created_at', { ascending: false }),
+    supabase.from('news').select('title,excerpt').eq('team_id', team.id).eq('status', 'published').order('published_at', { ascending: false }),
+    supabase.from('galleries').select('id,match_id,title').eq('team_id', team.id).eq('published', true).order('created_at', { ascending: false }),
     supabase.from('team_standings').select('rank,team_name,club_code,standing_text,source_url,synced_at').eq('team_season_id', current.id).order('rank'),
   ]);
 
@@ -928,7 +966,7 @@ export async function loadTeamDetail(slug: string) {
   }
 
   const playerIds = (links ?? []).map((row: Row) => row.player_id);
-  const players = playerIds.length ? (await supabase.from('players').select('*').in('id', playerIds)).data ?? [] : [];
+  const players = playerIds.length ? (await supabase.from('players').select('id,display_name,photo_path').in('id', playerIds)).data ?? [] : [];
   const playerMap = byId(players);
   const roster = document.querySelector<HTMLElement>('#team-roster');
   if (roster) roster.innerHTML = links?.length ? `
@@ -952,7 +990,7 @@ export async function loadTeamDetail(slug: string) {
 
   const allMatchesForTeam = matches ?? []; // Never mix seasons in a single team's live/statistics views.
   const liveStates = allMatchesForTeam.length
-    ? (await supabase.from('match_live_state').select('*').in('match_id', allMatchesForTeam.map((m: Row) => m.id))).data ?? []
+    ? (await supabase.from('match_live_state').select('match_id,status,home_score,away_score').in('match_id', allMatchesForTeam.map((m: Row) => m.id))).data ?? []
     : [];
 
   const statsTarget = document.querySelector<HTMLElement>('#team-stats');
@@ -1889,6 +1927,13 @@ export async function loadLiveTicker(matchId: string | null) {
   }
 
   const referencePromise = refs();
+  const connectionStatus = document.createElement('p');
+  connectionStatus.id = 'live-connection-status';
+  connectionStatus.className = 'muted';
+  connectionStatus.setAttribute('role', 'status');
+  connectionStatus.setAttribute('aria-live', 'polite');
+  connectionStatus.hidden = true;
+  head.before(connectionStatus);
   const tsvLogo = mediaUrl('branding/tennis-logo.png');
 
   const tsvTeamBlock = (label: string) => `
@@ -1973,13 +2018,15 @@ export async function loadLiveTicker(matchId: string | null) {
     if (refreshRunning) { refreshQueued = true; return; }
     refreshRunning = true;
     try {
-    const [{ data: match }, { data: state }, { data: entries }, { data: encounters }] = await Promise.all([
+    const responses = await Promise.all([
       supabase.from('matches').select('*').eq('id', matchId).maybeSingle(),
       supabase.from('match_live_state').select('*').eq('match_id', matchId).maybeSingle(),
       supabase.from('live_ticker_entries').select('*').eq('match_id', matchId).is('deleted_at', null).order('created_at', { ascending: false }),
       supabase.from('match_encounters').select('*').eq('match_id', matchId).order('sort_order').order('position'),
     ]);
-
+    if (responses.some(result => result.error)) throw new Error('Supabase-Abfrage fehlgeschlagen');
+    const [{ data: match }, { data: state }, { data: entries }, { data: encounters }] = responses;
+    connectionStatus.hidden = true;
     const snapshot = JSON.stringify([match, state, entries, encounters]);
     if (snapshot === lastSnapshot) return;
     lastSnapshot = snapshot;
@@ -2082,6 +2129,10 @@ export async function loadLiveTicker(matchId: string | null) {
             ${entry.home_score != null && entry.away_score != null ? `<span class="score">${entry.home_score} : ${entry.away_score}</span>` : ''}
           </div>`).join('')
       : '<p class="muted">Noch keine Tickermeldungen.</p>';
+    } catch {
+      // Bei Netzwerk-/Realtime-Fehlern den letzten gültigen Spielstand unverändert anzeigen.
+      connectionStatus.textContent = 'Verbindung vorübergehend unterbrochen. Letzter bestätigter Stand wird angezeigt; ein erneuter Abruf erfolgt automatisch.';
+      connectionStatus.hidden = false;
     } finally {
       refreshRunning = false;
       if (refreshQueued) { refreshQueued = false; void refresh(); }

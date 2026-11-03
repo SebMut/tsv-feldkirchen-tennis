@@ -7,7 +7,13 @@ import { resolve } from 'node:path';
 const host='http://127.0.0.1:4321';
 const base=(process.env.PREVIEW_BASE || '/').replace(/^\/+|\/+$/g,'');
 const output=resolve('artifacts/lighthouse');
-const routes=[['startseite','/'],['aktuelles','/aktuelles/'],['spieltag','/spieltag/']];
+const routes=[
+  ['startseite','/'],
+  ['aktuelles','/aktuelles/'],
+  ['mannschaften','/mannschaften/'],
+  ['spieltag','/spieltag/'],
+  ['liveticker','/spieltag/live-ticker/'],
+];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const preview=spawn(resolve('node_modules/.bin/astro'),['preview','--host','127.0.0.1','--port','4321','--strictPort'],
   {env:process.env,stdio:'ignore'});
@@ -20,6 +26,7 @@ try{
   }
   if(!ready)throw Error('Astro preview unavailable');
   const report=[];
+  const warnings=[];
   for(const [name,route] of routes){
     const target=host+(base?'/'+base:'')+route;
     const args=['node_modules/lighthouse/cli/index.js',target,'--quiet','--chrome-flags=--headless --no-sandbox --disable-dev-shm-usage',
@@ -36,9 +43,17 @@ try{
       accessibility:data.categories?.accessibility?.score,
       best_practices:data.categories?.['best-practices']?.score,
       lcp_ms:data.audits?.['largest-contentful-paint']?.numericValue ?? null,
-      cls:data.audits?.['cumulative-layout-shift']?.numericValue ?? null});
+      cls:data.audits?.['cumulative-layout-shift']?.numericValue ?? null,
+      tbt_ms:data.audits?.['total-blocking-time']?.numericValue ?? null,
+      transfer_bytes:data.audits?.['total-byte-weight']?.numericValue ?? null,
+      requests:data.audits?.['network-requests']?.details?.items?.length ?? null});
+    const latest=report.at(-1);
+    if(latest.performance!=null && latest.performance<0.8)warnings.push(name+': Performance unter 80 Punkten');
+    if(latest.lcp_ms!=null && latest.lcp_ms>5000)warnings.push(name+': LCP über 5 Sekunden');
+    if(latest.cls!=null && latest.cls>0.1)warnings.push(name+': CLS über 0,1');
   }
-  await writeFile(resolve(output,'summary.json'),JSON.stringify({generated_at:new Date().toISOString(),reports:report},null,2)+'\n');
+  await writeFile(resolve(output,'summary.json'),JSON.stringify({generated_at:new Date().toISOString(),reports:report,warnings},null,2)+'\n');
   console.log('[lighthouse] '+JSON.stringify(report));
+  if(warnings.length)console.warn('[lighthouse] Performance-Hinweise: '+warnings.join(' | '));
 }catch(error){console.error(error);process.exitCode=1;}
 finally{if(preview.exitCode===null)preview.kill('SIGTERM');}
