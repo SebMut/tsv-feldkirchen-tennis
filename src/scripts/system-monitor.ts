@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { auditEventCalendarConsistency, inspectCalendarFeed } from '../lib/calendar-feed-diagnostics';
 import { escapeHtml, formatDateTime } from '../lib/ui';
 
 type Health = {
@@ -60,8 +61,24 @@ export function initSystemMonitor(isSuper: boolean) {
           }
         }
       }
+      let calendarTile = tile('Kalender-Abo','warning','Kalenderfeed nicht geprüft.');
+      try {
+        const [{ data: events, error: eventError }, feed] = await Promise.all([
+          supabase.from('events').select('id,title,starts_at,ends_at,status,all_day'),
+          inspectCalendarFeed({ type: 'events', include_events: '1' }),
+        ]);
+        if (eventError) throw eventError;
+        const audit = auditEventCalendarConsistency(events || [], feed);
+        calendarTile = tile('Kalender-Abo', audit.issues.length ? 'warning' : 'ok',
+          audit.issues.length
+            ? audit.issues.length + ' Abweichungen: ' + audit.issues.slice(0, 2).join(' · ')
+            : audit.published + ' veröffentlichte Termine im ICS-Feed bestätigt.');
+      } catch {
+        calendarTile = tile('Kalender-Abo','warning','Kalenderprüfung fehlgeschlagen. Bitte Feed und Netzwerk prüfen.');
+      }
       root.innerHTML=[
         seasonTile,
+        calendarTile,
         tile('Supabase','ok','Erreichbar · '+formatDateTime(checks.checked_at || new Date().toISOString())),
         tile('BTV-Abgleich',goodBtv?'ok':'warning',
           health.btv_last_success?'Letzter Erfolg: '+formatDateTime(health.btv_last_success.completed_at):

@@ -975,7 +975,7 @@ export async function loadTeamDetail(slug: string) {
         const player = playerMap.get(link.player_id);
         if (!player) return '';
         const photo = player.photo_path
-          ? `<img class="player-card__photo" src="${escapeHtml(mediaUrl(player.photo_path))}" alt="${escapeHtml(player.display_name)}" loading="lazy" />`
+          ? `<img class="player-card__photo" src="${escapeHtml(mediaUrl(player.photo_path))}" alt="${escapeHtml(player.display_name)}" width="58" height="58" loading="lazy" decoding="async" />`
           : `<span class="player-card__placeholder" aria-hidden="true">${escapeHtml(initials(player.display_name))}</span>`;
         return `<article class="player-card">
           ${photo}
@@ -1118,7 +1118,7 @@ export async function loadTeamDetail(slug: string) {
     const galleryIds = generalGalleries.map((g: Row) => g.id);
     const items = (await supabase.from('gallery_items').select('*').in('gallery_id', galleryIds).order('sort_order')).data ?? [];
     galleryTarget.classList.add('gallery-grid');
-    galleryTarget.innerHTML = items.slice(0, 12).map((item: Row) => `<figure class="gallery-item"><img src="${escapeHtml(mediaUrl(item.storage_path))}" alt="${escapeHtml(item.alt_text || team.name)}" loading="lazy" /><figcaption class="muted">${escapeHtml(item.caption || '')}</figcaption></figure>`).join('');
+    galleryTarget.innerHTML = items.slice(0, 12).map((item: Row) => `<figure class="gallery-item"><img src="${escapeHtml(mediaUrl(item.storage_path))}" alt="${escapeHtml(item.alt_text || team.name)}" width="640" height="480" loading="lazy" decoding="async" /><figcaption class="muted">${escapeHtml(item.caption || '')}</figcaption></figure>`).join('');
   } else if (galleryTarget) {
     galleryTarget.classList.remove('gallery-grid');
     galleryTarget.innerHTML = '<p class="muted">Noch keine allgemeinen Mannschaftsbilder veröffentlicht. Bilder einzelner Punktspiele findest du direkt beim jeweiligen Spiel.</p>';
@@ -1252,7 +1252,7 @@ export async function loadMatchDetail(matchId: string | null) {
         ${(items ?? []).map((item: Row) => {
           const gallery = galleryMap.get(item.gallery_id);
           return `<figure class="gallery-item">
-            <img src="${escapeHtml(mediaUrl(item.storage_path))}" alt="${escapeHtml(item.alt_text || gallery?.title || clubName)}" loading="lazy" />
+            <img src="${escapeHtml(mediaUrl(item.storage_path))}" alt="${escapeHtml(item.alt_text || gallery?.title || clubName)}" width="640" height="480" loading="lazy" decoding="async" />
             <figcaption class="muted">${escapeHtml(item.caption || gallery?.title || '')}</figcaption>
           </figure>`;
         }).join('')}
