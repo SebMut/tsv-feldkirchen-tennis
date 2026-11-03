@@ -89,6 +89,55 @@ async function deviceQA(device){
     await filters.locator('summary').click();
     assert.equal(await filters.evaluate(el=>el.open),false,'advanced filters did not close');
   },page);
+  if(device.mobile) await check(device.name+' mobile dock switches Teams / LIVE / Teams',async()=>{
+    // Mock only the read-only navbar probe; never alter live fixtures in Supabase.
+    let live=false;
+    const pattern='**/rest/v1/match_live_state*';
+    const navProbe=async route=>{
+      const params=new URL(route.request().url()).searchParams;
+      if(route.request().method()==='GET' && params.get('select')==='match_id' && params.get('status')==='eq.live'){
+        await route.fulfill({status:200,headers:{'access-control-allow-origin':'*','content-type':'application/json'},
+          body:live?'[{"match_id":"00000000-0000-4000-8000-000000000001"}]':'[]'});
+      } else await route.continue();
+    };
+    await page.route(pattern,navProbe);
+    try{
+      const navReply=()=>page.waitForResponse(response=>{
+        const u=new URL(response.url());
+        return u.pathname.endsWith('/match_live_state') && u.searchParams.get('select')==='match_id'
+          && u.searchParams.get('status')==='eq.live';
+      },{timeout:12000});
+      let reply=navReply();
+      await page.goto(url('/kontakt/'),{waitUntil:'domcontentloaded'});
+      await reply;
+      const ticker=page.locator('.mobile-dock .js-live-nav-dock-link');
+      const teams=page.locator('.mobile-dock .js-live-nav-fallback');
+      assert.ok(await teams.isVisible(),'Teams must show with no live match');
+      assert.equal(await ticker.isVisible(),false,'Ticker must not occupy the mobile dock while idle');
+      assert.match(new URL(await teams.getAttribute('href'),page.url()).pathname,/\/mannschaften\/$/);
+      assert.ok(await page.locator('.desktop-nav .js-live-nav-link').count(),'Desktop ticker link is unchanged');
+
+      live=true;
+      reply=navReply();
+      await page.reload({waitUntil:'domcontentloaded'});
+      await reply;
+      await page.waitForFunction(()=>document.querySelector('.mobile-dock .js-live-nav-dock-link')?.classList.contains('has-live-match'),null,{timeout:12000});
+      assert.ok(await ticker.isVisible(),'LIVE ticker must replace Teams');
+      assert.equal(await teams.isVisible(),false,'Teams must hide while a ticker is live');
+      assert.match(new URL(await ticker.getAttribute('href'),page.url()).pathname,/\/spieltag\/$/);
+
+      live=false;
+      reply=navReply();
+      await page.reload({waitUntil:'domcontentloaded'});
+      await reply;
+      await page.waitForFunction(()=>document.querySelector('.mobile-dock .js-live-nav-fallback')?.getAttribute('aria-hidden')==='false',null,{timeout:12000});
+      assert.ok(await teams.isVisible(),'Teams must reappear when LIVE ends');
+      assert.equal(await ticker.isVisible(),false,'Ticker must hide again');
+      await noOverflow(page,'/kontakt/ mobile dock');
+    } finally {
+      await page.unroute(pattern,navProbe);
+    }
+  },page);
   await check(device.name+' navigation',async()=>{
     await page.goto(url('/'));
     const link=page.locator('a[href*="/aktuelles/"]').first();
