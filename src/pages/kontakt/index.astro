@@ -2,4 +2,14 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 import ManagedPage from '../../components/ManagedPage.astro';
 ---
-<MainLayout title="Kontakt | TSV Feldkirchen Tennis"><ManagedPage slug="kontakt" fallbackTitle="Kontakt" /></MainLayout>
+<MainLayout title="Kontakt | TSV Feldkirchen Tennis" description="Tennisabteilung TSV Feldkirchen kontaktieren: E-Mail, Telefon und Anfahrt zur Tennisanlage.">
+  <ManagedPage slug="kontakt" fallbackTitle="Kontakt" />
+  <section class="container stack contact-actions" aria-label="Direkt Kontakt aufnehmen">
+    <h2>So erreichst du uns</h2>
+    <div class="grid two">
+      <article class="card"><h3>E-Mail und Telefon</h3><p><a href="mailto:tennis@tsvfeldkirchen.de">tennis@tsvfeldkirchen.de</a></p><p><a href="tel:+49899036460">+49 (0)89 903 64 60</a></p></article>
+      <article class="card"><h3>Tennisanlage</h3><p>Olympiastraße 1, 85622 Feldkirchen</p><p><a class="button" href="https://www.google.com/maps/dir/?api=1&amp;destination=Olympiastra%C3%9Fe%201%2C%2085622%20Feldkirchen" target="_blank" rel="noopener noreferrer">Route planen ↗</a></p></article>
+    </div>
+    <p>Weitere Ansprechpartner findest du unter <a href="/funktionaere/">Funktionäre</a>.</p>
+  </section>
+</MainLayout>

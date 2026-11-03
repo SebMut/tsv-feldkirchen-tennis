@@ -1,17 +1,17 @@
 ---
 import MainLayout from '../../../layouts/MainLayout.astro';
 ---
-<MainLayout title="Rückmeldung bestätigen | TSV Feldkirchen Tennis" description="Deine Rückmeldung wird nach dem Klick auf den E-Mail-Link automatisch bestätigt.">
-  <main class="container rsvp-confirm-page">
+<MainLayout title="Rückmeldung bestätigen | TSV Feldkirchen Tennis" description="Deine Rückmeldung wird nach dem Klick auf den E-Mail-Link automatisch bestätigt." noindex={true}>
+  <section class="container rsvp-confirm-page">
     <div class="rsvp-confirm-card">
       <span class="rsvp-mode-label">TSV Feldkirchen Tennis</span>
       <h1 id="rsvp-confirm-title">Bestätigung wird geprüft …</h1>
       <p id="rsvp-confirm-intro">Deine Rückmeldung wird automatisch bestätigt. Du musst keinen weiteren Button anklicken.</p>
       <p id="rsvp-confirm-feedback" role="status" aria-live="polite">Wir prüfen gerade deinen Bestätigungslink.</p>
       <noscript><p>Für die automatische Bestätigung muss JavaScript in deinem Browser aktiviert sein. Bitte öffne den Link in einem normalen Browser.</p></noscript>
-      <p><a href="../?slug=sommerfest">Zurück zur Sommerfest-Seite</a></p>
+      <p><a href="/aktuelles/">Veranstaltungen ansehen</a> · <a href="/termine/">Zum Kalender</a></p>
     </div>
-  </main>
+  </section>
 </MainLayout>
 <script>
   import { supabase } from '../../../lib/supabase';
@@ -34,7 +34,7 @@ import MainLayout from '../../../layouts/MainLayout.astro';
     if (!/^[0-9a-f-]{36}$/i.test(request) || !/^[a-f0-9]{64}$/.test(token)) {
       if(title) title.textContent='Bestätigungslink ungültig';
       if(intro) intro.textContent='Die Rückmeldung konnte nicht bestätigt werden.';
-      if(feedback) feedback.textContent='Bitte fordere über die Sommerfest-Seite eine neue Bestätigungs-E-Mail an.';
+      if(feedback) feedback.textContent='Öffne die Veranstaltungsanmeldung erneut und fordere bei Bedarf eine neue Bestätigungs-E-Mail an.';
       return;
     }
 
