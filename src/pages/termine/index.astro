@@ -99,6 +99,16 @@ import MainLayout from '../../layouts/MainLayout.astro';
       <p class="muted">Die Abo-Schaltflächen öffnen Apple Kalender, Outlook und andere Apps über webcal. Bitte dort ausdrücklich <strong>Abonnieren</strong> auswählen, nicht „Termin importieren“.</p>
       <div id="calendar-subscriptions" class="actions"><p class="muted">Abo-Links werden geladen …</p></div>
       <p id="calendar-subscription-status" class="muted" role="status" aria-live="polite"></p>
+      <div class="calendar-feed-check">
+        <div>
+          <h3>Ist mein Abo aktuell?</h3>
+          <p class="muted">Prüfe, welche veröffentlichten Termine der TSV-ICS-Feed <strong>für deine derzeitige Auswahl</strong> liefert. Das ist unabhängig vom Abrufrhythmus deiner Kalender-App.</p>
+        </div>
+        <button type="button" id="calendar-check-feed" class="button secondary">Kalender-Abo prüfen</button>
+        <div id="calendar-feed-diagnostic" class="calendar-feed-diagnostic" role="status" aria-live="polite">
+          <p class="muted">Noch nicht geprüft. Entwürfe erscheinen nicht in öffentlichen Kalender-Abos.</p>
+        </div>
+      </div>
       <p class="muted">Für <strong>Google Kalender</strong>: HTTPS-Abo-Link kopieren und in Google Kalender unter <strong>Weitere Kalender → Per URL</strong> hinzufügen. „Auswahl abonnieren“ berücksichtigt die Lieblingsmannschaft und die Checkbox „Veranstaltungen“. Ist sie aktiviert, kommen alle Vereinsveranstaltungen zu den Spielen der gewählten Mannschaft hinzu. Ein bestehendes Abo behält seine bisherige URL; für eine andere Auswahl bitte neu abonnieren.</p>
       <p class="muted">Wichtig: Der Button „Diesen Termin zu meinem Kalender hinzufügen (.ics)“ ist ein einmaliger Import und aktualisiert sich nicht. Bei echten Abos bestimmt die Kalender-App den Aktualisierungszeitpunkt; Änderungen können verzögert erscheinen.</p>
     </section>
@@ -112,6 +122,15 @@ import MainLayout from '../../layouts/MainLayout.astro';
 </script>
 
 <style>
+  .calendar-feed-check{display:grid;gap:12px;margin-top:16px;padding:17px;border:1px solid #d5e4d8;border-radius:15px;background:#f8faf8;min-width:0}
+  .calendar-feed-check h3{font-size:1.03rem;margin:0 0 6px}
+  .calendar-feed-check p{margin:0}
+  .calendar-feed-check>.button{justify-self:start}
+  .calendar-feed-diagnostic{min-width:0;overflow-wrap:anywhere;font-size:.91rem}
+  .calendar-feed-diagnostic__list{margin:12px 0 0;padding-left:20px;display:grid;gap:8px}
+  .calendar-feed-diagnostic__list li{padding:0;line-height:1.45}
+  .calendar-feed-diagnostic__list span{color:#435e4c}
+  @media(max-width:680px){.calendar-feed-check{padding:13px}.calendar-feed-check>.button{width:100%}}
   .calendar-favorite-group{display:grid;grid-template-columns:auto minmax(180px,240px);align-items:center;gap:7px 10px;min-width:0}
   .calendar-favorite-group>label:first-child{font-size:.83rem;font-weight:800;color:#44554c}
   .calendar-favorite-group>select{min-width:0;width:100%;border:1px solid #cbd8cd;background:#fff;border-radius:9px;padding:9px;color:#22382b}
