@@ -60,6 +60,9 @@ Deno.serve(async (req: Request) => {
   const type = url.searchParams.get("type") ?? "all";
   const teamSlug = url.searchParams.get("team");
   const categorySlug = url.searchParams.get("category");
+  // Explicit opt-in lets a favourite-team feed also contain all club events.
+  // Without this parameter older team subscriptions keep their previous scope.
+  const includeEvents = url.searchParams.get("include_events");
 
   const { data: matches, error: me } = await db.from("matches")
     .select("id,opponent,is_home,starts_at,ends_at,venue_name,venue_address,external_url,is_published,created_at,updated_at,team_seasons!inner(team_id,teams!inner(name,slug,category_id,team_categories!inner(slug,name)))")
@@ -77,6 +80,9 @@ Deno.serve(async (req: Request) => {
   });
   const allowedIds=new Set(fm.map((m:any)=>m.team_seasons?.team_id).filter(Boolean));
   const fe=(events ?? []).filter((e:any)=>{
+    if (includeEvents === "0") return false;
+    if (includeEvents === "1") return true;
+    // Keep the original team-specific behaviour for existing Abo URLs.
     if (teamSlug || categorySlug) return e.team_id ? allowedIds.has(e.team_id) : false;
     return true;
   });
