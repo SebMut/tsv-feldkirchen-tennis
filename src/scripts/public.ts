@@ -1,4 +1,4 @@
-import { calendarFeedUrl, mediaUrl, supabase } from '../lib/supabase';
+import { calendarFeedUrl, calendarSubscriptionUrl, mediaUrl, supabase } from '../lib/supabase';
 import { escapeHtml, formatDateTime } from '../lib/ui';
 import { officialBtvTeamDestination } from '../lib/btv-group-url';
 import { summarizeSetResult, homeAwaySetScore } from '../lib/tennis-score.mjs';
@@ -871,7 +871,7 @@ export async function loadTeamDetail(slug: string) {
   const head = document.querySelector<HTMLElement>('#team-header');
   if (head) head.innerHTML = `
     <section class="hero">
-      <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${current && tennisDeTarget ? `<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer">tennis.de Mannschaftsporträt ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarFeedUrl({team: slug}))}">Kalender abonnieren</a></div></div>
+      <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${current && tennisDeTarget ? `<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer">tennis.de Mannschaftsporträt ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({team: slug}))}">Mannschaftskalender abonnieren</a></div></div>
       <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" /></div>
     </section>
   `;
@@ -1468,10 +1468,24 @@ export async function loadCalendar() {
     const categoryOption = categorySelect.selectedOptions[0];
     if (teamSelect.value && teamOption?.dataset.slug) params.team = teamOption.dataset.slug;
     else if (categorySelect.value && categoryOption?.dataset.slug) params.category = categoryOption.dataset.slug;
-    subscriptions.innerHTML = `<a class="button" href="${escapeHtml(calendarFeedUrl(params))}">Auswahl abonnieren</a>
-      <a class="button secondary" href="${escapeHtml(calendarFeedUrl({ type: 'matches' }))}">Alle Punktspiele</a>
-      <a class="button secondary" href="${escapeHtml(calendarFeedUrl({ type: 'events' }))}">Vereinstermine</a>`;
+    subscriptions.innerHTML = `<a class="button" href="${escapeHtml(calendarSubscriptionUrl(params))}">Auswahl abonnieren</a>
+      <a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({ type: 'matches' }))}">Alle Punktspiele</a>
+      <a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({ type: 'events' }))}">Vereinstermine</a>
+      <button type="button" class="button ghost" data-calendar-copy="${escapeHtml(calendarFeedUrl(params))}">Abo-Link kopieren (Google Kalender)</button>
+      <button type="button" class="button ghost" data-calendar-copy="${escapeHtml(calendarFeedUrl({ type: 'events' }))}">Vereinstermine-Link kopieren</button>`;
   };
+
+  subscriptions.addEventListener('click', async (event) => {
+    const button = (event.target as Element | null)?.closest<HTMLButtonElement>('button[data-calendar-copy]');
+    if (!button?.dataset.calendarCopy) return;
+    const status = document.querySelector<HTMLElement>('#calendar-subscription-status');
+    try {
+      await navigator.clipboard.writeText(button.dataset.calendarCopy);
+      if (status) status.textContent = 'Abo-Link kopiert. In Google Kalender unter „Weitere Kalender → Per URL“ einfügen.';
+    } catch {
+      if (status) status.textContent = `Kopiere diesen Link und füge ihn unter „Weitere Kalender → Per URL“ ein: ${button.dataset.calendarCopy}`;
+    }
+  });
 
   // Clicking a day opens an accessible native dialog with the same working
   // match, route and calendar-export actions as the expanded agenda.
