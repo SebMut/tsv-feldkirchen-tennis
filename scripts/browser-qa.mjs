@@ -182,6 +182,86 @@ async function deviceQA(device){
     assert.match(diagnostic,/ETag vorhanden/);
     await noOverflow(page,'/termine/ after changing events selection');
   },page);
+  if(device.mobile) await check(device.name+' calendar subscription wizard and legacy filters stay synchronized',async()=>{
+    await page.goto(url('/termine/'),{waitUntil:'domcontentloaded'});
+    await page.evaluate(()=>{
+      localStorage.removeItem('tsv-tennis-favorite-team');
+      localStorage.removeItem('tsv-tennis-calendar-include-events');
+    });
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>document.querySelectorAll('#calendar-subscribe-team optgroup option').length>1 &&
+      document.querySelector('#calendar-subscribe-preview')?.textContent?.includes('veröffentlicht.'),null,{timeout:22000});
+    const wizardTeam=page.locator('#calendar-subscribe-team');
+    const wizardEvents=page.locator('#calendar-subscribe-events');
+    const subLink=()=>page.locator('#calendar-subscriptions a').first().getAttribute('href');
+    const asUrl=async()=>new URL((await subLink()).replace(/^webcal:/,'https:'));
+    assert.ok(await page.locator('.calendar-quick-subscribe').isVisible(),'Mobile shortcut to subscriptions not visible');
+    assert.equal((await wizardTeam.inputValue()),'');
+    assert.equal(await wizardEvents.isChecked(),true);
+    const slug=await wizardTeam.locator('optgroup[label="Mannschaften"] option').first().getAttribute('value');
+    assert.ok(slug,'No team in wizard');
+    await wizardTeam.selectOption(slug);
+    assert.equal(await page.locator('#calendar-favorite').inputValue(),slug);
+    assert.ok(await page.locator('#calendar-team').inputValue(),'Team filter not updated from wizard');
+    assert.equal((await asUrl()).searchParams.get('team'),slug);
+    assert.equal((await asUrl()).searchParams.get('include_events'),'1');
+    assert.match(await page.locator('#calendar-subscribe-preview').innerText(),/Punktspiele und \d+ Veranstaltungen/);
+
+    await wizardEvents.uncheck();
+    assert.equal(await page.locator('#calendar-include-events').isChecked(),false);
+    assert.equal((await asUrl()).searchParams.get('include_events'),'0');
+    assert.match(await page.locator('#calendar-subscribe-preview').innerText(),/0 Veranstaltungen/);
+    await page.locator('#calendar-kind').selectOption('matches');
+    assert.equal((await asUrl()).searchParams.get('type'),'matches');
+    await wizardEvents.check();
+    assert.equal(await page.locator('#calendar-kind').inputValue(),'all','Enabling events from wizard must override matches-only');
+    assert.equal((await asUrl()).searchParams.get('type'),null);
+    assert.equal((await asUrl()).searchParams.get('include_events'),'1');
+
+    const category=await wizardTeam.locator('optgroup[label="Kategorien"] option').first().getAttribute('value');
+    assert.ok(category?.startsWith('category:'),'Category option missing');
+    await wizardTeam.selectOption(category);
+    assert.equal(await page.locator('#calendar-team').inputValue(),'','Category selection must clear a previous team filter');
+    assert.ok(await page.locator('#calendar-category').inputValue(),'Category filter not synchronized');
+    assert.equal((await asUrl()).searchParams.get('category'),category.slice(9));
+    assert.equal((await asUrl()).searchParams.get('team'),null);
+    await page.locator('#calendar-team').selectOption({index:1});
+    assert.equal((await asUrl()).searchParams.get('category'),null,'Team change must clear the category filter');
+    assert.equal(await page.locator('#calendar-category').inputValue(),'');
+
+    await page.locator('#calendar-kind').selectOption('events');
+    assert.equal((await asUrl()).searchParams.get('type'),'events');
+    assert.equal((await asUrl()).searchParams.get('include_events'),'1');
+    await page.locator('#calendar-range').selectOption('upcoming');
+    assert.equal((await asUrl()).searchParams.get('range'),null,'Range only limits the visible view, not the continuing ICS subscription');
+    await page.locator('#calendar-view').selectOption('week');
+    assert.ok(await page.locator('#calendar-week-range').isVisible(),'Week view no longer works');
+    await page.locator('#calendar-extra-filters summary').click();
+    assert.ok(await page.locator('#calendar-category').isVisible(),'Advanced filters did not open');
+
+    await page.locator('.calendar-subscription-more summary').click();
+    const allMatches=page.locator('.calendar-subscription-more a').first();
+    const onlyEvents=page.locator('.calendar-subscription-more a').nth(1);
+    assert.equal(new URL((await allMatches.getAttribute('href')).replace(/^webcal:/,'https:')).searchParams.get('type'),'matches');
+    assert.equal(new URL((await onlyEvents.getAttribute('href')).replace(/^webcal:/,'https:')).searchParams.get('type'),'events');
+    const google=page.locator('#calendar-subscriptions [data-calendar-copy]').first();
+    assert.equal(new URL(await google.getAttribute('data-calendar-copy')).protocol,'https:');
+    assert.equal(new URL(await google.getAttribute('data-calendar-copy')).searchParams.get('type'),'events');
+
+    await page.locator('#calendar-kind').selectOption('all');
+    await wizardTeam.selectOption(slug);
+    await page.locator('#calendar-save-favorite').click();
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>document.querySelector('#calendar-favorite')?.options.length>1,null,{timeout:15000});
+    assert.equal(await page.locator('#calendar-favorite').inputValue(),slug,'Saved favorite must survive a reload');
+    assert.equal(await wizardTeam.inputValue(),slug,'Wizard must reflect saved favorite after reload');
+    assert.equal(await wizardEvents.isChecked(),true,'Events selection must survive reload');
+    await noOverflow(page,'/termine/ subscription wizard and advanced filters');
+    await page.evaluate(()=>{
+      localStorage.removeItem('tsv-tennis-favorite-team');
+      localStorage.removeItem('tsv-tennis-calendar-include-events');
+    });
+  },page);
   if(device.mobile) await check(device.name+' mobile dock switches Teams / LIVE / Teams',async()=>{
     // Mock only the read-only navbar probe; never alter live fixtures in Supabase.
     let live=false;
