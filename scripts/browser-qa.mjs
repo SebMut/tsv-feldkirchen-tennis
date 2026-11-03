@@ -98,9 +98,30 @@ async function deviceQA(device){
     }
     const sommerfest=blocks.find(block=>block.includes('UID:event-42635ab5-31bb-4461-81eb-e29a7fec0193'));
     if(sommerfest){
-      assert.match(sommerfest,/DTEND:20270818T013000Z/,
-        'The stored 03:30 CEST Sommerfest end time is missing from the subscription');
+      assert.match(sommerfest,/DTEND:\\d{8}T\\d{6}Z/,
+        'Published Sommerfest must have a valid end time; do not hardcode an editable date');
     }
+  },page);
+  if(device.mobile) await check(device.name+' ICS validators and conditional refresh',async()=>{
+    const baseUrl='https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/calendar-feed?type=events&include_events=1';
+    const first=await page.request.get(baseUrl,{timeout:25000});
+    assert.equal(first.status(),200,'ICS first fetch failed');
+    const etag=first.headers()['etag'];
+    const lastModified=first.headers()['last-modified'];
+    assert.match(etag||'',/^"sha256-[a-f0-9]{64}"$/);
+    assert.ok(Number.isFinite(Date.parse(lastModified||'')),'Missing HTTP Last-Modified');
+    assert.match(first.headers()['access-control-expose-headers']||'',/ETag, Last-Modified/);
+    const repeat=await page.request.get(baseUrl,{timeout:25000});
+    assert.equal(repeat.status(),200);
+    assert.equal(repeat.headers()['etag'],etag,'Unchanged feed ETag must be stable');
+    assert.equal(repeat.headers()['last-modified'],lastModified,'Last-Modified must be stable between polls');
+    const cached=await page.request.get(baseUrl,{headers:{'If-None-Match':etag},timeout:25000});
+    assert.equal(cached.status(),304,'Conditional GET should return 304 for unchanged feed');
+    assert.equal(await cached.text(),'','304 must have an empty response body');
+    assert.equal(cached.headers()['etag'],etag,'304 must include the current ETag');
+    const matches=await page.request.get(baseUrl.replace('type=events','type=matches'),{timeout:25000});
+    assert.equal(matches.status(),200);
+    assert.notEqual(matches.headers()['etag'],etag,'Different feed filters need distinct ETags');
   },page);
   if(device.mobile) await check(device.name+' compact calendar filters',async()=>{
     await page.goto(url('/termine/'));
@@ -148,6 +169,13 @@ async function deviceQA(device){
     assert.equal(on.status(),200,'ICS feed with events on failed');
     assert.ok((await on.text()).includes('UID:event-'),
       'Published club events missing from favourite team subscription with events enabled');
+    const inspectButton=page.locator('#calendar-check-feed');
+    assert.ok(await inspectButton.isVisible(),'Missing calendar subscription inspector');
+    await inspectButton.click();
+    await page.locator('#calendar-feed-diagnostic').getByText('ICS-Feed erreichbar.',{exact:false}).waitFor({timeout:25000});
+    const diagnostic=await page.locator('#calendar-feed-diagnostic').innerText();
+    assert.match(diagnostic,/veröffentlichte Veranstaltungen/);
+    assert.match(diagnostic,/ETag vorhanden/);
     await noOverflow(page,'/termine/ after changing events selection');
   },page);
   if(device.mobile) await check(device.name+' mobile dock switches Teams / LIVE / Teams',async()=>{
