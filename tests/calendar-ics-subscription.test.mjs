@@ -1,3 +1,4 @@
+import { webcrypto } from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -13,7 +14,7 @@ const page = read('src/pages/termine/index.astro');
 // Exercise the actual Edge Function's pure iCalendar serializer without Deno or network.
 const pure = functionSource.slice(functionSource.indexOf('function esc('), functionSource.indexOf('Deno.serve('));
 const executable = ts.transpileModule(pure, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
-const { block, subscriptionEvents } = runInNewContext(executable + '\n({block,subscriptionEvents})', { Date, TextEncoder, Math });
+const { block, subscriptionEvents, contentEtag, lastModifiedAt } = runInNewContext(executable + '\n({block,subscriptionEvents,contentEtag,lastModifiedAt})', { Date, TextEncoder, Math, crypto: webcrypto });
 
 const sommerfestFixture = {
   id: 'event-42635ab5-31bb-4461-81eb-e29a7fec0193',
@@ -102,4 +103,37 @@ test('calendar checkbox controls view, subscription link and persists across pag
   assert.match(publicScript, /params\.include_events = includeEvents\?\.checked \? '1' : '0'/);
   assert.match(publicScript, /localStorage\.setItem\(eventsKey, String\(includeEvents\.checked\)\)/);
   assert.match(functionSource, /includeEvents = url\.searchParams\.get\("include_events"\)/);
+});
+
+test('stable ETags support 304 while content changes make a different validator', async () => {
+  const original = 'BEGIN:VCALENDAR\\r\\nVERSION:2.0\\r\\nEND:VCALENDAR\\r\\n';
+  const tag = await contentEtag(original);
+  assert.match(tag, /^"sha256-[a-f0-9]{64}"$/);
+  assert.equal(await contentEtag(original),tag);
+  assert.notEqual(await contentEtag(original + 'new event'),tag);
+  assert.equal(lastModifiedAt([{updated_at:'2026-11-03T08:00:00Z'},{updated_at:'2026-11-03T08:30:00Z'}]),
+    'Tue, 03 Nov 2026 08:30:00 GMT');
+  assert.match(functionSource, /req\.headers\.get\("if-none-match"\)/);
+  assert.match(functionSource, /status:304/);
+  assert.match(functionSource, /"ETag":etag/);
+  assert.match(functionSource, /"Last-Modified"/);
+  assert.match(functionSource, /Access-Control-Expose-Headers/);
+  assert.match(functionSource, /event\.status === "published"/);
+});
+
+test('public ICS diagnostics and admin save checks exist for both event editors', () => {
+  const helper = read('src/lib/calendar-feed-diagnostics.ts');
+  const composer = read('src/scripts/editorial-composer.ts');
+  const legacy = read('src/scripts/event-rsvp-admin.ts');
+  const admin = read('src/pages/admin/index.astro');
+  assert.match(helper, /inspectCalendarFeed/);
+  assert.match(helper, /verifyEventCalendarPublication/);
+  assert.match(helper, /entry\.start !== start \|\| entry\.end !== end \|\| entry\.title !== event\.title/);
+  assert.match(helper, /event\.status !== 'published'/);
+  assert.match(page, /id="calendar-check-feed"/);
+  assert.match(page, /id="calendar-feed-diagnostic"/);
+  assert.match(publicScript, /feedCheck\?\.addEventListener\('click'/);
+  assert.match(admin, /id="editorial-compose-check-calendar"/);
+  assert.match(composer, /await verifyEventCalendarPublication\(eventId, publication\)/);
+  assert.match(legacy, /await verifyEventCalendarPublication\(data\.id, status\)/);
 });
