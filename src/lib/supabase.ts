@@ -32,3 +32,8 @@ export function calendarFeedUrl(params: Record<string, string> = {}) {
   Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
   return url.toString();
 }
+
+/** webcal opens a recurring subscription in compatible calendar apps; HTTPS remains for URL-based subscriptions. */
+export function calendarSubscriptionUrl(params: Record<string, string> = {}) {
+  return calendarFeedUrl(params).replace(/^https:/, 'webcal:');
+}
