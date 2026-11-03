@@ -2,28 +2,28 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 ---
 
-<MainLayout title="Sommerfest & Anmeldung | TSV Feldkirchen Tennis" description="Sommerfest und Jugendvereinsmeisterschaften: Einladung, Teilnahme mit Erwachsenen und Kindern, Beiträge zum Buffet sowie Anmeldung der Jugendlichen.">
+<MainLayout title="Veranstaltungsanmeldung | TSV Feldkirchen Tennis" description="Anmeldung zu Vereinsveranstaltungen und optionalen Meisterschaften beim TSV Feldkirchen Tennis.">
   <div class="container rsvp-page">
     <nav class="rsvp-breadcrumb" aria-label="Brotkrumen"><a href="/termine/">Kalender</a><span aria-hidden="true">›</span><span>Veranstaltungsanmeldung</span></nav>
     <div class="rsvp-page__grid">
       <section class="rsvp-intro" aria-labelledby="rsvp-heading">
         <p class="eyebrow">TSV Feldkirchen · Vereinsleben</p>
         <span id="rsvp-mode-label" class="rsvp-mode-label">Beispielansicht</span>
-        <h1 id="rsvp-heading">Sommerfest &amp; Jugendvereinsmeisterschaften</h1>
+        <h1 id="rsvp-heading">Veranstaltungsanmeldung</h1>
         <p class="rsvp-salutation">Liebe Tennisfreunde,</p>
-        <p id="rsvp-description" class="rsvp-intro__lead">Zum Abschluss der Punktspielsaison möchten wir mit euch gemeinsam feiern! Wir laden alle Mitglieder sowie Eltern, Partner und Freunde herzlich ein. Für Speis und Trank ist gesorgt.</p>
-        <p class="rsvp-intro__lead">Über selbstgemachte Nachspeisen und Salate sowie Unterstützung beim Auf- und Abbau freuen wir uns sehr. Parallel zum Sommerfest möchten wir unsere Jugendvereinsmeisterschaften austragen.</p>
+        <p id="rsvp-description" class="rsvp-intro__lead">Die Informationen zur Veranstaltung werden geladen.</p>
+        <p id="rsvp-extra-info" class="rsvp-intro__lead">Hier findest du die Informationen und die Rückmeldung zur Veranstaltung.</p>
         <div class="rsvp-event-facts">
           <div><span aria-hidden="true">▦</span><div><small>Termin</small><strong id="rsvp-date">Wird noch bekannt gegeben</strong></div></div>
           <div><span aria-hidden="true">⌖</span><div><small>Ort</small><strong id="rsvp-location">Tennisanlage · Ort noch offen</strong></div></div>
           <div><span aria-hidden="true">✓</span><div><small>Rückmeldung bis</small><strong id="rsvp-deadline">Wird noch bekannt gegeben</strong></div></div>
         </div>
-        <section class="rsvp-invitation-details" aria-labelledby="rsvp-invitation-title">
+        <section class="rsvp-invitation-details" id="rsvp-invitation-details" aria-labelledby="rsvp-invitation-title">
           <h2 id="rsvp-invitation-title">Das erwartet euch</h2>
           <div class="rsvp-invitation-details__list">
-            <div><strong>Sommerfest &amp; gemeinsames Essen</strong><p id="rsvp-fees-note">Essen und Getränke sind geplant. Ein möglicher Unkostenbeitrag wird vor der Veröffentlichung bekannt gegeben.</p></div>
-            <div><strong>Hilfe beim Auf- und Abbau</strong><p id="rsvp-helper-note">Wir freuen uns über freiwillige Helferinnen und Helfer. Die Zeiten werden noch festgelegt.</p></div>
-            <div><strong>Jugendvereinsmeisterschaften</strong><p id="rsvp-youth-note">Geplante Kategorien nach der Vorlage von 2024: U10 gemischt, U12 männlich, U15 männlich, U18 männlich und U18 weiblich. Modus und Spielzeiten richten sich nach den Anmeldungen.</p></div>
+            <div id="rsvp-fee-detail"><strong>Informationen zur Teilnahme</strong><p id="rsvp-fees-note">Weitere Informationen werden mit der Einladung bekannt gegeben.</p></div>
+            <div id="rsvp-help-detail"><strong>Freiwillige Mithilfe</strong><p id="rsvp-helper-note">Angaben zur Mithilfe werden mit der Einladung bekannt gegeben.</p></div>
+            <div id="rsvp-youth-detail"><strong>Jugendvereinsmeisterschaft</strong><p id="rsvp-youth-note">Die Wettbewerbe und Altersklassen stehen in der Einladung.</p></div>
           </div>
           <p id="rsvp-source-note" class="rsvp-source-note">Gestaltung nach der Einladung von 2024. Frühere Termine und Beiträge werden nicht als neue Veranstaltungsdaten übernommen.</p>
         </section>
@@ -53,7 +53,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           <div class="rsvp-field"><label for="rsvp-member-name">Dein Name <span aria-hidden="true">*</span></label><input id="rsvp-member-name" name="member_name" type="text" autocomplete="name" minlength="2" maxlength="100" placeholder="Vor- und Nachname" required /><small>Nur im geschützten Adminbereich sichtbar.</small></div>
           <div class="rsvp-field"><label for="rsvp-member-email">Deine E-Mail-Adresse <span aria-hidden="true">*</span></label><input id="rsvp-member-email" name="member_email" type="email" inputmode="email" autocomplete="email" maxlength="254" required placeholder="name@beispiel.de" /><small>Du erhältst eine E-Mail mit allen Angaben und einem Bestätigungslink. Erst nach Bestätigung zählt deine Anmeldung.</small></div>
           <fieldset class="rsvp-paper-fields" id="rsvp-count-wrap">
-            <legend>Mit wie vielen Personen nehmt ihr am Sommerfest teil?</legend>
+            <legend>Mit wie vielen Personen nehmt ihr an der Veranstaltung teil?</legend>
             <div class="rsvp-party-grid">
               <div class="rsvp-field"><label for="rsvp-adults-count">Erwachsene</label><input type="number" id="rsvp-adults-count" name="adults_count" min="0" max="20" step="1" value="1" inputmode="numeric" /></div>
               <div class="rsvp-field"><label for="rsvp-children-count">Kinder &amp; Jugendliche</label><input type="number" id="rsvp-children-count" name="children_count" min="0" max="20" step="1" value="0" inputmode="numeric" /></div>
@@ -62,7 +62,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           </fieldset>
           <section class="rsvp-contributions" aria-labelledby="rsvp-contributions-heading">
             <h3 id="rsvp-contributions-heading">Was kannst du mitbringen?</h3>
-            <p class="muted">Freiwillige Unterstützung für unser Buffet – wie auf dem Anmeldezettel.</p>
+            <p class="muted">Freiwilliger Beitrag, sofern für diese Veranstaltung vorgesehen.</p>
             <div class="rsvp-field"><label for="rsvp-dessert">Kuchen oder Nachspeise</label><input type="text" id="rsvp-dessert" maxlength="180" placeholder="z. B. Kuchen oder Nachtisch" /></div>
             <div class="rsvp-field"><label for="rsvp-salad">Salat oder Vorspeise</label><input type="text" id="rsvp-salad" maxlength="180" placeholder="z. B. Nudelsalat" /></div>
           </section>
