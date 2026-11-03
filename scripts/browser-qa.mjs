@@ -12,7 +12,7 @@ const base=(process.env.PREVIEW_BASE||'/').replace(/^\/|\/$/g,'');
 const host='http://127.0.0.1:4321';
 const url=route=>host+(base?'/'+base:'')+route;
 const report={started:new Date().toISOString(),base:base||'/',checks:[],passed:0,failed:0,skipped:0};
-const routes=['/','/aktuelles/','/mannschaften/','/spieltag/','/spieltag/live-ticker/','/termine/','/live/','/veranstaltung/','/admin/'];
+const routes=['/','/aktuelles/','/mannschaften/','/mannschaften/herren/','/spieltag/','/spieltag/live-ticker/','/spiel/','/termine/','/live/','/veranstaltung/','/veranstaltung/bestaetigen/','/training/','/mitglied-werden/','/ueber-uns/','/funktionaere/','/sponsoren/','/kontakt/','/impressum/','/datenschutz/','/admin/'];
 let server,browser;
 let previewLogs='';
 function outcome(name,status,reason=''){
