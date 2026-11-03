@@ -112,6 +112,44 @@ async function deviceQA(device){
     await filters.locator('summary').click();
     assert.equal(await filters.evaluate(el=>el.open),false,'advanced filters did not close');
   },page);
+  if(device.mobile) await check(device.name+' favourite-team events checkbox syncs view and ICS subscription',async()=>{
+    await page.goto(url('/termine/'),{waitUntil:'domcontentloaded'});
+    const include=page.locator('#calendar-include-events');
+    assert.equal(await include.isChecked(),true,'Existing calendar should include events by default');
+    await page.waitForFunction(()=>{
+      const favorite=document.querySelector('#calendar-favorite');
+      return favorite?.options.length>1 && document.querySelector('#calendar-list')?.textContent?.includes('Sommerfest');
+    },null,{timeout:18000});
+    const fav=page.locator('#calendar-favorite');
+    const slug=await fav.locator('option:nth-child(2)').getAttribute('value');
+    assert.ok(slug,'Missing favourite team');
+    await fav.selectOption(slug);
+    await page.locator('#calendar-save-favorite').click();
+    const selectedLink=()=>page.locator('#calendar-subscriptions a').first().getAttribute('href');
+    let subscription=new URL((await selectedLink()).replace(/^webcal:/,'https:'));
+    assert.equal(subscription.searchParams.get('team'),slug);
+    assert.equal(subscription.searchParams.get('include_events'),'1');
+    assert.ok((await page.locator('#calendar-list').innerText()).includes('Sommerfest'),
+      'Club events must appear alongside a favourite team');
+    await include.uncheck();
+    assert.ok(!(await page.locator('#calendar-list').innerText()).includes('Sommerfest'),
+      'Unchecking Veranstaltungen must remove club events from the calendar');
+    subscription=new URL((await selectedLink()).replace(/^webcal:/,'https:'));
+    assert.equal(subscription.searchParams.get('include_events'),'0');
+    const off=await page.request.get(subscription.toString(),{timeout:25000});
+    assert.equal(off.status(),200,'ICS feed with events off failed');
+    assert.ok(!(await off.text()).includes('UID:event-'),'ICS with events off still contains events');
+    await page.reload({waitUntil:'domcontentloaded'});
+    assert.equal(await include.isChecked(),false,'Event checkbox selection must persist');
+    await include.check();
+    subscription=new URL((await selectedLink()).replace(/^webcal:/,'https:'));
+    assert.equal(subscription.searchParams.get('include_events'),'1');
+    const on=await page.request.get(subscription.toString(),{timeout:25000});
+    assert.equal(on.status(),200,'ICS feed with events on failed');
+    assert.ok((await on.text()).includes('UID:event-42635ab5-31bb-4461-81eb-e29a7fec0193'),
+      'Sommerfest missing from favourite team subscription with events enabled');
+    await noOverflow(page,'/termine/ after changing events selection');
+  },page);
   if(device.mobile) await check(device.name+' mobile dock switches Teams / LIVE / Teams',async()=>{
     // Mock only the read-only navbar probe; never alter live fixtures in Supabase.
     let live=false;
