@@ -26,6 +26,19 @@ export function initEditorialComposer(access: Access) {
   const previewButton = el<HTMLButtonElement>('editorial-compose-preview-button');
   if (!form || !list || !preview || !publish || !draft || !previewButton || !(access.canNews || access.canEvents)) return;
   let editing: Entry | null = null;
+  const isAlreadyPublished = () => (editing?.kind === 'event' ? editing.event?.status : editing?.news?.status) === 'published';
+  const unpublish = document.createElement('button');
+  unpublish.type = 'button';
+  unpublish.className = 'button danger';
+  unpublish.textContent = 'Als Entwurf zurückziehen';
+  unpublish.hidden = true;
+  draft.insertAdjacentElement('afterend', unpublish);
+  const refreshActionLabels = () => {
+    const published = isAlreadyPublished();
+    draft.textContent = published ? 'Änderungen speichern (weiterhin öffentlich)' : 'Als Entwurf speichern';
+    publish.hidden = published;
+    unpublish.hidden = !published;
+  };
   let entries: Entry[] = [];
   let revision = 0, previewRevision = -1, busy = false;
   let imageObjectUrl: string | null = null;
@@ -54,6 +67,7 @@ export function initEditorialComposer(access: Access) {
     publish.disabled = true;
     publish.title = 'Bitte zuerst die aktuelle Vorschau prüfen.';
     choices();
+    refreshActionLabels();
   };
   const reset = () => {
     editing = null;
@@ -178,16 +192,16 @@ export function initEditorialComposer(access: Access) {
       preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (error) { notice(error instanceof Error ? error.message : 'Vorschau nicht möglich.', true); publish.disabled = true; }
   };
-  const save = async (publication: 'draft' | 'published') => {
+  const save = async (publication: 'draft' | 'published', preservingPublished = false) => {
     if (busy) return;
     try { validate(); } catch (error) { return notice(error instanceof Error ? error.message : 'Ungültiger Beitrag.', true); }
-    if (publication === 'published' && previewRevision !== revision) return notice('Bitte zuerst die aktuelle Vorschau prüfen.', true);
-    if (publication === 'published' && hasEvent() && new Date(val('start')).getTime() <= Date.now()) {
+    if (publication === 'published' && !preservingPublished && previewRevision !== revision) return notice('Bitte zuerst die aktuelle Vorschau prüfen.', true);
+    if (publication === 'published' && !preservingPublished && hasEvent() && new Date(val('start')).getTime() <= Date.now()) {
       return notice('Zum Veröffentlichen bitte einen zukünftigen Veranstaltungstermin wählen.', true);
     }
     busy = true;
-    draft.disabled = publish.disabled = previewButton.disabled = true;
-    notice('Beitrag wird ' + (publication === 'published' ? 'veröffentlicht' : 'als Entwurf gespeichert') + ' …');
+    draft.disabled = publish.disabled = previewButton.disabled = unpublish.disabled = true;
+    notice(preservingPublished ? 'Änderungen werden gespeichert; der Beitrag bleibt veröffentlicht …' : 'Beitrag wird ' + (publication === 'published' ? 'veröffentlicht' : 'als Entwurf gespeichert') + ' …');
     try {
       const eventActive = !!hasEvent();
       const oldNews = editing?.news, oldEvent = editing?.event;
@@ -258,7 +272,7 @@ export function initEditorialComposer(access: Access) {
         if (error) throw Error('News gespeichert, Freigabe fehlgeschlagen: ' + error.message);
       }
       reset();
-      notice(publication === 'published' ? 'Beitrag veröffentlicht. Er erscheint unter „Aktuelles“.' : 'Entwurf gespeichert und noch nicht öffentlich.');
+      notice(preservingPublished ? 'Änderungen gespeichert. Beitrag und Kalendertermin bleiben veröffentlicht.' : publication === 'published' ? 'Beitrag veröffentlicht. Er erscheint unter „Aktuelles“.' : 'Entwurf gespeichert und noch nicht öffentlich.');
       await refresh();
       window.dispatchEvent(new CustomEvent('tsv:editorial-content-changed'));
     } catch (error) {
@@ -267,13 +281,21 @@ export function initEditorialComposer(access: Access) {
       await refresh();
     } finally {
       busy = false;
-      draft.disabled = previewButton.disabled = false;
+      draft.disabled = previewButton.disabled = unpublish.disabled = false;
       publish.disabled = previewRevision !== revision;
     }
   };
   form.addEventListener('input', invalidate);
   form.addEventListener('change', invalidate);
-  form.addEventListener('submit', event => { event.preventDefault(); void save('draft'); });
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const keepPublished = isAlreadyPublished();
+    void save(keepPublished ? 'published' : 'draft', keepPublished);
+  });
+  unpublish.addEventListener('click', () => {
+    if (!isAlreadyPublished() || !window.confirm('Beitrag und Veranstaltung wirklich als Entwurf zurückziehen? Sie verschwinden dann auch aus dem Kalender-Abo.')) return;
+    void save('draft');
+  });
   publish.addEventListener('click', () => void save('published'));
   previewButton.addEventListener('click', showPreview);
   el<HTMLButtonElement>('editorial-compose-reset')?.addEventListener('click', reset);
