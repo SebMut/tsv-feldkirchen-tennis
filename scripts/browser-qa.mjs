@@ -79,6 +79,29 @@ async function deviceQA(device){
       await check(key+' images',()=>healthyImages(page,route),page);
     page.off('pageerror',listener);
   }
+  if(device.mobile) await check(device.name+' public ICS feed is subscribable and includes event revisions',async()=>{
+    const response=await page.request.get('https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/calendar-feed?type=events',{timeout:25000});
+    const ics=await response.text();
+    assert.equal(response.status(),200,'Public ICS HTTP error: '+ics.slice(0,500));
+    assert.match(response.headers()['content-type']||'',/text\/calendar/);
+    assert.ok(ics.startsWith('BEGIN:VCALENDAR\r\nVERSION:2.0\r\n'),'Invalid ICS calendar header');
+    assert.match(ics,/REFRESH-INTERVAL;VALUE=DURATION:PT1H/);
+    const blocks=ics.split('BEGIN:VEVENT\r\n').slice(1).map(chunk=>chunk.split('\r\nEND:VEVENT')[0]);
+    assert.ok(blocks.length>0,'No published calendar events');
+    for(const block of blocks){
+      assert.match(block,/UID:event-[a-f0-9-]+@tennis-tsvfeldkirchen\.de/);
+      assert.match(block,/DTSTAMP:\d{8}T\d{6}Z/);
+      assert.match(block,/LAST-MODIFIED:\d{8}T\d{6}Z/);
+      assert.match(block,/SEQUENCE:\d+/);
+      for(const line of block.split('\r\n'))
+        assert.ok(Buffer.byteLength(line,'utf8')<=75,'ICS content line exceeds 75 octets');
+    }
+    const sommerfest=blocks.find(block=>block.includes('UID:event-42635ab5-31bb-4461-81eb-e29a7fec0193'));
+    if(sommerfest){
+      assert.match(sommerfest,/DTEND:20270818T013000Z/,
+        'The stored 03:30 CEST Sommerfest end time is missing from the subscription');
+    }
+  },page);
   if(device.mobile) await check(device.name+' compact calendar filters',async()=>{
     await page.goto(url('/termine/'));
     const filters=page.locator('#calendar-extra-filters');
