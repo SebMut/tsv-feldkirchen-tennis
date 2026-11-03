@@ -97,22 +97,27 @@ export async function initEventRsvp() {
   const event = active;
   if (event) {
     byId<HTMLElement>('rsvp-heading')!.textContent = event.title;
-    byId<HTMLElement>('rsvp-description')!.textContent = event.description || 'Liebe Tennisfreunde, wir laden euch herzlich zum gemeinsamen Sommerfest ein!';
+    byId<HTMLElement>('rsvp-description')!.textContent = event.description || 'Wir laden euch herzlich zu dieser Veranstaltung ein.';
     byId<HTMLElement>('rsvp-date')!.textContent = formatDateTime(event.starts_at);
     byId<HTMLElement>('rsvp-location')!.textContent = event.location_name || 'Ort wird bekannt gegeben';
     byId<HTMLElement>('rsvp-deadline')!.textContent = event.rsvp_deadline ? formatDateTime(event.rsvp_deadline) : 'Bis zum Veranstaltungstag';
     byId<HTMLElement>('rsvp-mode-label')!.textContent = 'Einladung & Rückmeldung';
     byId<HTMLElement>('rsvp-demo-note')!.textContent = 'Antworten werden zur Veranstaltungsplanung gespeichert. Namen und Jugendanmeldungen sind nicht öffentlich einsehbar.';
     byId<HTMLElement>('rsvp-source-note')?.classList.add('hidden');
+    byId<HTMLElement>('rsvp-extra-info')?.classList.add('hidden');
     const details = event.rsvp_details || {};
+    byId<HTMLElement>('rsvp-fee-detail')!.hidden = !details.fee_note;
     if (details.fee_note) byId<HTMLElement>('rsvp-fees-note')!.textContent = details.fee_note;
+    byId<HTMLElement>('rsvp-help-detail')!.hidden = !(details.setup_note || details.cleanup_note);
     if (details.setup_note || details.cleanup_note) {
       byId<HTMLElement>('rsvp-helper-note')!.textContent = [details.setup_note, details.cleanup_note].filter(Boolean).join(' ');
     }
     if (details.youth_note) byId<HTMLElement>('rsvp-youth-note')!.textContent = details.youth_note;
-    const youthEnabled = details.tournament_youth_enabled !== false;
+    const youthEnabled = details.tournament_youth_enabled === true;
     const womenEnabled = details.tournament_women_enabled === true;
     const menEnabled = details.tournament_men_enabled === true;
+    byId<HTMLElement>('rsvp-youth-detail')!.hidden = !youthEnabled;
+    byId<HTMLElement>('rsvp-invitation-details')!.hidden = !(details.fee_note || details.setup_note || details.cleanup_note || youthEnabled);
     byId<HTMLElement>('rsvp-youth-section')!.hidden = !youthEnabled;
     byId<HTMLElement>('rsvp-women-section')!.hidden = !womenEnabled;
     byId<HTMLElement>('rsvp-men-section')!.hidden = !menEnabled;
@@ -121,6 +126,8 @@ export async function initEventRsvp() {
     if (!menEnabled) byId<HTMLTextAreaElement>('rsvp-men-names')!.value = '';
   } else {
     byId<HTMLElement>('rsvp-mode-label')!.textContent = 'Vorlage 2024 · Demo';
+    byId<HTMLElement>('rsvp-heading')!.textContent = 'Sommerfest & Jugendvereinsmeisterschaften (Vorlage)';
+    byId<HTMLElement>('rsvp-description')!.textContent = 'Diese Beispielansicht zeigt eine mögliche Einladung. Es liegt hierfür aktuell keine veröffentlichte Veranstaltung mit Anmeldung vor.';
     byId<HTMLElement>('rsvp-demo-note')!.textContent = response.error
       ? 'Die Veranstaltungsdaten konnten nicht geladen werden. Der Demo-Modus speichert keine Antwort.'
       : 'Diese Einladung ist eine unverbindliche Vorlage nach dem Sommerfest 2024. Bitte noch keine verbindlichen Anmeldungen abgeben.';
