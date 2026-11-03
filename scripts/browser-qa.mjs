@@ -98,7 +98,7 @@ async function deviceQA(device){
     }
     const sommerfest=blocks.find(block=>block.includes('UID:event-42635ab5-31bb-4461-81eb-e29a7fec0193'));
     if(sommerfest){
-      assert.match(sommerfest,/DTEND:\\d{8}T\\d{6}Z/,
+      assert.match(sommerfest,/DTEND:\d{8}T\d{6}Z/,
         'Published Sommerfest must have a valid end time; do not hardcode an editable date');
     }
   },page);
