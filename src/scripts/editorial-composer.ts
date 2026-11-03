@@ -1,6 +1,7 @@
 import { mediaUrl, supabase } from '../lib/supabase';
 import { replaceMediaImage } from '../lib/media-upload';
 import { escapeHtml, formatDateTime } from '../lib/ui';
+import { verifyEventCalendarPublication } from '../lib/calendar-feed-diagnostics';
 
 type Row = Record<string, any>;
 type Entry = { kind: 'news' | 'event'; news?: Row; event?: Row };
@@ -24,6 +25,8 @@ export function initEditorialComposer(access: Access) {
   const publish = el<HTMLButtonElement>('editorial-compose-publish');
   const draft = el<HTMLButtonElement>('editorial-compose-draft');
   const previewButton = el<HTMLButtonElement>('editorial-compose-preview-button');
+  const calendarCheck = el<HTMLButtonElement>('editorial-compose-check-calendar');
+  const calendarStatus = el<HTMLElement>('editorial-compose-calendar-status');
   if (!form || !list || !preview || !publish || !draft || !previewButton || !(access.canNews || access.canEvents)) return;
   let editing: Entry | null = null;
   const isAlreadyPublished = () => (editing?.kind === 'event' ? editing.event?.status : editing?.news?.status) === 'published';
@@ -38,6 +41,8 @@ export function initEditorialComposer(access: Access) {
     draft.textContent = published ? 'Änderungen speichern (weiterhin öffentlich)' : 'Als Entwurf speichern';
     publish.hidden = published;
     unpublish.hidden = !published;
+    if (calendarCheck) calendarCheck.hidden = !editing?.event?.id;
+    if (calendarStatus && editing?.event?.id) calendarStatus.textContent = 'Freigabe: ' + (published ? 'Veröffentlicht' : editing.event.status === 'archived' ? 'Archiviert' : 'Entwurf') + ' – ICS-Status bei Bedarf prüfen.';
   };
   let entries: Entry[] = [];
   let revision = 0, previewRevision = -1, busy = false;
@@ -75,6 +80,7 @@ export function initEditorialComposer(access: Access) {
     revokeImage();
     if (!access.canNews) input('event').checked = true;
     invalidate();
+    if (calendarStatus) calendarStatus.textContent = '';
   };
   const edit = (entry: Entry) => {
     if (entry.news && entry.event && !access.canEvents) {
@@ -203,6 +209,7 @@ export function initEditorialComposer(access: Access) {
     }
     busy = true;
     draft.disabled = publish.disabled = previewButton.disabled = unpublish.disabled = true;
+    if (calendarCheck) calendarCheck.disabled = true;
     notice(preservingPublished ? 'Änderungen werden gespeichert; der Beitrag bleibt veröffentlicht …' : 'Beitrag wird ' + (publication === 'published' ? 'veröffentlicht' : 'als Entwurf gespeichert') + ' …');
     try {
       const eventActive = !!hasEvent();
@@ -273,8 +280,21 @@ export function initEditorialComposer(access: Access) {
           published_at: publication === 'published' ? (oldNews?.published_at || new Date().toISOString()) : null }).eq('id',newsId);
         if (error) throw Error('News gespeichert, Freigabe fehlgeschlagen: ' + error.message);
       }
+      // A successful database write alone does not prove that calendar subscribers see it.
+      let feedMessage = '';
+      let feedWarning = '';
+      if (eventActive && eventId) {
+        try {
+          const verified = await verifyEventCalendarPublication(eventId, publication);
+          feedMessage = verified.message;
+        } catch (error) {
+          feedWarning = 'Kalender-/Abo-Prüfung fehlgeschlagen: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler');
+        }
+      }
       reset();
-      notice(preservingPublished ? 'Änderungen gespeichert. Beitrag und Kalendertermin bleiben veröffentlicht.' : publication === 'published' ? 'Beitrag veröffentlicht. Er erscheint unter „Aktuelles“.' : 'Entwurf gespeichert und noch nicht öffentlich.');
+      notice(feedWarning ? 'Inhalte gespeichert, aber ' + feedWarning + ' Bitte die ICS-Veröffentlichung prüfen.' :
+        (preservingPublished ? 'Änderungen gespeichert. Beitrag und Kalendertermin bleiben veröffentlicht.' : publication === 'published' ? 'Beitrag veröffentlicht. Er erscheint unter „Aktuelles“.' : 'Entwurf gespeichert und noch nicht öffentlich.') +
+        (feedMessage ? ' ' + feedMessage : ''), !!feedWarning);
       await refresh();
       window.dispatchEvent(new CustomEvent('tsv:editorial-content-changed'));
     } catch (error) {
@@ -284,6 +304,7 @@ export function initEditorialComposer(access: Access) {
     } finally {
       busy = false;
       draft.disabled = previewButton.disabled = unpublish.disabled = false;
+      if (calendarCheck) calendarCheck.disabled = false;
       publish.disabled = previewRevision !== revision;
     }
   };
@@ -300,6 +321,20 @@ export function initEditorialComposer(access: Access) {
   });
   publish.addEventListener('click', () => void save('published'));
   previewButton.addEventListener('click', showPreview);
+  calendarCheck?.addEventListener('click', async () => {
+    const eventId = editing?.event?.id;
+    if (!eventId || !calendarStatus || !calendarCheck) return;
+    calendarCheck.disabled = true;
+    calendarStatus.textContent = 'Gespeicherten Veröffentlichungsstatus und öffentlichen ICS-Feed prüfen …';
+    try {
+      const result = await verifyEventCalendarPublication(eventId);
+      calendarStatus.textContent = 'Kalenderprüfung erfolgreich: ' + result.message;
+    } catch (error) {
+      calendarStatus.textContent = 'Kalenderwarnung: ' + (error instanceof Error ? error.message : 'Prüfung fehlgeschlagen');
+    } finally {
+      calendarCheck.disabled = false;
+    }
+  });
   el<HTMLButtonElement>('editorial-compose-reset')?.addEventListener('click', reset);
   window.addEventListener('beforeunload', revokeImage);
   const originalTeam = el<HTMLSelectElement>('news-team');
