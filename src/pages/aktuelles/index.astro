@@ -104,6 +104,25 @@ import MainLayout from '../../layouts/MainLayout.astro';
     const card = details.closest<HTMLElement>('.content-card');
     if (!card) return;
     syncDetailsControls(card, details);
+    if (details.open && card.id.startsWith('news-')) {
+      const body = details.querySelector<HTMLElement>('[data-news-body]');
+      if (body && body.dataset.bodyState === 'idle') {
+        body.dataset.bodyState = 'loading';
+        body.textContent = 'Beitrag wird geladen …';
+        void (async () => {
+          try {
+            const { data, error } = await supabase.from('news').select('body')
+              .eq('id', card.id.slice(5)).eq('status', 'published').maybeSingle();
+            if (error || !data) throw error || new Error('Beitrag nicht gefunden');
+            body.textContent = data.body || 'Für diesen Beitrag liegt noch kein Langtext vor.';
+            body.dataset.bodyState = 'loaded';
+          } catch {
+            body.textContent = 'Beitrag konnte nicht geladen werden. Bitte schließen und erneut öffnen.';
+            body.dataset.bodyState = 'idle';
+          }
+        })();
+      }
+    }
     if (!details.open && card.id) clearDetailUrl(card.id);
   }, true);
   // Resolve direct links as soon as their cards exist, not only after the
@@ -182,9 +201,10 @@ import MainLayout from '../../layouts/MainLayout.astro';
   }
 
   await newsLoading;
+  const decorateNewsCards = () => {
   newsList?.querySelectorAll<HTMLElement>('article.card').forEach(card => {
     const rawTitle = card.querySelector('h2')?.textContent?.trim() || '';
-    if (eventTitles.has(rawTitle)) { card.remove(); return; }
+    if (eventTitles.has(rawTitle) || linkedNewsIds.has(card.id.slice(5))) { card.remove(); return; }
 
     card.classList.add('content-card', 'content-card--news');
     card.classList.remove('card');
@@ -232,8 +252,10 @@ import MainLayout from '../../layouts/MainLayout.astro';
     label?.remove();
     card.appendChild(body);
   });
-
   openFromUrl();
+  };
+  document.addEventListener('tsv-news-batch', decorateNewsCards);
+  decorateNewsCards();
   // On this combined page, an empty News collection must not contradict the
   // published event cards above it. Keep retrieval errors visible.
   const newsSection = document.querySelector<HTMLElement>('.news-section');
@@ -242,7 +264,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
   const newsMessage = newsList?.textContent?.trim() || '';
   const newsLoadFailed = newsMessage.includes('Beiträge sind momentan nicht abrufbar.');
   if (!hasVisibleNews && hasPublishedEvents && !newsLoadFailed) {
-    if (newsSection) newsSection.hidden = true;
+    if (newsSection && !newsSection.querySelector('[data-news-more]:not([hidden])')) newsSection.hidden = true;
   } else if (!hasVisibleNews && !hasPublishedEvents && newsMessage === 'Noch keine Beiträge veröffentlicht.') {
     if (newsList) newsList.textContent = 'Derzeit sind keine Neuigkeiten oder Veranstaltungen veröffentlicht.';
   }
@@ -255,6 +277,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
   .aktuelles-page__head{padding-bottom:4px}
   .aktuelles-page__head h1{max-width:760px;color:#193c2c}
   .event-news,.news-section{margin:0}
+  :global(.news-pagination){display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:20px}
+  :global(.news-pagination [data-news-more][hidden]){display:none}
   .event-news__head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}
   .event-news__head h2{margin:2px 0 0;color:#193c2c}
   .content-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}

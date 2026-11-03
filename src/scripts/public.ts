@@ -1827,17 +1827,86 @@ export async function loadNews() {
   watchPublicContent('#news-list');
   const target = document.querySelector<HTMLElement>('#news-list');
   if (!target) return;
-  const { data, error } = await supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false });
-  target.innerHTML = data?.length ? data.map((item: Row) => `
+  const pageSize = 6;
+  let offset = 0;
+  let loading = false;
+  let hasMore = true;
+  const shown = new Set<string>();
+  const pagination = document.createElement('div');
+  pagination.className = 'news-pagination';
+  const moreButton = document.createElement('button');
+  moreButton.type = 'button';
+  moreButton.className = 'button ghost';
+  moreButton.dataset.newsMore = '';
+  moreButton.textContent = 'Weitere Beiträge anzeigen';
+  moreButton.hidden = true;
+  const feedback = document.createElement('p');
+  feedback.className = 'muted';
+  feedback.setAttribute('role', 'status');
+  feedback.setAttribute('aria-live', 'polite');
+  pagination.append(moreButton, feedback);
+  target.insertAdjacentElement('afterend', pagination);
+  const renderCard = (item: Row) => `
     <article id="news-${escapeHtml(item.id)}" class="card ${item.slug?.startsWith('btv-spielverlegung-') ? 'news-card--reschedule' : ''}">
       ${item.hero_image_path ? `<img src="${escapeHtml(mediaUrl(item.hero_image_path))}" alt="" width="1280" height="720" loading="lazy" decoding="async" fetchpriority="low" style="border-radius:14px;aspect-ratio:16/9;object-fit:cover;margin-bottom:16px">` : ''}
       ${item.slug?.startsWith('btv-spielverlegung-') ? '<p class="news-reschedule-label">BTV · Spielverlegung</p>' : ''}
       <p class="eyebrow">${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : 'Aktuelles'}</p>
       <h2>${escapeHtml(item.title)}</h2>
-      <p class="muted">${escapeHtml(item.excerpt || (item.body || '').slice(0, 220))}</p>
-      <details><summary>Weiterlesen</summary><p style="white-space:pre-wrap">${escapeHtml(item.body)}</p></details>
+      <p class="muted">${escapeHtml(item.excerpt || '')}</p>
+      <details><summary>Weiterlesen</summary><p data-news-body="${escapeHtml(item.id)}" data-body-state="idle" style="white-space:pre-wrap">Vollständiger Beitrag wird beim Öffnen geladen.</p></details>
     </article>
-  `).join('') : `<p class="muted">${error ? 'Beiträge sind momentan nicht abrufbar.' : 'Noch keine Beiträge veröffentlicht.'}</p>`;
+  `;
+  const append = (items: Row[]) => {
+    const novel = items.filter((item: Row) => {
+      if (shown.has(item.id)) return false;
+      shown.add(item.id);
+      return true;
+    });
+    if (!novel.length) return;
+    target.insertAdjacentHTML('beforeend', novel.map(renderCard).join(''));
+    document.dispatchEvent(new Event('tsv-news-batch'));
+  };
+  const requestedNews = new URLSearchParams(location.search).get('news')
+    || /^news-([0-9a-f-]{36})$/i.exec(location.hash.slice(1))?.[1] || '';
+  const loadPage = async () => {
+    if (loading || !hasMore) return;
+    loading = true;
+    moreButton.disabled = true;
+    feedback.textContent = 'Beiträge werden geladen …';
+    try {
+      const { data, error } = await supabase.from('news')
+        .select('id,slug,title,excerpt,hero_image_path,published_at')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      const firstPage = offset === 0;
+      const rows = data ?? [];
+      offset += rows.length;
+      hasMore = rows.length === pageSize;
+      if (firstPage) target.innerHTML = '';
+      append(rows);
+      // Auch Direktlinks auf alte, veröffentlichte Beiträge müssen funktionieren.
+      if (firstPage && /^[0-9a-f-]{36}$/i.test(requestedNews) && !shown.has(requestedNews)) {
+        const { data: selected, error: selectedError } = await supabase.from('news')
+          .select('id,slug,title,excerpt,hero_image_path,published_at')
+          .eq('status', 'published').eq('id', requestedNews).maybeSingle();
+        if (!selectedError && selected) append([selected]);
+      }
+      if (!shown.size) target.innerHTML = '<p class="muted">Noch keine Beiträge veröffentlicht.</p>';
+      feedback.textContent = '';
+    } catch {
+      feedback.textContent = 'Beiträge sind momentan nicht abrufbar. Bitte erneut versuchen.';
+      if (!shown.size) target.innerHTML = '<p class="muted">Beiträge sind momentan nicht abrufbar.</p>';
+    } finally {
+      loading = false;
+      moreButton.disabled = false;
+      moreButton.hidden = !hasMore;
+    }
+  };
+  moreButton.addEventListener('click', () => void loadPage());
+  await loadPage();
 }
 
 export async function loadManagedPage(slug: string) {
