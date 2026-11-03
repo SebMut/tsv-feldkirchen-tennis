@@ -18,9 +18,14 @@ import MainLayout from '../../layouts/MainLayout.astro';
       <div class="calendar-filter-heading"><span>Termine filtern</span><span class="muted">Die Markierungen im Kalender passen sich an.</span></div>
       <div class="phase8-calendar-preferences"><label for="calendar-view">Ansicht</label><select id="calendar-view" aria-label="Kalenderansicht"><option value="month">Monat</option><option value="week">Woche</option></select><label for="calendar-favorite">Lieblingsmannschaft</label><select id="calendar-favorite" aria-label="Lieblingsmannschaft"><option value="">Keine / alle Mannschaften</option></select><button class="button ghost" type="button" id="calendar-save-favorite">Als Favorit speichern</button><span id="calendar-favorite-status" class="muted" role="status"></span></div><div class="filters calendar-filters">
         <select id="calendar-kind" aria-label="Art der Termine"><option value="all">Spiele & Veranstaltungen</option><option value="matches">Nur Punktspiele</option><option value="events">Nur Veranstaltungen</option></select>
-        <select id="calendar-range" aria-label="Zeitraum"><option value="all">Alle Zeiträume</option><option value="upcoming">Nur zukünftige</option><option value="year">Aktuelles Kalenderjahr</option><option value="recent">Letzte 90 Tage</option></select>
-        <select id="calendar-team" aria-label="Mannschaft wählen"><option value="">Alle Mannschaften</option></select>
-        <select id="calendar-category" aria-label="Kategorie wählen"><option value="">Alle Kategorien</option></select>
+        <details id="calendar-extra-filters" class="calendar-extra-filters" open>
+          <summary>Weitere Filter: Zeitraum, Mannschaft, Kategorie</summary>
+          <div class="calendar-extra-filters__grid">
+            <select id="calendar-range" aria-label="Zeitraum"><option value="all">Alle Zeiträume</option><option value="upcoming">Nur zukünftige</option><option value="year">Aktuelles Kalenderjahr</option><option value="recent">Letzte 90 Tage</option></select>
+            <select id="calendar-team" aria-label="Mannschaft wählen"><option value="">Alle Mannschaften</option></select>
+            <select id="calendar-category" aria-label="Kategorie wählen"><option value="">Alle Kategorien</option></select>
+          </div>
+        </details>
       </div>
     </section>
     <div id="calendar-data-status" class="calendar-data-status hidden" role="status"></div>
@@ -98,5 +103,25 @@ import MainLayout from '../../layouts/MainLayout.astro';
 </MainLayout>
 <script>
   import { loadCalendar } from '../../scripts/public';
+  const extraFilters = document.querySelector<HTMLDetailsElement>('#calendar-extra-filters');
+  if (extraFilters && window.matchMedia('(max-width: 680px)').matches) extraFilters.open = false;
   loadCalendar();
 </script>
+
+<style>
+  .calendar-extra-filters{grid-column:2 / -1;min-width:0}
+  .calendar-extra-filters>summary{display:none}
+  .calendar-extra-filters__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  @media(max-width:1050px){
+    .calendar-extra-filters{grid-column:1 / -1}
+  }
+  @media(max-width:680px){
+    .calendar-filters{grid-template-columns:1fr}
+    .calendar-extra-filters{grid-column:auto}
+    .calendar-extra-filters>summary{display:list-item;cursor:pointer;font-weight:750;padding:11px 14px;background:#fff;border:1px solid #cdd9d2;border-radius:9px}
+    .calendar-extra-filters__grid{margin-top:10px;grid-template-columns:1fr 1fr}
+  }
+  @media(max-width:390px){
+    .calendar-extra-filters__grid{grid-template-columns:1fr}
+  }
+</style>
