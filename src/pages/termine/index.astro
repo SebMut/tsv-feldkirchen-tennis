@@ -16,7 +16,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
     </div>
     <section class="calendar-filter-panel" aria-label="Kalender filtern">
       <div class="calendar-filter-heading"><span>Termine filtern</span><span class="muted">Die Markierungen im Kalender passen sich an.</span></div>
-      <div class="phase8-calendar-preferences"><label for="calendar-view">Ansicht</label><select id="calendar-view" aria-label="Kalenderansicht"><option value="month">Monat</option><option value="week">Woche</option></select><label for="calendar-favorite">Lieblingsmannschaft</label><select id="calendar-favorite" aria-label="Lieblingsmannschaft"><option value="">Keine / alle Mannschaften</option></select><button class="button ghost" type="button" id="calendar-save-favorite">Als Favorit speichern</button><span id="calendar-favorite-status" class="muted" role="status"></span></div><div class="filters calendar-filters">
+      <div class="phase8-calendar-preferences"><label for="calendar-view">Ansicht</label><select id="calendar-view" aria-label="Kalenderansicht"><option value="month">Monat</option><option value="week">Woche</option></select><div class="calendar-favorite-group"><label for="calendar-favorite">Lieblingsmannschaft</label><select id="calendar-favorite" aria-label="Lieblingsmannschaft"><option value="">Keine / alle Mannschaften</option></select><label class="calendar-include-events-toggle" for="calendar-include-events"><input id="calendar-include-events" type="checkbox" checked /><span>Veranstaltungen</span></label></div><button class="button ghost" type="button" id="calendar-save-favorite">Als Favorit speichern</button><span id="calendar-favorite-status" class="muted" role="status"></span></div><div class="filters calendar-filters">
         <select id="calendar-kind" aria-label="Art der Termine"><option value="all">Spiele & Veranstaltungen</option><option value="matches">Nur Punktspiele</option><option value="events">Nur Veranstaltungen</option></select>
         <details id="calendar-extra-filters" class="calendar-extra-filters" open>
           <summary>Weitere Filter: Zeitraum, Mannschaft, Kategorie</summary>
@@ -99,7 +99,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
       <p class="muted">Die Abo-Schaltflächen öffnen Apple Kalender, Outlook und andere Apps über webcal. Bitte dort ausdrücklich <strong>Abonnieren</strong> auswählen, nicht „Termin importieren“.</p>
       <div id="calendar-subscriptions" class="actions"><p class="muted">Abo-Links werden geladen …</p></div>
       <p id="calendar-subscription-status" class="muted" role="status" aria-live="polite"></p>
-      <p class="muted">Für <strong>Google Kalender</strong>: HTTPS-Abo-Link kopieren und in Google Kalender unter <strong>Weitere Kalender → Per URL</strong> hinzufügen. Das Sommerfest ist in „Vereinstermine“ und im ungefilterten Gesamtkalender enthalten; ein Mannschaftsfilter enthält nur zugeordnete Termine.</p>
+      <p class="muted">Für <strong>Google Kalender</strong>: HTTPS-Abo-Link kopieren und in Google Kalender unter <strong>Weitere Kalender → Per URL</strong> hinzufügen. „Auswahl abonnieren“ berücksichtigt die Lieblingsmannschaft und die Checkbox „Veranstaltungen“. Ist sie aktiviert, kommen alle Vereinsveranstaltungen zu den Spielen der gewählten Mannschaft hinzu. Ein bestehendes Abo behält seine bisherige URL; für eine andere Auswahl bitte neu abonnieren.</p>
       <p class="muted">Wichtig: Der Button „Diesen Termin zu meinem Kalender hinzufügen (.ics)“ ist ein einmaliger Import und aktualisiert sich nicht. Bei echten Abos bestimmt die Kalender-App den Aktualisierungszeitpunkt; Änderungen können verzögert erscheinen.</p>
     </section>
   </div>
@@ -112,6 +112,13 @@ import MainLayout from '../../layouts/MainLayout.astro';
 </script>
 
 <style>
+  .calendar-favorite-group{display:grid;grid-template-columns:auto minmax(180px,240px);align-items:center;gap:7px 10px;min-width:0}
+  .calendar-favorite-group>label:first-child{font-size:.83rem;font-weight:800;color:#44554c}
+  .calendar-favorite-group>select{min-width:0;width:100%;border:1px solid #cbd8cd;background:#fff;border-radius:9px;padding:9px;color:#22382b}
+  .calendar-include-events-toggle{grid-column:1/-1;display:flex;align-items:center;gap:9px;padding:6px 0 1px;font-size:.87rem;font-weight:750;color:#263f31;cursor:pointer;width:max-content;max-width:100%}
+  .calendar-include-events-toggle input{width:19px;height:19px;accent-color:#087884;cursor:pointer;margin:0;flex:none}
+  .calendar-include-events-toggle:focus-within{outline:2px solid #087884;outline-offset:3px;border-radius:4px}
+  @media(max-width:680px){.calendar-favorite-group{grid-column:1/-1;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.calendar-favorite-group>select{grid-column:2;max-width:none}.calendar-include-events-toggle{grid-column:1/-1}}
   .calendar-extra-filters{grid-column:2 / -1;min-width:0}
   .calendar-extra-filters>summary{display:none}
   .calendar-extra-filters__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
