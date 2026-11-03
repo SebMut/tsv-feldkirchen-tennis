@@ -611,26 +611,18 @@ export async function loadTeams() {
   // Saisons berücksichtigen, statt die Auswahl auf drei Jahre zu begrenzen.
   const publishedSeasons = reference.seasons.filter((s: Row) =>
     s.is_published !== false && typeof s.code === 'string' && /^(sommer|winter)-20\d{2}/.test(s.code));
-  const initialButtons = Array.from(nav.querySelectorAll<HTMLButtonElement>('[data-season]'));
-  const seasonCodes = [...new Set([
-    ...initialButtons.map(button => button.dataset.season || '').filter(Boolean),
-    ...publishedSeasons.map((season: Row) => season.code as string),
-  ])];
-  const seasonByCode = new Map<string, Row>(publishedSeasons
-    .map((s: Row) => [s.code, s]));
-  for (const code of seasonCodes) {
-    if (initialButtons.some(button => button.dataset.season === code)) continue;
-    const season = seasonByCode.get(code);
-    if (!season) continue;
-    const isWinter = code.startsWith('winter-');
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'teams-season-card';
-    card.dataset.season = code;
-    card.setAttribute('aria-pressed', 'false');
-    card.innerHTML = `<span class="teams-season-card__top"><span class="teams-season-card__icon" aria-hidden="true">${isWinter ? '❄' : '☀'}</span><span class="teams-season-card__count" data-count="${escapeHtml(code)}">–</span></span><strong>${escapeHtml(season.name)}</strong><span class="teams-season-card__subtitle">${isWinter ? 'Winterrunde' : 'Sommerrunde'}</span>`;
-    nav.append(card);
-  }
+  const seasons = [...publishedSeasons].sort((a: Row, b: Row) =>
+    Number(Boolean(b.is_current)) - Number(Boolean(a.is_current))
+    || String(b.starts_on || '').localeCompare(String(a.starts_on || '')));
+  const seasonCodes = seasons.map((season: Row) => String(season.code));
+  const seasonByCode = new Map<string, Row>(seasons.map((season: Row) => [season.code, season]));
+  nav.innerHTML = seasons.map((season: Row) => {
+    const isWinter = String(season.code).startsWith('winter-');
+    return `<button type="button" class="teams-season-card" data-season="${escapeHtml(season.code)}" aria-pressed="false">
+      <span class="teams-season-card__top"><span class="teams-season-card__icon" aria-hidden="true">${isWinter ? '❄' : '☀'}</span><span class="teams-season-card__count" data-count="${escapeHtml(season.code)}">–</span></span>
+      <strong>${escapeHtml(season.name)}</strong><span class="teams-season-card__subtitle">${isWinter ? 'Winterrunde' : 'Sommerrunde'}</span>
+    </button>`;
+  }).join('') || '<p class="muted">Derzeit sind keine Saisons veröffentlicht.</p>';
   const teamsById = byId(reference.teams);
   const publishedTeamSeasons = reference.teamSeasons.filter((ts: Row) => ts.is_published && teamsById.has(ts.team_id));
   const teamGroups = [
@@ -670,8 +662,8 @@ export async function loadTeams() {
     s && (seasonCounts.get(s.code) || 0) > 0 && s.starts_on <= today && s.ends_on >= today);
   const defaultSeason = managedCurrentSeason || byCurrentDate
     || seasonCodes.map(code => seasonByCode.get(code)).find((s: Row | undefined) => s && (seasonCounts.get(s.code) || 0) > 0)
-    || seasonByCode.get('winter-2026-2027');
-  let activeCode = defaultSeason?.code || seasonCodes[0] || 'winter-2026-2027';
+    || seasons[0];
+  let activeCode = defaultSeason?.code || seasonCodes[0] || '';
   let activeCategory = '';
   const knownCategories = teamGroups.filter((category) =>
     publishedTeamSeasons.some((ts: Row) => groupForTeam(teamsById.get(ts.team_id)) === category.id));
@@ -711,7 +703,7 @@ export async function loadTeams() {
     const requestedCode = seasonCodes.includes(code || '') ? code :
       legacy && seasonCodes.includes(legacy) ? legacy : '';
     activeCode = requestedCode || (activeCategory ? seasonForGroup(activeCategory) : undefined)
-      || defaultSeason?.code || seasonCodes[0] || 'winter-2026-2027';
+      || defaultSeason?.code || seasonCodes[0] || '';
   };
   const setUrlState = () => {
     const url = new URL(window.location.href);
@@ -747,20 +739,16 @@ export async function loadTeams() {
         return rank(a.team) - rank(b.team) || (a.team.sort_order ?? 0) - (b.team.sort_order ?? 0) || String(a.team.name).localeCompare(String(b.team.name), 'de');
       });
     const rows = allRows.filter(({ team }: {team: Row}) => !activeCategory || groupForTeam(team) === activeCategory);
-    const title = selectedSeason?.name || (activeCode === 'winter-2026-2027' ? 'Winter 2026/2027' : activeCode === 'sommer-2027' ? 'Sommer 2027' : 'Saison');
+    const title = selectedSeason?.name || 'Saison';
     heading.textContent = title;
     info.textContent = allRows.length > 0
       ? `${rows.length} ${rows.length === 1 ? 'Mannschaft' : 'Mannschaften'}${activeCategory ? ' in dieser Kategorie' : ' in dieser Runde'}`
       : 'Noch keine bestätigten Mannschaftsmeldungen für diese Runde.';
-    const emptyMessage = activeCode === 'sommer-2027'
-      ? 'Die Mannschaften und Spielpläne für Sommer 2027 werden veröffentlicht, sobald die offiziellen BTV-Daten verfügbar sind.'
-      : activeCode === 'winter-2026-2027'
-        ? 'Die Mannschaften der Winterrunde 2026/2027 sind beim BTV bereits veröffentlicht. Wir gleichen ihre Meldungen und Spielpläne derzeit mit unserer Mannschaftsverwaltung ab.'
-        : 'Für diese Saison wurden noch keine Mannschaften veröffentlicht.';
+    const emptyMessage = 'Für diese Runde sind noch keine Mannschaftsmeldungen veröffentlicht. Wir zeigen sie hier, sobald die Daten bestätigt sind.';
     if (!rows.length) {
       target.innerHTML = allRows.length && activeCategory
         ? '<div class="teams-empty"><span aria-hidden="true">◎</span><h3>Keine Mannschaft in dieser Kategorie</h3><p>Wähle „Alle Teams“, um die gesamte Saison zu sehen.</p></div>'
-        : `<div class="teams-empty"><span aria-hidden="true">${activeCode.startsWith('winter') ? '❄' : '☀'}</span><h3>${activeCode === 'winter-2026-2027' ? 'BTV-Winterrunde 2026/27' : 'Noch keine Mannschaften veröffentlicht'}</h3><p>${emptyMessage}</p>${activeCode === 'winter-2026-2027' ? '<a class="button secondary" href="https://www.btv.de/de/mein-verein/vereinsseite/tsv-feldkirchen.html#Mannschaften" target="_blank" rel="noopener noreferrer">Winter-Mannschaften beim BTV ansehen ↗</a>' : ''}</div>`;
+        : `<div class="teams-empty"><span aria-hidden="true">${activeCode.startsWith('winter') ? '❄' : '☀'}</span><h3>Noch keine Mannschaften veröffentlicht</h3><p>${emptyMessage}</p></div>`;
       return;
     }
     const now = Date.now();
@@ -805,7 +793,7 @@ export async function loadTeams() {
   nav.addEventListener('click', (event: MouseEvent) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-season]');
     if (!button || !nav.contains(button) || button.dataset.season === activeCode) return;
-    activeCode = button.dataset.season || defaultSeason?.code || 'winter-2026-2027';
+    activeCode = button.dataset.season || defaultSeason?.code || '';
     activeCategory = '';
     setUrlState();
     render();
@@ -1674,7 +1662,7 @@ export async function loadSponsors() {
   const { data, error } = await supabase.from('sponsors').select('*').eq('active', true).order('sort_order');
   target.innerHTML = data?.length ? data.map((s: Row) => `
     <article class="card team-card">
-      ${s.logo_path ? `<img src="${escapeHtml(mediaUrl(s.logo_path))}" alt="Logo ${escapeHtml(s.name)}" loading="lazy">` : ''}
+      ${s.logo_path ? `<img src="${escapeHtml(mediaUrl(s.logo_path))}" alt="Logo ${escapeHtml(s.name)}" loading="lazy" decoding="async" width="240" height="160">` : ''}
       <h3>${escapeHtml(s.name)}</h3>
       <p class="muted">${escapeHtml(s.description || '')}</p>
       ${s.url ? `<a class="button ghost" href="${escapeHtml(s.url)}" target="_blank" rel="noreferrer">Website ↗</a>` : ''}
@@ -1689,9 +1677,9 @@ export async function loadOfficials() {
   const { data, error } = await supabase.from('officials').select('*').eq('published', true).order('sort_order');
   target.innerHTML = data?.length ? data.map((o: Row) => `
     <article class="card team-card">
-      ${o.photo_path ? `<img src="${escapeHtml(mediaUrl(o.photo_path))}" alt="${escapeHtml(o.name)}" loading="lazy">` : `<div class="official-placeholder" aria-hidden="true"><span>🎾</span><strong>${escapeHtml(String(o.name).split(' ').map((part: string) => part[0]).join('').slice(0,2))}</strong></div>`}
+      ${o.photo_path ? `<img src="${escapeHtml(mediaUrl(o.photo_path))}" alt="${escapeHtml(o.name)}" loading="lazy" decoding="async" width="220" height="220">` : `<div class="official-placeholder" aria-hidden="true"><span>🎾</span><strong>${escapeHtml(String(o.name).split(' ').map((part: string) => part[0]).join('').slice(0,2))}</strong></div>`}
       <div><p class="eyebrow">${escapeHtml(o.title)}</p><h3>${escapeHtml(o.name)}</h3></div>
-      <p class="muted">${o.email ? `<a href="mailto:${escapeHtml(o.email)}">${escapeHtml(o.email)}</a>` : ''}${o.email && o.phone ? '<br>' : ''}${o.phone ? escapeHtml(o.phone) : ''}</p>
+      <p class="muted">${o.email ? `<a href="mailto:${escapeHtml(o.email)}">${escapeHtml(o.email)}</a>` : ''}${o.email && o.phone ? '<br>' : ''}${o.phone ? `<a href="tel:${escapeHtml(String(o.phone).replace(/[^+\d]/g, ''))}">${escapeHtml(o.phone)}</a>` : ''}</p>
     </article>
   `).join('') : `<p class="muted">${error ? 'Funktionäre sind momentan nicht abrufbar.' : 'Funktionäre werden derzeit eingepflegt.'}</p>`;
 }
