@@ -129,10 +129,10 @@ async function deviceQA(device){
     let subscription=new URL((await selectedLink()).replace(/^webcal:/,'https:'));
     assert.equal(subscription.searchParams.get('team'),slug);
     assert.equal(subscription.searchParams.get('include_events'),'1');
-    assert.ok((await page.locator('#calendar-list').innerText()).includes('Sommerfest'),
+    assert.ok((await page.locator('#calendar-list').textContent()).includes('Sommerfest'),
       'Club events must appear alongside a favourite team');
     await include.uncheck();
-    assert.ok(!(await page.locator('#calendar-list').innerText()).includes('Sommerfest'),
+    assert.ok(!(await page.locator('#calendar-list').textContent()).includes('Sommerfest'),
       'Unchecking Veranstaltungen must remove club events from the calendar');
     subscription=new URL((await selectedLink()).replace(/^webcal:/,'https:'));
     assert.equal(subscription.searchParams.get('include_events'),'0');
