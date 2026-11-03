@@ -54,6 +54,22 @@ function block(item: { id:string; title:string; start:string; end?:string|null; 
   return lines.map(fold).join("\r\n");
 }
 
+/** Explicit checkbox selection; legacy team-only subscriptions stay unchanged. */
+function subscriptionEvents<T extends { team_id: string | null }>(
+  published: T[],
+  teamSlug: string | null,
+  categorySlug: string | null,
+  includeEvents: string | null,
+  allowedIds: ReadonlySet<string>,
+): T[] {
+  return published.filter(e => {
+    if (includeEvents === "0") return false;
+    if (includeEvents === "1") return true;
+    if (teamSlug || categorySlug) return e.team_id ? allowedIds.has(e.team_id) : false;
+    return true;
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "GET") return new Response("Method not allowed", { status: 405 });
   const url = new URL(req.url);
@@ -79,13 +95,7 @@ Deno.serve(async (req: Request) => {
     return (!teamSlug || team?.slug===teamSlug) && (!categorySlug || team?.team_categories?.slug===categorySlug);
   });
   const allowedIds=new Set(fm.map((m:any)=>m.team_seasons?.team_id).filter(Boolean));
-  const fe=(events ?? []).filter((e:any)=>{
-    if (includeEvents === "0") return false;
-    if (includeEvents === "1") return true;
-    // Keep the original team-specific behaviour for existing Abo URLs.
-    if (teamSlug || categorySlug) return e.team_id ? allowedIds.has(e.team_id) : false;
-    return true;
-  });
+  const fe = subscriptionEvents(events ?? [], teamSlug, categorySlug, includeEvents, allowedIds);
 
   const blocks:string[]=[];
   if (type!=="events") for (const m of fm as any[]) {
