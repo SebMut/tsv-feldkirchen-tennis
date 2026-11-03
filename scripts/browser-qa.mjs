@@ -172,8 +172,12 @@ async function deviceQA(device){
     const inspectButton=page.locator('#calendar-check-feed');
     assert.ok(await inspectButton.isVisible(),'Missing calendar subscription inspector');
     await inspectButton.click();
-    await page.locator('#calendar-feed-diagnostic').getByText('ICS-Feed erreichbar.',{exact:false}).waitFor({timeout:25000});
+    await page.waitForFunction(() => {
+      const text=document.querySelector('#calendar-feed-diagnostic')?.textContent||'';
+      return text.includes('ICS-Feed erreichbar.') || text.includes('Prüfung fehlgeschlagen:');
+    },null,{timeout:35000});
     const diagnostic=await page.locator('#calendar-feed-diagnostic').innerText();
+    assert.match(diagnostic,/ICS-Feed erreichbar\./,'Diagnose meldet einen Fehler: '+diagnostic);
     assert.match(diagnostic,/veröffentlichte Veranstaltungen/);
     assert.match(diagnostic,/ETag vorhanden/);
     await noOverflow(page,'/termine/ after changing events selection');
