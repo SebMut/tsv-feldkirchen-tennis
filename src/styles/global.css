@@ -2761,3 +2761,12 @@ body:has(.matchday-page--ticker .matchday-live-center.is-loading) .site-footer{
 
 /* Hide the inactive dock destination even though dock tabs normally use flex. */
 .mobile-dock > .mobile-dock__tab[hidden]{display:none!important}
+
+
+/* Reserve real card geometry while published seasons and squad cards arrive. */
+.teams-season-skeleton{min-height:175px;border-radius:20px;border:1px solid #e2e9e5;background:linear-gradient(120deg,#f0f3f0,#e8ece9,#f0f3f0)}
+.team-card-skeleton{min-height:330px;border-radius:18px;border:1px solid #e2e9e5;background:#f5f7f5;padding:13px;display:flex;flex-direction:column;gap:13px}
+.team-card-skeleton>div{width:100%;aspect-ratio:16/9;border-radius:12px;background:#e7ebe7}
+.team-card-skeleton>span{display:block;height:20px;width:76%;border-radius:7px;background:#e7ebe7}
+.team-card-skeleton>span:last-child{width:48%;height:14px}
+@media(max-width:760px){.teams-season-skeleton{min-height:142px}.team-card-skeleton{min-height:300px}}

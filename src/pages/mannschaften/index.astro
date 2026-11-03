@@ -12,7 +12,9 @@ import Breadcrumbs from '../../components/Breadcrumbs.astro';
     </header>
 
     <nav class="teams-seasons" aria-label="Saison auswählen" id="teams-season-nav">
-      <p class="muted" role="status">Veröffentlichte Saisons werden geladen …</p>
+      <div class="teams-season-skeleton" role="status" aria-label="Saisons werden geladen" aria-live="polite"></div>
+      <div class="teams-season-skeleton" aria-hidden="true"></div>
+      <div class="teams-season-skeleton" aria-hidden="true"></div>
     </nav>
 
     <section class="teams-results" aria-labelledby="teams-results-title">
@@ -21,7 +23,11 @@ import Breadcrumbs from '../../components/Breadcrumbs.astro';
         <a class="teams-results__official" href="https://www.btv.de/de/mein-verein/vereinsseite/tsv-feldkirchen.html" target="_blank" rel="noopener noreferrer">Offizielle BTV-Vereinsseite ↗</a>
       </div>
       <div class="teams-category-chips" id="teams-category-chips" role="group" aria-label="Mannschaftskategorie"></div>
-      <div id="teams-grid" class="team-grid" aria-live="polite"><p class="muted">Mannschaften werden geladen …</p></div>
+      <div id="teams-grid" class="team-grid" aria-live="polite">
+        <div class="team-card-skeleton" role="status" aria-label="Mannschaften werden geladen"><div></div><span></span><span></span></div>
+        <div class="team-card-skeleton" aria-hidden="true"><div></div><span></span><span></span></div>
+        <div class="team-card-skeleton" aria-hidden="true"><div></div><span></span><span></span></div>
+      </div>
     </section>
 
     <section class="teams-official-widget" aria-labelledby="teams-official-widget-title">
