@@ -169,17 +169,33 @@ async function deviceQA(device){
     assert.equal(on.status(),200,'ICS feed with events on failed');
     assert.ok((await on.text()).includes('UID:event-'),
       'Published club events missing from favourite team subscription with events enabled');
-    const inspectButton=page.locator('#calendar-check-feed');
-    assert.ok(await inspectButton.isVisible(),'Missing calendar subscription inspector');
-    await inspectButton.click();
-    await page.waitForFunction(() => {
-      const text=document.querySelector('#calendar-feed-diagnostic')?.textContent||'';
-      return text.includes('ICS-Feed erreichbar.') || text.includes('Prüfung fehlgeschlagen:');
-    },null,{timeout:35000});
-    const diagnostic=await page.locator('#calendar-feed-diagnostic').innerText();
-    assert.match(diagnostic,/ICS-Feed erreichbar\./,'Diagnose meldet einen Fehler: '+diagnostic);
-    assert.match(diagnostic,/veröffentlichte Veranstaltungen/);
-    assert.match(diagnostic,/ETag vorhanden/);
+    // Live ICS was checked immediately above. Reuse those authentic bytes for the UI
+    // parser test so a fluctuating public network cannot turn a valid rendering into a timeout.
+    const liveIcs=await on.text();
+    const feedPattern='**/functions/v1/calendar-feed*';
+    const feedFixture=async route=>{
+      if(route.request().url()!==subscription.toString()) return route.continue();
+      await route.fulfill({status:200,contentType:'text/calendar; charset=utf-8',
+        headers:{'access-control-allow-origin':'*','access-control-expose-headers':'ETag, Last-Modified',
+          'etag':on.headers()['etag']||'"test-live-feed"'},
+        body:liveIcs});
+    };
+    await page.route(feedPattern,feedFixture);
+    try {
+      const inspectButton=page.locator('#calendar-check-feed');
+      assert.ok(await inspectButton.isVisible(),'Missing calendar subscription inspector');
+      await inspectButton.click();
+      await page.waitForFunction(() => {
+        const text=document.querySelector('#calendar-feed-diagnostic')?.textContent||'';
+        return text.includes('ICS-Feed erreichbar.') || text.includes('Prüfung fehlgeschlagen:');
+      },null,{timeout:15000});
+      const diagnostic=await page.locator('#calendar-feed-diagnostic').innerText();
+      assert.match(diagnostic,/ICS-Feed erreichbar\./,'Diagnose meldet einen Fehler: '+diagnostic);
+      assert.match(diagnostic,/veröffentlichte Veranstaltungen/);
+      assert.match(diagnostic,/ETag vorhanden/);
+    } finally {
+      await page.unroute(feedPattern,feedFixture);
+    }
     await noOverflow(page,'/termine/ after changing events selection');
   },page);
   if(device.mobile) await check(device.name+' calendar subscription wizard and legacy filters stay synchronized',async()=>{
