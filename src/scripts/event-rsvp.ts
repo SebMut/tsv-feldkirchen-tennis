@@ -113,7 +113,7 @@ export async function initEventRsvp() {
       byId<HTMLElement>('rsvp-helper-note')!.textContent = [details.setup_note, details.cleanup_note].filter(Boolean).join(' ');
     }
     if (details.youth_note) byId<HTMLElement>('rsvp-youth-note')!.textContent = details.youth_note;
-    const youthEnabled = details.tournament_youth_enabled === true;
+    const youthEnabled = details.tournament_youth_enabled !== false;
     const womenEnabled = details.tournament_women_enabled === true;
     const menEnabled = details.tournament_men_enabled === true;
     byId<HTMLElement>('rsvp-youth-detail')!.hidden = !youthEnabled;
