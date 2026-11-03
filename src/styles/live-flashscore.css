@@ -1,5 +1,5 @@
 /* TSV Live Scorecenter – compact, dark, row-based sports score UI. */
-#live-center,.matchday-page--ticker #live-center{--sc-bg:#06141b;--sc-panel:#071b24;--sc-head:#0b2b37;--sc-line:#18333d;--sc-text:#f4f7f8;--sc-muted:#aeb9be;--sc-live:#ec1646;padding:0!important;border:0!important;border-radius:0!important;background:var(--sc-bg)!important;box-shadow:none!important;overflow:hidden;color:var(--sc-text)}
+#live-center,.matchday-page--ticker #live-center{--sc-bg:#06141b;--sc-panel:#071b24;--sc-head:#0b2b37;--sc-line:#18333d;--sc-text:#f4f7f8;--sc-muted:#aeb9be;--sc-live:#ff6273;padding:0!important;border:0!important;border-radius:0!important;background:var(--sc-bg)!important;box-shadow:none!important;overflow:hidden;color:var(--sc-text)}
 #live-center .ticker-overview-feature__intro{padding:14px 16px 12px!important;background:#07151d!important;border-bottom:1px solid var(--sc-line)!important;gap:2px!important}
 #live-center .ticker-overview-feature__intro>.live-badge{padding:0!important;background:transparent!important;border:0!important;color:var(--sc-live)!important;font-size:.72rem!important;letter-spacing:.08em!important}
 #live-center .ticker-overview-feature__intro>h2{margin:3px 0 0!important;font-size:1.15rem!important;line-height:1.2!important;color:#fff!important;letter-spacing:0!important}
@@ -110,3 +110,6 @@
   .live-match-modal__body .ticker-running-encounter__result>strong{min-width:33px!important}
   .live-match-modal__body .ticker-running-encounter__player strong{font-size:.77rem!important}
 }
+
+/* Keep small news metadata above WCAG AA contrast on white cards. */
+.home-news-item__content .match-meta{color:#536257!important}
