@@ -28,6 +28,15 @@ export function initEditorialComposer(access: Access) {
   const calendarCheck = el<HTMLButtonElement>('editorial-compose-check-calendar');
   const calendarStatus = el<HTMLElement>('editorial-compose-calendar-status');
   if (!form || !list || !preview || !publish || !draft || !previewButton || !(access.canNews || access.canEvents)) return;
+  const unsavedHint = document.createElement('p');
+  unsavedHint.className = 'field full muted';
+  unsavedHint.setAttribute('role', 'status');
+  unsavedHint.textContent = 'Ungespeicherte Änderungen – bitte speichern oder bewusst verwerfen.';
+  unsavedHint.hidden = true;
+  form.prepend(unsavedHint);
+  let unsavedChanges = false;
+  const markUnsaved = () => { unsavedChanges = true; unsavedHint.hidden = false; };
+  const clearUnsaved = () => { unsavedChanges = false; unsavedHint.hidden = true; };
   let editing: Entry | null = null;
   const isAlreadyPublished = () => (editing?.kind === 'event' ? editing.event?.status : editing?.news?.status) === 'published';
   const unpublish = document.createElement('button');
@@ -77,6 +86,7 @@ export function initEditorialComposer(access: Access) {
   const reset = () => {
     editing = null;
     form.reset();
+    clearUnsaved();
     revokeImage();
     if (!access.canNews) input('event').checked = true;
     invalidate();
@@ -89,6 +99,7 @@ export function initEditorialComposer(access: Access) {
     }
     editing = entry;
     form.reset();
+    clearUnsaved();
     revokeImage();
     const record = entry.news || entry.event!;
     input('title').value = String(record.title || '');
@@ -139,7 +150,10 @@ export function initEditorialComposer(access: Access) {
     }).join('') + '</div>' : '<p class="muted">Noch keine Beiträge vorhanden.</p>';
     list.querySelectorAll<HTMLButtonElement>('[data-compose-edit]').forEach(button => button.addEventListener('click', () => {
       const entry = entries[Number(button.dataset.composeEdit)];
-      if (entry) edit(entry);
+      if (entry) {
+        if (unsavedChanges && !window.confirm('Ungespeicherte Änderungen verwerfen und anderen Beitrag öffnen?')) return;
+        edit(entry);
+      }
     }));
   };
   const validate = () => {
@@ -222,9 +236,12 @@ export function initEditorialComposer(access: Access) {
         const patch = { title: val('title'), body: val('body'), excerpt: val('excerpt') || null,
           team_id: teamId, status: oldNews?.status || 'draft', published_at: oldNews?.published_at || null };
         const result = newsId
-          ? await supabase.from('news').update(patch).eq('id', newsId).select('id').single()
+          ? await (oldNews?.updated_at
+              ? supabase.from('news').update(patch).eq('id', newsId).eq('updated_at', oldNews.updated_at)
+              : supabase.from('news').update(patch).eq('id', newsId)).select('id').maybeSingle()
           : await supabase.from('news').insert({ ...patch, slug: 'beitrag-' + crypto.randomUUID(), author_id: access.user.id }).select('id').single();
-        if (result.error || !result.data) throw Error('News konnte nicht gespeichert werden: ' + (result.error?.message || 'Keine Berechtigung'));
+        if (result.error || !result.data) throw Error('News konnte nicht gespeichert werden: ' +
+          (result.error?.message || (oldNews?.updated_at ? 'Der Beitrag wurde zwischenzeitlich geändert. Bitte Liste neu laden.' : 'Keine Berechtigung')));
         newsId = result.data.id;
         if (!editing) editing = { kind: 'news', news: { id: newsId } };
       }
@@ -239,10 +256,13 @@ export function initEditorialComposer(access: Access) {
           team_id: teamId, status: oldEvent?.status || 'draft', rsvp_enabled: on('rsvp'),
           rsvp_deadline: on('rsvp') ? iso(val('deadline')) : null, rsvp_details: details };
         const result = eventId
-          ? await supabase.from('events').update(patch).eq('id', eventId).select('id').single()
+          ? await (oldEvent?.updated_at
+              ? supabase.from('events').update(patch).eq('id', eventId).eq('updated_at', oldEvent.updated_at)
+              : supabase.from('events').update(patch).eq('id', eventId)).select('id').maybeSingle()
           : await supabase.from('events').insert({ ...patch, slug: newsId ? 'news-' + newsId : 'veranstaltung-' + crypto.randomUUID(),
               external_url: newsId ? 'news:' + newsId : null, created_by: access.user.id }).select('id').single();
-        if (result.error || !result.data) throw Error('Veranstaltung konnte nicht gespeichert werden: ' + (result.error?.message || 'Keine Berechtigung'));
+        if (result.error || !result.data) throw Error('Veranstaltung konnte nicht gespeichert werden: ' +
+          (result.error?.message || (oldEvent?.updated_at ? 'Der Termin wurde zwischenzeitlich geändert. Bitte Liste neu laden.' : 'Keine Berechtigung')));
         eventId = result.data.id;
         if (!editing) editing = { kind: 'event', event: { id: eventId } };
         else editing.event = { ...(editing.event || {}), id: eventId };
@@ -308,8 +328,8 @@ export function initEditorialComposer(access: Access) {
       publish.disabled = previewRevision !== revision;
     }
   };
-  form.addEventListener('input', invalidate);
-  form.addEventListener('change', invalidate);
+  form.addEventListener('input', () => { invalidate(); markUnsaved(); });
+  form.addEventListener('change', () => { invalidate(); markUnsaved(); });
   form.addEventListener('submit', event => {
     event.preventDefault();
     const keepPublished = isAlreadyPublished();
@@ -335,7 +355,13 @@ export function initEditorialComposer(access: Access) {
       calendarCheck.disabled = false;
     }
   });
-  el<HTMLButtonElement>('editorial-compose-reset')?.addEventListener('click', reset);
+  el<HTMLButtonElement>('editorial-compose-reset')?.addEventListener('click', () => {
+    if (unsavedChanges && !window.confirm('Ungespeicherte Änderungen wirklich verwerfen?')) return;
+    reset();
+  });
+  window.addEventListener('beforeunload', (event) => {
+    if (unsavedChanges) event.preventDefault();
+  });
   window.addEventListener('beforeunload', revokeImage);
   const originalTeam = el<HTMLSelectElement>('news-team');
   if (access.canNews && originalTeam) input('team').innerHTML = originalTeam.innerHTML;
