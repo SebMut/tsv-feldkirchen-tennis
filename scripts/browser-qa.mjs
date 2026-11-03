@@ -253,7 +253,11 @@ async function deviceQA(device){
     await wizardTeam.selectOption(slug);
     await page.locator('#calendar-save-favorite').click();
     await page.reload({waitUntil:'domcontentloaded'});
-    await page.waitForFunction(()=>document.querySelector('#calendar-favorite')?.options.length>1,null,{timeout:15000});
+    await page.waitForFunction(expected=>{
+      const favorite=document.querySelector('#calendar-favorite');
+      const wizard=document.querySelector('#calendar-subscribe-team');
+      return favorite?.options.length>1 && favorite.value===expected && wizard?.value===expected;
+    },slug,{timeout:22000});
     assert.equal(await page.locator('#calendar-favorite').inputValue(),slug,'Saved favorite must survive a reload');
     assert.equal(await wizardTeam.inputValue(),slug,'Wizard must reflect saved favorite after reload');
     assert.equal(await wizardEvents.isChecked(),true,'Events selection must survive reload');
