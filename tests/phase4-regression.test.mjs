@@ -153,7 +153,7 @@ test('public team navigation labels summer correctly and follows managed active 
   assert.doesNotMatch(html, /<strong>Sommer 2026<\/strong>/);
   assert.doesNotMatch(html, /<strong>Saison 2026<\/strong>/);
   assert.match(publicJs, /const publishedSeasons = reference\.seasons\.filter/);
-  assert.match(publicJs, /const seasonCodes = \[\.\.\.new Set\(/);
+  assert.match(publicJs, /const seasonCodes = seasons\.map/);
   assert.match(publicJs, /const defaultSeason = managedCurrentSeason \|\| byCurrentDate/);
   assert.match(publicJs, /const requestedCode = seasonCodes\.includes/);
   assert.match(publicJs, /activeCode = requestedCode \|\|/);
