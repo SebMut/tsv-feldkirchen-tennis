@@ -1753,6 +1753,8 @@ export async function loadCalendar() {
       subscribeTeam.innerHTML = '<option value="">Alle Mannschaften</option>' +
         '<optgroup label="Mannschaften">' + reference.teams.map(t => `<option value="${escapeHtml(t.slug)}">${escapeHtml(t.name)}</option>`).join('') + '</optgroup>' +
         '<optgroup label="Kategorien">' + reference.categories.map(c => `<option value="category:${escapeHtml(c.slug)}">${escapeHtml(c.name)}</option>`).join('') + '</optgroup>';
+      // Reflect a persisted favourite immediately, even while matches/events are still loading.
+      if (favoriteSelect?.value) subscribeTeam.value = favoriteSelect.value;
     }
     const [matchResponse, eventResponse] = await Promise.all([
       supabase.from('matches').select('*').eq('is_published', true).order('starts_at'),
