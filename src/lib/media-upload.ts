@@ -34,7 +34,12 @@ export function isOwnedMediaPath(path: string | null | undefined, directory: str
 export async function uploadImageToMedia(options: MediaUploadOptions) {
   validateImageFile(options.file);
   const directory = normalizeDirectory(options.directory);
-  const image = await optimizeImage(options.file, options.maxDimension ?? 2200, options.quality ?? 0.84);
+  // Editorial posters are displayed at card widths, not full-resolution prints.
+  // Preserve the original aspect ratio and keep the existing media bucket flow.
+  const editorial = directory.startsWith('events/') || directory.startsWith('news/');
+  const dimension = options.maxDimension ?? (editorial ? 1440 : 2200);
+  const quality = options.quality ?? (editorial ? 0.78 : 0.84);
+  const image = await optimizeImage(options.file, dimension, quality);
   const requestedBase = cleanSegment(options.basename || image.name.replace(/\.[^.]+$/, '')) || 'image';
   const path = `${directory}/${requestedBase}-${Date.now()}-${crypto.randomUUID()}.webp`;
   const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, image, {
