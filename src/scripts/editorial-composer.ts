@@ -104,7 +104,9 @@ export function initEditorialComposer(access: Access) {
     input('men').checked = details.tournament_men_enabled === true;
     input('tournaments').checked = on('youth') || on('women') || on('men');
     invalidate();
-    notice('„' + record.title + '“ zur Bearbeitung geladen. Vor dem Veröffentlichen Vorschau aktualisieren.');
+    notice('„' + record.title + '“ zur Bearbeitung geladen. ' + (isAlreadyPublished()
+      ? '„Änderungen speichern“ erhält die Veröffentlichung auch im Kalender.'
+      : 'Vor dem Veröffentlichen bitte die Vorschau aktualisieren.'));
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     input('title').focus({ preventScroll: true });
   };
