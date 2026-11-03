@@ -96,8 +96,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
     <section class="card" id="abos">
       <p class="eyebrow">Kalender abonnieren</p>
       <h2>Immer aktuell.</h2>
-      <p class="muted">Abonniere die Termine mit Apple Kalender, Outlook oder einer anderen Kalender-App. Das Abonnement bleibt auch bei Änderungen aktualisierbar.</p>
+      <p class="muted">Die Abo-Schaltflächen öffnen Apple Kalender, Outlook und andere Apps über webcal. Bitte dort ausdrücklich <strong>Abonnieren</strong> auswählen, nicht „Termin importieren“.</p>
       <div id="calendar-subscriptions" class="actions"><p class="muted">Abo-Links werden geladen …</p></div>
+      <p id="calendar-subscription-status" class="muted" role="status" aria-live="polite"></p>
+      <p class="muted">Für <strong>Google Kalender</strong>: HTTPS-Abo-Link kopieren und in Google Kalender unter <strong>Weitere Kalender → Per URL</strong> hinzufügen. Das Sommerfest ist in „Vereinstermine“ und im ungefilterten Gesamtkalender enthalten; ein Mannschaftsfilter enthält nur zugeordnete Termine.</p>
+      <p class="muted">Wichtig: Der Button „Diesen Termin zu meinem Kalender hinzufügen (.ics)“ ist ein einmaliger Import und aktualisiert sich nicht. Bei echten Abos bestimmt die Kalender-App den Aktualisierungszeitpunkt; Änderungen können verzögert erscheinen.</p>
     </section>
   </div>
 </MainLayout>
