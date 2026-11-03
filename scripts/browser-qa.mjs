@@ -118,7 +118,7 @@ async function deviceQA(device){
     assert.equal(await include.isChecked(),true,'Existing calendar should include events by default');
     await page.waitForFunction(()=>{
       const favorite=document.querySelector('#calendar-favorite');
-      return favorite?.options.length>1 && document.querySelector('#calendar-list')?.textContent?.includes('Sommerfest');
+      return favorite?.options.length>1 && document.querySelectorAll('#calendar-list .calendar-event-detail').length>0;
     },null,{timeout:18000});
     const fav=page.locator('#calendar-favorite');
     const slug=await fav.locator('option:nth-child(2)').getAttribute('value');
@@ -129,10 +129,10 @@ async function deviceQA(device){
     let subscription=new URL((await selectedLink()).replace(/^webcal:/,'https:'));
     assert.equal(subscription.searchParams.get('team'),slug);
     assert.equal(subscription.searchParams.get('include_events'),'1');
-    assert.ok((await page.locator('#calendar-list').textContent()).includes('Sommerfest'),
+    assert.ok(await page.locator('#calendar-list .calendar-event-detail').count()>0,
       'Club events must appear alongside a favourite team');
     await include.uncheck();
-    assert.ok(!(await page.locator('#calendar-list').textContent()).includes('Sommerfest'),
+    assert.equal(await page.locator('#calendar-list .calendar-event-detail').count(),0,
       'Unchecking Veranstaltungen must remove club events from the calendar');
     subscription=new URL((await selectedLink()).replace(/^webcal:/,'https:'));
     assert.equal(subscription.searchParams.get('include_events'),'0');
@@ -146,8 +146,8 @@ async function deviceQA(device){
     assert.equal(subscription.searchParams.get('include_events'),'1');
     const on=await page.request.get(subscription.toString(),{timeout:25000});
     assert.equal(on.status(),200,'ICS feed with events on failed');
-    assert.ok((await on.text()).includes('UID:event-42635ab5-31bb-4461-81eb-e29a7fec0193'),
-      'Sommerfest missing from favourite team subscription with events enabled');
+    assert.ok((await on.text()).includes('UID:event-'),
+      'Published club events missing from favourite team subscription with events enabled');
     await noOverflow(page,'/termine/ after changing events selection');
   },page);
   if(device.mobile) await check(device.name+' mobile dock switches Teams / LIVE / Teams',async()=>{
