@@ -100,7 +100,7 @@ Deno.serve(async (req: Request) => {
   }));
 
   const name=teamSlug ? `TSV Feldkirchen Tennis – ${teamSlug}` : categorySlug ? `TSV Feldkirchen Tennis – ${categorySlug}` : "TSV Feldkirchen Tennis";
-  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//TSV Feldkirchen Tennis//Kalender//DE","CALSCALE:GREGORIAN",`X-WR-CALNAME:${esc(name)}`,"REFRESH-INTERVAL;VALUE=DURATION:PT1H","X-PUBLISHED-TTL:PT1H",...blocks,"END:VCALENDAR",""].map(fold).join("\r\n");
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//TSV Feldkirchen Tennis//Kalender//DE","CALSCALE:GREGORIAN",fold(`X-WR-CALNAME:${esc(name)}`),"REFRESH-INTERVAL;VALUE=DURATION:PT1H","X-PUBLISHED-TTL:PT1H",...blocks,"END:VCALENDAR",""].join("\r\n");
   return new Response(ics,{headers:{
     "Content-Type":"text/calendar; charset=utf-8",
     "Content-Disposition":'inline; filename="tsv-feldkirchen-tennis.ics"',
