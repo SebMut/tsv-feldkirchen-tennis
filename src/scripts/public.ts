@@ -820,6 +820,7 @@ export async function loadTeamDetail(slug: string) {
   const reference = await refs();
   const verifiedBtv = new Map<string, string>(reference.btvLinks.map((link: Row) => [link.team_season_id, link.btv_url]));
   const team = reference.teams.find((t: Row) => t.slug === slug);
+  if (team) document.title = `${team.name} | TSV Feldkirchen Tennis`;
   if (!team) {
     root.innerHTML = '<div class="card"><h1>Mannschaft nicht gefunden</h1></div>';
     return;
