@@ -60,10 +60,10 @@ export function initMediaBackfillAdmin() {
         const { data, error } = await supabase.from(spec.table).select(selection).not(field, 'is', null);
         if (error) throw new Error('Bildreferenzen konnten nicht gelesen werden: ' + error.message);
         for (const row of data || []) {
-          const path = String((row as Record<string, unknown>)[field] || '');
-          const uuid = String((row as Record<string, unknown>).id);
+          const path = String((row as unknown as Record<string, unknown>)[field] || '');
+          const uuid = String((row as unknown as Record<string, unknown>).id);
           const owner = spec.table === 'team_seasons'
-            ? String((row as Record<string, unknown>).team_id) : uuid;
+            ? String((row as unknown as Record<string, unknown>).team_id) : uuid;
           if (!path || !contentType(path) || !/^[0-9a-f-]{36}$/i.test(owner)) continue;
           const directory = spec.prefix + '/' + owner;
           candidates.push({ table: spec.table, field, id: uuid, oldPath: path, directory, limit: spec.limit });
