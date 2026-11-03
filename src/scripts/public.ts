@@ -1277,6 +1277,12 @@ export async function loadCalendar() {
   const viewSelect = document.querySelector<HTMLSelectElement>('#calendar-view');
   const favoriteSelect = document.querySelector<HTMLSelectElement>('#calendar-favorite');
   const includeEvents = document.querySelector<HTMLInputElement>('#calendar-include-events');
+  const subscribeTeam = document.querySelector<HTMLSelectElement>('#calendar-subscribe-team');
+  const subscribeEvents = document.querySelector<HTMLInputElement>('#calendar-subscribe-events');
+  const subscribePreview = document.querySelector<HTMLElement>('#calendar-subscribe-preview');
+  const subscribePreviewList = document.querySelector<HTMLElement>('#calendar-subscribe-preview-list');
+  const subscribeNote = document.querySelector<HTMLElement>('#calendar-subscribe-note');
+  const activeFilterSummary = document.querySelector<HTMLElement>('#calendar-active-filter-summary');
   const favoriteStatus = document.querySelector<HTMLElement>('#calendar-favorite-status');
   const weekRange = document.querySelector<HTMLElement>('#calendar-week-range');
   if (!list || !grid || !monthTitle || !dayHeading || !dayCount || !dayList || !nextList || !teamSelect || !categorySelect || !kindSelect || !subscriptions || !statusTarget) return;
@@ -1377,6 +1383,10 @@ export async function loadCalendar() {
 
   const render = () => {
     const entries = filteredEntries();
+    if (activeFilterSummary && ready) {
+      const countEvents = entries.filter(item => item.kind === 'event').length;
+      activeFilterSummary.textContent = `${entries.length} Termine in der Ansicht · ${entries.length - countEvents} Spiele · ${countEvents} Veranstaltungen`;
+    }
     const todayKey = dateKey(new Date());
     const weekMode = viewSelect?.value === 'week';
     const selectedDate = dateAt(selectedDay);
@@ -1474,16 +1484,55 @@ export async function loadCalendar() {
     const categoryOption = categorySelect.selectedOptions[0];
     if (teamSelect.value && teamOption?.dataset.slug) params.team = teamOption.dataset.slug;
     else if (categorySelect.value && categoryOption?.dataset.slug) params.category = categoryOption.dataset.slug;
+
+    // The guided subscription controls are mirrors of the existing filters, not a second source of truth.
+    const wizardTeamValue = params.team || (params.category ? 'category:' + params.category : '');
+    if (subscribeTeam && subscribeTeam.value !== wizardTeamValue) subscribeTeam.value = wizardTeamValue;
+    if (subscribeEvents) subscribeEvents.checked = params.type !== 'matches' && params.include_events === '1';
+    if (subscribePreview && subscribePreviewList && subscribeNote) {
+      const wantsMatches = params.type !== 'events';
+      const wantsEvents = params.type !== 'matches' && params.include_events === '1';
+      const selectedMatches = wantsMatches ? matches.filter(match => {
+        const team = matchContext(match, reference).team;
+        const category = reference.categories.find(c => c.id === team?.category_id);
+        return (!params.team || team?.slug === params.team) && (!params.category || category?.slug === params.category);
+      }) : [];
+      const selectedEvents = wantsEvents ? events : [];
+      const audience = params.team ? reference.teams.find(team => team.slug === params.team)?.name || 'Mannschaft'
+        : params.category ? reference.categories.find(category => category.slug === params.category)?.name || 'Kategorie'
+        : 'Alle Mannschaften';
+      const previewEntries = [
+        ...selectedMatches.map(match => ({
+          at: match.starts_at as string, type: 'Punktspiel', label: (matchContext(match, reference).team?.name || 'TSV') + ' · ' + match.opponent,
+        })),
+        ...selectedEvents.map(event => ({ at: event.starts_at as string, type: 'Veranstaltung', label: String(event.title) })),
+      ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+      const future = previewEntries.filter(item => new Date(item.at).getTime() >= Date.now());
+      const sample = (future.length ? future : previewEntries).slice(0, 3);
+      subscribePreview.textContent = !ready ? 'Die Termine werden geladen …'
+        : fetchError ? 'Termine konnten nicht vollständig geladen werden – Abo-Link bitte mit „Kalender-Abo prüfen“ kontrollieren.'
+        : `${audience}: ${selectedMatches.length} Punktspiele und ${selectedEvents.length} Veranstaltungen derzeit veröffentlicht.`;
+      subscribePreviewList.innerHTML = sample.map(item => `<li><span>${escapeHtml(item.type)} · ${escapeHtml(item.label)}</span><time datetime="${escapeHtml(item.at)}">${escapeHtml(formatDateTime(item.at))}</time></li>`).join('');
+      subscribeNote.textContent = params.type === 'matches'
+        ? 'Der Filter „Nur Punktspiele“ ist aktiv. Um Veranstaltungen aufzunehmen, die Checkbox oben aktivieren.'
+        : params.type === 'events'
+        ? 'Der Filter „Nur Veranstaltungen“ ist aktiv. Für Spiele zusätzlich „Spiele & Veranstaltungen“ auswählen.'
+        : 'Das laufende Abo enthält alle Zeiträume und zukünftige Spielzeiten – unabhängig vom Zeitraumfilter der Ansicht.';
+    }
     diagnosticParams = params;
     if (feedDiagnostic && checkedFeedUrl && checkedFeedUrl !== calendarFeedUrl(params)) {
       feedDiagnostic.textContent = 'Filter geändert. Bitte die neue Abo-Auswahl erneut prüfen.';
       checkedFeedUrl = '';
     }
-    subscriptions.innerHTML = `<a class="button" href="${escapeHtml(calendarSubscriptionUrl(params))}">Auswahl abonnieren</a>
-      <a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({ type: 'matches' }))}">Alle Punktspiele</a>
-      <a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({ type: 'events' }))}">Vereinstermine</a>
-      <button type="button" class="button ghost" data-calendar-copy="${escapeHtml(calendarFeedUrl(params))}">Abo-Link kopieren (Google Kalender)</button>
-      <button type="button" class="button ghost" data-calendar-copy="${escapeHtml(calendarFeedUrl({ type: 'events' }))}">Vereinstermine-Link kopieren</button>`;
+    subscriptions.innerHTML = `<a class="button" href="${escapeHtml(calendarSubscriptionUrl(params))}">Auswahl abonnieren (Apple / Outlook)</a>
+      <button type="button" class="button secondary" data-calendar-copy="${escapeHtml(calendarFeedUrl(params))}">Abo-Link kopieren (Google Kalender)</button>
+      <details class="calendar-subscription-more"><summary>Weitere Abos: alle Punktspiele, nur Vereinstermine</summary>
+        <div class="actions">
+          <a class="button ghost" href="${escapeHtml(calendarSubscriptionUrl({ type: 'matches' }))}">Alle Punktspiele abonnieren</a>
+          <a class="button ghost" href="${escapeHtml(calendarSubscriptionUrl({ type: 'events' }))}">Vereinstermine abonnieren</a>
+          <button type="button" class="button ghost" data-calendar-copy="${escapeHtml(calendarFeedUrl({ type: 'events' }))}">Vereinstermine-Link kopieren</button>
+        </div>
+      </details>`;
   };
 
   feedCheck?.addEventListener('click', async () => {
@@ -1619,7 +1668,46 @@ export async function loadCalendar() {
     const key = isoAt(new Date(dateAt(target.dataset.calendarDay).getTime() + offset * 86400000));
     chooseDay(key, 'calendar');
   });
-  [teamSelect, categorySelect, rangeSelect, viewSelect].filter((el): el is HTMLSelectElement => !!el).forEach(el => el.addEventListener('change', render));
+  // Synchronize the two ways of choosing a team; the original filters and stored favourite remain authoritative.
+  const chooseSubscriptionTeam = (value: string) => {
+    if (value.startsWith('category:')) {
+      const category = reference.categories.find(c => c.slug === value.slice('category:'.length));
+      categorySelect.value = category?.id || '';
+      teamSelect.value = '';
+      if (favoriteSelect) favoriteSelect.value = '';
+    } else {
+      const team = reference.teams.find(t => t.slug === value);
+      teamSelect.value = team?.id || '';
+      categorySelect.value = '';
+      if (favoriteSelect) favoriteSelect.value = team?.slug || '';
+    }
+    render();
+  };
+  subscribeTeam?.addEventListener('change', () => {
+    chooseSubscriptionTeam(subscribeTeam.value);
+    if (favoriteStatus) favoriteStatus.textContent = 'Auswahl für Anzeige und Abo übernommen. Bei Bedarf als Favorit speichern.';
+  });
+  subscribeEvents?.addEventListener('change', () => {
+    if (!includeEvents) return;
+    if (subscribeEvents.checked && kindSelect.value === 'matches') kindSelect.value = 'all';
+    if (!subscribeEvents.checked && kindSelect.value === 'events') kindSelect.value = 'all';
+    includeEvents.checked = subscribeEvents.checked;
+    try { localStorage.setItem(eventsKey, String(includeEvents.checked)); } catch { /* Speicher deaktiviert */ }
+    render();
+  });
+  teamSelect.addEventListener('change', () => {
+    categorySelect.value = '';
+    if (favoriteSelect) favoriteSelect.value = reference.teams.find(team => team.id === teamSelect.value)?.slug || '';
+    render();
+  });
+  categorySelect.addEventListener('change', () => {
+    if (categorySelect.value) {
+      teamSelect.value = '';
+      if (favoriteSelect) favoriteSelect.value = '';
+    }
+    render();
+  });
+  [rangeSelect, viewSelect].filter((el): el is HTMLSelectElement => !!el).forEach(el => el.addEventListener('change', render));
   kindSelect.addEventListener('change', () => {
     if (kindSelect.value === 'events' && includeEvents && !includeEvents.checked) {
       includeEvents.checked = true;
@@ -1633,12 +1721,7 @@ export async function loadCalendar() {
     if (favoriteStatus) favoriteStatus.textContent = includeEvents.checked ? 'Veranstaltungen eingeschaltet.' : 'Veranstaltungen ausgeblendet.';
     render();
   });
-  favoriteSelect?.addEventListener('change', () => {
-    const team = reference.teams.find(t => t.slug === favoriteSelect.value);
-    teamSelect.value = team?.id || '';
-    categorySelect.value = '';
-    render();
-  });
+  favoriteSelect?.addEventListener('change', () => chooseSubscriptionTeam(favoriteSelect.value));
   document.querySelector('#calendar-save-favorite')?.addEventListener('click', () => {
     favoriteSlug = favoriteSelect?.value || '';
     try { if (favoriteSlug) localStorage.setItem(favoriteKey, favoriteSlug); else localStorage.removeItem(favoriteKey); } catch { /* Speicher deaktiviert */ }
@@ -1666,6 +1749,11 @@ export async function loadCalendar() {
       if (favorite) { favoriteSelect.value = favorite.slug; teamSelect.value = favorite.id; }
     }
     categorySelect.innerHTML += reference.categories.map(c => `<option value="${c.id}" data-slug="${escapeHtml(c.slug)}">${escapeHtml(c.name)}</option>`).join('');
+    if (subscribeTeam) {
+      subscribeTeam.innerHTML = '<option value="">Alle Mannschaften</option>' +
+        '<optgroup label="Mannschaften">' + reference.teams.map(t => `<option value="${escapeHtml(t.slug)}">${escapeHtml(t.name)}</option>`).join('') + '</optgroup>' +
+        '<optgroup label="Kategorien">' + reference.categories.map(c => `<option value="category:${escapeHtml(c.slug)}">${escapeHtml(c.name)}</option>`).join('') + '</optgroup>';
+    }
     const [matchResponse, eventResponse] = await Promise.all([
       supabase.from('matches').select('*').eq('is_published', true).order('starts_at'),
       supabase.from('events').select('*').eq('status', 'published').order('starts_at'),
