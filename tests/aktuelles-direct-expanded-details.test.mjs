@@ -32,7 +32,8 @@ test('optional RSVP navigation stays available only as separate registration but
 });
 
 test('selected article is expanded after asynchronous load and scrolled into view', () => {
-  assert.match(aktuell, /await loadNews\(\);/);
+  assert.match(aktuell, /const newsLoading = loadNews\(\);/);
+  assert.match(aktuell, /await newsLoading;/);
   assert.match(aktuell, /const expandCard = \(id: string, scroll = false\) =>/);
   assert.match(aktuell, /details\.open = true;/);
   assert.match(aktuell, /card\.scrollIntoView\(\{behavior:'smooth', block:'start'\}\)/);

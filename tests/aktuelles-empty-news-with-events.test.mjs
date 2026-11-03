@@ -15,6 +15,7 @@ test('empty combined page still shows useful feedback, and news loading errors r
   assert.match(source, /const newsLoadFailed = newsMessage\.includes\('Beiträge sind momentan nicht abrufbar\.'\)/);
   assert.match(source, /!hasVisibleNews && !hasPublishedEvents && newsMessage === 'Noch keine Beiträge veröffentlicht\.'/);
   assert.match(source, /Derzeit sind keine Neuigkeiten oder Veranstaltungen veröffentlicht\./);
-  assert.match(source, /await loadNews\(\);/);
+  assert.match(source, /const newsLoading = loadNews\(\);/);
+  assert.match(source, /await newsLoading;/);
   assert.match(source, /card\.classList\.add\('content-card', 'content-card--news'\)/);
 });
