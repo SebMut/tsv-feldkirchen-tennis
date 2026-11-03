@@ -29,7 +29,7 @@ test('a preview uses public content-card markup on desktop and phone and gates p
   assert.ok(page.includes('id="editorial-compose-mobile"'));
   assert.ok(page.includes('id="editorial-compose-publish" class="button" type="button" disabled'));
   assert.ok(composer.includes('previewRevision !== revision'));
-  assert.ok(composer.includes('form.addEventListener(\'input\', invalidate)'));
+  assert.match(composer, /form\.addEventListener\('input', \(\) => \{ invalidate\(\); markUnsaved\(\); \}\)/);
   assert.ok(composer.includes('preview.hidden = true'));
   assert.ok(composer.includes('content-card content-card--event'));
   assert.ok(composer.includes('content-card content-card--news'));
