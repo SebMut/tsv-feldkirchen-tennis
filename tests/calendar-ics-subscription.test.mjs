@@ -13,7 +13,7 @@ const page = read('src/pages/termine/index.astro');
 // Exercise the actual Edge Function's pure iCalendar serializer without Deno or network.
 const pure = functionSource.slice(functionSource.indexOf('function esc('), functionSource.indexOf('Deno.serve('));
 const executable = ts.transpileModule(pure, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
-const { block } = runInNewContext(executable + '\n({block})', { Date, TextEncoder, Math });
+const { block, subscriptionEvents } = runInNewContext(executable + '\n({block,subscriptionEvents})', { Date, TextEncoder, Math });
 
 const sommerfestFixture = {
   id: 'event-42635ab5-31bb-4461-81eb-e29a7fec0193',
@@ -73,4 +73,33 @@ test('webcal subscriptions and Google HTTPS link are distinct from one-time ICS 
   assert.match(publicScript, /calendarSubscriptionUrl\(\{team: slug\}\)/);
   assert.match(page, /id="calendar-subscription-status"/);
   assert.match(page, /einmaliger Import/);
+});
+
+test('favorite-team ICS includes club-wide events when checked, excludes them when unchecked', () => {
+  const items = [
+    { team_id: null, id: 'sommerfest' },
+    { team_id: 'team-a', id: 'team-event' },
+    { team_id: 'team-b', id: 'other-team-event' },
+  ];
+  const teamIds = new Set(['team-a']);
+  const eventIds = selection => Array.from(selection, item => item.id).join(',');
+  assert.equal(eventIds(subscriptionEvents(items, 'herren', null, '1', teamIds)),
+    'sommerfest,team-event,other-team-event', 'checked must add all club events');
+  assert.equal(eventIds(subscriptionEvents(items, 'herren', null, '0', teamIds)), '',
+    'unchecked must exclude every event');
+  assert.equal(eventIds(subscriptionEvents(items, 'herren', null, null, teamIds)), 'team-event',
+    'existing favourite-team ICS URLs must keep the old event filter');
+  assert.equal(eventIds(subscriptionEvents(items, null, null, null, teamIds)),
+    'sommerfest,team-event,other-team-event', 'old unfiltered subscriptions remain unchanged');
+});
+
+test('calendar checkbox controls view, subscription link and persists across page visits', () => {
+  assert.match(page, /id="calendar-include-events" type="checkbox" checked/);
+  assert.match(page, /calendar-include-events-toggle/);
+  assert.match(publicScript, /tsv-tennis-calendar-include-events/);
+  assert.match(publicScript, /includeEvents\.checked = localStorage\.getItem\(eventsKey\) !== 'false'/);
+  assert.match(publicScript, /!includeEvents\?\.checked \? \[\] : events/);
+  assert.match(publicScript, /params\.include_events = includeEvents\?\.checked \? '1' : '0'/);
+  assert.match(publicScript, /localStorage\.setItem\(eventsKey, String\(includeEvents\.checked\)\)/);
+  assert.match(functionSource, /includeEvents = url\.searchParams\.get\("include_events"\)/);
 });
