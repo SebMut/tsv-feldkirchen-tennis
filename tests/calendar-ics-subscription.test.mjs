@@ -137,3 +137,38 @@ test('public ICS diagnostics and admin save checks exist for both event editors'
   assert.match(composer, /await verifyEventCalendarPublication\(eventId, publication\)/);
   assert.match(legacy, /await verifyEventCalendarPublication\(data\.id, status\)/);
 });
+
+test('guided subscription uses existing live filter state and keeps original recurring links', () => {
+  for (const id of ['calendar-subscribe-team','calendar-subscribe-events','calendar-subscribe-preview',
+    'calendar-subscribe-preview-list','calendar-subscribe-note','calendar-active-filter-summary']) {
+    assert.match(page,new RegExp('id="'+id+'"'));
+  }
+  assert.match(page,/href="#abos"/);
+  assert.match(publicScript,/const chooseSubscriptionTeam = \(value: string\) =>/);
+  assert.match(publicScript,/subscribeTeam\?\.addEventListener\('change'/);
+  assert.match(publicScript,/subscribeEvents\?\.addEventListener\('change'/);
+  assert.match(publicScript,/params\.type !== 'matches' && params\.include_events === '1'/);
+  assert.match(publicScript,/params\.team \|\| \(params\.category \? 'category:'/);
+  assert.match(publicScript,/calendarSubscriptionUrl\(\{ type: 'matches' \}\)/);
+  assert.match(publicScript,/calendarSubscriptionUrl\(\{ type: 'events' \}\)/);
+  assert.match(publicScript,/data-calendar-copy/);
+});
+
+test('category and team filters remain mutually exclusive and calendar range does not truncate subscriptions', () => {
+  assert.match(publicScript,/teamSelect\.addEventListener\('change', \(\) => \{\s*categorySelect\.value = ''/);
+  assert.match(publicScript,/categorySelect\.addEventListener\('change'/);
+  assert.match(publicScript,/teamSelect\.value = ''/);
+  assert.match(publicScript,/if \(kindSelect\.value !== 'all'\) params\.type = kindSelect\.value/);
+  assert.match(publicScript,/params\.include_events = includeEvents\?\.checked \? '1' : '0'/);
+  assert.match(page,/Der Zeitraumfilter auf der Kalenderseite begrenzt/);
+  assert.match(page,/Alle Zeiträume/);
+});
+
+test('mobile calendar layout keeps touch targets, seven-day grid and accessible event controls', () => {
+  assert.match(page, /\.calendar-subscription-builder\{display:grid/);
+  assert.match(page, /@media\(max-width:680px\)/);
+  assert.match(page, /\.calendar-day\{min-height:53px/);
+  assert.match(page, /\.calendar-subscribe-actions>\.button\{width:100%/);
+  assert.match(page, /for="calendar-subscribe-events"/);
+  assert.match(page, /role="status" aria-live="polite"/);
+});
