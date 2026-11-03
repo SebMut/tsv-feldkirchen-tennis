@@ -118,10 +118,12 @@ import MainLayout from '../../layouts/MainLayout.astro';
   };
   window.addEventListener('hashchange', openFromUrl);
 
+  // Start News independently instead of waiting for the events round-trip.
+  const newsLoading = loadNews();
   if (section && list) {
     const { data: events } = await supabase
       .from('events')
-      .select('*')
+      .select('id,slug,title,excerpt,description,hero_image_path,rsvp_enabled,starts_at,ends_at,all_day,location_name')
       .eq('status', 'published')
       .order('starts_at', { ascending: true });
 
@@ -149,7 +151,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
         return `
           <article id="event-${escapeHtml(event.id)}" class="content-card content-card--event">
             <a class="content-card__media${event.hero_image_path ? ' content-card__media--poster' : ''}" href="${href}" data-open-detail aria-label="${escapeHtml(cleanTitle(event.title))} vollständig lesen">
-              <img data-event-news-id="${escapeHtml(linkedNewsId || '')}" data-event-has-image="${event.hero_image_path ? 'true' : 'false'}" src="${escapeHtml(eventImage)}" alt="${escapeHtml(cleanTitle(event.title))}" width="1773" height="885" loading="${index === 0 ? 'eager' : 'lazy'}" fetchpriority="${index === 0 ? 'high' : 'auto'}" decoding="async" />
+              <img data-event-news-id="${escapeHtml(linkedNewsId || '')}" data-event-has-image="${event.hero_image_path ? 'true' : 'false'}" src="${escapeHtml(eventImage)}" alt="${escapeHtml(cleanTitle(event.title))}" width="1773" height="885" loading="${index === 0 ? 'eager' : 'lazy'}" fetchpriority="${index === 0 ? 'high' : 'low'}" decoding="async" />
             </a>
             <div class="content-card__body">
               <div class="content-card__meta"><span class="content-card__badge">Veranstaltung</span><time>${event.all_day ? 'Ganztägig · ' : ''}${escapeHtml(formatDateTime(event.starts_at))}</time></div>
@@ -179,7 +181,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
     }
   }
 
-  await loadNews();
+  await newsLoading;
   newsList?.querySelectorAll<HTMLElement>('article.card').forEach(card => {
     const rawTitle = card.querySelector('h2')?.textContent?.trim() || '';
     if (eventTitles.has(rawTitle)) { card.remove(); return; }
@@ -256,7 +258,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
   .event-news__head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}
   .event-news__head h2{margin:2px 0 0;color:#193c2c}
   .content-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
-  :global(.content-card){overflow:hidden;border:1px solid #dfe7e1;border-radius:20px;background:#fff;box-shadow:0 10px 30px rgb(25 60 44 / .08)}
+  :global(.content-card){content-visibility:auto;contain-intrinsic-size:auto 430px;overflow:hidden;border:1px solid #dfe7e1;border-radius:20px;background:#fff;box-shadow:0 10px 30px rgb(25 60 44 / .08)}
   /* Exact aspect ratio of the supplied event banner: no letterboxing above or below.
      All content cards share this frame; other photos fill it by cropping their edges. */
   :global(.content-card__media){display:block;position:relative;aspect-ratio:1773/885;overflow:hidden;background:#fff;padding:0!important;line-height:0}

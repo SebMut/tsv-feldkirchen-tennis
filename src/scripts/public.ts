@@ -345,7 +345,7 @@ export async function loadHome() {
     }
   }, 12000);
   try {
-    const reference = await refs();
+    const referencePromise = refs();
     const now = new Date();
     // A fixture belongs to "Heute" by the club's local date, not the visitor's time zone.
     // Query a slightly wider UTC interval and then filter by the Europe/Berlin calendar day.
@@ -378,6 +378,7 @@ export async function loadHome() {
         ? fetch('https://api.open-meteo.com/v1/forecast?latitude=48.15&longitude=11.73&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=3').then(response => response.ok ? response.json() : Promise.reject(new Error('Wetterdienst nicht erreichbar'))).catch(() => null)
         : Promise.resolve(null),
     ]);
+    const reference = await referencePromise;
     const settings = new Map((settingsResult.data ?? []).map(row => [row.key, row.value]));
     for (const [selector, key] of [['#home-team-count', 'team_count'], ['#home-court-count', 'court_count']]) {
       const target = document.querySelector(selector);
@@ -676,11 +677,11 @@ export async function loadTeams() {
 
   const seasonIds = publishedTeamSeasons.map((ts: Row) => ts.id);
   const matchResult = seasonIds.length
-    ? await supabase.from('matches').select('*').eq('is_published', true).in('team_season_id', seasonIds).order('starts_at')
+    ? await supabase.from('matches').select('id,team_season_id,opponent,is_home,starts_at,venue_name,venue_address,notes').eq('is_published', true).in('team_season_id', seasonIds).order('starts_at')
     : { data: [], error: null };
   const matches = matchResult.data ?? [];
   const stateResult = matches.length
-    ? await supabase.from('match_live_state').select('*').in('match_id', matches.map((m: Row) => m.id))
+    ? await supabase.from('match_live_state').select('match_id,status,home_score,away_score').in('match_id', matches.map((m: Row) => m.id))
     : { data: [], error: null };
   const states = new Map((stateResult.data ?? []).map((s: Row) => [s.match_id, s]));
 
@@ -767,7 +768,7 @@ export async function loadTeams() {
       const tennisDeTarget = tennisDeTeamDestination(ts);
       return `
         <article class="card team-card team-overview-card">
-          <a href="${detailUrl}" class="team-card__image-link" aria-label="${escapeHtml(team.name)} öffnen"><img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" /></a>
+          <a href="${detailUrl}" class="team-card__image-link" aria-label="${escapeHtml(team.name)} öffnen"><img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" decoding="async" fetchpriority="low" width="1280" height="720" /></a>
           <div>
             <p class="eyebrow">${escapeHtml(title)}</p>
             <h3><a href="${detailUrl}" class="text-link">${escapeHtml(team.name)}</a></h3>
@@ -873,7 +874,7 @@ export async function loadTeamDetail(slug: string) {
   if (head) head.innerHTML = `
     <section class="hero">
       <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${current && tennisDeTarget ? `<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer">tennis.de Mannschaftsporträt ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({team: slug}))}">Mannschaftskalender abonnieren</a></div></div>
-      <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" /></div>
+      <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" width="1280" height="720" decoding="async" fetchpriority="high" /></div>
     </section>
   `;
 
@@ -1791,7 +1792,7 @@ export async function loadNews() {
   const { data, error } = await supabase.from('news').select('*').eq('status', 'published').order('published_at', { ascending: false });
   target.innerHTML = data?.length ? data.map((item: Row) => `
     <article id="news-${escapeHtml(item.id)}" class="card ${item.slug?.startsWith('btv-spielverlegung-') ? 'news-card--reschedule' : ''}">
-      ${item.hero_image_path ? `<img src="${escapeHtml(mediaUrl(item.hero_image_path))}" alt="" loading="lazy" style="border-radius:14px;aspect-ratio:16/9;object-fit:cover;margin-bottom:16px">` : ''}
+      ${item.hero_image_path ? `<img src="${escapeHtml(mediaUrl(item.hero_image_path))}" alt="" width="1280" height="720" loading="lazy" decoding="async" fetchpriority="low" style="border-radius:14px;aspect-ratio:16/9;object-fit:cover;margin-bottom:16px">` : ''}
       ${item.slug?.startsWith('btv-spielverlegung-') ? '<p class="news-reschedule-label">BTV · Spielverlegung</p>' : ''}
       <p class="eyebrow">${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : 'Aktuelles'}</p>
       <h2>${escapeHtml(item.title)}</h2>
@@ -1887,7 +1888,7 @@ export async function loadLiveTicker(matchId: string | null) {
     return;
   }
 
-  const reference = await refs();
+  const referencePromise = refs();
   const tsvLogo = mediaUrl('branding/tennis-logo.png');
 
   const tsvTeamBlock = (label: string) => `
@@ -1964,7 +1965,14 @@ export async function loadLiveTicker(matchId: string | null) {
       </article>`;
   };
 
+  let refreshRunning = false;
+  let refreshQueued = false;
+  let lastSnapshot = '';
   const refresh = async () => {
+    if (document.visibilityState === 'hidden') return;
+    if (refreshRunning) { refreshQueued = true; return; }
+    refreshRunning = true;
+    try {
     const [{ data: match }, { data: state }, { data: entries }, { data: encounters }] = await Promise.all([
       supabase.from('matches').select('*').eq('id', matchId).maybeSingle(),
       supabase.from('match_live_state').select('*').eq('match_id', matchId).maybeSingle(),
@@ -1972,11 +1980,15 @@ export async function loadLiveTicker(matchId: string | null) {
       supabase.from('match_encounters').select('*').eq('match_id', matchId).order('sort_order').order('position'),
     ]);
 
+    const snapshot = JSON.stringify([match, state, entries, encounters]);
+    if (snapshot === lastSnapshot) return;
+    lastSnapshot = snapshot;
     if (!match) {
       head.innerHTML = '<div class="card"><h1>Spiel nicht gefunden</h1></div>';
       return;
     }
 
+    const reference = await referencePromise;
     const { team } = matchContext(match, reference);
     const clubName = team?.name ?? 'TSV Feldkirchen';
     const leftName = match.is_home ? clubName : match.opponent;
@@ -2070,6 +2082,17 @@ export async function loadLiveTicker(matchId: string | null) {
             ${entry.home_score != null && entry.away_score != null ? `<span class="score">${entry.home_score} : ${entry.away_score}</span>` : ''}
           </div>`).join('')
       : '<p class="muted">Noch keine Tickermeldungen.</p>';
+    } finally {
+      refreshRunning = false;
+      if (refreshQueued) { refreshQueued = false; void refresh(); }
+    }
+  };
+
+  let scheduledRefresh: number | null = null;
+  const scheduleRefresh = () => {
+    if (document.visibilityState === 'hidden') return;
+    if (scheduledRefresh != null) window.clearTimeout(scheduledRefresh);
+    scheduledRefresh = window.setTimeout(() => { scheduledRefresh = null; void refresh(); }, 160);
   };
 
   await refresh();
@@ -2077,9 +2100,9 @@ export async function loadLiveTicker(matchId: string | null) {
 
   const publicChannel = supabase
     .channel(`public-match:${matchId}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_live_state', filter: `match_id=eq.${matchId}` }, refresh)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_encounters', filter: `match_id=eq.${matchId}` }, refresh)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'live_ticker_entries', filter: `match_id=eq.${matchId}` }, refresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_live_state', filter: `match_id=eq.${matchId}` }, scheduleRefresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_encounters', filter: `match_id=eq.${matchId}` }, scheduleRefresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'live_ticker_entries', filter: `match_id=eq.${matchId}` }, scheduleRefresh)
     .subscribe();
 
   const channels = [publicChannel];
@@ -2090,9 +2113,9 @@ export async function loadLiveTicker(matchId: string | null) {
       await supabase.realtime.setAuth(sessionData.session.access_token);
       const privateChannel = supabase
         .channel(`match:${matchId}:ticker`, { config: { private: true } })
-        .on('broadcast', { event: 'INSERT' }, refresh)
-        .on('broadcast', { event: 'UPDATE' }, refresh)
-        .on('broadcast', { event: 'DELETE' }, refresh)
+        .on('broadcast', { event: 'INSERT' }, scheduleRefresh)
+        .on('broadcast', { event: 'UPDATE' }, scheduleRefresh)
+        .on('broadcast', { event: 'DELETE' }, scheduleRefresh)
         .subscribe();
       channels.push(privateChannel);
     }
@@ -2104,5 +2127,12 @@ export async function loadLiveTicker(matchId: string | null) {
     channels.forEach((channel) => { supabase.removeChannel(channel); });
   });
 
-  window.setInterval(refresh, 30000);
+  const interval = window.setInterval(() => void refresh(), 30000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') scheduleRefresh();
+  });
+  window.addEventListener('pagehide', () => {
+    window.clearInterval(interval);
+    if (scheduledRefresh != null) window.clearTimeout(scheduledRefresh);
+  }, { once: true });
 }

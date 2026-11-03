@@ -7,7 +7,7 @@ export function validateImageFile(file: File) {
   if (file.size > MAX_IMAGE_BYTES) throw new Error('Das Bild darf maximal 8 MB groß sein.');
 }
 
-export async function optimizeImage(file: File, maxDimension = 2200, quality = 0.84): Promise<File> {
+export async function optimizeImage(file: File, maxDimension = 2200, quality = 0.84, targetBytes = 900 * 1024): Promise<File> {
   validateImageFile(file);
 
   let bitmap: ImageBitmap;
@@ -30,8 +30,18 @@ export async function optimizeImage(file: File, maxDimension = 2200, quality = 0
   ctx.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
 
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', quality));
+  const encode = (level: number) => new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/webp', level));
+  let blob = await encode(quality);
   if (!blob) throw new Error('Das Bild konnte nicht in WebP umgewandelt werden.');
+
+  // Optimize bandwidth at upload time. The Free storage plan cannot resize
+  // published images on demand, so keep a reasonably sized original in media.
+  for (let level = quality - 0.08; blob.size > targetBytes && level >= 0.60; level -= 0.08) {
+    const smaller = await encode(level);
+    if (!smaller) break;
+    blob = smaller;
+  }
 
   const safeBase = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '-');
   return new File([blob], `${safeBase || 'image'}.webp`, {

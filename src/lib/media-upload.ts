@@ -39,7 +39,7 @@ export async function uploadImageToMedia(options: MediaUploadOptions) {
   const editorial = directory.startsWith('events/') || directory.startsWith('news/');
   const dimension = options.maxDimension ?? (editorial ? 1440 : 2200);
   const quality = options.quality ?? (editorial ? 0.78 : 0.84);
-  const image = await optimizeImage(options.file, dimension, quality);
+  const image = await optimizeImage(options.file, dimension, quality, editorial ? 560 * 1024 : 900 * 1024);
   const requestedBase = cleanSegment(options.basename || image.name.replace(/\.[^.]+$/, '')) || 'image';
   const path = `${directory}/${requestedBase}-${Date.now()}-${crypto.randomUUID()}.webp`;
   const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, image, {
