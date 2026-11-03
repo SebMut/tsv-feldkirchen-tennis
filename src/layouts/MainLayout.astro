@@ -51,6 +51,7 @@ const shouldNoindex = noindex || previewMode;
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content="TSV Feldkirchen Tennis" />
+    <meta property="og:image" content={new URL(`${basePrefix}/images/tsv-feldkirchen-tennisanlage-hero.avif`, canonical).toString()} />
     <title>{title}</title>
   </head>
   <body>
