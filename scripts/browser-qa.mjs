@@ -79,6 +79,16 @@ async function deviceQA(device){
       await check(key+' images',()=>healthyImages(page,route),page);
     page.off('pageerror',listener);
   }
+  if(device.mobile) await check(device.name+' compact calendar filters',async()=>{
+    await page.goto(url('/termine/'));
+    const filters=page.locator('#calendar-extra-filters');
+    assert.equal(await filters.evaluate(el=>el.open),false,'advanced mobile filters should start collapsed');
+    await filters.locator('summary').click();
+    assert.equal(await filters.evaluate(el=>el.open),true,'advanced filters did not open');
+    assert.ok(await page.locator('#calendar-team').isVisible(),'team filter remained hidden');
+    await filters.locator('summary').click();
+    assert.equal(await filters.evaluate(el=>el.open),false,'advanced filters did not close');
+  },page);
   await check(device.name+' navigation',async()=>{
     await page.goto(url('/'));
     const link=page.locator('a[href*="/aktuelles/"]').first();
