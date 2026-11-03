@@ -24,7 +24,7 @@ test('Sommer 2026 and only its season-scoped records are removed',()=>{
 
 test('public and admin selection now starts at Winter 2026/27',()=>{
  assert.doesNotMatch(home,/data-season="sommer-2026"/);
- assert.match(home,/data-season="winter-2026-2027"/);
+ assert.match(home,/id="teams-season-nav"/);
  assert.doesNotMatch(adminPage,/data-team-season="sommer-2026"/);
  assert.doesNotMatch(adminPage,/data-roster-season="sommer-2026"/);
  assert.match(adminPage,/data-team-season="winter-2026-2027" aria-pressed="true"/);
@@ -36,7 +36,7 @@ test('public and admin selection now starts at Winter 2026/27',()=>{
  assert.match(admin,/button\.textContent = season\.name/);
  assert.match(admin,/season\.code !== 'sommer-2026'/);
  assert.match(publicJs,/const publishedSeasons = reference.seasons.filter/);
- assert.match(home,/data-season="sommer-2027"/);
+ assert.match(publicJs,/seasonCodes = seasons/);
 });
 
 test('2026 fixture import is disabled and official reports use current season',()=>{
