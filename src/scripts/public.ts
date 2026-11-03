@@ -1271,6 +1271,7 @@ export async function loadCalendar() {
   const subscriptions = document.querySelector<HTMLElement>('#calendar-subscriptions');
   const viewSelect = document.querySelector<HTMLSelectElement>('#calendar-view');
   const favoriteSelect = document.querySelector<HTMLSelectElement>('#calendar-favorite');
+  const includeEvents = document.querySelector<HTMLInputElement>('#calendar-include-events');
   const favoriteStatus = document.querySelector<HTMLElement>('#calendar-favorite-status');
   const weekRange = document.querySelector<HTMLElement>('#calendar-week-range');
   if (!list || !grid || !monthTitle || !dayHeading || !dayCount || !dayList || !nextList || !teamSelect || !categorySelect || !kindSelect || !subscriptions || !statusTarget) return;
@@ -1300,8 +1301,12 @@ export async function loadCalendar() {
   let ready = false;
   let fetchError = false;
   const favoriteKey = 'tsv-tennis-favorite-team';
+  const eventsKey = 'tsv-tennis-calendar-include-events';
   let favoriteSlug = '';
-  try { favoriteSlug = localStorage.getItem(favoriteKey) || ''; } catch { /* Privatmodus ohne Speicherzugriff */ }
+  try {
+    favoriteSlug = localStorage.getItem(favoriteKey) || '';
+    if (includeEvents) includeEvents.checked = localStorage.getItem(eventsKey) !== 'false';
+  } catch { /* Privatmodus ohne Speicherzugriff */ }
   const weekdayMs = 86400000;
 
   type CalendarMarker = 'men' | 'women' | 'youth' | 'event' | 'other';
@@ -1337,14 +1342,9 @@ export async function loadCalendar() {
         html: matchRow(m, reference, liveStates),
       };
     });
-    const eventsFiltered = (kind === 'matches' ? [] : events).filter(e => {
-      if (teamId && e.team_id !== teamId) return false;
-      if (categoryId) {
-        const team = reference.teams.find(t => t.id === e.team_id);
-        if (!team || team.category_id !== categoryId) return false;
-      }
-      return true;
-    }).map(e => ({
+    // Vereinsveranstaltungen gehören unabhängig von der Lieblingsmannschaft dazu,
+    // solange die zusätzliche Checkbox eingeschaltet ist.
+    const eventsFiltered = (kind === 'matches' || !includeEvents?.checked ? [] : events).map(e => ({
       id: e.id, endAt: e.ends_at || null, location: e.location_name || '',
       at: e.starts_at, key: dateKey(e.starts_at), kind: 'event', marker: 'event' as CalendarMarker,
       title: e.title,
@@ -1464,6 +1464,7 @@ export async function loadCalendar() {
     }
     const params: Record<string, string> = {};
     if (kindSelect.value !== 'all') params.type = kindSelect.value;
+    params.include_events = includeEvents?.checked ? '1' : '0';
     const teamOption = teamSelect.selectedOptions[0];
     const categoryOption = categorySelect.selectedOptions[0];
     if (teamSelect.value && teamOption?.dataset.slug) params.team = teamOption.dataset.slug;
@@ -1577,7 +1578,20 @@ export async function loadCalendar() {
     const key = isoAt(new Date(dateAt(target.dataset.calendarDay).getTime() + offset * 86400000));
     chooseDay(key, 'calendar');
   });
-  [teamSelect, categorySelect, kindSelect, rangeSelect, viewSelect].filter((el): el is HTMLSelectElement => !!el).forEach(el => el.addEventListener('change', render));
+  [teamSelect, categorySelect, rangeSelect, viewSelect].filter((el): el is HTMLSelectElement => !!el).forEach(el => el.addEventListener('change', render));
+  kindSelect.addEventListener('change', () => {
+    if (kindSelect.value === 'events' && includeEvents && !includeEvents.checked) {
+      includeEvents.checked = true;
+      try { localStorage.setItem(eventsKey, 'true'); } catch { /* Speicher deaktiviert */ }
+    }
+    render();
+  });
+  includeEvents?.addEventListener('change', () => {
+    if (!includeEvents.checked && kindSelect.value === 'events') kindSelect.value = 'all';
+    try { localStorage.setItem(eventsKey, String(includeEvents.checked)); } catch { /* Speicher deaktiviert */ }
+    if (favoriteStatus) favoriteStatus.textContent = includeEvents.checked ? 'Veranstaltungen eingeschaltet.' : 'Veranstaltungen ausgeblendet.';
+    render();
+  });
   favoriteSelect?.addEventListener('change', () => {
     const team = reference.teams.find(t => t.slug === favoriteSelect.value);
     teamSelect.value = team?.id || '';
