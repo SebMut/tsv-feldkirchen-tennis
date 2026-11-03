@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { initMediaBackfillAdmin } from './media-backfill-admin';
 import { auditEventCalendarConsistency, inspectCalendarFeed } from '../lib/calendar-feed-diagnostics';
 import { escapeHtml, formatDateTime } from '../lib/ui';
 
@@ -140,5 +141,6 @@ export function initSystemMonitor(isSuper: boolean) {
       (error instanceof Error?error.message:'Unbekannter Fehler');}
     finally{if(button)button.disabled=false;}
   });
+  initMediaBackfillAdmin();
   void refresh();
 }

@@ -662,6 +662,15 @@ import MainLayout from '../../layouts/MainLayout.astro';
               </div>
               <p class="muted">Die Anzeige wertet BTV-Importe und PostgreSQL-Cron aus. Externe Edge-Function-Logs, GitHub-Workflows und verwaltete Supabase-Backups sind nicht automatisch Teil dieser Datenbankprüfung.</p>
             </div>
+            <div class="card">
+              <h2>Bereits gespeicherte Bilder optimieren</h2>
+              <p class="muted">Nur SuperAdmins. Große, direkt referenzierte Bilder werden im vorhandenen Supabase-Bucket media als WebP optimiert. Die bisherige Datei bleibt zur sicheren Wiederherstellung erhalten; gemeinsam genutzte Bilder werden niemals ungeprüft gelöscht.</p>
+              <div class="actions">
+                <button type="button" class="button secondary" id="ops-media-analyze">Bilder analysieren</button>
+                <button type="button" class="button" id="ops-media-optimize" disabled>Gefundene Bilder optimieren</button>
+              </div>
+              <div id="ops-media-report" role="status" aria-live="polite" class="muted">Noch nicht geprüft.</div>
+            </div>
             <div class="card ops-restore">
               <h2>Backup und Wiederherstellung prüfen</h2>
               <p class="muted">Ein Backup gilt erst als überprüft, nachdem es in einer getrennten Testumgebung tatsächlich wiederhergestellt und kontrolliert wurde. Die Bestätigung dokumentiert nur diesen manuellen Nachweis.</p>
