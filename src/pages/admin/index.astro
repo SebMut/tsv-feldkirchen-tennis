@@ -412,9 +412,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
                     <button id="editorial-compose-preview-button" class="button secondary" type="button">Vorschau für Desktop &amp; Smartphone</button>
                     <button id="editorial-compose-draft" class="button ghost" type="submit">Als Entwurf speichern</button>
                     <button id="editorial-compose-publish" class="button" type="button" disabled>Jetzt veröffentlichen</button>
+                    <button id="editorial-compose-check-calendar" class="button secondary" type="button" hidden>ICS-Veröffentlichung prüfen</button>
                     <button id="editorial-compose-reset" class="button ghost" type="button">Neuer Beitrag</button>
                   </div>
-                  <small class="muted">Veröffentlichen ist erst nach einer aktuellen Vorschau möglich. Änderungen machen die Vorschau erneut erforderlich.</small>
+                  <small class="muted">Bereits veröffentlichte Veranstaltungen bleiben bei „Änderungen speichern“ öffentlich. Entwürfe und archivierte Termine werden im Abo nicht angezeigt.</small>
+                  <p id="editorial-compose-calendar-status" class="muted" role="status" aria-live="polite"></p>
                 </div>
               </form>
               <div id="editorial-compose-preview" class="editorial-compose__preview" hidden>
