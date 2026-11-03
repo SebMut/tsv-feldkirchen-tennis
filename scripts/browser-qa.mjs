@@ -225,6 +225,8 @@ async function deviceQA(device){
     assert.ok(await page.locator('#calendar-category').inputValue(),'Category filter not synchronized');
     assert.equal((await asUrl()).searchParams.get('category'),category.slice(9));
     assert.equal((await asUrl()).searchParams.get('team'),null);
+    await page.locator('#calendar-extra-filters summary').click();
+    assert.ok(await page.locator('#calendar-category').isVisible(),'Advanced filters did not open');
     await page.locator('#calendar-team').selectOption({index:1});
     assert.equal((await asUrl()).searchParams.get('category'),null,'Team change must clear the category filter');
     assert.equal(await page.locator('#calendar-category').inputValue(),'');
@@ -236,8 +238,7 @@ async function deviceQA(device){
     assert.equal((await asUrl()).searchParams.get('range'),null,'Range only limits the visible view, not the continuing ICS subscription');
     await page.locator('#calendar-view').selectOption('week');
     assert.ok(await page.locator('#calendar-week-range').isVisible(),'Week view no longer works');
-    await page.locator('#calendar-extra-filters summary').click();
-    assert.ok(await page.locator('#calendar-category').isVisible(),'Advanced filters did not open');
+    assert.ok(await page.locator('#calendar-category').isVisible(),'Advanced filters closed unexpectedly');
 
     await page.locator('.calendar-subscription-more summary').click();
     const allMatches=page.locator('.calendar-subscription-more a').first();
