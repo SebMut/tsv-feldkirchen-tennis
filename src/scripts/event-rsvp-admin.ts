@@ -2,6 +2,7 @@ import { mediaUrl, supabase } from '../lib/supabase';
 import { replaceMediaImage, removeMediaImage } from '../lib/media-upload';
 import { escapeHtml, formatDateTime } from '../lib/ui';
 import { downloadRsvpPdf, type RsvpPdfRow } from './rsvp-report-pdf';
+import { verifyEventCalendarPublication } from '../lib/calendar-feed-diagnostics';
 
 type Row = Record<string, any>;
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
@@ -159,8 +160,14 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
       }
       await refresh(data.id);
       window.dispatchEvent(new CustomEvent('tsv:editorial-content-changed'));
-      message(file ? 'Veranstaltung und neues Bild gespeichert. Unter „Aktuelles“ wird die neue Datei verwendet.'
-        : status === 'published' ? 'Veranstaltung veröffentlicht.' : 'Veranstaltung als Entwurf gespeichert.');
+      try {
+        const verified = await verifyEventCalendarPublication(data.id, status);
+        message((file ? 'Veranstaltung und Bild gespeichert. ' : 'Veranstaltung gespeichert. ') + verified.message);
+      } catch (error) {
+        message('Veranstaltung gespeichert, aber Kalender-/Abo-Warnung: ' +
+          (error instanceof Error ? error.message : 'Prüfung nicht möglich') +
+          '. Bitte gespeicherten Freigabestatus und ICS-Feed prüfen.', true);
+      }
     } catch (error) { message('Speichern fehlgeschlagen: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'), true); }
     finally { button.disabled = false; button.textContent = 'Veranstaltung speichern'; }
   });
