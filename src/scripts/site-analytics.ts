@@ -61,6 +61,11 @@ function targetFor(href: string): string {
 /** Kein Cookie, keine IP, kein Besucher- oder Fingerprint-Identifier. */
 export function initSiteAnalytics() {
   if (started || import.meta.env.PUBLIC_PREVIEW_MODE === 'true') return;
+  // CI, localhost, staging, embedded previews and mirrors must never skew real traffic.
+  // This is deliberately an exact hostname allowlist, not a suffix match.
+  const hostname = location.hostname.toLowerCase();
+  if (hostname !== 'www.tennis-tsvfeldkirchen.de' &&
+      hostname !== 'tennis-tsvfeldkirchen.de') return;
   started = true;
   if (navigator.doNotTrack === '1' || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true) return;
   const pagePath = pathOf(location.pathname);
