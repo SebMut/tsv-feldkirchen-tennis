@@ -220,6 +220,24 @@ Deno.serve(async (req: Request) => {
 
     const uniqueMemberships = new Map(memberships.map((membership) => [membership.team_id, membership]));
 
+    if (Array.isArray(body.memberships) && memberships.length !== body.memberships.length) {
+      return Response.json({ ok: false, error: "Mindestens eine Mannschaftsrolle ist ungültig. Keine E-Mail wurde versendet." }, { status: 200, headers: cors });
+    }
+    if (uniqueMemberships.size !== memberships.length) {
+      return Response.json({ ok: false, error: "Mannschaften dürfen nur einmal zugeordnet werden. Keine E-Mail wurde versendet." }, { status: 200, headers: cors });
+    }
+    // Validate all requested team IDs before creating an Auth user or sending mail.
+    if (uniqueMemberships.size) {
+      const { data: validTeams, error: teamsError } = await admin.from("teams")
+        .select("id").in("id", [...uniqueMemberships.keys()]);
+      if (teamsError || (validTeams ?? []).length !== uniqueMemberships.size) {
+        return Response.json({
+          ok: false,
+          error: "Mindestens eine gewählte Mannschaft konnte nicht bestätigt werden. Es wurde keine E-Mail verschickt.",
+        }, { status: 200, headers: cors });
+      }
+    }
+
     if (!email || !email.includes("@")) {
       return Response.json({ error: "Bitte eine gültige E-Mail-Adresse angeben." }, { status: 400, headers: cors });
     }
@@ -257,31 +275,39 @@ Deno.serve(async (req: Request) => {
         return Response.json({
           ok: false,
           code: "user_exists",
-          error: "Für diese E-Mail-Adresse existiert bereits ein Benutzerzugang.",
+          error: "Für diese E-Mail-Adresse existiert bereits ein Benutzerzugang. Bitte Benutzerliste öffnen und dort Berechtigungen prüfen – nicht erneut einladen.",
         }, { status: 200, headers: cors });
       }
       return Response.json({ ok: false, error: message }, { status: 200, headers: cors });
     }
 
+    const invitePartiallyCreated = (stage: string, code?: string) => {
+      // No personal data or e-mail addresses in function logs.
+      console.error("admin-users invitation permissions failed", { stage, code: code ?? "unknown" });
+      return Response.json({
+        ok: false,
+        code: "invitation_partially_created",
+        user_id: invited.user.id,
+        error: "Die Einladungs-E-Mail wurde versendet, aber die Rechte konnten nicht vollständig gespeichert werden. Bitte diesen Benutzer in der Benutzerliste öffnen und die Rechte dort speichern. Nicht erneut einladen.",
+      }, { headers: cors });
+    };
+
+    // Auth already created the user and sent an email. Only profile metadata
+    // is updated separately; all roles and memberships use the EXISTING atomic RPC.
     const { error: profileError } = await admin.from("profiles").upsert({
       id: invited.user.id,
       display_name: displayName || email.split("@")[0],
       email,
-      global_role: globalRole,
-      global_permissions: globalPermissions,
     });
-    if (profileError) return Response.json({ error: profileError.message }, { status: 500, headers: cors });
+    if (profileError) return invitePartiallyCreated("profile", profileError.code);
 
-    if (uniqueMemberships.size && globalRole !== "super_admin") {
-      const rows = [...uniqueMemberships.values()].map((membership) => ({
-        user_id: invited.user!.id,
-        team_id: membership.team_id,
-        role: membership.role,
-        active: true,
-      }));
-      const { error } = await admin.from("team_memberships").upsert(rows, { onConflict: "user_id,team_id" });
-      if (error) return Response.json({ error: error.message }, { status: 500, headers: cors });
-    }
+    const { error: permissionsError } = await admin.rpc("admin_apply_user_permissions", {
+      target_user: invited.user.id,
+      desired_role: globalRole,
+      desired_permissions: globalPermissions,
+      desired_memberships: [...uniqueMemberships.values()],
+    });
+    if (permissionsError) return invitePartiallyCreated("permissions", permissionsError.code);
 
     return Response.json({ ok: true, user_id: invited.user.id }, { headers: cors });
   }

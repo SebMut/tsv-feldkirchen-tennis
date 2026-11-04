@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { explainAdminFunctionError } from '../lib/admin-function-errors';
 import { escapeHtml, formatDateTime, setStatus } from '../lib/ui';
 
 type Row = Record<string, any>;
@@ -698,14 +699,30 @@ export async function loadAdvancedUsers(base: BaseState) {
     });
 
     card.querySelector<HTMLButtonElement>('[data-send-access]')?.addEventListener('click', async () => {
-      const userId = card.dataset.userCard!;
-      const redirectTo = `${location.origin}${import.meta.env.BASE_URL}admin/`;
-      const result = await supabase.functions.invoke('admin-users', {
-        body: { action: 'send_access_mail', user_id: userId, redirect_to: redirectTo },
-      });
-      if (result.error) return reportStatus('Die Benutzerverwaltung ist momentan nicht erreichbar. Bitte erneut versuchen.', 'error');
-      if (result.data?.ok === false || result.data?.error) return reportStatus(result.data?.error || 'Zugangs-Mail konnte nicht gesendet werden.', 'error');
-      reportStatus('Zugangs-Mail wurde erneut gesendet.', 'success');
+      const button = card.querySelector<HTMLButtonElement>('[data-send-access]');
+      if (button?.disabled) return;
+      if (button) button.disabled = true;
+      try {
+        const userId = card.dataset.userCard!;
+        const redirectTo = `${location.origin}${import.meta.env.BASE_URL}admin/`;
+        const result = await supabase.functions.invoke('admin-users', {
+          body: { action: 'send_access_mail', user_id: userId, redirect_to: redirectTo },
+        });
+        if (result.error) {
+          const cause = await explainAdminFunctionError(result.error);
+          return reportStatus('E-Mail-Versand nicht abschließend bestätigt: ' + cause +
+            ' Bitte erst den Posteingang prüfen, bevor du erneut sendest.', 'error');
+        }
+        if (result.data?.ok !== true || result.data?.error) {
+          return reportStatus(result.data?.error || 'Zugangs-Mail konnte nicht bestätigt werden.', 'error');
+        }
+        reportStatus('Zugangs-Mail wurde gesendet.', 'success');
+      } catch (error) {
+        reportStatus('Versandstatus unklar: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler') +
+          '. Bitte erst den Posteingang prüfen.', 'error');
+      } finally {
+        if (button) button.disabled = false;
+      }
     });
 
     card.querySelector<HTMLButtonElement>('[data-delete-user]')?.addEventListener('click', async () => {

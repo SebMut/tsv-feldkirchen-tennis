@@ -1,4 +1,5 @@
 import { mediaUrl, supabase } from '../lib/supabase';
+import { explainAdminFunctionError } from '../lib/admin-function-errors';
 import { replaceMediaImage, removeMediaImage, uploadGalleryImages, removeOwnedMediaPaths } from '../lib/media-upload';
 import { bindTvTimingControls, initAdvancedAdmin, loadAdvancedUsers } from './admin-advanced';
 import { initPhase8Admin } from './phase8';
@@ -2498,14 +2499,30 @@ async function inviteUser(event: Event) {
     memberships,
     redirect_to: `${location.origin}${import.meta.env.BASE_URL}admin/`,
   };
-  const { data, error } = await supabase.functions.invoke('admin-users', { body: payload });
-  if (error) return status('Die Benutzerverwaltung ist momentan nicht erreichbar. Bitte erneut versuchen.', 'error');
-  if (data?.ok === false || data?.error) return status(data?.error || 'Einladung fehlgeschlagen.', 'error');
-
-  ($<HTMLFormElement>('#invite-form'))?.reset();
-  renderInviteTeamCards();
-  status('Einladung wurde versendet.', 'success');
-  loadUsers();
+  const inviteButton = $<HTMLButtonElement>('#invite-form button[type="submit"]');
+  if (inviteButton?.disabled) return;
+  if (inviteButton) inviteButton.disabled = true;
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-users', { body: payload });
+    if (error) {
+      const cause = await explainAdminFunctionError(error);
+      return status('Einladung nicht vollständig bestätigt: ' + cause +
+        ' Die E-Mail könnte bereits zugestellt worden sein. Bitte zuerst die Benutzerliste und die Rechte prüfen; nicht erneut einladen.', 'error');
+    }
+    if (data?.ok !== true || data?.error) {
+      return status(data?.error || 'Einladung konnte nicht bestätigt werden. Bitte zuerst die Benutzerliste prüfen.', 'error');
+    }
+    ($<HTMLFormElement>('#invite-form'))?.reset();
+    renderInviteTeamCards();
+    status('Einladung versendet und Benutzerrechte gespeichert.', 'success');
+    void loadUsers();
+  } catch (error) {
+    status('Einladung nicht abschließend bestätigt: ' +
+      (error instanceof Error ? error.message : 'Unbekannter Fehler') +
+      '. Bitte zuerst die Benutzerliste prüfen, bevor du erneut eine E-Mail versendest.', 'error');
+  } finally {
+    if (inviteButton) inviteButton.disabled = false;
+  }
 }
 
 function renderInviteTeamCards() {
