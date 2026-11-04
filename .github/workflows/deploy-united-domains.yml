@@ -117,6 +117,7 @@ jobs:
       # Approved user-management hotfix: authenticated invites and permission saves.
       # Approved responsive top-dropdown navigation for administration.
       # Production hotfix: outgoing access email redirects remain on the live domain.
+      # UX-reviewed admin navigation: one-line menus, active section, mobile picker.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
