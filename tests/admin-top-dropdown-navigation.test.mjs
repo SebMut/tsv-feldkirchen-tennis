@@ -35,6 +35,7 @@ test('dropdowns keep existing panel routing, keyboard dismissal and responsive m
  assert.match(js,/document\.getElementById\('admin-app'\)\?\.scrollIntoView/);
  assert.match(css,/display:flex;align-items:center;justify-content:flex-start;flex-wrap:nowrap/);
  assert.match(css,/position:sticky;top:82px/);
+ assert.match(css,/@media\(min-width:1024px\) and \(max-width:1199px\)[\s\S]*?\.site-header,main,\.site-footer\{width:100%\}/);
  assert.match(css,/\.admin-shell\{display:grid;grid-template-columns:minmax\(0,1fr\)/);
  assert.match(css,/\.admin-nav__dropdown:not\(\[open\]\)>\.admin-nav__items\{display:none\}/);
  assert.match(css,/@media\(max-width:980px\)[\s\S]*?\.admin-nav\.card\{display:none\}/);

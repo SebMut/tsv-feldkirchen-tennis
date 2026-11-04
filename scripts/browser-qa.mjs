@@ -41,8 +41,16 @@ async function noOverflow(page,route){
     window:window.innerWidth,
     body:document.body.scrollWidth
   }));
-  assert.ok(size.document<=size.window+3&&size.body<=size.window+3,
-    route+' overflows the viewport: '+JSON.stringify(size));
+  if(size.document>size.window+3||size.body>size.window+3){
+    const offenders=await page.evaluate(()=>Array.from(document.querySelectorAll('body *'))
+      .filter(el=>{const r=el.getBoundingClientRect();return r.width>0 && r.right>innerWidth+3;})
+      .slice(0,9).map(el=>({
+        tag:el.tagName.toLowerCase(),id:el.id,classes:String(el.className||'').slice(0,100),
+        right:Math.round(el.getBoundingClientRect().right),
+        width:Math.round(el.getBoundingClientRect().width),
+      })));
+    assert.fail(route+' overflows viewport: '+JSON.stringify({size,offenders}));
+  }
 }
 async function healthyImages(page,route){
   const images=page.locator('main img');

@@ -1081,6 +1081,12 @@ main.main--flush{padding:0}
 @media(max-width:1023px){
   .site-header,main,.site-footer{width:100%}
 }
+@media(min-width:1024px) and (max-width:1199px){
+  /* At narrow desktop widths an 80%-wide header leaves too little room for
+     the existing public navigation and can force horizontal page overflow.
+     Use the tablet canvas while retaining 80% on wide desktop screens. */
+  .site-header,main,.site-footer{width:100%}
+}
 @media(max-width:600px){
   .container,.site-header__inner,.footer-grid{width:calc(100% - 32px)}
 }
