@@ -110,3 +110,19 @@ jobs:
           printf 'cd %s\nput -r dist/*\nput dist/.htaccess .htaccess\nbye\n' "$SFTP_REMOTE_PATH" > /tmp/sftp-batch.txt
           export SSHPASS="$SFTP_PASSWORD"
           sshpass -e sftp -o BatchMode=no -o StrictHostKeyChecking=accept-new -P "$PORT" -b /tmp/sftp-batch.txt "$SFTP_USER@$SFTP_HOST"
+      - name: Verify live website and login shell via HTTPS
+        run: |
+          set -euo pipefail
+          domain='https://www.tennis-tsvfeldkirchen.de'
+          for attempt in 1 2 3 4 5; do
+            home=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/" || true)
+            admin=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/admin/" || true)
+            if echo "$home" | grep -Fq 'TSV Feldkirchen Tennis' && echo "$admin" | grep -Fq 'id="auth-box"'; then
+              echo 'Public front page and protected admin login HTML are served at the live domain.'
+              exit 0
+            fi
+            echo "Deployment visibility check $attempt/5: domain may still be propagating."
+            sleep 10
+          done
+          echo '::error::Production domain did not serve both the new Astro front page and /admin/. Verify United Domains domain folder/SSL mapping.'
+          exit 1
