@@ -122,6 +122,7 @@ jobs:
       # Role-safe user rights overview, UI verified in desktop/mobile Chromium.
       # Self-service individual rights, with test-gated deployment and intact RLS.
       # Identical saved-permissions cards for signed-in users and SuperAdmin.
+      # Privacy-friendly website analytics with SuperAdmin-only reports and domain-restricted counting.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
