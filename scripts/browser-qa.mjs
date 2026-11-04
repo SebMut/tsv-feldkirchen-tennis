@@ -105,12 +105,14 @@ async function deviceQA(device){
         'Dropdown has no visible destination');
       await first.locator('summary').click();
       assert.equal(await first.evaluate(el=>el.open),false,'Top dropdown did not close');
-      await first.locator('summary').click();
-      await page.keyboard.press('Escape');
-      assert.equal(await first.evaluate(el=>el.open),false,'Escape did not close top dropdown');
-      await first.locator('summary').click();
-      await page.locator('#admin-title').click();
-      assert.equal(await first.evaluate(el=>el.open),false,'Click outside did not close dropdown');
+      // This is an unauthenticated *layout fixture*. bindNav() correctly runs
+      // only after authentication, so do not assert authenticated event handlers here.
+      // Native <details> keyboard interaction is testable without auth.
+      await first.locator('summary').focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await first.evaluate(el=>el.open),true,'Enter did not open native dropdown');
+      await page.keyboard.press('Enter');
+      assert.equal(await first.evaluate(el=>el.open),false,'Enter did not close native dropdown');
       const alignment=await nav.evaluate(element=>{
         const buttons=Array.from(element.querySelectorAll(':scope > .admin-nav__group'))
           .filter(node=>!node.classList.contains('hidden'))
@@ -521,6 +523,16 @@ async function roleQA(role){
       );
       assert.equal(granted,visible,role.name+' unexpected '+section+' permission');
     }
+    // Authenticated role QA is the correct place for event handlers that
+    // are installed by bindNav() after access checks succeed.
+    const menu=page.locator('.admin-nav__dropdown:not(.hidden)').first();
+    await menu.locator('summary').click();
+    assert.equal(await menu.evaluate(el=>el.open),true,'Authenticated dropdown did not open');
+    await page.keyboard.press('Escape');
+    assert.equal(await menu.evaluate(el=>el.open),false,'Authenticated Escape did not close dropdown');
+    await menu.locator('summary').click();
+    await page.locator('#admin-title').click();
+    assert.equal(await menu.evaluate(el=>el.open),false,'Authenticated outside click did not close dropdown');
     if(role.code==='NEWS'||role.code==='EVENTS'){
       await page.locator('.admin-nav__dropdown[data-admin-nav-group="inhalte"] > summary').click();
       await page.locator('.admin-nav button[data-panel="news"]').click();
