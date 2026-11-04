@@ -120,6 +120,7 @@ jobs:
       # UX-reviewed admin navigation: one-line menus, active section, mobile picker.
       # Final verified UX patch: prevent tablet header overflow near 1024px.
       # Role-safe user rights overview, UI verified in desktop/mobile Chromium.
+      # Self-service individual rights, with test-gated deployment and intact RLS.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
