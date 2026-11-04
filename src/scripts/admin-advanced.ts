@@ -572,7 +572,7 @@ function renderPermissionMatrix(teams: AuditedTeamRights[]) {
 }
 
 /** Summarize roles read from Supabase, not the unsaved form values below. */
-function renderStoredUserPermissions(user: Row, base: BaseState): string {
+export function renderStoredUserPermissions(user: Row, base: BaseState, editing = true): string {
   const isSuper = user.global_role === 'super_admin';
   const explicitGlobals = new Set<string>(
     Array.isArray(user.global_permissions) ? user.global_permissions : [],
@@ -621,7 +621,7 @@ function renderStoredUserPermissions(user: Row, base: BaseState): string {
           '<span class="user-rights-summary__empty">Keiner Mannschaft zugeordnet</span>'}
       </div>
     `}
-    <p class="user-rights-summary__note">Die Übersicht zeigt die zuletzt geladenen, gespeicherten Rechte. Änderungen unten werden erst nach „Rechte speichern“ übernommen.</p>
+    <p class="user-rights-summary__note">Die Übersicht zeigt die zuletzt geladenen, gespeicherten Rechte. ${editing ? 'Änderungen unten werden erst nach „Rechte speichern“ übernommen.' : 'Wenn ein SuperAdmin deine Rechte ändert, erscheinen sie nach dem Aktualisieren der Seite.'}</p>
   </section>`;
 }
 

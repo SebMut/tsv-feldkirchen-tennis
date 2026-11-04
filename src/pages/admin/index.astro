@@ -104,13 +104,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <select id="admin-panel-select" aria-label="Verwaltungsbereich wählen"></select>
           </div>
           <section id="panel-dashboard" class="admin-panel active">
-            <section class="card self-permissions-card" aria-labelledby="self-permissions-dashboard-heading">
-              <div class="self-permissions-card__head">
-                <div><p class="eyebrow">Mein Zugang</p><h2 id="self-permissions-dashboard-heading">Das darf ich bearbeiten</h2></div>
-                <span class="self-permissions-card__source">Gespeicherte Rollen</span>
-              </div>
-              <div data-self-permissions-summary aria-live="polite"></div>
-            </section>
+            <div data-self-permissions-summary aria-live="polite" aria-label="Meine gespeicherten Berechtigungen"></div>
             <div class="admin-summary-grid" aria-label="Überblick">
               <div class="admin-summary-tile"><span>Verfügbare Mannschaften</span><strong id="admin-stat-teams">–</strong></div>
               <div class="admin-summary-tile"><span>Anstehende Spiele</span><strong id="admin-stat-upcoming">–</strong></div>
@@ -773,13 +767,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
           </section>
 
           <section id="panel-account" class="admin-panel">
-            <section class="card self-permissions-card" aria-labelledby="self-permissions-account-heading">
-              <div class="self-permissions-card__head">
-                <div><p class="eyebrow">Mein Zugang</p><h2 id="self-permissions-account-heading">Meine Berechtigungen</h2></div>
-                <span class="self-permissions-card__source">Gespeicherte Rollen</span>
-              </div>
-              <div data-self-permissions-summary aria-live="polite"></div>
-            </section>
+            <div data-self-permissions-summary aria-live="polite" aria-label="Meine gespeicherten Berechtigungen"></div>
             <div class="card">
               <h2>Mein Konto</h2>
               <form id="password-form" class="form-grid">

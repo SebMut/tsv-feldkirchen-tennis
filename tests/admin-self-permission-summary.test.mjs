@@ -52,12 +52,33 @@ test('self-rights display only within authenticated admin app and account',()=>{
  const css=read('src/styles/global.css');
  assert.equal((page.match(/data-self-permissions-summary/g)||[]).length,2);
  assert.ok(page.indexOf('data-self-permissions-summary')>page.indexOf('<section id="admin-app"'));
- assert.ok(page.includes('id="self-permissions-dashboard-heading"'));
- assert.ok(page.includes('id="self-permissions-account-heading"'));
+ assert.equal((page.match(/aria-label="Meine gespeicherten Berechtigungen"/g)||[]).length,2);
+ assert.ok(!page.includes('self-permissions-card__head'),'Old duplicate summary heading must not appear');
  assert.ok(page.includes('id="admin-my-rights-link"'));
  assert.match(script,/await loadCore\(\);\s*renderMyPermissions\(\)/);
  assert.match(script,/document\.querySelectorAll<HTMLElement>\('\[data-self-permissions-summary\]'\)/);
  assert.match(script,/navigateToPanel\('account'\)/);
- assert.match(script,/escapeHtml\(team\.name\)/);
- assert.match(css,/@media\(max-width:680px\)\{\.self-permissions__sections\{grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(script,/renderStoredUserPermissions\(ownUser, state, false\)/);
+ assert.match(script,/team_memberships: rights\.teamRights\.map/);
+ assert.match(script,/import \{[^\n]*renderStoredUserPermissions \} from '\.\/admin-advanced'/);
+ const shared=read('src/scripts/admin-advanced.ts');
+ assert.match(shared,/export function renderStoredUserPermissions\(user: Row, base: BaseState, editing = true\)/);
+ assert.match(shared,/Aktuell vergebene Berechtigungen/);
+ assert.match(shared,/In Supabase gespeichert/);
+ assert.match(shared,/user-rights-summary__tags/);
+ assert.match(shared,/user-rights-summary__teams/);
+ assert.match(css,/@media\(max-width:600px\)\{[\s\S]*?\.user-rights-summary__team\{flex-basis:100%\}/);
+});
+
+test('self rights use identical card markup as super admin and exclude other users',()=>{
+ const script=read('src/scripts/admin.ts');
+ const shared=read('src/scripts/admin-advanced.ts');
+ const page=read('src/pages/admin/index.astro');
+ const impl=script.slice(script.indexOf('function renderMyPermissions()'),script.indexOf('function hasGlobalPermission'));
+ assert.match(impl,/userId: state\.user\.id/);
+ assert.match(impl,/memberships: state\.memberships/);
+ assert.match(impl,/renderStoredUserPermissions\(ownUser, state, false\)/);
+ assert.match(shared,/const memberships = \(Array\.isArray\(user\.team_memberships\)/);
+ assert.equal((page.match(/data-self-permissions-summary/g)||[]).length,2);
+ assert.doesNotMatch(page,/self-permissions-card/);
 });

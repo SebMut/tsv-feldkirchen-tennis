@@ -1,7 +1,7 @@
 import { mediaUrl, supabase } from '../lib/supabase';
 import { explainAdminFunctionError } from '../lib/admin-function-errors';
 import { replaceMediaImage, removeMediaImage, uploadGalleryImages, removeOwnedMediaPaths } from '../lib/media-upload';
-import { bindTvTimingControls, initAdvancedAdmin, loadAdvancedUsers } from './admin-advanced';
+import { bindTvTimingControls, initAdvancedAdmin, loadAdvancedUsers, renderStoredUserPermissions } from './admin-advanced';
 import { initPhase8Admin } from './phase8';
 import { initManualResultsPanel } from './manual-results-admin';
 import { initOfficialReportsPanel } from './official-reports-admin';
@@ -35,8 +35,9 @@ const status = (message: string, tone: 'info' | 'error' | 'success' = 'info') =>
 };
 
 function renderMyPermissions() {
-  // Use only this authenticated user's loaded profile and team memberships.
-  // This summary does not grant rights: all mutations stay guarded by RLS/backend.
+  // Display exactly the same stored-role card used by SuperAdmin user management.
+  // Only the signed-in user's own *active* roles are supplied here. Actual
+  // authorization remains enforced in the existing Supabase/RLS functions.
   if (!state.user || !state.profile) return;
   const rights = describeSelfPermissions({
     userId: state.user.id,
@@ -44,27 +45,17 @@ function renderMyPermissions() {
     teams: state.teams,
     memberships: state.memberships,
   });
-  const globalHtml = rights.globals.length
-    ? rights.globals.map((right: { name: string; detail: string }) =>
-        `<li class="self-permissions__item"><strong>${escapeHtml(right.name)}</strong>
-           <span>${escapeHtml(right.detail)}</span></li>`).join('')
-    : '<li class="self-permissions__empty">Keine vereinsweiten Zusatzrechte zugewiesen.</li>';
-  const teamHtml = rights.teamRights.length
-    ? rights.teamRights.map((team: { name: string; roleName: string; editTeam: boolean }) =>
-        `<li class="self-permissions__item"><strong>${escapeHtml(team.name)}</strong>
-           <span class="self-permissions__role">${escapeHtml(team.roleName)}</span>
-           <span>${team.editTeam ? 'Mannschaft, Kader und Liveticker bearbeiten' : 'Nur den Liveticker dieser Mannschaft bearbeiten'}</span></li>`).join('')
-    : '<li class="self-permissions__empty">Keine Mannschaftsrechte zugewiesen.</li>';
-  const body = rights.superAdmin
-    ? `<div class="self-permissions__super"><strong>SuperAdmin – vollständiger Zugriff</strong>
-         <p>Du kannst alle Mannschaften, Spieler, Liveticker, News, Veranstaltungen, Vereinsinhalte, Benutzer und Einstellungen verwalten.</p></div>`
-    : `<div class="self-permissions__sections">
-        <div><h3>Vereinsweit</h3><ul class="self-permissions__list">${globalHtml}</ul></div>
-        <div><h3>Meine Mannschaften</h3><ul class="self-permissions__list">${teamHtml}</ul></div>
-       </div>
-       ${!rights.hasEditRights ? '<p class="self-permissions__notice">Du hast aktuell keine redaktionellen oder Mannschafts-Bearbeitungsrechte. Ein SuperAdmin kann dir Rechte zuweisen.</p>' : ''}`;
-  document.querySelectorAll<HTMLElement>('[data-self-permissions-summary]').forEach(el => {
-    el.innerHTML = body + '<p class="self-permissions__footnote">Du kannst dein eigenes Passwort jederzeit unter „Mein Konto“ ändern. Diese Übersicht zeigt die beim Anmelden geladenen Rechte; Änderungen durch einen Admin werden bei der nächsten Aktualisierung übernommen.</p>';
+  const ownUser = {
+    display_name: state.profile.display_name || state.user.email || 'Mein Konto',
+    global_role: state.profile.global_role,
+    global_permissions: state.profile.global_permissions,
+    team_memberships: rights.teamRights.map((team: { id: string; role: string }) => ({
+      team_id: team.id, role: team.role, active: true,
+    })),
+  };
+  const card = renderStoredUserPermissions(ownUser, state, false);
+  document.querySelectorAll<HTMLElement>('[data-self-permissions-summary]').forEach((el) => {
+    el.innerHTML = card;
   });
 }
 

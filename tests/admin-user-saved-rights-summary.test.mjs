@@ -11,7 +11,7 @@ test('each user card shows loaded and saved rights above editable controls', () 
   const card = ui.slice(ui.indexOf('return `<article class="card flat user-admin-card"'),ui.indexOf('</article>`;'));
   assert.ok(card.indexOf('${renderStoredUserPermissions(user, base)}')>=0);
   assert.ok(card.indexOf('${renderStoredUserPermissions(user, base)}')<card.indexOf('data-user-permission'));
-  assert.match(ui,/function renderStoredUserPermissions\(user: Row, base: BaseState\)/);
+  assert.match(ui,/function renderStoredUserPermissions\(user: Row, base: BaseState, editing = true\)/);
   assert.match(ui,/Aktuell vergebene Berechtigungen/);
   assert.match(ui,/In Supabase gespeichert/);
   assert.match(ui,/Änderungen unten werden erst nach/);

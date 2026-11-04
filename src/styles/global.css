@@ -2847,24 +2847,3 @@ body:has(.matchday-page--ticker .matchday-live-center.is-loading) .site-footer{
 .team-card-skeleton>span:last-child{width:48%;height:14px}
 @media(max-width:760px){.teams-season-skeleton{min-height:142px}.team-card-skeleton{min-height:300px}}
 
-/* Read-only self-service rights summary, visible to each signed-in user. */
-.self-permissions-card{min-width:0;display:grid;gap:14px;padding:clamp(17px,2.5vw,24px);border:1px solid #dce7df;border-radius:15px}
-.self-permissions-card__head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px 16px}
-.self-permissions-card__head .eyebrow{margin:0 0 5px}
-.self-permissions-card__head h2{font-size:clamp(1.3rem,2vw,1.7rem);line-height:1.18;margin:0}
-.self-permissions-card__source{font-size:.76rem;font-weight:700;color:#4b6753;background:#edf5ef;border-radius:8px;padding:7px 10px}
-.self-permissions__sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
-.self-permissions__sections>div{min-width:0}
-.self-permissions__sections h3{font-size:.9rem;margin:0 0 9px;color:#3c5042}
-.self-permissions__list{display:grid;gap:8px;padding:0;margin:0;list-style:none}
-.self-permissions__item{display:grid;gap:3px;min-width:0;padding:10px 12px;border:1px solid #dfe8e2;border-radius:10px;background:#f8faf9}
-.self-permissions__item strong{font-size:.88rem;color:#203e2b;overflow-wrap:anywhere}
-.self-permissions__item span{font-size:.79rem;color:#53655a;line-height:1.4;overflow-wrap:anywhere}
-.self-permissions__item .self-permissions__role{font-weight:800;color:#a91823}
-.self-permissions__empty{font-size:.83rem;color:#627268;padding:9px 0}
-.self-permissions__super{padding:14px;background:#edf8f0;border:1px solid #cfe6d5;border-radius:11px}
-.self-permissions__super strong{color:#23603c}
-.self-permissions__super p{margin:6px 0 0;color:#405746;font-size:.87rem;line-height:1.55}
-.self-permissions__notice{margin:12px 0 0;font-size:.83rem;color:#8c4c10}
-.self-permissions__footnote{margin:12px 0 0;padding-top:11px;border-top:1px solid #e3ebe6;color:#64756a;font-size:.76rem;line-height:1.5}
-@media(max-width:680px){.self-permissions__sections{grid-template-columns:minmax(0,1fr);gap:15px}.self-permissions-card{padding:14px}.self-permissions-card__source{font-size:.72rem}}

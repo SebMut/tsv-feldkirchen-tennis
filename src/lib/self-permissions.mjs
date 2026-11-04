@@ -1,12 +1,23 @@
 /** Explanatory view model only. Real authorization remains enforced by Supabase/RLS. */
+/** @typedef {{ key: 'news' | 'events' | 'ticker', name: string, detail: string }} GlobalGrant */
+/**
+ * @param {{
+ *   userId: string,
+ *   profile: { global_role?: string, global_permissions?: string[] } | null,
+ *   teams?: Array<{ id: string, name?: string }>,
+ *   memberships?: Array<{ user_id: string, team_id: string, role: string, active: boolean }>
+ * }} input
+ */
 export function describeSelfPermissions({ userId, profile, teams = [], memberships = [] }) {
   const superAdmin = profile?.global_role === 'super_admin';
   const granted = new Set(Array.isArray(profile?.global_permissions) ? profile.global_permissions : []);
-  const globals = superAdmin ? [] : [
-    granted.has('news') && { key: 'news', name: 'News', detail: 'Beiträge erstellen und bearbeiten' },
-    granted.has('events') && { key: 'events', name: 'Veranstaltungen', detail: 'Termine und Anmeldungen verwalten' },
-    granted.has('ticker') && { key: 'ticker', name: 'Liveticker', detail: 'Ticker aller Mannschaften bearbeiten' },
-  ].filter(Boolean);
+  /** @type {GlobalGrant[]} */
+  const globals = [];
+  if (!superAdmin) {
+    if (granted.has('news')) globals.push({ key: 'news', name: 'News', detail: 'Beiträge erstellen und bearbeiten' });
+    if (granted.has('events')) globals.push({ key: 'events', name: 'Veranstaltungen', detail: 'Termine und Anmeldungen verwalten' });
+    if (granted.has('ticker')) globals.push({ key: 'ticker', name: 'Liveticker', detail: 'Ticker aller Mannschaften bearbeiten' });
+  }
   const teamNames = new Map(teams.filter(team => team?.id).map(team => [team.id, team.name || 'Mannschaft']));
   const teamRights = superAdmin ? [] : memberships
     .filter(row => row?.active === true && row.user_id === userId &&
