@@ -18,6 +18,7 @@ test('admin navigation is located above all panels, with category dropdowns and 
  for(const capability of ['data-super-only','data-editor-only','data-editorial-only','data-ticker-only'])
    assert.ok(nav.includes(capability),capability);
  assert.match(nav,/<summary class="admin-nav__label">Verwaltung<\/summary>/);
+ assert.match(css,/\.admin-nav__start>\.admin-nav__label\{display:none\}/);
  assert.match(page,/id="admin-panel-select"/);
 });
 test('dropdowns keep existing panel routing, keyboard dismissal and responsive mobile picker',()=>{
