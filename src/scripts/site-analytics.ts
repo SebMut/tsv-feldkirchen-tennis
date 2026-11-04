@@ -62,7 +62,7 @@ function targetFor(href: string): string {
 export function initSiteAnalytics() {
   if (started || import.meta.env.PUBLIC_PREVIEW_MODE === 'true') return;
   started = true;
-  if (navigator.doNotTrack === '1' || navigator.globalPrivacyControl === true) return;
+  if (navigator.doNotTrack === '1' || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true) return;
   const pagePath = pathOf(location.pathname);
   // Geschützte Bereiche, Einladungen, Anmeldungen und deren Parameter nie erfassen.
   if (!pagePath) return;
