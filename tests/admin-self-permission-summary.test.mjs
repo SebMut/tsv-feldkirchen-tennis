@@ -76,7 +76,9 @@ test('self rights use identical card markup as super admin and exclude other use
  const page=read('src/pages/admin/index.astro');
  const impl=script.slice(script.indexOf('function renderMyPermissions()'),script.indexOf('function hasGlobalPermission'));
  assert.match(impl,/userId: state\.user\.id/);
- assert.match(impl,/memberships: state\.memberships/);
+ assert.match(impl,/memberships: state\.memberships\.map/);
+ assert.match(impl,/user_id: String\(membership\.user_id \|\| ''\)/);
+ assert.match(impl,/active: membership\.active === true/);
  assert.match(impl,/renderStoredUserPermissions\(ownUser, state, false\)/);
  assert.match(shared,/const memberships = \(Array\.isArray\(user\.team_memberships\)/);
  assert.equal((page.match(/data-self-permissions-summary/g)||[]).length,2);

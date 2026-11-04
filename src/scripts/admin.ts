@@ -42,8 +42,18 @@ function renderMyPermissions() {
   const rights = describeSelfPermissions({
     userId: state.user.id,
     profile: state.profile,
-    teams: state.teams,
-    memberships: state.memberships,
+    // Build typed, minimal records from Supabase rows to avoid exposing
+    // arbitrary columns or relying on unvalidated Row shapes.
+    teams: state.teams.map((team) => ({
+      id: String(team.id || ''),
+      name: String(team.name || 'Mannschaft'),
+    })),
+    memberships: state.memberships.map((membership) => ({
+      user_id: String(membership.user_id || ''),
+      team_id: String(membership.team_id || ''),
+      role: String(membership.role || ''),
+      active: membership.active === true,
+    })),
   });
   const ownUser = {
     display_name: state.profile.display_name || state.user.email || 'Mein Konto',
