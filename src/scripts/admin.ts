@@ -440,7 +440,7 @@ function bindNav() {
     }
   });
   document.querySelector('.admin-nav')?.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
+    if (!(event instanceof KeyboardEvent) || event.key !== 'Escape') return;
     const opened = dropdowns.find((menu) => menu.open);
     if (!opened) return;
     event.preventDefault();
