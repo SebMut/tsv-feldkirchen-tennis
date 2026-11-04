@@ -116,6 +116,7 @@ jobs:
       # Explicit go-live approval was confirmed after successful read-only SFTP checks.
       # Approved user-management hotfix: authenticated invites and permission saves.
       # Approved responsive top-dropdown navigation for administration.
+      # Production hotfix: outgoing access email redirects remain on the live domain.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
