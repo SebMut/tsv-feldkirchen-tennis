@@ -433,10 +433,8 @@ function bindNav() {
     });
   });
   document.addEventListener('pointerdown', (event) => {
-    if (event.target instanceof Node && !event.target.parentElement?.closest('.admin-nav__dropdown')) {
-      if (!(event.target instanceof Element && event.target.closest('.admin-nav__dropdown'))) {
-        dropdowns.forEach((menu) => { menu.open = false; });
-      }
+    if (!(event.target instanceof Element) || !event.target.closest('.admin-nav__dropdown')) {
+      dropdowns.forEach((menu) => { menu.open = false; });
     }
   });
   document.querySelector('.admin-nav')?.addEventListener('keydown', (event) => {

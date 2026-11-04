@@ -489,9 +489,15 @@ async function roleQA(role){
     await page.locator('#login-form button[type="submit"]').click();
     await page.locator('#admin-app').waitFor({state:'visible',timeout:23000});
     for(const [section,visible] of Object.entries(role.visible)){
-      assert.equal(await page.locator('[data-panel="'+section+'"]').isVisible(),visible,role.name+' unexpected '+section+' permission');
+      const button=page.locator('.admin-nav button[data-panel="'+section+'"]');
+      assert.equal(await button.count(),1,'Missing navigation destination '+section);
+      const granted=await button.evaluate(el=>
+        !el.classList.contains('hidden') && !el.closest('.admin-nav__group')?.classList.contains('hidden')
+      );
+      assert.equal(granted,visible,role.name+' unexpected '+section+' permission');
     }
     if(role.code==='NEWS'||role.code==='EVENTS'){
+      await page.locator('.admin-nav__dropdown[data-admin-nav-group="inhalte"] > summary').click();
       await page.locator('.admin-nav button[data-panel="news"]').click();
       if(role.code==='EVENTS'){
         const existing=page.locator('#editorial-compose-list .admin-edit-item').filter({hasText:'Platzabbau'}).first();
