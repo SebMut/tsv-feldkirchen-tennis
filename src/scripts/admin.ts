@@ -369,9 +369,14 @@ function showPanel(name: string) {
 
   const title = $('#admin-title');
   const description = $('#admin-section-description');
+  const currentGroup = $('#admin-current-group');
   const panelPicker = $<HTMLSelectElement>('#admin-panel-select');
   if (title) title.textContent = panelButtonLabel(activeButton) || 'Mein TSV';
   if (description) description.textContent = panelDescriptions[name] || '';
+  if (currentGroup) {
+    currentGroup.textContent = activeButton.closest('.admin-nav__group')
+      ?.querySelector('.admin-nav__label')?.textContent?.trim() || 'Start';
+  }
   if (panelPicker) panelPicker.value = name;
   document.querySelectorAll<HTMLDetailsElement>('.admin-nav__dropdown').forEach((menu) => {
     menu.classList.toggle('has-active', menu.contains(activeButton));
@@ -381,6 +386,18 @@ function showPanel(name: string) {
   });
   if (name === 'news') selectEditorialKind(legacyEvents ? 'events' : selectedEditorialKind);
   if (name === 'btv-import' && state.isSuper) void refreshWinterBtvHealth();
+}
+
+// Navigation may be used from deep inside a long form or the dashboard's
+// quick actions. Return to the panel heading, without scrolling on initial login.
+function navigateToPanel(name: string) {
+  showPanel(name);
+  const selected = document.querySelector<HTMLButtonElement>('.admin-nav button[data-panel].active');
+  if (selected?.dataset.panel !== name) return;
+  document.getElementById('admin-app')?.scrollIntoView({
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    block: 'start',
+  });
 }
 
 function applyDashboardTeamFilters() {
@@ -423,7 +440,7 @@ function bindNav() {
         return `<optgroup label="${escapeHtml(title)}">${options}</optgroup>`;
       }).join('');
     picker.value = 'dashboard';
-    picker.addEventListener('change', () => showPanel(picker.value));
+    picker.addEventListener('change', () => navigateToPanel(picker.value));
   }
 
   const dropdowns = Array.from(document.querySelectorAll<HTMLDetailsElement>('.admin-nav__dropdown'));
@@ -446,10 +463,10 @@ function bindNav() {
     opened.querySelector<HTMLElement>('summary')?.focus();
   });
   document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]').forEach((button) => {
-    button.addEventListener('click', () => button.dataset.panel && showPanel(button.dataset.panel));
+    button.addEventListener('click', () => button.dataset.panel && navigateToPanel(button.dataset.panel));
   });
   document.querySelectorAll<HTMLButtonElement>('[data-admin-jump]').forEach((button) => {
-    button.addEventListener('click', () => button.dataset.adminJump && showPanel(button.dataset.adminJump));
+    button.addEventListener('click', () => button.dataset.adminJump && navigateToPanel(button.dataset.adminJump));
   });
   $<HTMLButtonElement>('#admin-logout')?.addEventListener('click', async (event) => {
     const button = event.currentTarget;

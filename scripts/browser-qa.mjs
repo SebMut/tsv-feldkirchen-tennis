@@ -105,6 +105,26 @@ async function deviceQA(device){
         'Dropdown has no visible destination');
       await first.locator('summary').click();
       assert.equal(await first.evaluate(el=>el.open),false,'Top dropdown did not close');
+      await first.locator('summary').click();
+      await page.keyboard.press('Escape');
+      assert.equal(await first.evaluate(el=>el.open),false,'Escape did not close top dropdown');
+      await first.locator('summary').click();
+      await page.locator('#admin-title').click();
+      assert.equal(await first.evaluate(el=>el.open),false,'Click outside did not close dropdown');
+      const alignment=await nav.evaluate(element=>{
+        const buttons=Array.from(element.querySelectorAll(':scope > .admin-nav__group'))
+          .filter(node=>!node.classList.contains('hidden'))
+          .map(node=>node.getBoundingClientRect());
+        return {
+          rowDelta:Math.max(...buttons.map(box=>box.top))-Math.min(...buttons.map(box=>box.top)),
+          fits:element.scrollWidth<=element.clientWidth+2,
+          startLabelVisible:element.querySelector('[data-admin-nav-group="start"] > .admin-nav__label')
+            ?.getBoundingClientRect().height>0,
+        };
+      });
+      assert.ok(alignment.rowDelta<=3,'Menu groups are not on one horizontal line: '+JSON.stringify(alignment));
+      assert.ok(alignment.fits,'Menu overflows available horizontal space');
+      assert.equal(alignment.startLabelVisible,false,'Redundant Start label is visible');
       const y=await page.evaluate(()=>({
         nav:document.querySelector('.admin-nav').getBoundingClientRect().top,
         main:document.querySelector('.admin-main').getBoundingClientRect().top
@@ -556,6 +576,30 @@ try{
       assert.notEqual(focus.outline,'none','focused control must have a visible focus outline');
       await page.keyboard.press('Escape'); // must never throw or trap keyboard without a dialog.
       await noOverflow(page,'/termine/ keyboard');
+    }finally{await context.close();}
+  });
+  await check('tablet-wide desktop administration menu remains single-line at 981–1100px',async()=>{
+    const context=await browser.newContext({viewport:{width:981,height:768},reducedMotion:'reduce'});
+    const page=await context.newPage();
+    try{
+      await page.goto(url('/admin/'),{waitUntil:'domcontentloaded'});
+      await page.evaluate(()=>{
+        document.querySelector('#admin-app')?.classList.remove('hidden');
+        document.querySelector('#auth-box')?.classList.add('hidden');
+      });
+      for(const width of [981,1024,1100]){
+        await page.setViewportSize({width,height:768});
+        const nav=page.locator('.admin-nav');
+        assert.ok(await nav.isVisible(),'Top navigation missing at '+width+'px');
+        const box=await nav.evaluate(element=>{
+          const buttons=Array.from(element.querySelectorAll(':scope > .admin-nav__group'));
+          const tops=buttons.map(node=>node.getBoundingClientRect().top);
+          return {delta:Math.max(...tops)-Math.min(...tops),overflow:element.scrollWidth-element.clientWidth};
+        });
+        assert.ok(box.delta<=3,'Wrapped navigation at '+width+'px: '+JSON.stringify(box));
+        assert.ok(box.overflow<=2,'Clipped navigation at '+width+'px: '+JSON.stringify(box));
+        await noOverflow(page,'/admin/ '+width+'px');
+      }
     }finally{await context.close();}
   });
   await runTickerBrowserRehearsal({browser,url,check});

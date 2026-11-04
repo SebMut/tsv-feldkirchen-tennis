@@ -46,7 +46,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
     <section id="admin-app" class="hidden">
       <header class="admin-workspace-head">
         <div>
-          <p class="eyebrow">Mein TSV <span aria-hidden="true">/</span> Verwaltungsbereich</p>
+          <p class="eyebrow">Mein TSV <span aria-hidden="true">/</span> <span id="admin-current-group">Start</span></p>
           <h1 id="admin-title">Übersicht</h1>
           <p id="admin-section-description" class="muted">Dein Überblick über Mannschaften, Spiele und Aufgaben.</p>
         </div>
@@ -59,8 +59,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
       <div id="admin-status" class="notice hidden" aria-live="polite"></div>
 
       <div class="admin-shell">
-        <nav class="card admin-nav" aria-label="Administration">
-          <div class="admin-nav__brand"><span class="admin-nav__brand-mark" aria-hidden="true">TSV</span><span>Mein TSV<small>Arbeitsbereich</small></span></div>
+        <nav class="card admin-nav" aria-label="Verwaltungsbereiche">
           <div class="admin-nav__group" data-admin-nav-group="start">
             <p class="admin-nav__label">Start</p>
             <button type="button" data-panel="dashboard" class="active" aria-current="page"><span aria-hidden="true" class="admin-nav__symbol">▦</span> Übersicht</button>
