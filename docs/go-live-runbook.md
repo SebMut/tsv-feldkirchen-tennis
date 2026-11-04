@@ -47,6 +47,8 @@ Der Workflow baut eine statische Astro-Seite mit `npm ci`, `npm run build` und `
 - Die generierten Dateien aus `dist/` werden auf den bestätigten Zielpfad kopiert.
 - **Wichtig:** `dist/.htaccess` ist versteckt und wird deshalb zusätzlich explizit hochgeladen. Nur so können die vorbereiteten WordPress-301-Weiterleitungen auf Apache wirken.
 - Der Upload entfernt **keine** vorhandenen Dateien, Datenbanken oder WordPress-Inhalte. Die Webroot-Bereinigung und etwaige Kollisionen mit verbliebenen WordPress-Routingregeln müssen vorab vom Hoster geplant werden.
+- Der CI-Build auf dem freigegebenen Feature-Branch stellt nach erfolgreichen Tests das vollständige Artefakt **`tsv-tennis-dist`** einschließlich der versteckten `.htaccess` bereit. Als manueller Rückfallweg kann die berechtigte Hostingperson **nach Backup und Freigabe** den Inhalt von `dist/` in den bestätigten United-Domains-Webroot hochladen. Nicht blind den gesamten WordPress-Bestand löschen.
+- **GitHub-Actions-Hinweis:** `workflow_dispatch` benötigt eine Registrierung der Workflow-Datei auf dem Default-Branch. Aktuell ist das Produktionsworkflow nur im Feature-Branch vorhanden; bevor es per Actions-Menü gestartet werden kann, muss der Repository-Administrator eine sichere Registrierungsstrategie genehmigen. Diese Vorbereitung ändert `main` ausdrücklich nicht.
 - Das GitHub-Pages-Preview verwendet eine eigene `robots.txt` mit `Disallow: /`; die produktive Site verwendet dagegen die `public/robots.txt` mit gültigem Sitemap-Hinweis.
 
 ## 4. Sofortkontrolle nach ausdrücklich freigegebenem Upload
