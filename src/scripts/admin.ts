@@ -9,6 +9,7 @@ import { initEventRsvpAdmin } from './event-rsvp-admin';
 import { initEditorialComposer } from './editorial-composer';
 import { initSystemMonitor } from './system-monitor';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
+import { describeSelfPermissions } from '../lib/self-permissions.mjs';
 import { summarizeSetResult, validateSetScore, adjustSetScore } from '../lib/tennis-score.mjs';
 import { adjustRegularTiebreak, readRegularTiebreak, regularTiebreakScore, regularSetFromTiebreak, regularSetDisplayHtml, validateRegularTiebreak } from '../lib/regular-tiebreak.mjs';
 
@@ -32,6 +33,40 @@ const status = (message: string, tone: 'info' | 'error' | 'success' = 'info') =>
   el.classList.remove('hidden');
   setStatus(el, message, tone);
 };
+
+function renderMyPermissions() {
+  // Use only this authenticated user's loaded profile and team memberships.
+  // This summary does not grant rights: all mutations stay guarded by RLS/backend.
+  if (!state.user || !state.profile) return;
+  const rights = describeSelfPermissions({
+    userId: state.user.id,
+    profile: state.profile,
+    teams: state.teams,
+    memberships: state.memberships,
+  });
+  const globalHtml = rights.globals.length
+    ? rights.globals.map((right: { name: string; detail: string }) =>
+        `<li class="self-permissions__item"><strong>${escapeHtml(right.name)}</strong>
+           <span>${escapeHtml(right.detail)}</span></li>`).join('')
+    : '<li class="self-permissions__empty">Keine vereinsweiten Zusatzrechte zugewiesen.</li>';
+  const teamHtml = rights.teamRights.length
+    ? rights.teamRights.map((team: { name: string; roleName: string; editTeam: boolean }) =>
+        `<li class="self-permissions__item"><strong>${escapeHtml(team.name)}</strong>
+           <span class="self-permissions__role">${escapeHtml(team.roleName)}</span>
+           <span>${team.editTeam ? 'Mannschaft, Kader und Liveticker bearbeiten' : 'Nur den Liveticker dieser Mannschaft bearbeiten'}</span></li>`).join('')
+    : '<li class="self-permissions__empty">Keine Mannschaftsrechte zugewiesen.</li>';
+  const body = rights.superAdmin
+    ? `<div class="self-permissions__super"><strong>SuperAdmin – vollständiger Zugriff</strong>
+         <p>Du kannst alle Mannschaften, Spieler, Liveticker, News, Veranstaltungen, Vereinsinhalte, Benutzer und Einstellungen verwalten.</p></div>`
+    : `<div class="self-permissions__sections">
+        <div><h3>Vereinsweit</h3><ul class="self-permissions__list">${globalHtml}</ul></div>
+        <div><h3>Meine Mannschaften</h3><ul class="self-permissions__list">${teamHtml}</ul></div>
+       </div>
+       ${!rights.hasEditRights ? '<p class="self-permissions__notice">Du hast aktuell keine redaktionellen oder Mannschafts-Bearbeitungsrechte. Ein SuperAdmin kann dir Rechte zuweisen.</p>' : ''}`;
+  document.querySelectorAll<HTMLElement>('[data-self-permissions-summary]').forEach(el => {
+    el.innerHTML = body + '<p class="self-permissions__footnote">Du kannst dein eigenes Passwort jederzeit unter „Mein Konto“ ändern. Diese Übersicht zeigt die beim Anmelden geladenen Rechte; Änderungen durch einen Admin werden bei der nächsten Aktualisierung übernommen.</p>';
+  });
+}
 
 function hasGlobalPermission(permission: 'events' | 'news' | 'ticker') {
   return state.isSuper || (Array.isArray(state.profile?.global_permissions) && state.profile.global_permissions.includes(permission));
@@ -2745,6 +2780,7 @@ async function startApp(user: any) {
   }
   state.isSuper = state.profile?.global_role === 'super_admin';
   await loadCore();
+  renderMyPermissions();
 
   const canEditAny = state.isSuper || ownMemberships().some((m) => ['manager', 'editor'].includes(m.role));
   const canTickAny = hasGlobalPermission('ticker') || ownMemberships().some((m) => ['manager', 'editor', 'ticker'].includes(m.role));
@@ -2768,6 +2804,7 @@ async function startApp(user: any) {
   syncAdminSeasonPills();
   renderSelectors();
   bindNav();
+  $<HTMLButtonElement>('#admin-my-rights-link')?.addEventListener('click', () => navigateToPanel('account'));
   bindForms();
   bindTvTimingControls(state); // Ready immediately, even while other admin data loads.
   initSystemMonitor(state.isSuper);
