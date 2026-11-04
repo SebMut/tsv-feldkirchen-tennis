@@ -38,6 +38,8 @@ jobs:
           echo 'All required SFTP secrets are present.'
       - name: Install SFTP client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      # Verify the existing remote directory without uploading, deleting or editing files.
+      # The remote pwd/ls output must be inspected before any separate production approval.
       - name: Read-only SFTP directory test
         env:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
