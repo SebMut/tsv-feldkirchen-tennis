@@ -58,6 +58,8 @@ const preview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
     </div>
     <script>
       import { initTvLiveTicker } from '../../../scripts/tv-live-ticker';
+      import { initSiteAnalytics } from '../../../scripts/site-analytics';
+      initSiteAnalytics();
       initTvLiveTicker();
     </script>
   </body>

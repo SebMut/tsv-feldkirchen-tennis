@@ -8,6 +8,7 @@ import { initOfficialReportsPanel } from './official-reports-admin';
 import { initEventRsvpAdmin } from './event-rsvp-admin';
 import { initEditorialComposer } from './editorial-composer';
 import { initSystemMonitor } from './system-monitor';
+import { initSiteAnalyticsAdmin } from './site-analytics-admin';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
 import { describeSelfPermissions } from '../lib/self-permissions.mjs';
 import { summarizeSetResult, validateSetScore, adjustSetScore } from '../lib/tennis-score.mjs';
@@ -328,6 +329,7 @@ const panelDescriptions: Record<string, string> = {
   seasons: 'Saisons anlegen und verwalten.',
   users: 'Zugänge einladen und Teamrechte verwalten.',
   operations: 'Supabase, BTV, Bilder, Cronjobs und Wiederherstellungsprüfungen überwachen.',
+  analytics: 'Aufrufe, Liveticker und Nutzeraktionen datensparsam auswerten.',
   audit: 'Änderungen an Daten und Inhalten prüfen.',
   settings: 'Zentrale Einstellungen der Website bearbeiten.',
   account: 'Deine persönlichen Kontoeinstellungen ändern.',
@@ -388,6 +390,7 @@ function showPanel(name: string) {
   if (legacyEvents) name = 'news';
   if (name === 'manual-results' && !state.isSuper) return;
   if (name === 'official-rubbers' && !state.isSuper) return;
+  if (name === 'analytics' && !state.isSuper) return;
   const activeButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]'))
     .find((button) => button.dataset.panel === name && !button.classList.contains('hidden'));
   const target = document.getElementById(`panel-${name}`);
@@ -422,6 +425,7 @@ function showPanel(name: string) {
   });
   if (name === 'news') selectEditorialKind(legacyEvents ? 'events' : selectedEditorialKind);
   if (name === 'btv-import' && state.isSuper) void refreshWinterBtvHealth();
+  if (name === 'analytics' && state.isSuper) document.dispatchEvent(new Event('tsv:analytics-open'));
 }
 
 // Navigation may be used from deep inside a long form or the dashboard's
@@ -2809,6 +2813,7 @@ async function startApp(user: any) {
   bindForms();
   bindTvTimingControls(state); // Ready immediately, even while other admin data loads.
   initSystemMonitor(state.isSuper);
+  initSiteAnalyticsAdmin(state.isSuper);
   if (canNews || canEvents) {
     initEditorialComposer({ canNews, canEvents, user: state.user });
     window.addEventListener('tsv:editorial-content-changed', () => {

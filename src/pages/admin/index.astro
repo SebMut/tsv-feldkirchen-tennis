@@ -1,5 +1,6 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
+import '../../styles/admin-analytics.css';
 ---
 <MainLayout title="Mein TSV | TSV Feldkirchen Tennis" description="Geschützter Bereich für Mannschaften und SuperAdmins." noindex={true}>
   <div class="container stack admin-workspace" id="admin-root">
@@ -90,6 +91,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <div class="admin-nav__items">
             <button type="button" data-panel="seasons" data-super-only><span aria-hidden="true" class="admin-nav__symbol">◷</span> Saisons</button>
             <button type="button" data-panel="users" data-super-only><span aria-hidden="true" class="admin-nav__symbol">♧</span> Benutzer</button>
+            <button type="button" data-panel="analytics" data-super-only><span aria-hidden="true" class="admin-nav__symbol">▥</span> Statistik</button>
             <button type="button" data-panel="operations" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⚑</span> Systemstatus</button>
             <button type="button" data-panel="audit" data-super-only><span aria-hidden="true" class="admin-nav__symbol">↺</span> Änderungsverlauf</button>
             <button type="button" data-panel="settings" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⚙</span> Einstellungen</button>
@@ -653,6 +655,37 @@ import MainLayout from '../../layouts/MainLayout.astro';
                 <div class="field"><button class="button" type="submit">Einstellungen speichern</button></div>
               </form>
             </div>
+          </section>
+
+          
+          <section id="panel-analytics" class="admin-panel" data-super-only>
+            <div class="card stack">
+              <div class="analytics-head">
+                <div><p class="eyebrow">SuperAdmin · Website-Nutzung</p><h2>Besucherstatistik</h2>
+                  <p class="muted">Seitenaufrufe, Liveticker-Interesse und genutzte Website-Funktionen im Überblick.</p></div>
+                <div class="analytics-controls">
+                  <label for="analytics-range">Zeitraum
+                    <select id="analytics-range"><option value="7">7 Tage</option><option value="30" selected>30 Tage</option><option value="90">90 Tage</option><option value="365">365 Tage</option></select>
+                  </label>
+                  <button id="analytics-refresh" class="button secondary" type="button">Aktualisieren</button>
+                  <button id="analytics-export" class="button secondary" type="button">CSV exportieren</button>
+                </div>
+              </div>
+              <p id="analytics-feedback" class="muted" role="status" aria-live="polite">Wähle die Statistik aus, um aktuelle Werte zu laden.</p>
+              <div id="analytics-metrics" class="analytics-metrics" aria-label="Kennzahlen"></div>
+              <p id="analytics-empty" class="muted hidden">Die Aufzeichnung beginnt mit der Aktivierung dieser Funktion. Für frühere Website-Besuche gibt es keine rückwirkenden Daten.</p>
+              <div><h3>Besuche im Zeitverlauf</h3><p class="muted analytics-panel-label">Tägliche Seitenaufrufe (maximal 45 Tage dargestellt; alle Daten zählen in die Summen).</p><div id="analytics-daily"></div></div>
+            </div>
+            <div class="analytics-grid">
+              <section class="card"><h3>Beliebteste Seiten</h3><p class="muted analytics-panel-label">Welche Bereiche werden wie häufig aufgerufen?</p><div id="analytics-pages"></div></section>
+              <section class="card"><h3>Liveticker nach Ansicht</h3><p class="muted analytics-panel-label">Spieltag, einzelne Begegnung und TV-Liveticker.</p><div id="analytics-ticker-channels"></div></section>
+              <section class="card"><h3>Meistgesehene Begegnungen</h3><p class="muted analytics-panel-label">Aufrufe einzelner Spiele im Liveticker.</p><div id="analytics-matches"></div></section>
+              <section class="card"><h3>Genutzte Funktionen</h3><p class="muted analytics-panel-label">Navigation, Kalendertage, Routen, Platzbuchung und Inhalte.</p><div id="analytics-actions"></div></section>
+              <section class="card"><h3>Geräte</h3><p class="muted analytics-panel-label">Aufteilung von Seitenaufrufen.</p><div id="analytics-devices"></div></section>
+              <section class="card"><h3>Zugriffsquellen</h3><p class="muted analytics-panel-label">Nur Quellenkategorien – keine konkreten Suchbegriffe oder Referrer-URLs.</p><div id="analytics-sources"></div></section>
+            </div>
+            <div class="card"><h3>Wann wird die Website besucht?</h3><p class="muted analytics-panel-label">Aufrufe nach Tageszeit (Deutschland, Ortszeit).</p><div id="analytics-hours"></div></div>
+            <p class="muted analytics-footnote">Die Statistik zählt Aufrufe und Aktionen, keine eindeutigen Personen. Die Erfassung ist bewusst datensparsam: stündliche Summen ohne IP-Adresse, Cookies, Benutzer-ID oder Fingerprinting. Automatische Aktualisierungen eines offenen Livetickers werden nicht als neue Aufrufe gezählt. Browser mit Do-Not-Track oder Global Privacy Control werden nicht erfasst. <span id="analytics-recording-since"></span></p>
           </section>
 
           <section id="panel-operations" class="admin-panel" data-super-only>
