@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { escapeHtml } from '../lib/ui';
 
-type CountRow = { name?: string; path?: string; target?: string; event?: string; views: number; day?: string; hour?: number; opponent?: string; starts_at?: string };
+type CountRow = { name?: string; path?: string; target?: string; event?: string; views: number; day?: string; hour?: number; opponent?: string; starts_at?: string; id?: string; title?: string; kind?: string };
 type Result = {
   summary: { page_views: number; previous_page_views: number; ticker_views: number; ticker_detail_views: number; tv_views: number; interactions: number };
   daily: CountRow[]; pages: CountRow[]; actions: CountRow[]; devices: CountRow[]; sources: CountRow[];
@@ -22,12 +22,16 @@ const label: Record<string,string> = {
   page_view: 'Seitenaufruf', ticker_view: 'Liveticker', nav_click: 'Navigation',
   action_click: 'Aktion', calendar_click: 'Kalender', route_click: 'Route', content_click: 'Inhalt',
   spielort: 'Route zum Spielort', platz_buchen: 'Platz buchen',
+  abo_kopieren: 'Kalender-Abo kopiert', ics_download: 'ICS-Termin heruntergeladen',
+  tag_details: 'Kalendertag: Details', anmeldung_oeffnen: 'Anmeldung geöffnet',
+  weitere_beitraege: 'Weitere Beiträge', ticker_reiter: 'Liveticker-Reiter',
   tv_vollbild: 'TV: Vollbild', tv_ansicht: 'TV: Ansicht wechseln', tag_oeffnen: 'Kalendertag öffnen',
 };
 const named = (value: unknown) => label[String(value)] || (String(value).startsWith('/mannschaften/') ? 'Mannschaft · ' + String(value).split('/')[2] : String(value || 'Unbekannt').replace(/_/g,' '));
 const el = (id: string) => document.getElementById(id);
 let initialized = false;
 let cached: Result | null = null;
+let contentRows: CountRow[] = [];
 let lastDays = 30;
 let inFlight = false;
 
@@ -85,6 +89,9 @@ function render(data: Result, days: number) {
     data.actions.map(r => ({...r,target:`${named(r.event)}: ${named(r.target || 'allgemein')}`})),
     'target',n(s.interactions)
   );
+  el('analytics-content')!.innerHTML = contentRows.length
+    ? `<ol class="analytics-match-list">${contentRows.map(r=>`<li><div><strong>${escapeHtml(String(r.title || 'Inhalt'))}</strong><small>${escapeHtml(String(r.kind || 'Beitrag'))}</small></div><strong>${fmt(r.views)} Aufrufe</strong></li>`).join('')}</ol>`
+    : '<p class="muted">Noch keine Beitragsdetails geöffnet.</p>';
   el('analytics-matches')!.innerHTML = data.ticker_matches?.length
     ? `<ol class="analytics-match-list">${data.ticker_matches.map(r=>`<li><div><strong>${escapeHtml(String(r.opponent || 'Begegnung'))}</strong><small>${r.starts_at ? escapeHtml(new Date(r.starts_at).toLocaleDateString('de-DE')) : 'Datum unbekannt'}</small></div><strong>${fmt(r.views)} Aufrufe</strong></li>`).join('')}</ol>`
     : '<p class="muted">Noch keine einzelnen Spiel-Liveticker geöffnet.</p>';
@@ -103,10 +110,15 @@ async function refresh() {
   message.textContent = 'Statistik wird geladen …';
   const days = Number(select?.value) || 30;
   try {
-    const {data,error} = await supabase.rpc('admin_site_analytics',{p_days:days});
-    if (error) throw error;
-    if (!data?.summary) throw new Error('Keine gültige Statistikantwort erhalten.');
-    cached = data as Result;
+    const [overview,content] = await Promise.all([
+      supabase.rpc('admin_site_analytics',{p_days:days}),
+      supabase.rpc('admin_site_analytics_content',{p_days:days}),
+    ]);
+    if (overview.error) throw overview.error;
+    if (content.error) throw content.error;
+    if (!overview.data?.summary) throw new Error('Keine gültige Statistikantwort erhalten.');
+    contentRows = Array.isArray(content.data) ? content.data as CountRow[] : [];
+    cached = overview.data as Result;
     lastDays = days;
     render(cached,days);
     message.textContent = 'Zuletzt aktualisiert: ' + new Date().toLocaleString('de-DE');
@@ -118,6 +130,7 @@ async function refresh() {
 function downloadCsv() {
   if (!cached) return;
   const sets: Array<[string,CountRow[],string]> = [
+    ['Inhalte',contentRows,'title'],
     ['Seiten',cached.pages,'path'],['Liveticker',cached.ticker_channels,'path'],
     ['Begegnungen',cached.ticker_matches,'opponent'],['Aktionen',cached.actions,'target'],
     ['Geräte',cached.devices,'name'],['Quellen',cached.sources,'name'],['Tage',cached.daily,'day'],

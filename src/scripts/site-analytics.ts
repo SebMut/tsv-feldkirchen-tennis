@@ -73,10 +73,29 @@ export function initSiteAnalytics() {
   }
   document.addEventListener('click', (e) => {
     if (!(e.target instanceof Element)) return;
-    const elem = e.target.closest<HTMLElement>('a[href],button');
+    const elem = e.target.closest<HTMLElement>('a[href],button,summary');
     if (!elem) return;
+    const article = elem.closest<HTMLElement>('.content-card[id^="news-"],.content-card[id^="event-"]');
+    if (article && (elem.matches('[data-open-detail]') ||
+      (elem.matches('summary') && !!elem.closest('details[data-expanded-details]')))) {
+      const expanded = article.querySelector<HTMLDetailsElement>('details[data-expanded-details]');
+      if (!expanded?.open) {
+        const match = /^(news|event)-([0-9a-f-]{36})$/i.exec(article.id);
+        if (match) track('content_click',pagePath,match[1]+':'+match[2].toLowerCase());
+      }
+      return;
+    }
+    if (elem.matches('[data-calendar-copy]')) { track('calendar_click',pagePath,'abo_kopieren'); return; }
+    if (elem.matches('[data-calendar-save]')) { track('calendar_click',pagePath,'ics_download'); return; }
+    if (elem.matches('#calendar-modal-details')) { track('calendar_click',pagePath,'tag_details'); return; }
+    if (elem.matches('[data-news-more]')) { track('content_click',pagePath,'weitere_beitraege'); return; }
     if (elem instanceof HTMLAnchorElement) {
-      if (elem.getAttribute('href')?.startsWith('#')) return;
+      if (elem.getAttribute('href')?.startsWith('#')) {
+        if (pagePath === '/live/' && elem.closest('.scorecenter-tabs')) {
+          track('action_click',pagePath,'ticker_reiter');
+        }
+        return;
+      }
       let url: URL;
       try { url = new URL(elem.href, location.href); } catch { return; }
       const href = url.origin === location.origin ? pathOf(url.pathname) : '';
@@ -84,6 +103,8 @@ export function initSiteAnalytics() {
         track('route_click', pagePath, 'spielort');
       } else if (url.hostname.endsWith('courtbooking.de')) {
         track('action_click', pagePath, 'platz_buchen');
+      } else if (href === '/veranstaltung/' && elem.closest('.content-card__signup')) {
+        track('action_click', pagePath, 'anmeldung_oeffnen');
       } else if (href && elem.closest('nav,header,.mobile-dock')) {
         track('nav_click', pagePath, targetFor(href));
       } else if (href && (elem.closest('.match-list,.live-center,.matchday-dashboard,.scorecenter-shell') || href === '/live/')) {
