@@ -1,4 +1,11 @@
+# Astro first: a remaining WordPress index.php must not override index.html.
+DirectoryIndex index.html index.php
 RewriteEngine On
+RewriteCond %{HTTP_HOST} ^tennis-tsvfeldkirchen\.de$ [NC]
+RewriteRule ^ https://www.tennis-tsvfeldkirchen.de%{REQUEST_URI} [R=301,L]
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP_HOST} ^www\.tennis-tsvfeldkirchen\.de$ [NC]
+RewriteRule ^ https://www.tennis-tsvfeldkirchen.de%{REQUEST_URI} [R=301,L]
 
 # Alte WordPress-Hauptseiten
 Redirect 301 /front_page/ /

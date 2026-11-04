@@ -17,22 +17,25 @@ Dieses Runbook ist für den späteren, ausdrücklich freigegebenen Übergang von
 - [ ] Betreiber nimmt Phase 7 schriftlich und ausdrücklich ab; insbesondere Funktionalität auf Mobilgerät, Redaktion, Live-Ticker mit zwei Geräten und Benutzerrechte.
 - [ ] Ansprechpartner und rechtliche Freigabe für Bilder/Personen, Kontaktangaben, Impressum/Datenschutz und WordPress-Altinhalte liegen vor.
 - [ ] Supabase Auth-Konfiguration geprüft: nur vorgesehene Zugangswege und Passwortschutz, keine anonyme Schreibberechtigung.
+- [ ] In Supabase Auth unter URL Configuration die Site URL und erlaubten Redirect-URLs für `https://www.tennis-tsvfeldkirchen.de/admin/` und `https://tennis-tsvfeldkirchen.de/admin/` bestätigen.
+- [ ] Login, Einladungslinks und Passwort-Reset auf der produktiven Domain nach dem Upload testen.
 - [ ] Backup der bisherigen WordPress-Dateien **und** WordPress-Datenbank erstellt und Wiederherstellung getestet.
 - [ ] Zusätzlich Export-/Wiederherstellungsplan für die bestehenden Supabase-Vereinsdaten dokumentiert.
 - [ ] Bisherige WordPress-URLs und Weiterleitungen durchgesprochen; Ranglisten-Ausnahme ggf. geklärt.
 - [ ] GitHub-Actions-Build und GitHub-Pages-Vorschau des konkret freizugebenden Commits vollständig erfolgreich.
 - [ ] United-Domains-Zielverzeichnis und aktive Webserver-/PHP-/Apache-Konfiguration durch Hosting-Verantwortliche bestätigt, insbesondere die Wirkung von `.htaccess`.
 - [ ] Sichere Entscheidung getroffen, wie alte WordPress-Dateien im produktiven Webroot archiviert bzw. getrennt werden. **Der aktuelle SFTP-Workflow löscht keine Altdateien und macht kein Cleanup.**
+- [ ] Domainzuordnung und HTTPS beider Domainvarianten bei United Domains prüfen; `DirectoryIndex index.html index.php` verhindert, dass alte WordPress-Startdateien die neue Website überdecken.
 - [ ] Die spätere Umstellung wurde für alle Vereinsverantwortlichen angekündigt.
 
 ## 2. Explizite Deploy-Freigabe
 
 Die Workflow-Datei `.github/workflows/deploy-united-domains.yml` besitzt absichtlich eine mehrteilige Sperre:
 
-1. Feature-Branch erst **nach separater schriftlicher Freigabe** kontrolliert nach `main` übernehmen.
+1. Den auf `feature/astro-supabase-foundation` getesteten Commit freigeben; kein Merge nach `main`.
 2. Im GitHub-Repository unter **Settings → Environments → production** benötigte Prüfer („Required reviewers“) konfigurieren, soweit verfügbar.
 3. Erst nach Freigabe unter **Settings → Secrets and variables → Actions → Variables** die Repository-Variable `TSV_GO_LIVE_APPROVED=true` setzen.
-4. Erst dann `Deploy to United Domains` aus **Actions** manuell auf `main` auslösen und als `final_approval` exakt `TSV-FELDKIRCHEN-GO-LIVE` eintragen.
+4. Erst dann `Deploy to United Domains` aus **Actions** manuell auf `feature/astro-supabase-foundation` auslösen und als `final_approval` exakt `TSV-FELDKIRCHEN-GO-LIVE` eintragen.
 5. Nach erfolgreichem Abschluss die Variable sofort wieder deaktivieren/entfernen; keine Dauerfreigabe.
 
 Ohne Branch, exakte Eingabe und aktivierte Variable wird der Job übersprungen. Die Repository-Variable und Umgebungs-Reviewer werden nicht automatisch durch ChatGPT eingerichtet. Die Produktiv-SFTP-Zugangsdaten dürfen ausschließlich als GitHub-Secrets hinterlegt sein, nie im Code oder Chat.
