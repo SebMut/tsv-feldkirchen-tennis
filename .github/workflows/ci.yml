@@ -33,6 +33,7 @@ jobs:
         with:
           name: tsv-tennis-dist
           path: dist
+          include-hidden-files: true
   browser-qa:
     name: Chromium browser quality checks
     needs: build
