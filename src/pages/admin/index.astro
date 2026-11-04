@@ -65,31 +65,37 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <p class="admin-nav__label">Start</p>
             <button type="button" data-panel="dashboard" class="active" aria-current="page"><span aria-hidden="true" class="admin-nav__symbol">▦</span> Übersicht</button>
           </div>
-          <div class="admin-nav__group" data-admin-nav-group="spielbetrieb">
-            <p class="admin-nav__label">Spielbetrieb</p>
+          <details class="admin-nav__group admin-nav__dropdown" data-admin-nav-group="spielbetrieb">
+            <summary class="admin-nav__label">Spielbetrieb</summary>
+            <div class="admin-nav__items">
             <button type="button" data-panel="matches" data-ticker-only><span aria-hidden="true" class="admin-nav__symbol">◉</span> Spiele &amp; Liveticker</button>
             <button type="button" data-panel="teams" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">▤</span> Mannschaften</button>
             <button type="button" data-panel="players" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">♙</span> Kader</button>
             <button type="button" data-panel="btv-import" data-super-only><span aria-hidden="true" class="admin-nav__symbol">↻</span> BTV-Spielplan</button>
             <button type="button" data-panel="manual-results" data-super-only class="hidden"><span aria-hidden="true" class="admin-nav__symbol">✓</span> Ergebnisse nachtragen</button>
             <button type="button" data-panel="official-rubbers" data-super-only class="hidden"><span aria-hidden="true" class="admin-nav__symbol">≡</span> Amtliche Spielberichte</button>
-          </div>
-          <div class="admin-nav__group" data-admin-nav-group="inhalte">
-            <p class="admin-nav__label">Inhalte &amp; Verein</p>
+            </div>
+          </details>
+          <details class="admin-nav__group admin-nav__dropdown" data-admin-nav-group="inhalte">
+            <summary class="admin-nav__label">Inhalte &amp; Verein</summary>
+            <div class="admin-nav__items">
             <button type="button" data-panel="news" data-editorial-only><span aria-hidden="true" class="admin-nav__symbol">✎</span> Aktuelles &amp; Veranstaltungen</button>
             <button type="button" data-panel="galleries" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">▧</span> Bilder</button>
             <button type="button" data-panel="content" data-super-only><span aria-hidden="true" class="admin-nav__symbol">☷</span> Website-Inhalte</button>
             <button type="button" data-panel="facility" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⌂</span> Anlage</button>
-          </div>
-          <div class="admin-nav__group" data-admin-nav-group="verwaltung">
-            <p class="admin-nav__label">Verwaltung</p>
+            </div>
+          </details>
+          <details class="admin-nav__group admin-nav__dropdown" data-admin-nav-group="verwaltung">
+            <summary class="admin-nav__label">Verwaltung</summary>
+            <div class="admin-nav__items">
             <button type="button" data-panel="seasons" data-super-only><span aria-hidden="true" class="admin-nav__symbol">◷</span> Saisons</button>
             <button type="button" data-panel="users" data-super-only><span aria-hidden="true" class="admin-nav__symbol">♧</span> Benutzer</button>
             <button type="button" data-panel="operations" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⚑</span> Systemstatus</button>
             <button type="button" data-panel="audit" data-super-only><span aria-hidden="true" class="admin-nav__symbol">↺</span> Änderungsverlauf</button>
             <button type="button" data-panel="settings" data-super-only><span aria-hidden="true" class="admin-nav__symbol">⚙</span> Einstellungen</button>
             <button type="button" data-panel="account"><span aria-hidden="true" class="admin-nav__symbol">◎</span> Mein Konto</button>
-          </div>
+            </div>
+          </details>
         </nav>
 
         <div class="admin-main stack">

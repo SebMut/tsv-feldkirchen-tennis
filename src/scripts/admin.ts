@@ -373,6 +373,12 @@ function showPanel(name: string) {
   if (title) title.textContent = panelButtonLabel(activeButton) || 'Mein TSV';
   if (description) description.textContent = panelDescriptions[name] || '';
   if (panelPicker) panelPicker.value = name;
+  document.querySelectorAll<HTMLDetailsElement>('.admin-nav__dropdown').forEach((menu) => {
+    menu.classList.toggle('has-active', menu.contains(activeButton));
+    if (!menu.open) return;
+    menu.open = false;
+    if (menu.contains(activeButton)) menu.querySelector('summary')?.focus();
+  });
   if (name === 'news') selectEditorialKind(legacyEvents ? 'events' : selectedEditorialKind);
   if (name === 'btv-import' && state.isSuper) void refreshWinterBtvHealth();
 }
@@ -420,6 +426,27 @@ function bindNav() {
     picker.addEventListener('change', () => showPanel(picker.value));
   }
 
+  const dropdowns = Array.from(document.querySelectorAll<HTMLDetailsElement>('.admin-nav__dropdown'));
+  dropdowns.forEach((menu) => {
+    menu.addEventListener('toggle', () => {
+      if (menu.open) dropdowns.forEach((other) => { if (other !== menu) other.open = false; });
+    });
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (event.target instanceof Node && !event.target.parentElement?.closest('.admin-nav__dropdown')) {
+      if (!(event.target instanceof Element && event.target.closest('.admin-nav__dropdown'))) {
+        dropdowns.forEach((menu) => { menu.open = false; });
+      }
+    }
+  });
+  document.querySelector('.admin-nav')?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const opened = dropdowns.find((menu) => menu.open);
+    if (!opened) return;
+    event.preventDefault();
+    opened.open = false;
+    opened.querySelector<HTMLElement>('summary')?.focus();
+  });
   document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]').forEach((button) => {
     button.addEventListener('click', () => button.dataset.panel && showPanel(button.dataset.panel));
   });
