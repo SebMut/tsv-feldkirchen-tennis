@@ -109,9 +109,10 @@ jobs:
           # Die versteckte Apache-Konfiguration ist NICHT in dist/* enthalten.
           test -f dist/.htaccess
           test -f dist/admin/index.html
-          printf 'cd %s\nput -r dist/*\nput dist/.htaccess .htaccess\nbye\n' "$SFTP_REMOTE_PATH" > /tmp/sftp-batch.txt
+          # Verify the delivered root and admin entrypoints on the remote host.
+          printf 'cd %s\nput -r dist/*\nput dist/.htaccess .htaccess\nls -l index.html\nls -l admin/index.html\nbye\n' "$SFTP_REMOTE_PATH" > /tmp/sftp-batch.txt
           export SSHPASS="$SFTP_PASSWORD"
-          sshpass -e sftp -o BatchMode=no -o StrictHostKeyChecking=accept-new -P "$PORT" -b /tmp/sftp-batch.txt "$SFTP_USER@$SFTP_HOST"
+          timeout 240 sshpass -e sftp -o BatchMode=no -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -P "$PORT" -b /tmp/sftp-batch.txt "$SFTP_USER@$SFTP_HOST"
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
