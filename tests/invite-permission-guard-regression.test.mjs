@@ -9,3 +9,11 @@ test('user invitations may update permissions with server service role without e
   assert.doesNotMatch(sql,/grant usage on schema private to service_role/i);
   assert.match(sql,/revoke all on function private\.guard_global_permissions_update\(\) from public, anon, authenticated;/);
 });
+
+const followup=readFileSync(new URL('../supabase/migrations/20261104133000_preserve_service_claim_in_permission_guard.sql',import.meta.url),'utf8');
+test('atomic permissions RPC retains signed service role claim after direct service role fix',()=>{
+ assert.match(followup,/current_user = 'service_role'/);
+ assert.match(followup,/auth\.jwt\(\)->>'role', ''\) = 'service_role'/);
+ assert.match(followup,/if not private\.is_super_admin\(\) then/);
+ assert.doesNotMatch(followup,/grant usage on schema private/i);
+});
