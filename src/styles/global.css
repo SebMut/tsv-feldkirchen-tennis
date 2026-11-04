@@ -442,6 +442,39 @@ body{background:var(--sand);color:var(--text)}
 .auth-help summary{cursor:pointer;font-weight:800;color:#a50b14}
 .auth-help form{margin-top:14px}
 .user-admin-card{border-left:4px solid #e30613}
+/* Existing saved privileges above each user editing form (not editable / not a source of authorization). */
+.user-rights-summary{
+  display:grid;gap:12px;padding:15px 17px;margin:0 0 18px;
+  border:1px solid #d9e6dc;border-left:3px solid #23724b;border-radius:12px;
+  background:#f7faf8;min-width:0
+}
+.user-rights-summary__head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px 14px}
+.user-rights-summary__head strong{font-size:.95rem;color:#203d2c}
+.user-rights-summary__head>span{font-size:.76rem;color:#5d7063;font-weight:650}
+.user-rights-summary__section{display:grid;gap:7px;min-width:0}
+.user-rights-summary__label{font-size:.8rem;font-weight:800;color:#354a3c}
+.user-rights-summary__tags,.user-rights-summary__teams{display:flex;flex-wrap:wrap;gap:7px;min-width:0}
+.user-rights-summary__tag{
+  display:inline-flex;align-items:center;max-width:100%;padding:6px 10px;
+  background:#e7f3eb;border:1px solid #c7e3d0;border-radius:8px;
+  color:#24573a;font-size:.79rem;font-weight:750;overflow-wrap:anywhere
+}
+.user-rights-summary__team{
+  display:grid;gap:2px;flex:1 1 195px;min-width:0;padding:9px 11px;
+  border:1px solid #dbe6df;border-radius:9px;background:#fff;
+  font-size:.8rem;color:#425448;overflow-wrap:anywhere
+}
+.user-rights-summary__team strong{color:#203f2c;font-size:.86rem}
+.user-rights-summary__team span{font-weight:800;color:#a61722}
+.user-rights-summary__team small{font-size:.76rem;line-height:1.45;color:#586e60}
+.user-rights-summary__empty{color:#66756b;font-size:.81rem}
+.user-rights-summary__super{margin:0;padding:12px;background:#e8f5ed;border-radius:9px;color:#1f5238;line-height:1.55}
+.user-rights-summary__super>span{margin-right:5px}
+.user-rights-summary__note{margin:0;padding-top:8px;border-top:1px solid #dfebe2;font-size:.76rem;line-height:1.5;color:#607168}
+@media(max-width:600px){
+  .user-rights-summary{padding:12px;gap:10px}
+  .user-rights-summary__team{flex-basis:100%}
+}
 .user-team-permissions{margin-top:14px}
 .user-team-card{display:grid;gap:10px;box-shadow:none}
 .status-pill.pending{background:#f3f1e8;color:#7a5b00}

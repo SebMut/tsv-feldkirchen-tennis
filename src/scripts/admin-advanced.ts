@@ -571,6 +571,60 @@ function renderPermissionMatrix(teams: AuditedTeamRights[]) {
     '</tbody></table></div>';
 }
 
+/** Summarize roles read from Supabase, not the unsaved form values below. */
+function renderStoredUserPermissions(user: Row, base: BaseState): string {
+  const isSuper = user.global_role === 'super_admin';
+  const explicitGlobals = new Set<string>(
+    Array.isArray(user.global_permissions) ? user.global_permissions : [],
+  );
+  const memberships = (Array.isArray(user.team_memberships) ? user.team_memberships : [])
+    .filter((membership: Row) => membership.active && ['manager','editor','ticker'].includes(membership.role))
+    .sort((a: Row, b: Row) =>
+      (teamName(base, a.team_id) || '').localeCompare(teamName(base, b.team_id) || '', 'de'));
+  const labels: Array<[string, string]> = [
+    ['news', 'News erstellen und bearbeiten'],
+    ['events', 'Veranstaltungen verwalten'],
+    ['ticker', 'Liveticker aller Mannschaften'],
+  ];
+  const globals = labels.filter(([key]) => explicitGlobals.has(key));
+  const teamRoleLabels: Record<string,string> = {
+    manager: 'Manager',
+    editor: 'Editor',
+    ticker: 'Nur Liveticker',
+  };
+  const roleDetails: Record<string,string> = {
+    manager: 'Mannschaft, Kader und Liveticker',
+    editor: 'Mannschaft, Kader und Liveticker',
+    ticker: 'Nur Liveticker dieser Mannschaft',
+  };
+  return `<section class="user-rights-summary" aria-label="Gespeicherte Berechtigungen von ${escapeHtml(user.display_name || user.email || 'Benutzer')}">
+    <div class="user-rights-summary__head">
+      <strong>Aktuell vergebene Berechtigungen</strong>
+      <span>In Supabase gespeichert</span>
+    </div>
+    ${isSuper ? `<p class="user-rights-summary__super"><span aria-hidden="true">✓</span>
+      <strong>SuperAdmin</strong> · Vollzugriff auf alle Verwaltungsbereiche und Mannschaften</p>` : `
+      <div class="user-rights-summary__section">
+        <span class="user-rights-summary__label">Globale Rechte</span>
+        ${globals.length ? `<div class="user-rights-summary__tags">${globals.map(([,label]) =>
+          `<span class="user-rights-summary__tag">${escapeHtml(label)}</span>`).join('')}</div>` :
+          '<span class="user-rights-summary__empty">Keine zusätzlichen globalen Rechte</span>'}
+      </div>
+      <div class="user-rights-summary__section">
+        <span class="user-rights-summary__label">Mannschaften</span>
+        ${memberships.length ? `<div class="user-rights-summary__teams">${memberships.map((membership: Row) => `
+          <span class="user-rights-summary__team">
+            <strong>${escapeHtml(teamName(base, membership.team_id) || 'Unbekannte Mannschaft')}</strong>
+            <span>${escapeHtml(teamRoleLabels[membership.role] || 'Rolle unbekannt')}</span>
+            <small>${escapeHtml(roleDetails[membership.role] || '')}</small>
+          </span>`).join('')}</div>` :
+          '<span class="user-rights-summary__empty">Keiner Mannschaft zugeordnet</span>'}
+      </div>
+    `}
+    <p class="user-rights-summary__note">Die Übersicht zeigt die zuletzt geladenen, gespeicherten Rechte. Änderungen unten werden erst nach „Rechte speichern“ übernommen.</p>
+  </section>`;
+}
+
 export async function loadAdvancedUsers(base: BaseState) {
   if (!base.isSuper) return;
   const { data, error } = await supabase.functions.invoke('admin-users', { body: { action: 'list' } });
@@ -597,6 +651,7 @@ export async function loadAdvancedUsers(base: BaseState) {
           </select>
         </label>
       </div>
+      ${renderStoredUserPermissions(user, base)}
       <div class="card flat user-global-permissions">
         <strong>Globale Berechtigungen (unabhängig von Mannschaften)</strong>
         ${user.global_role === 'super_admin' ? '<p class="muted">SuperAdmins haben alle globalen Rechte.</p>' : `
