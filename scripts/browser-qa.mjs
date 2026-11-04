@@ -79,6 +79,40 @@ async function deviceQA(device){
       await check(key+' images',()=>healthyImages(page,route),page);
     page.off('pageerror',listener);
   }
+  // Layout-only admin navigation rehearsal; do not authenticate or mutate real roles.
+  // The hidden admin shell is exposed only inside this disposable browser context.
+  await check(device.name+' admin top dropdown navigation', async()=>{
+    await page.goto(url('/admin/'),{waitUntil:'domcontentloaded'});
+    await page.evaluate(()=>{
+      document.querySelector('#admin-app')?.classList.remove('hidden');
+      document.querySelector('#auth-box')?.classList.add('hidden');
+    });
+    const nav=page.locator('.admin-nav');
+    const picker=page.locator('.admin-mobile-picker');
+    if(device.mobile){
+      assert.equal(await nav.isVisible(),false,'Desktop dropdown menu must not overflow small screens');
+      assert.equal(await picker.isVisible(),true,'Mobile administration selector is missing');
+      assert.ok(await picker.locator('label').isVisible(),'Mobile picker label is missing');
+    }else{
+      assert.equal(await nav.isVisible(),true,'Top administration menu should be visible on desktop');
+      assert.equal(await picker.isVisible(),false,'Desktop should use the grouped dropdown navigation');
+      const first=nav.locator('details.admin-nav__dropdown').first();
+      assert.equal(await nav.locator('details.admin-nav__dropdown').count(),3);
+      assert.equal(await first.evaluate(el=>el.open),false,'Menu should start collapsed');
+      await first.locator('summary').click();
+      assert.equal(await first.evaluate(el=>el.open),true,'Top dropdown did not open');
+      assert.ok(await first.locator('.admin-nav__items button[data-panel]').first().isVisible(),
+        'Dropdown has no visible destination');
+      await first.locator('summary').click();
+      assert.equal(await first.evaluate(el=>el.open),false,'Top dropdown did not close');
+      const y=await page.evaluate(()=>({
+        nav:document.querySelector('.admin-nav').getBoundingClientRect().top,
+        main:document.querySelector('.admin-main').getBoundingClientRect().top
+      }));
+      assert.ok(y.nav<y.main,'Admin menu must appear above editing content');
+    }
+    await noOverflow(page,'/admin/ navigation');
+  },page,true);
   if(device.mobile) await check(device.name+' public ICS feed is subscribable and includes event revisions',async()=>{
     const response=await page.request.get('https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/calendar-feed?type=events',{timeout:25000});
     const ics=await response.text();
