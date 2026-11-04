@@ -13,10 +13,15 @@ const allowedRsvpBases = new Set([
   'https://www.tennis-tsvfeldkirchen.de/',
   'https://tennis-tsvfeldkirchen.de/',
 ]);
+// Accept the existing exact allowlisted RSVP_BASE_URL secret values, but
+// ALWAYS use the verified live domain for links in newly sent emails.
+// This safely handles an old GitHub Pages secret until it is updated.
+const PRODUCTION_RSVP_BASE = 'https://www.tennis-tsvfeldkirchen.de/';
 function validatedRsvpBase(): URL | null {
   try {
     const base=new URL(env('RSVP_BASE_URL'));
-    return base.protocol==='https:' && allowedRsvpBases.has(base.href) ? base : null;
+    return base.protocol==='https:' && allowedRsvpBases.has(base.href)
+      ? new URL(PRODUCTION_RSVP_BASE) : null;
   } catch {
     return null;
   }
@@ -220,7 +225,7 @@ Deno.serve(async request=>{
     return reply(200,configured?{
       enabled:true,siteKey:env('TURNSTILE_SITE_KEY'),sender:GMAIL_SENDER,
     }:{enabled:false,message:!base
-      ? 'Die Supabase-Einstellung RSVP_BASE_URL ist ungültig. Bitte genau https://sebmut.github.io/tsv-feldkirchen-tennis/ eintragen, ohne weitere Zeichen.'
+      ? 'Die Supabase-Einstellung RSVP_BASE_URL ist ungültig. Bitte die vollständige Live-Domain inklusive https:// und abschließendem Schrägstrich eintragen.'
       : 'Gmail-Zugriff und Cloudflare-Menschprüfung müssen vor der Anmeldung noch vom Verein freigegeben werden.'},origin);
   }
   if (!configured) return reply(503,{error:'Anmeldung derzeit nicht verfügbar. E-Mail-Versand und Cloudflare Turnstile sind noch nicht eingerichtet.'},origin);

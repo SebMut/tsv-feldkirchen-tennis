@@ -704,7 +704,7 @@ export async function loadAdvancedUsers(base: BaseState) {
       if (button) button.disabled = true;
       try {
         const userId = card.dataset.userCard!;
-        const redirectTo = `${location.origin}${import.meta.env.BASE_URL}admin/`;
+        const redirectTo = 'https://www.tennis-tsvfeldkirchen.de/admin/';
         const result = await supabase.functions.invoke('admin-users', {
           body: { action: 'send_access_mail', user_id: userId, redirect_to: redirectTo },
         });

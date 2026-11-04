@@ -149,6 +149,9 @@ test('RSVP base URL accepts only known canonical paths, never a copied label or 
   assert.ok(edge.includes("const base=validatedRsvpBase();"));
   assert.ok(edge.includes("&&base&&env('SUPABASE_URL')"));
   assert.ok(edge.includes("const confirmation=new URL('veranstaltung/bestaetigen/',base)"));
+  assert.ok(edge.includes("const PRODUCTION_RSVP_BASE = 'https://www.tennis-tsvfeldkirchen.de/'"));
+  assert.ok(edge.includes("? new URL(PRODUCTION_RSVP_BASE) : null"));
+  assert.ok(!edge.includes("? base : null"),"Legacy GitHub preview must never determine an outgoing email URL");
   assert.ok(edge.includes("Die Supabase-Einstellung RSVP_BASE_URL ist ungültig."));
   for(const url of allowed) {
     assert.ok(edge.includes("'"+url+"'"));

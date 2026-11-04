@@ -6,6 +6,9 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+// Server-generated access emails must always return to production, even if
+// an admin launches an action from the former preview website.
+const PRODUCTION_ADMIN_URL = "https://www.tennis-tsvfeldkirchen.de/admin/";
 const allowedRoles = new Set(["user", "super_admin"]);
 const allowedTeamRoles = new Set(["manager", "editor", "ticker"]);
 const allowedGlobalPermissions = new Set(["events", "news", "ticker"]);
@@ -25,7 +28,7 @@ function allowedRedirect(value: unknown) {
       (url.origin === "https://neu.tennis-tsvfeldkirchen.de") ||
       (url.origin === "https://sebmut.github.io" && url.pathname.startsWith("/tsv-feldkirchen-tennis/")) ||
       (url.origin === "http://localhost:4321");
-    return allowed ? value : undefined;
+    return allowed ? PRODUCTION_ADMIN_URL : undefined;
   } catch {
     return undefined;
   }
@@ -196,7 +199,7 @@ Deno.serve(async (req: Request) => {
     const globalRole = allowedRoles.has(String(body.global_role)) ? String(body.global_role) : "user";
     const globalPermissions = globalRole === "super_admin" ? [] : readGlobalPermissions(body.global_permissions ?? []);
     if (!globalPermissions) return Response.json({ error: "Ungültige globale Berechtigungen." }, { status: 400, headers: cors });
-    const redirectTo = allowedRedirect(body.redirect_to);
+    const redirectTo = allowedRedirect(body.redirect_to) ?? PRODUCTION_ADMIN_URL;
 
     let memberships: Array<{ team_id: string; role: string }> = [];
     if (globalRole !== "super_admin" && Array.isArray(body.memberships)) {
@@ -357,7 +360,7 @@ Deno.serve(async (req: Request) => {
 
   if (action === "send_access_mail") {
     const userId = String(body.user_id ?? "");
-    const redirectTo = allowedRedirect(body.redirect_to);
+    const redirectTo = allowedRedirect(body.redirect_to) ?? PRODUCTION_ADMIN_URL;
     if (!userId) return Response.json({ error: "user_id fehlt." }, { status: 400, headers: cors });
 
     const { data: profile, error: profileError } = await admin

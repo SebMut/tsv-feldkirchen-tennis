@@ -37,10 +37,13 @@ test('admin authentication and email links resolve to actual site origin', () =>
   const admin=read('src/scripts/admin.ts');
   const advanced=read('src/scripts/admin-advanced.ts');
   const server=read('supabase/functions/admin-users/index.ts');
-  assert.ok(admin.includes('location.origin'));
+  assert.ok(admin.includes("redirect_to: 'https://www.tennis-tsvfeldkirchen.de/admin/'"));
+  assert.ok(admin.includes("const redirectTo = 'https://www.tennis-tsvfeldkirchen.de/admin/'"));
   assert.ok(admin.includes('resetPasswordForEmail(email, { redirectTo })'));
-  assert.ok(advanced.includes('location.origin'));
-  assert.ok(server.includes('https://www.tennis-tsvfeldkirchen.de'));
+  assert.ok(advanced.includes("const redirectTo = 'https://www.tennis-tsvfeldkirchen.de/admin/'"));
+  assert.ok(server.includes('const PRODUCTION_ADMIN_URL = "https://www.tennis-tsvfeldkirchen.de/admin/"'));
+  assert.ok(server.includes('return allowed ? PRODUCTION_ADMIN_URL : undefined'));
+  assert.ok(server.includes('?? PRODUCTION_ADMIN_URL'));
   assert.ok(server.includes('https://tennis-tsvfeldkirchen.de'));
   assert.ok(read('src/pages/admin/index.astro').includes('noindex={true}'));
 });

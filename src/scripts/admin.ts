@@ -2522,7 +2522,7 @@ async function inviteUser(event: Event) {
     global_role: globalRole,
     global_permissions: globalRole === 'super_admin' ? [] : Array.from(document.querySelectorAll<HTMLInputElement>('#invite-global-permissions-section [data-invite-permission]:checked')).map((box) => box.value),
     memberships,
-    redirect_to: `${location.origin}${import.meta.env.BASE_URL}admin/`,
+    redirect_to: 'https://www.tennis-tsvfeldkirchen.de/admin/',
   };
   const inviteButton = $<HTMLButtonElement>('#invite-form button[type="submit"]');
   if (inviteButton?.disabled) return;
@@ -2835,7 +2835,7 @@ export async function initAdmin() {
     event.preventDefault();
     const email = $<HTMLInputElement>('#reset-email')?.value.trim() || '';
     if (!email) return;
-    const redirectTo = `${location.origin}${import.meta.env.BASE_URL}admin/`;
+    const redirectTo = 'https://www.tennis-tsvfeldkirchen.de/admin/';
     setStatus(authStatus, 'E-Mail wird vorbereitet …');
     authStatus?.classList.remove('hidden');
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });

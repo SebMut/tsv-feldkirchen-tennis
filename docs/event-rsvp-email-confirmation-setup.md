@@ -52,7 +52,7 @@ Folgende **sechs** Werte anlegen:
 | `GMAIL_CLIENT_ID` | OAuth Client ID aus der Google Cloud Console |
 | `GMAIL_CLIENT_SECRET` | OAuth Client Secret aus Google Cloud |
 | `GMAIL_REFRESH_TOKEN` | Einmalig autorisierter OAuth Refresh Token für `tsvfeldkirchen.tennis@gmail.com` |
-| `RSVP_BASE_URL` | `https://sebmut.github.io/tsv-feldkirchen-tennis/` |
+| `RSVP_BASE_URL` | `https://www.tennis-tsvfeldkirchen.de/` |
 
 Der sichtbare Gmail-Absender ist in der Edge Function auf `tsvfeldkirchen.tennis@gmail.com` festgelegt. **Weder `RESEND_API_KEY` noch `RESEND_FROM_EMAIL` werden weiter benötigt.**
 
@@ -65,7 +65,7 @@ Diese **Veranstaltungsanmeldung** verwendet eine eigene Edge Function und kein S
 ## Test nach Einrichtung
 
 1. Veranstaltungsentwurf mit künftigem Datum speichern und veröffentlichen.
-2. Sommerfest unter `https://sebmut.github.io/tsv-feldkirchen-tennis/veranstaltung/?slug=sommerfest` aufrufen.
+2. Sommerfest unter `https://www.tennis-tsvfeldkirchen.de/veranstaltung/?slug=sommerfest` aufrufen.
 3. Reale Test-E-Mail-Adresse, Teilnahme und eine Personenzahl angeben und Turnstile lösen.
 4. E-Mail im Empfängerpostfach prüfen: **Absender TSV Feldkirchen Tennis <tsvfeldkirchen.tennis@gmail.com>**, sämtliche Angaben und Bestätigungslink.
 5. Vor Bestätigung dürfen die Teilnehmerzahlen **nicht** steigen.
@@ -74,14 +74,14 @@ Diese **Veranstaltungsanmeldung** verwendet eine eigene Edge Function und kein S
 
 Zum Schutz der Jugendlichen und Teilnehmer müssen Datenschutztext, Archivierung und Löschfristen vor dem echten Vereinsbetrieb geprüft werden. Das Sommerfest bleibt eine unverbindliche Demo, bis ein Verantwortlicher einen echten Termin ausdrücklich veröffentlicht.
 
-**Bestehende Hauptdomain ist weiterhin nicht umgestellt.**
+**Die produktive Website ist inzwischen auf www.tennis-tsvfeldkirchen.de veröffentlicht.**
 
 ## Fehlerbehebung: 404 beim Bestätigungslink
 
 Falls der E-Mail-Link einen Zusatz wie `/%20Wert/` vor `veranstaltung/bestaetigen/` enthält, wurde im Secret `RSVP_BASE_URL` zusätzlich zum URL-Wert ein Feldetikett oder anderes Zeichen gespeichert. **Den Wert im Supabase-Dashboard vollständig ersetzen** durch exakt:
 
 ```text
-https://sebmut.github.io/tsv-feldkirchen-tennis/
+https://www.tennis-tsvfeldkirchen.de/
 ```
 
 Die Edge Function prüft seit der Korrektur die Basis-URL **bereits bei der Konfigurationsabfrage**. Sie lässt ausschließlich die exakten Vorschau-/Produktions-URLs zu und verschickt bei einer falschen URL **keine E-Mail mit defektem Link**. So wird der Eingabefehler vor der Anmeldung angezeigt.
@@ -95,3 +95,10 @@ Es gibt keinen Bestätigungsbutton mehr auf der Zielseite. Beim direkten Öffnen
 Hinweis: Manche E-Mail-Sicherheitsprogramme öffnen Links in einem echten Browser und führen auch JavaScript aus. Deshalb lässt sich eine unbeabsichtigte Bestätigung durch *alle* denkbaren Link-Scanner bei einem Ein-Klick-Verfahren nicht vollständig ausschließen. Ein zusätzlicher Bestätigungsklick wäre dagegen robuster, ist aber nicht mehr gewünscht. Der Link bleibt zeitlich begrenzt, einmalig und mit einem 256-Bit-Token geschützt.
 
 **Keine vollständigen Bestätigungslinks veröffentlichen oder weiterleiten.** Falls ein Token in einem öffentlichen Chat/Issue gepostet wurde, eine neue Bestätigungs-E-Mail anfordern und ausschließlich deren Link verwenden.
+
+
+## Domainwechsel: Bestätigungslinks (04.11.2026)
+
+Der Veranstaltungsmail-Versand baut Links nun **immer** aus `https://www.tennis-tsvfeldkirchen.de/`, auch wenn das alte Supabase-Secret `RSVP_BASE_URL` noch einen erlaubten Preview-Wert hat. Ungültige URLs werden weiter abgelehnt. Das Secret soll im Dashboard auf die neue Live-Adresse gestellt werden. Bereits versandte E-Mails werden nicht verändert.
+
+Supabase-Auth-Mails für Einladungen und Passwort-Reset sind ein **separater** Versand: Die Anwendung übergibt nun stets `https://www.tennis-tsvfeldkirchen.de/admin/` als Redirect-Ziel. In **Authentication → URL Configuration** müssen zusätzlich Site URL und Redirect-URLs auf die Live-Domain umgestellt werden; benutzerdefinierte Auth-Mailvorlagen mit `{{ .SiteURL }}` dürfen nicht länger auf `github.io` verlinken.
