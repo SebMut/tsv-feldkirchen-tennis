@@ -1,6 +1,11 @@
 name: Deploy to United Domains
 
 on:
+  push:
+    branches:
+      - feature/astro-supabase-foundation
+    paths:
+      - .github/workflows/deploy-united-domains.yml
   workflow_dispatch:
     inputs:
       final_approval:
@@ -12,6 +17,43 @@ permissions:
   contents: read
 
 jobs:
+  preflight:
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[hosting-preflight]') }}
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 6
+    steps:
+      - name: Verify SFTP secrets exist without disclosing their values
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_REMOTE_PATH: ${{ secrets.SFTP_REMOTE_PATH }}
+        run: |
+          set -eu
+          test -n "$SFTP_HOST" || { echo '::error::SFTP_HOST is missing'; exit 1; }
+          test -n "$SFTP_USER" || { echo '::error::SFTP_USER is missing'; exit 1; }
+          test -n "$SFTP_PASSWORD" || { echo '::error::SFTP_PASSWORD is missing'; exit 1; }
+          test -n "$SFTP_REMOTE_PATH" || { echo '::error::SFTP_REMOTE_PATH is missing'; exit 1; }
+          echo 'All required SFTP secrets are present.'
+      - name: Install SFTP client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      - name: Read-only SFTP directory test
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_REMOTE_PATH: ${{ secrets.SFTP_REMOTE_PATH }}
+        run: |
+          set -eu
+          PORT="$SFTP_PORT"
+          if [ -z "$PORT" ]; then PORT=22; fi
+          printf 'cd %s\npwd\nls -la\nbye\n' "$SFTP_REMOTE_PATH" > /tmp/tsv-preflight.sftp
+          export SSHPASS="$SFTP_PASSWORD"
+          timeout 45 sshpass -e sftp -o StrictHostKeyChecking=accept-new -o ConnectTimeout=12 -P "$PORT" -b /tmp/tsv-preflight.sftp "$SFTP_USER@$SFTP_HOST"
+          echo 'Read-only SFTP preflight successful. No files changed.'
+
   deploy:
     # Beides ist notwendig: manuelles Freigabewort UND explizit gesetzte Repository-Variable.
     # Ein leerer/fehlender Wert lässt diesen Job immer ausfallen (keine SFTP-Verbindung).
