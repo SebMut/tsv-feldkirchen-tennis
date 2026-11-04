@@ -24,7 +24,13 @@ test('production SFTP deployment remains explicitly gated and builds the root do
   assert.ok(wf.includes("PUBLIC_PREVIEW_MODE: 'false'"));
   assert.ok(wf.includes('test -f dist/admin/index.html'));
   assert.ok(wf.includes("grep -Fq 'noindex,nofollow' dist/admin/index.html"));
-  assert.ok(!wf.includes('on:\n  push:'));
+  // Push-triggered diagnostics and releases still require explicit markers.
+  assert.ok(wf.includes('on:\n  push:'));
+  assert.ok(wf.includes('paths:\n      - .github/workflows/deploy-united-domains.yml'));
+  assert.ok(wf.includes("[hosting-preflight]"));
+  assert.ok(wf.includes("[hosting-deploy-approved]"));
+  assert.ok(wf.includes("vars.TSV_GO_LIVE_APPROVED == 'true'"));
+  assert.ok(wf.includes('BatchMode=no'));
 });
 
 test('admin authentication and email links resolve to actual site origin', () => {
