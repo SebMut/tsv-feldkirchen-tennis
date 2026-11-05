@@ -26,7 +26,7 @@ test('event privacy details reflect actual double opt in and optional participat
   assert.match(policy,/Jugendaltersklasse/);
   assert.match(policy,/Teilnehmerlisten als PDF/);
   assert.match(rsvp,/turnstile\/v0\/api\.js/);
-  assert.match(policy,/Bestätigungs-E-Mail/);
+  assert.match(policy,/E-Mail-Bestätigung/);
 });
 
 test('statistics promise no visitor ID and exclude opted-out browsers',()=>{
