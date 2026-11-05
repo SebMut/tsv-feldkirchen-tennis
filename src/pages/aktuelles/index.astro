@@ -296,7 +296,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
   :global(.news-pagination [data-news-more][hidden]){display:none}
   .event-news__head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}
   .event-news__head h2{margin:2px 0 0;color:#193c2c}
-  .content-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+  /* Both event and news lists use the same responsive three-column layout. */
+  .content-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
   :global(.content-card){content-visibility:auto;contain-intrinsic-size:auto 430px;overflow:hidden;border:1px solid #dfe7e1;border-radius:20px;background:#fff;box-shadow:0 10px 30px rgb(25 60 44 / .08)}
   /* Exact aspect ratio of the supplied event banner: no letterboxing above or below.
      All content cards share this frame; other photos fill it by cropping their edges. */
@@ -310,7 +311,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
   :global(.content-card h2),:global(.content-card h3){margin:0 0 10px;color:#193c2c;font-size:clamp(1.18rem,2vw,1.48rem);line-height:1.18;letter-spacing:-.018em}
   :global(.content-card h2 a),:global(.content-card h3 a){color:inherit;text-decoration:none}
   :global(.content-card__description){display:-webkit-box;margin:0;overflow:hidden;color:#617068;font-size:.96rem;line-height:1.52;-webkit-box-orient:vertical;-webkit-line-clamp:3}
-  :global(.content-card__footer){display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:16px;padding-top:13px;border-top:1px solid #edf1ee;color:#40564a;font-size:.83rem;font-weight:650}
+  :global(.content-card__footer){display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 12px;margin-top:16px;padding-top:13px;border-top:1px solid #edf1ee;color:#40564a;font-size:.83rem;font-weight:650}
+  :global(.content-card__footer span){min-width:0;overflow-wrap:anywhere}
   :global(.content-card__footer a){flex:none;color:#d5091a;font-weight:850;text-decoration:none}
   :global(.content-card__details){margin-top:14px;padding-top:12px;border-top:1px solid #edf1ee}
   :global(.content-card__details summary){cursor:pointer;list-style:none;color:#d5091a;font-size:.86rem;font-weight:850}
@@ -320,6 +322,10 @@ import MainLayout from '../../layouts/MainLayout.astro';
   :global(.content-card__signup){margin-top:15px!important}
   :global(.content-card){scroll-margin-top:100px}
   :global(.content-card--news:not(:has(.content-card__media)) .content-card__body){padding-top:20px}
+  /* Smaller tablets retain two readable columns; phones keep one full-width card. */
+  @media(max-width:960px) and (min-width:761px){
+    .content-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
   @media(max-width:760px){
     .aktuelles-page{gap:28px;padding-bottom:calc(150px + env(safe-area-inset-bottom))}
     .aktuelles-page__head{padding-top:4px}.aktuelles-page__head h1{font-size:clamp(2rem,9vw,2.65rem);line-height:1.02}

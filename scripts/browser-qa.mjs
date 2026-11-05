@@ -87,6 +87,48 @@ async function deviceQA(device){
       await check(key+' images',()=>healthyImages(page,route),page);
     page.off('pageerror',listener);
   }
+  // Guard the shared News/Veranstaltungen grid at desktop, compact desktop,
+  // tablet and phone widths. This temporary fixture works even when Supabase
+  // has fewer than three published entries; it never changes stored content.
+  if (!device.mobile) await check('Aktuelles: three desktop, two tablet, one mobile columns',async()=>{
+    await page.goto(url('/aktuelles/'),{waitUntil:'domcontentloaded'});
+    const original=page.viewportSize();
+    try {
+      for (const [width,expected] of [[1440,3],[1024,3],[860,2],[390,1]]) {
+        await page.setViewportSize({width,height:900});
+        const result=await page.evaluate(()=>{
+          const parent=document.querySelector('.aktuelles-page');
+          const originalGrid=document.querySelector('#event-news-list');
+          if (!(parent instanceof HTMLElement) || !(originalGrid instanceof HTMLElement)) throw Error('Event grid missing');
+          const probe=originalGrid.cloneNode(false);
+          if (!(probe instanceof HTMLElement)) throw Error('Grid probe unavailable');
+          probe.removeAttribute('id');
+          probe.removeAttribute('aria-busy');
+          probe.style.minHeight='0';
+          for(let i=0;i<3;i++){
+            const card=document.createElement('article');
+            card.textContent='Testkarte '+(i+1);
+            probe.appendChild(card);
+          }
+          parent.appendChild(probe);
+          const boxes=Array.from(probe.children).map(child=>child.getBoundingClientRect());
+          const template=getComputedStyle(probe).gridTemplateColumns;
+          probe.remove();
+          return {columns:template.split(/\s+/).filter(Boolean).length,
+            sameRow:Math.abs(boxes[0].top-boxes[2].top)<2,
+            rowTwo:boxes[2].top>boxes[0].top+2,
+            widths:boxes.map(box=>box.width)};
+        });
+        assert.equal(result.columns,expected,width+'px must show '+expected+' columns: '+JSON.stringify(result));
+        assert.equal(result.sameRow,expected===3,width+'px row layout wrong');
+        if(expected!==3)assert.ok(result.rowTwo,width+'px should wrap the third card');
+        assert.ok(result.widths.every(w=>w>=150),width+'px cards too narrow: '+JSON.stringify(result));
+        await noOverflow(page,'/aktuelles/ at '+width+'px');
+      }
+    } finally {
+      if(original)await page.setViewportSize(original);
+    }
+  },page);
   // Layout-only admin navigation rehearsal; do not authenticate or mutate real roles.
   // The hidden admin shell is exposed only inside this disposable browser context.
   await check(device.name+' admin top dropdown navigation', async()=>{
