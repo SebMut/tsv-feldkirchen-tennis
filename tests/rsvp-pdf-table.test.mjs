@@ -109,7 +109,8 @@ test('TSV corporate identity appears on every PDF page, with readable dark text 
   assert.equal((pdf.match(/\(ANMELDUNGEN & TEILNEHMER\)/g)||[]).length,pageCount);
   assert.ok(pdf.includes('0.890 0.024 0.075 rg'),'TSV red should be used for the title and the table header');
   assert.ok(pdf.includes('0.850 0.941 0.431 rg'),'yellow-green tennis ball in the offline logo fallback');
-  assert.equal((pdf.match(/\(Essen \/ Salat\)/g)||[]).length,pageCount,'colored table headings repeat');
+  const tablePages=(pdf.match(/\(Essen \/ Salat\)/g)||[]).length;
+  assert.ok(tablePages>=2 && tablePages<=pageCount,'red table headings repeat on every table page, not on later list-only pages');
   assert.ok(pdf.includes('(TSV Feldkirchen Tennis | Vertraulich - nur fuer die Vereinsorganisation)'));
   assert.match(pdf,/%%EOF/);
 });

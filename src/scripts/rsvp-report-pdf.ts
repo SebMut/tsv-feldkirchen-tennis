@@ -319,7 +319,7 @@ export function buildRsvpPdf(event:RsvpPdfEvent,records:RsvpPdfRow[],logo:PdfLog
     : 0;
   const pageRefs:number[]=[];
   for(let i=0;i<pageCount;i++){
-    pages[i].push(RED+' rg 36 46 m 806 46 l S');
+    pages[i].push(RED+' RG 1.1 w 36 46 m 806 46 l S');
     pages[i].push(MUTED+' rg BT /F1 8 Tf 1 0 0 1 36 27 Tm (TSV Feldkirchen Tennis | Vertraulich - nur fuer die Vereinsorganisation) Tj ET');
     pages[i].push(RED+' rg BT /F2 8 Tf 1 0 0 1 750 27 Tm (Seite '+(i+1)+'/'+pageCount+') Tj ET');
     const stream=pages[i].join('\n')+'\n';
