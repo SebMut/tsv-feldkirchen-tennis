@@ -285,16 +285,17 @@ import MainLayout from '../../layouts/MainLayout.astro';
   }
 </script>
 <style>
-  .aktuelles-page{padding-bottom:calc(130px + env(safe-area-inset-bottom));gap:34px}
+  /* Prevent the outer grid from inheriting the min-content width of long cards/headers. */
+  .aktuelles-page{padding-bottom:calc(130px + env(safe-area-inset-bottom));gap:34px;min-width:0;grid-template-columns:minmax(0,1fr)}
   #event-news[aria-busy="true"] #event-news-list{min-height:300px;align-content:start}
   #news-list:has(> p.muted:only-child){min-height:240px;align-content:start}
   .aktuelles-page{min-height:calc(100dvh + 100px)}
   .aktuelles-page__head{padding-bottom:4px}
-  .aktuelles-page__head h1{max-width:760px;color:#193c2c}
-  .event-news,.news-section{margin:0}
+  .aktuelles-page__head h1{max-width:760px;color:#193c2c;overflow-wrap:anywhere}
+  .event-news,.news-section{margin:0;min-width:0}
   :global(.news-pagination){display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:20px}
   :global(.news-pagination [data-news-more][hidden]){display:none}
-  .event-news__head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .event-news__head{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:18px}
   .event-news__head h2{margin:2px 0 0;color:#193c2c}
   /* Both event and news lists use the same responsive three-column layout. */
   .content-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
@@ -331,7 +332,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
     .aktuelles-page__head{padding-top:4px}.aktuelles-page__head h1{font-size:clamp(2rem,9vw,2.65rem);line-height:1.02}
     .event-news__head{align-items:flex-end;margin-bottom:13px}.event-news__head .button{font-size:.76rem;padding:8px 10px}
     .event-news__head h2{font-size:1.45rem}
-    .content-card-grid{grid-template-columns:1fr;gap:16px}
+    .content-card-grid{grid-template-columns:minmax(0,1fr);gap:16px}
     :global(.content-card){border-radius:17px;box-shadow:0 7px 22px rgb(25 60 44 / .075)}
     :global(.content-card__media){aspect-ratio:1773/885}
     :global(.content-card__body){padding:15px 16px 16px}
