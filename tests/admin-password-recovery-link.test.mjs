@@ -12,7 +12,7 @@ assert.ok(inline,'Early, synchronous callback capture must exist');
 
 function simulate(hash,search=''){
   const storage=new Map();
-  vm.runInNewContext(inline,{location:{hash,search},sessionStorage:{
+  vm.runInNewContext(inline,{URLSearchParams,location:{hash,search},sessionStorage:{
     setItem:(k,v)=>storage.set(k,v),
     getItem:k=>storage.get(k)||null,
   }});
@@ -47,7 +47,7 @@ test('SuperAdmins can resend password links to confirmed users without deleting 
   assert.ok(card?.includes('data-send-access'));
   assert.ok(!card?.includes("user.last_sign_in_at ? ''"),'Do not hide the password reset button merely because a one-time link was opened');
   assert.match(advanced,/Neuen Passwort-Link senden/);
-  assert.match(advanced,/Die E-Mail könnte bereits zugestellt worden sein/);
+  assert.match(advanced,/Bitte erst den Posteingang prüfen/);
   assert.match(edge,/if \(action === "send_access_mail"\)/);
   assert.match(edge,/admin\.auth\.resetPasswordForEmail\(profile\.email/);
   assert.match(edge,/PRODUCTION_ADMIN_URL/);
