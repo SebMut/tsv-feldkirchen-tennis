@@ -127,6 +127,7 @@ jobs:
       # Combine event and news cards into one actual three-column feed and reduce all page heading sizes; browser QA passed.
       # Publish four configurable RSVP sections, an upfront signup CTA and Turnstile error recovery; CI and browser QA passed.
       # Ship alphabetically sorted A4 landscape RSVP PDF tables: verified admin records, food, cake, adults and kids, repeated page headers.
+      # Prominent event registrations and PDF exports page: one verified-download button per event, guarded by existing events permissions.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
