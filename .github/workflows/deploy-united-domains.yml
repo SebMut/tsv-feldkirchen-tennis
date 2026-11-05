@@ -130,6 +130,7 @@ jobs:
       # Prominent event registrations and PDF exports page: one verified-download button per event, guarded by existing events permissions.
       # Release TSV corporate-identity PDF: existing Supabase club logo, club-red headers, repeated letterhead, private verified reports; browser and build QA passed.
       # Publish tested homepage image priority: event hero, linked News hero (including Christmas party), technical fallback; deduplicated and browser-QA verified.
+      # Publish expanded Tennis privacy information for Supabase, registration, Gmail, Turnstile, hosting, ICS, analytics and rights, after browser QA.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
