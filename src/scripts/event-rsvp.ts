@@ -119,7 +119,7 @@ export async function initEventRsvp() {
     const menEnabled = details.tournament_men_enabled === true;
     byId<HTMLElement>('rsvp-youth-detail')!.hidden = !youthEnabled;
     byId<HTMLElement>('rsvp-invitation-details')!.hidden = details.show_expectations === false ||
-      !(details.fee_note || (details.show_volunteer_info !== false && (details.setup_note || details.cleanup_note)) || youthEnabled);
+      !(details.fee_note || youthEnabled);
     byId<HTMLElement>('rsvp-contributions-section')!.hidden = details.show_contributions === false;
     byId<HTMLElement>('rsvp-help-section')!.hidden = details.show_help === false;
     byId<HTMLElement>('rsvp-youth-section')!.hidden = !youthEnabled;
