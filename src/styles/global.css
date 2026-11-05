@@ -1533,6 +1533,7 @@ main.main--flush{padding:0}
 .admin-nav__group{display:block;position:relative;min-width:0;flex:0 0 auto}
 .admin-nav__group + .admin-nav__group{padding:0;border:0}
 .admin-nav__group[data-admin-nav-group="start"]{
+  display:flex;align-items:center;gap:4px;
   padding-right:12px;margin-right:5px;border-right:1px solid #e5eae6
 }
 /* Preserve this label in the markup for the grouped mobile <select>. */
