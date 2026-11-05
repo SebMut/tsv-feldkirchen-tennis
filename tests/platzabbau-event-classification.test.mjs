@@ -22,7 +22,9 @@ test('homepage shows real events as events, not news, and prevents linked duplic
   assert.ok(home.includes("supabase.from('events').select('id,slug,title,starts_at,hero_image_path,rsvp_enabled,external_url')"));
   assert.ok(home.includes("label: 'Veranstaltung'"));
   assert.ok(home.includes('linkedNewsIds.has(item.id)'));
-  assert.ok(home.includes('!upcomingClubEvents.some(event => event.title === item.title)'));
+  assert.ok(home.includes('!upcomingClubEvents.some(event => event.title === item.title'));
+  assert.ok(home.includes('event.id === item.related_event_id'));
+  // Reverse links may have a different title: they must also be deduplicated.
   assert.ok(eventsPage.includes('content-card__badge'));
   assert.ok(eventsPage.includes('Veranstaltung'));
 });
