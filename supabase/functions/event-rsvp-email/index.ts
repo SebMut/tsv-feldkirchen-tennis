@@ -270,6 +270,9 @@ Deno.serve(async request=>{
     return reply(409,{error:'Die Anmeldefrist ist abgelaufen.'},origin);
 
   const offers=event.rsvp_details || {};
+  if ((offers.show_contributions===false && (p.dessert || p.salad))
+    || (offers.show_help===false && (p.help_setup || p.help_cleanup)))
+    return reply(409,{error:'Eine ausgeblendete Anmeldeoption kann für diese Veranstaltung nicht verwendet werden.'},origin);
   if ((offers.tournament_youth_enabled===false && p.youth.length>0)
     || (offers.tournament_women_enabled!==true && p.women.length>0)
     || (offers.tournament_men_enabled!==true && p.men.length>0))

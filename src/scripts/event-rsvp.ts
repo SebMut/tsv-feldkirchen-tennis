@@ -6,6 +6,7 @@ type EventRow = {
   id: string; slug: string; title: string; description: string | null;
   starts_at: string; location_name: string | null; rsvp_deadline: string | null;
   rsvp_details: { fee_note?: string; setup_note?: string; cleanup_note?: string; youth_note?: string;
+    show_expectations?: boolean; show_volunteer_info?: boolean; show_contributions?: boolean; show_help?: boolean;
     tournament_youth_enabled?: boolean; tournament_women_enabled?: boolean; tournament_men_enabled?: boolean } | null;
 };
 type Summary = { yes: number; no: number; maybe: number; persons: number; adults: number; children: number };
@@ -108,7 +109,7 @@ export async function initEventRsvp() {
     const details = event.rsvp_details || {};
     byId<HTMLElement>('rsvp-fee-detail')!.hidden = !details.fee_note;
     if (details.fee_note) byId<HTMLElement>('rsvp-fees-note')!.textContent = details.fee_note;
-    byId<HTMLElement>('rsvp-help-detail')!.hidden = !(details.setup_note || details.cleanup_note);
+    byId<HTMLElement>('rsvp-help-detail')!.hidden = details.show_volunteer_info === false || !(details.setup_note || details.cleanup_note);
     if (details.setup_note || details.cleanup_note) {
       byId<HTMLElement>('rsvp-helper-note')!.textContent = [details.setup_note, details.cleanup_note].filter(Boolean).join(' ');
     }
@@ -117,7 +118,10 @@ export async function initEventRsvp() {
     const womenEnabled = details.tournament_women_enabled === true;
     const menEnabled = details.tournament_men_enabled === true;
     byId<HTMLElement>('rsvp-youth-detail')!.hidden = !youthEnabled;
-    byId<HTMLElement>('rsvp-invitation-details')!.hidden = !(details.fee_note || details.setup_note || details.cleanup_note || youthEnabled);
+    byId<HTMLElement>('rsvp-invitation-details')!.hidden = details.show_expectations === false ||
+      !(details.fee_note || (details.show_volunteer_info !== false && (details.setup_note || details.cleanup_note)) || youthEnabled);
+    byId<HTMLElement>('rsvp-contributions-section')!.hidden = details.show_contributions === false;
+    byId<HTMLElement>('rsvp-help-section')!.hidden = details.show_help === false;
     byId<HTMLElement>('rsvp-youth-section')!.hidden = !youthEnabled;
     byId<HTMLElement>('rsvp-women-section')!.hidden = !womenEnabled;
     byId<HTMLElement>('rsvp-men-section')!.hidden = !menEnabled;
@@ -245,8 +249,10 @@ export async function initEventRsvp() {
       showFeedback('Bitte für die Damen- und Herrenmeisterschaften vollständige Namen eingeben (eine Person pro Zeile, maximal 12).',true);
       return;
     }
-    const dessert = byId<HTMLInputElement>('rsvp-dessert')?.value.trim() || '';
-    const salad = byId<HTMLInputElement>('rsvp-salad')?.value.trim() || '';
+    const contributionsVisible = !byId<HTMLElement>('rsvp-contributions-section')?.hidden;
+    const helpVisible = !byId<HTMLElement>('rsvp-help-section')?.hidden;
+    const dessert = contributionsVisible ? byId<HTMLInputElement>('rsvp-dessert')?.value.trim() || '' : '';
+    const salad = contributionsVisible ? byId<HTMLInputElement>('rsvp-salad')?.value.trim() || '' : '';
     if (dessert.length > 180 || salad.length > 180) {
       showFeedback('Bitte die Buffetbeiträge kürzer beschreiben.',true);
       return;
@@ -269,8 +275,8 @@ export async function initEventRsvp() {
       const { data, error } = await supabase.functions.invoke('event-rsvp-email', {body:{
         action:'submit',event_id:event.id, name:memberName,email:memberEmail,
         attendance:selected, adults,children,dessert,salad,
-        help_setup:!!byId<HTMLInputElement>('rsvp-help-setup')?.checked,
-        help_cleanup:!!byId<HTMLInputElement>('rsvp-help-cleanup')?.checked,
+        help_setup:helpVisible && !!byId<HTMLInputElement>('rsvp-help-setup')?.checked,
+        help_cleanup:helpVisible && !!byId<HTMLInputElement>('rsvp-help-cleanup')?.checked,
         youth,women,men,turnstileToken,
       }});
       if (error || !data?.pending) {

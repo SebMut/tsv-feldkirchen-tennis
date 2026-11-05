@@ -2854,3 +2854,9 @@ body:has(.matchday-page--ticker .matchday-live-center.is-loading) .site-footer{
 .team-card-skeleton>span:last-child{width:48%;height:14px}
 @media(max-width:760px){.teams-season-skeleton{min-height:142px}.team-card-skeleton{min-height:300px}}
 
+
+/* Optional event RSVP areas: native hidden always wins. */
+#rsvp-contributions-section[hidden],#rsvp-help-section[hidden],#rsvp-invitation-details[hidden],#rsvp-help-detail[hidden],#rsvp-turnstile-retry[hidden]{display:none!important}
+#rsvp-turnstile-retry{margin-top:9px;min-height:38px;font-size:.82rem}
+.content-card__signup{margin:12px 0 8px!important}
+.content-card__signup .button{width:100%;padding:10px 13px;min-height:40px;text-align:center;white-space:normal;line-height:1.3;font-size:.84rem}

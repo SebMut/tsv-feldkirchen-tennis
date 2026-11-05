@@ -60,13 +60,13 @@ import MainLayout from '../../layouts/MainLayout.astro';
             </div>
             <small>Alle mitkommenden Personen mitzählen, einschließlich dir selbst. Insgesamt maximal 20 Personen je Rückmeldung.</small>
           </fieldset>
-          <section class="rsvp-contributions" aria-labelledby="rsvp-contributions-heading">
+          <section class="rsvp-contributions" id="rsvp-contributions-section" aria-labelledby="rsvp-contributions-heading">
             <h3 id="rsvp-contributions-heading">Was kannst du mitbringen?</h3>
             <p class="muted">Freiwilliger Beitrag, sofern für diese Veranstaltung vorgesehen.</p>
             <div class="rsvp-field"><label for="rsvp-dessert">Kuchen oder Nachspeise</label><input type="text" id="rsvp-dessert" maxlength="180" placeholder="z. B. Kuchen oder Nachtisch" /></div>
             <div class="rsvp-field"><label for="rsvp-salad">Salat oder Vorspeise</label><input type="text" id="rsvp-salad" maxlength="180" placeholder="z. B. Nudelsalat" /></div>
           </section>
-          <fieldset class="rsvp-paper-fields">
+          <fieldset class="rsvp-paper-fields" id="rsvp-help-section">
             <legend>Kannst du beim Fest helfen?</legend>
             <label class="rsvp-check"><input id="rsvp-help-setup" type="checkbox" /> Ich kann beim Aufbau / bei den Vorbereitungen helfen.</label>
             <label class="rsvp-check"><input id="rsvp-help-cleanup" type="checkbox" /> Ich kann beim Abbau / Aufräumen helfen.</label>
@@ -93,6 +93,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
             <p class="muted">Cloudflare Turnstile schützt diese Anmeldung vor automatisierten Eingaben.</p>
             <div id="rsvp-turnstile-widget" role="group" aria-label="Cloudflare-Menschprüfung"></div>
             <small id="rsvp-turnstile-status" role="status">Die Menschprüfung wird geladen …</small>
+            <button id="rsvp-turnstile-retry" type="button" class="button ghost" hidden>Menschprüfung erneut laden</button>
           </div>
           <div id="rsvp-spam-warning" class="rsvp-spam-warning" role="alert" hidden>
             <strong>WICHTIG: Bitte auch den SPAM-Ordner prüfen!</strong>
