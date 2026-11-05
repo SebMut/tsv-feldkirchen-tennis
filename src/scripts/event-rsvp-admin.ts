@@ -25,7 +25,7 @@ export async function fetchVerifiedEventRsvps(eventId: string) {
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await supabase.from('event_rsvps')
       .select(VERIFIED_RSVP_COLUMNS).eq('event_id', eventId)
-      .not('verified_at', 'is', null)
+      .not('verified_at','is',null)
       .order('id', { ascending: true }).range(offset, offset + pageSize - 1);
     if (error) return { data: null, error };
     rows.push(...((data || []) as RsvpPdfRow[]));

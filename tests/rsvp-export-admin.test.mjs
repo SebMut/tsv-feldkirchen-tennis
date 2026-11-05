@@ -28,7 +28,7 @@ test('only global event permission can reveal this panel; RLS remains authoritat
   assert.match(html,/data-events-only/);
   assert.ok(admin.includes("document.querySelectorAll<HTMLElement>('[data-events-only]')"));
   assert.ok(exportScript.includes("if(!canEvents || initialized"));
-  assert.ok(legacy.includes(".not('verified_at', 'is', null)"));
+  assert.ok(legacy.includes(".not('verified_at','is',null)"));
   assert.ok(exportScript.includes(".not('verified_at','is',null)"));
   assert.ok(!exportScript.includes('service_role'));
   assert.ok(!exportScript.includes('member_email'));
