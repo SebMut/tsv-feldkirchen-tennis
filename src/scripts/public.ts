@@ -4,6 +4,7 @@ import { escapeHtml, formatDateTime } from '../lib/ui';
 import { officialBtvTeamDestination } from '../lib/btv-group-url';
 import { summarizeSetResult, homeAwaySetScore } from '../lib/tennis-score.mjs';
 import { regularSetDisplayHtml } from '../lib/regular-tiebreak.mjs';
+import { eventImagePathCandidates } from '../lib/home-news-images';
 
 type Row = Record<string, any>;
 
@@ -543,25 +544,73 @@ export async function loadHome() {
       const upcomingClubEvents = (homeEventsResult.data ?? []).filter(item =>
         new Date(item.starts_at).getTime() >= now.getTime() - 86400000);
       const linkedNewsIds = new Set(upcomingClubEvents
-        .map(item => typeof item.external_url === 'string' && item.external_url.startsWith('news:') ? item.external_url.slice(5) : '')
+        .map(item => typeof item.external_url === 'string' && /^news:[0-9a-f-]{36}$/i.test(item.external_url)
+          ? item.external_url.slice(5) : '')
         .filter(Boolean));
+      // An event may be linked to a news post whose hero image is stored in
+      // news.hero_image_path. This post may be older than the six newest news,
+      // so look up explicit links rather than relying on the news preview.
+      const missingEventImages = upcomingClubEvents.filter(event => !event.hero_image_path);
+      const linkedIdsToFetch = [...linkedNewsIds].filter(id =>
+        !(newsResult.data ?? []).some(item => item.id === id));
+      const missingEventIds = missingEventImages.map(event => event.id);
+      const newsRelatedEventIds = [...new Set((newsResult.data ?? [])
+        .filter(item => !item.hero_image_path && item.related_event_id)
+        .map(item => item.related_event_id))];
+      const [linkedNewsResult, reverseNewsResult, newsRelatedEventsResult] = await Promise.all([
+        linkedIdsToFetch.length
+          ? supabase.from('news').select('id,title,hero_image_path,related_event_id')
+            .eq('status', 'published').in('id', linkedIdsToFetch)
+          : Promise.resolve({ data: [], error: null }),
+        missingEventIds.length
+          ? supabase.from('news').select('id,title,hero_image_path,related_event_id')
+            .eq('status', 'published').in('related_event_id', missingEventIds)
+          : Promise.resolve({ data: [], error: null }),
+        newsRelatedEventIds.length
+          ? supabase.from('events').select('id,hero_image_path')
+            .eq('status','published').in('id', newsRelatedEventIds)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      const relatedNews = [
+        ...(newsResult.data ?? []),
+        ...(linkedNewsResult.data ?? []),
+        ...(reverseNewsResult.data ?? []),
+      ];
+      const relatedEventsById = new Map([
+        ...upcomingClubEvents,
+        ...(newsRelatedEventsResult.data ?? []),
+      ].map(event => [event.id, event]));
       const announcedNews = (newsResult.data ?? []).filter(item =>
-        !linkedNewsIds.has(item.id) && !upcomingClubEvents.some(event => event.title === item.title));
+        !linkedNewsIds.has(item.id) && !upcomingClubEvents.some(event =>
+          event.id === item.related_event_id || event.title === item.title));
       const homeItems = [
         ...upcomingClubEvents.map(item => ({
-          title: item.title, image: item.hero_image_path, when: item.starts_at,
+          title: item.title,
+          image: item.hero_image_path,
+          // Priority: event picture, linked news picture, technical fallback.
+          imageCandidates: [
+            ...eventImagePathCandidates(item, relatedNews).map(mediaUrl),
+            '/images/veranstaltung-ai.svg',
+          ],
+          when: item.starts_at,
           label: 'Veranstaltung',
           href: `/aktuelles/?event=${encodeURIComponent(item.id)}#event-${encodeURIComponent(item.id)}`,
         })),
         ...announcedNews.map(item => ({
-          title: item.title, image: item.hero_image_path, when: item.published_at,
+          title: item.title,
+          image: item.hero_image_path,
+          imageCandidates: [
+            ...[item.hero_image_path, relatedEventsById.get(item.related_event_id)?.hero_image_path]
+              .filter((path): path is string => !!path).map(mediaUrl),
+          ],
+          when: item.published_at,
           label: 'News', href: `/aktuelles/?news=${encodeURIComponent(item.id)}#news-${encodeURIComponent(item.id)}`,
         })),
       ].slice(0, 3);
       newsTarget.innerHTML = homeItems.length ? homeItems.map(item => `
-        <article class="news-row home-news-item ${item.image ? 'home-news-item--with-image' : ''}">
+        <article class="news-row home-news-item ${item.imageCandidates.length ? 'home-news-item--with-image' : ''}">
           <a class="home-news-item__link" href="${escapeHtml(item.href)}" aria-label="${escapeHtml(item.label + ': ' + item.title)} öffnen">
-            ${item.image ? `<img class="home-news-item__image${item.label === 'Veranstaltung' ? ' home-news-item__image--event' : ''}" src="${escapeHtml(mediaUrl(item.image))}" alt="" width="108" height="80" loading="lazy" decoding="async" />` : ''}
+            ${item.imageCandidates.length ? `<img class="home-news-item__image${item.label === 'Veranstaltung' ? ' home-news-item__image--event' : ''}" src="${escapeHtml(item.imageCandidates[0])}" data-home-image-alternates="${escapeHtml(JSON.stringify(item.imageCandidates.slice(1)))}" alt="" width="108" height="80" loading="lazy" decoding="async" />` : ''}
             <span class="home-news-item__content">
               <strong>${escapeHtml(item.title)}</strong>
               <time class="match-meta" ${item.when ? `datetime="${escapeHtml(item.when)}"` : ''}>${escapeHtml(item.label)} · ${item.when ? escapeHtml(formatDateTime(item.when)) : ''}</time>
@@ -571,6 +620,24 @@ export async function loadHome() {
         : newsResult.error && homeEventsResult.error
           ? '<p class="muted">Aktuelles momentan nicht abrufbar.</p>'
           : '<p class="muted">Noch keine aktuellen Beiträge oder Veranstaltungen.</p>';
+      // A Storage object can have been deleted or replaced after its DB path
+      // was saved. Try the linked image and then the built-in event picture.
+      newsTarget.querySelectorAll<HTMLImageElement>('img[data-home-image-alternates]').forEach(image => {
+        const onError = () => {
+          let remaining: string[] = [];
+          try { remaining = JSON.parse(image.dataset.homeImageAlternates || '[]'); } catch {}
+          const next = remaining.shift();
+          if (next) {
+            image.dataset.homeImageAlternates = JSON.stringify(remaining);
+            image.src = next;
+          } else {
+            image.closest('.home-news-item')?.classList.remove('home-news-item--with-image');
+            image.remove();
+          }
+        };
+        image.addEventListener('error', onError);
+        if (image.complete && image.naturalWidth === 0) onError();
+      });
     }
     if (document.querySelector('#home-sponsors')) {
       await renderSponsorPlacements('#home-sponsors', ['home']);

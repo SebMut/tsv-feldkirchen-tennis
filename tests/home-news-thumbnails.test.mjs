@@ -12,9 +12,11 @@ test('homepage combines upcoming events and news while keeping their image sourc
   assert.match(script, /supabase\.from\('news'\)\.select\('\*'\)/);
   assert.match(script, /supabase\.from\('events'\)\.select\('id,slug,title,starts_at,hero_image_path,rsvp_enabled,external_url'\)/);
   assert.match(script, /image: item\.hero_image_path/);
+  assert.match(script, /eventImagePathCandidates\(item, relatedNews\)\.map\(mediaUrl\)/);
+  assert.match(script, /data-home-image-alternates/);
   assert.match(script, /linkedNewsIds\.has\(item\.id\)/);
   assert.match(script, /const homeItems = \[/);
-  assert.match(script, /item\.image \? `<img class="home-news-item__image/);
+  assert.match(script, /item\.imageCandidates\.length \? `<img class="home-news-item__image/);
   assert.match(script, /width="108" height="80" loading="lazy" decoding="async"/);
   assert.match(script, /class="news-row home-news-item/);
   assert.match(script, /item\.label/);
@@ -24,7 +26,7 @@ test('article detail image and homepage thumbnail reference the same stored imag
   assert.match(script, /item\.hero_image_path \? `<img src="\$\{escapeHtml\(mediaUrl\(item\.hero_image_path\)\)\}"/);
   assert.match(script, /image: item\.hero_image_path/);
   assert.match(script, /class="home-news-item__image/);
-  assert.match(script, /mediaUrl\(item\.image\)/);
+  assert.match(script, /eventImagePathCandidates\(item, relatedNews\)/);
 });
 
 test('news thumbnail layout has mobile sizing, keyboard focus and no layout shift', () => {
