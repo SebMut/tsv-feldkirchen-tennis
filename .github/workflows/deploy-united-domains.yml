@@ -128,6 +128,7 @@ jobs:
       # Publish four configurable RSVP sections, an upfront signup CTA and Turnstile error recovery; CI and browser QA passed.
       # Ship alphabetically sorted A4 landscape RSVP PDF tables: verified admin records, food, cake, adults and kids, repeated page headers.
       # Prominent event registrations and PDF exports page: one verified-download button per event, guarded by existing events permissions.
+      # Release TSV corporate-identity PDF: existing Supabase club logo, club-red headers, repeated letterhead, private verified reports; browser and build QA passed.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
