@@ -14,6 +14,8 @@ export type RsvpPdfRow = {
 export type RsvpPdfEvent = {
   title:string;slug:string;starts_at:string;
   rsvp_details?:{
+    show_contributions?:boolean;
+    show_help?:boolean;
     tournament_youth_enabled?:boolean;
     tournament_women_enabled?:boolean;
     tournament_men_enabled?:boolean;
