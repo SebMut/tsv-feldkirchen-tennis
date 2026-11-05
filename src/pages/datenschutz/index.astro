@@ -1,6 +1,115 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 ---
-<MainLayout title="Datenschutz | TSV Feldkirchen Tennis" noindex={true}>
-  <div class="container content-page"><p class="eyebrow">Rechtliches</p><h1>Datenschutz</h1><div class="card"><p>Die Datenschutzerklärung des Hauptvereins enthält die zentralen Datenschutzinformationen des TSV Feldkirchen.</p><p><a class="button" href="https://tsvfeldkirchen.de/datenschutz-dsgvo" target="_blank" rel="noreferrer">Datenschutzerklärung des Hauptvereins ↗</a></p><p><strong>Anonyme Nutzungsstatistik:</strong> Unsere Tennis-Website zählt Aufrufe einzelner öffentlicher Seiten sowie die Nutzung von Liveticker, Kalender, Routen und Navigation. Die Daten werden nur als stündliche Summen gespeichert. Es werden keine IP-Adressen, Cookies, Besucherkennungen, Browser-Fingerprints, vollständigen Referrer-Adressen oder persönlichen Eingaben für die Statistik gespeichert. Ein Zugriff auf die Auswertung ist nur für Superadministratoren möglich. Eine eindeutige Besucherzahl wird nicht ermittelt. Browser mit aktivierter Do-Not-Track- oder Global-Privacy-Control-Einstellung werden von dieser Zählung ausgenommen.</p></div></div>
+
+<MainLayout title="Datenschutz | TSV Feldkirchen Tennis" description="Datenschutzinformationen zur Tennis-Homepage des TSV Feldkirchen: Veranstaltungen, Mitgliederzugang, Liveticker, Kalender und externe Dienste." noindex={true}>
+  <div class="container content-page privacy-page">
+    <p class="eyebrow">Rechtliches · Tennisabteilung</p>
+    <h1>Datenschutzerklärung</h1>
+    <p class="muted">Stand: 5. November 2026</p>
+    <div class="card stack">
+      <p>Hier erklären wir, welche Daten bei der Nutzung von <strong>tennis-tsvfeldkirchen.de</strong> verarbeitet werden. Diese Angaben ergänzen die <a href="https://tsvfeldkirchen.de/datenschutz-dsgvo" target="_blank" rel="noopener noreferrer">Datenschutzerklärung des TSV Feldkirchen</a>, insbesondere für die Funktionen der Tennis-Homepage.</p>
+      <nav class="privacy-contents" aria-label="Abschnitte dieser Datenschutzerklärung">
+        <strong>Direkt zu den Themen</strong>
+        <div class="privacy-links">
+          <a href="#verantwortlich">Verantwortlicher</a>
+          <a href="#technik">Website und Hosting</a>
+          <a href="#supabase">Supabase</a>
+          <a href="#anmeldungen">Veranstaltungsanmeldungen</a>
+          <a href="#benutzer">Mein TSV</a>
+          <a href="#statistik">Nutzungsstatistik</a>
+          <a href="#externe-dienste">Externe Dienste</a>
+          <a href="#rechte">Deine Rechte</a>
+        </div>
+      </nav>
+
+      <section id="verantwortlich" aria-labelledby="privacy-verantwortlich">
+        <h2 id="privacy-verantwortlich">1. Verantwortlicher und Kontakt</h2>
+        <p><strong>Turn- und Sportverein Feldkirchen bei München von 1912 e. V.</strong><br />Olympiastraße 1, 85622 Feldkirchen<br />E-Mail: <a href="mailto:office@tsvfeldkirchen.de">office@tsvfeldkirchen.de</a><br />Telefon: <a href="tel:+49899036460">+49 89 9036460</a></p>
+        <p>Für Fragen zur Tennis-Homepage erreichst du die Abteilung unter <a href="mailto:tennis@tsvfeldkirchen.de">tennis@tsvfeldkirchen.de</a>. Angaben zu den Datenschutz-Ansprechpartnern des Hauptvereins findest du in dessen <a href="https://tsvfeldkirchen.de/datenschutz-dsgvo" target="_blank" rel="noopener noreferrer">Datenschutzerklärung</a>.</p>
+      </section>
+
+      <section id="technik" aria-labelledby="privacy-technik">
+        <h2 id="privacy-technik">2. Aufruf der Website, Hosting und technische Speicherung</h2>
+        <p>Die öffentliche Website wird über <strong>United Domains</strong> bereitgestellt. Bei einem Aufruf werden technisch notwendige Informationen übertragen, insbesondere IP-Adresse, aufgerufene Adresse, Zeitpunkt, Browser- und Geräteinformationen sowie technische Statusdaten. Server- und Sicherheitsprotokolle können beim Hostinganbieter anfallen. Wir benötigen diese Verarbeitung, um die Website auszuliefern, Fehler zu beheben und Angriffe abzuwehren (regelmäßig Art. 6 Abs. 1 lit. f DSGVO).</p>
+        <p>Die konkrete Dauer der Speicherung von Hosting-Protokollen richtet sich nach den eingesetzten Hosting- und Sicherheitseinstellungen. Informationen dazu können beim Verein angefragt werden.</p>
+        <p>Die Website unterstützt eine installierbare Web-App mit technisch bedingtem Zwischenspeicher für öffentliche Seiten. Kalender-Einstellungen wie Lieblingsmannschaft und die Anzeige von Veranstaltungen können lokal im Browser gespeichert werden. Diese Einstellungen lassen sich durch Ändern der Auswahl beziehungsweise über die Browserdaten entfernen.</p>
+      </section>
+
+      <section id="supabase" aria-labelledby="privacy-supabase">
+        <h2 id="privacy-supabase">3. Datenbank, Benutzerverwaltung und Bilder (Supabase)</h2>
+        <p>Für aktuelle Vereinsnachrichten, Mannschaften, Ergebnisse, Liveticker, Veranstaltungen, Anmeldungen, Benutzerkonten und hochgeladene Vereinsbilder verwenden wir <strong>Supabase</strong>. Dabei werden Daten über die Datenbank-, Authentifizierungs-, Speicher- und Schnittstellendienste von Supabase verarbeitet. Bilder werden über den Supabase-Medienspeicher geladen; dabei kann die IP-Adresse an die hierfür eingesetzte Infrastruktur übertragen werden. Auch für technische Zugriffe auf die Datenbank oder einen Kalender-Feed fallen Verbindungsdaten an.</p>
+        <p>Die jeweiligen Daten dienen der Bereitstellung des Vereinsangebots, der Organisation der Tennisabteilung und der Sicherung berechtigter Zugriffe (je nach Vorgang Art. 6 Abs. 1 lit. b beziehungsweise lit. f DSGVO und, soweit erforderlich, weiteren einschlägigen Rechtsgrundlagen).</p>
+        <p>Für Supabase können Dienstleister und technische Unterauftragnehmer auch außerhalb der Europäischen Union eingesetzt werden. Maßgeblich sind die vertraglichen Datenschutzregelungen und die tatsächlich konfigurierte Hostingregion. Näheres: <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase Datenschutz</a> und <a href="https://supabase.com/legal/customer-resources/data-processing-addendum" target="_blank" rel="noopener noreferrer">Vereinbarung zur Auftragsverarbeitung</a>.</p>
+      </section>
+
+      <section id="anmeldungen" aria-labelledby="privacy-anmeldungen">
+        <h2 id="privacy-anmeldungen">4. Anmeldung zu Veranstaltungen und Vereinsmeisterschaften</h2>
+        <p>Bei einer freiwilligen Rückmeldung zu einer Veranstaltung verarbeiten wir den angegebenen <strong>Namen, die E-Mail-Adresse, Zu- oder Absage beziehungsweise „Vielleicht“, die Anzahl von Erwachsenen und Kindern/Jugendlichen</strong> sowie – falls für den Termin freigeschaltet und von dir ausgefüllt – Angaben zu mitgebrachten Speisen, Unterstützung beim Aufbau oder Abbau und Teilnehmernamen für Vereinsmeisterschaften einschließlich Jugendaltersklasse.</p>
+        <p>Wir verwenden diese Daten ausschließlich zur Durchführung, Teilnehmerplanung und Organisation der betreffenden Veranstaltung oder des Wettbewerbs, zur Vermeidung doppelter Rückmeldungen und für erforderliche Rückfragen (Art. 6 Abs. 1 lit. b bzw. lit. f DSGVO, abhängig von der Veranstaltung). Bei Angaben über Kinder und Jugendliche sollen die Erziehungsberechtigten einverstanden sein.</p>
+        <p>Die Anmeldung erfolgt mit einer <strong>E-Mail-Bestätigung</strong>: Zunächst wird eine noch nicht bestätigte Rückmeldung mit einem einmal verwendbaren Bestätigungstoken verarbeitet. Der Link ist 24 Stunden gültig. Erst nach erfolgreicher Bestätigung wird die Anmeldung als bestätigt gezählt. Zur Missbrauchsbegrenzung nutzt die Anmeldung zeitweise einen technisch abgeleiteten Prüfwert aus der IP-Adresse; die reine stündliche Website-Statistik verwendet diesen Prüfwert nicht.</p>
+        <p>Öffentlich werden ausschließlich <strong>zusammengefasste Anmeldezahlen</strong> angezeigt, keine Namen oder E-Mail-Adressen. Berechtigte Personen in der Vereinsverwaltung können bestätigte Rückmeldungen sehen und Teilnehmerlisten als PDF herunterladen. Diese PDF-Dateien werden im Browser erstellt; für die PDF-Erzeugung wird kein zusätzlicher externer PDF-Dienst verwendet. Heruntergeladene Dateien sind anschließend von ihren jeweiligen Empfängern angemessen zu schützen.</p>
+        <p>Nicht mehr erforderliche Anmeldedaten werden nach Abschluss der organisatorischen Zwecke und vorbehaltlich gesetzlicher Aufbewahrungspflichten gelöscht. Für Auskunft, Korrektur oder Löschung einer Rückmeldung kannst du den Verein kontaktieren.</p>
+      </section>
+
+      <section id="benutzer" aria-labelledby="privacy-benutzer">
+        <h2 id="privacy-benutzer">5. Geschützter Bereich „Mein TSV“ und Berechtigungen</h2>
+        <p>Für eingeladene Mannschaftsverantwortliche und Redakteure verarbeiten wir insbesondere Namen, E-Mail-Adressen, Authentifizierungsdaten, Benutzerrollen, Teamzuordnungen und individuelle Berechtigungen. Anmelde- und Wiederherstellungs-E-Mails dienen dazu, den Zugang einzurichten oder abzusichern. Passwörter werden über den Authentifizierungsdienst verarbeitet; sie sind für die Vereinsredaktion nicht als Klartext einsehbar.</p>
+        <p>Zur Aufrechterhaltung der Anmeldung werden technisch notwendige Authentifizierungsinformationen im Browser gespeichert. Der Zugriff auf vertrauliche Verwaltungsdaten wird zusätzlich über serverseitige Berechtigungen eingeschränkt. Rechtsgrundlage ist die sichere Durchführung der Vereinsverwaltung und der vorgesehenen Benutzerzugänge (Art. 6 Abs. 1 lit. b bzw. lit. f DSGVO).</p>
+      </section>
+
+      <section id="statistik" aria-labelledby="privacy-statistik">
+        <h2 id="privacy-statistik">6. Datensparsame Nutzungsstatistik</h2>
+        <p>Wir zählen Aufrufe öffentlicher Seiten und ausgewählte Nutzungsaktionen, etwa beim Liveticker, Kalender, bei Nachrichten, Navigation und Routenverweisen. Dazu speichern wir lediglich <strong>stündlich zusammengefasste Zähler</strong> sowie Kategorien für Seiten, Geräteklassen und grobe Zugriffsquellen. Bei Livetickeraufrufen kann die Kennung eines Spieles mitgezählt werden.</p>
+        <p>In der Statistik speichern wir <strong>keine IP-Adressen, Cookies, Personen- oder Besucherkennungen, Browser-Fingerprints, vollständigen Referrer-Adressen oder Formularinhalte</strong>. Sie misst keine eindeutigen Besucher. Der Statistikzugriff ist auf Superadministratoren beschränkt. Browser mit aktivierter <em>Do Not Track</em>- oder <em>Global Privacy Control</em>-Einstellung werden nicht gezählt. Die Statistik wird nur auf der produktiven Tennis-Domain ausgeführt.</p>
+        <p>Die Auswertung dient der Verbesserung und Wartung des Vereinsangebots (Art. 6 Abs. 1 lit. f DSGVO). Die technische Übermittlung an den Server kann unabhängig von diesen Zählern normale Verbindungsprotokolle auslösen; hierzu siehe Abschnitte 2 und 3.</p>
+      </section>
+
+      <section id="externe-dienste" aria-labelledby="privacy-externe">
+        <h2 id="privacy-externe">7. Externe Dienste, E-Mails und Verlinkungen</h2>
+        <p><strong>Cloudflare Turnstile:</strong> Zum Schutz des Veranstaltungsformulars gegen automatisierte Eingaben laden wir eine Sicherheitsprüfung von <strong>Cloudflare</strong>. Dabei verarbeitet Cloudflare technische Informationen über deinen Browser und die Verbindung, die zur Erkennung von Missbrauch benötigt werden. Die Prüfung ist für das geschützte Absenden des Formulars erforderlich; Rechtsgrundlage ist unser Sicherheitsinteresse (Art. 6 Abs. 1 lit. f DSGVO). Weitere Informationen: <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare Datenschutz</a> und <a href="https://www.cloudflare.com/turnstile-privacy-policy/" target="_blank" rel="noopener noreferrer">Turnstile-Datenschutzinformationen</a>.</p>
+        <p><strong>E-Mail-Versand:</strong> Bestätigungsnachrichten für Veranstaltungsanmeldungen werden über das verbundene Vereins-Gmail-Konto mithilfe der <strong>Google Gmail API</strong> versendet. Dabei werden die zum Versand nötigen Angaben, insbesondere Empfängeradresse und Nachrichteninhalt, an Google übermittelt. Für Einladungen und Passwort-Wiederherstellung des Adminbereichs nutzt die Website die E-Mail-Funktionen von Supabase und deren konfigurierten Versandweg. Weitere Informationen: <a href="https://policies.google.com/privacy?hl=de" target="_blank" rel="noopener noreferrer">Google Datenschutz</a>.</p>
+        <p><strong>Wetter:</strong> Die Wetterübersicht auf der Startseite ruft aktuelle Vorhersagedaten über <strong>Open-Meteo</strong> ab. Beim direkten Verbindungsaufbau kann der Wetterdienst technische Verbindungsdaten wie die IP-Adresse erhalten. Weitere Informationen: <a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener noreferrer">Open-Meteo</a>.</p>
+        <p><strong>Externe Links:</strong> Buttons zur Platzbuchung (<strong>Courtbooking</strong>), zu Spielberichten und Mannschaftsseiten (<strong>tennis.de / BTV</strong>) sowie zur Routenplanung (<strong>Google Maps</strong> oder andere Kartendienste) führen zu fremden Websites. Erst beim Öffnen dieser Links gelten zusätzlich die Datenschutzbestimmungen des jeweiligen Anbieters.</p>
+        <p><strong>Kalenderabonnement:</strong> Ein abonnierter Kalender wird von deiner Kalender-App regelmäßig über die öffentliche Kalender-Schnittstelle abgerufen. Je nach verwendetem Kalenderdienst kann die Abo-Adresse auch auf dessen Servern gespeichert und von dort abgefragt werden. Für die Verarbeitung durch die Kalender-App beziehungsweise den Kalenderanbieter gelten dessen eigene Einstellungen und Datenschutzbestimmungen.</p>
+      </section>
+
+      <section id="bilder" aria-labelledby="privacy-bilder">
+        <h2 id="privacy-bilder">8. Vereinsbilder, Ergebnisse und veröffentlichte Inhalte</h2>
+        <p>Auf der Website können Vereinsnachrichten, Veranstaltungen, Mannschafts- und Spielerinformationen, Begegnungen, Ergebnisse und Bilder veröffentlicht werden. Personenbezogene Inhalte werden im Rahmen der Vereinsarbeit und der dafür geltenden Rechtsgrundlagen verarbeitet. Wenn du ein Bild oder eine personenbezogene Angabe überprüfen oder entfernen lassen möchtest, wende dich bitte an den Verein. Bei Minderjährigen können sich auch die Erziehungsberechtigten melden.</p>
+      </section>
+
+      <section id="speicherung" aria-labelledby="privacy-speicherung">
+        <h2 id="privacy-speicherung">9. Speicherdauer und Empfänger</h2>
+        <p>Wir verarbeiten Daten nur so lange, wie sie für den jeweiligen Zweck, die Dokumentation der Vereinstätigkeit, eine sichere Betriebsführung oder gesetzliche Aufbewahrungspflichten benötigt werden. Die Fristen können sich nach Datenart und Vorgang unterscheiden. Einladungslinks, kurzfristige Bestätigungsanfragen, Veranstaltungsrückmeldungen, öffentliches Bildmaterial und technische Betriebsprotokolle haben daher nicht zwangsläufig dieselbe Speicherdauer.</p>
+        <p>Zugriff erhalten nur die jeweils berechtigten Personen des Vereins sowie die für den technischen Betrieb erforderlichen Dienstleister. Bei Anmeldungen werden keine individuellen Teilnehmerdaten in der öffentlichen Statistik veröffentlicht.</p>
+      </section>
+
+      <section id="rechte" aria-labelledby="privacy-rechte">
+        <h2 id="privacy-rechte">10. Deine Datenschutzrechte</h2>
+        <p>Nach Maßgabe der DSGVO hast du insbesondere Rechte auf <strong>Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch</strong>. Soweit eine Verarbeitung auf einer Einwilligung beruht, kannst du diese für die Zukunft widerrufen. Du kannst dich außerdem bei einer zuständigen Datenschutzaufsichtsbehörde beschweren.</p>
+        <p>Für Anfragen wende dich bitte an <a href="mailto:office@tsvfeldkirchen.de">office@tsvfeldkirchen.de</a> oder <a href="mailto:tennis@tsvfeldkirchen.de">tennis@tsvfeldkirchen.de</a>. Die Datenschutzerklärung des Hauptvereins enthält zusätzliche Hinweise zu Ansprechpartnern und zum allgemeinen Umgang mit Mitgliederdaten.</p>
+        <p><a href="https://tsvfeldkirchen.de/datenschutz-dsgvo" target="_blank" rel="noopener noreferrer">Datenschutzerklärung des Hauptvereins lesen →</a></p>
+      </section>
+    </div>
+  </div>
 </MainLayout>
+
+<style>
+  .privacy-page{padding-bottom:36px}
+  .privacy-page>.muted{margin-top:-7px;margin-bottom:20px;font-size:.84rem}
+  .privacy-page .card{padding:clamp(20px,3vw,34px);gap:24px}
+  .privacy-page .card>p{margin:0;line-height:1.7}
+  .privacy-page section{min-width:0;scroll-margin-top:110px}
+  .privacy-page section+section{border-top:1px solid #e4e8e5;padding-top:22px}
+  .privacy-page h2{margin:0 0 11px;font-size:clamp(1.15rem,1.8vw,1.4rem);line-height:1.35}
+  .privacy-page section p{line-height:1.72;margin:0 0 12px;overflow-wrap:anywhere}
+  .privacy-page section p:last-child{margin-bottom:0}
+  .privacy-page a{overflow-wrap:anywhere}
+  .privacy-contents{padding:16px 18px;background:#f8faf8;border:1px solid #e4ebe6;border-radius:12px}
+  .privacy-contents strong{display:block;margin-bottom:12px;font-size:.9rem}
+  .privacy-links{display:flex;flex-wrap:wrap;gap:9px}
+  .privacy-links a{display:inline-flex;padding:7px 10px;background:#fff;border:1px solid #dce4df;border-radius:8px;font-size:.84rem;text-decoration:none}
+  .privacy-links a:hover,.privacy-links a:focus-visible{border-color:#cd2636;color:#a60019}
+  @media(max-width:550px){.privacy-page .card{padding:17px}.privacy-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.privacy-links a{align-items:center}}
+</style>
