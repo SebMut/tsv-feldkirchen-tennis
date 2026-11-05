@@ -2850,8 +2850,17 @@ export async function initAdmin() {
   const setupStatus = $('#password-setup-status');
   const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
   const queryParams = new URLSearchParams(location.search);
-  const initialAuthFlow = hashParams.get('type') || queryParams.get('type') || '';
+  // The Supabase client may have consumed the recovery/invite URL fragment
+  // before initAdmin runs. The early inline script captures its TYPE only.
+  const storedFlow = (() => {
+    try { return sessionStorage.getItem('tsv-admin-password-flow') || ''; }
+    catch { return ''; }
+  })();
+  const initialAuthFlow = hashParams.get('type') || queryParams.get('type') || storedFlow;
   const requiresPasswordSetup = initialAuthFlow === 'invite' || initialAuthFlow === 'recovery';
+  const clearPasswordFlow = () => {
+    try { sessionStorage.removeItem('tsv-admin-password-flow'); } catch {}
+  };
 
   const showPasswordSetup = (user: any) => {
     state.user = user;
@@ -2880,6 +2889,7 @@ export async function initAdmin() {
     const { data, error } = await supabase.auth.updateUser({ password });
     if (error || !data.user) return setStatus(setupStatus, error?.message || 'Passwort konnte nicht gespeichert werden.', 'error');
 
+    clearPasswordFlow();
     history.replaceState({}, document.title, `${location.origin}${import.meta.env.BASE_URL}admin/`);
     ($<HTMLFormElement>('#password-setup-form'))?.reset();
     $('#password-setup-box')?.classList.add('hidden');
@@ -2894,7 +2904,19 @@ export async function initAdmin() {
     setStatus(authStatus, 'Anmeldung läuft …');
     authStatus?.classList.remove('hidden');
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) return setStatus(authStatus, error?.message || 'Anmeldung fehlgeschlagen.', 'error');
+    if (error || !data.user) {
+      const invalidCredentials = /invalid login credentials|invalid_credentials/i.test(error?.message || '');
+      if (invalidCredentials) {
+        const resetEmail = $<HTMLInputElement>('#reset-email');
+        if (resetEmail) resetEmail.value = email;
+        const help = document.querySelector<HTMLDetailsElement>('.auth-help');
+        if (help) help.open = true;
+      }
+      return setStatus(authStatus, invalidCredentials
+        ? 'Anmeldung fehlgeschlagen. Falls du einen Einladungslink geöffnet hast, ist dein Passwort möglicherweise noch nicht eingerichtet. Fordere unten unter „Passwort vergessen?“ einen neuen Einrichtungslink an.'
+        : error?.message || 'Anmeldung fehlgeschlagen.', 'error');
+    }
+    clearPasswordFlow();
     await startApp(data.user);
   });
 
@@ -2903,15 +2925,30 @@ export async function initAdmin() {
     const email = $<HTMLInputElement>('#reset-email')?.value.trim() || '';
     if (!email) return;
     const redirectTo = 'https://www.tennis-tsvfeldkirchen.de/admin/';
-    setStatus(authStatus, 'E-Mail wird vorbereitet …');
+    const sendButton = $<HTMLButtonElement>('#password-reset-form button[type="submit"]');
+    if (sendButton?.disabled) return;
+    if (sendButton) sendButton.disabled = true;
+    setStatus(authStatus, 'Passwort-Link wird angefordert …');
     authStatus?.classList.remove('hidden');
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) return setStatus(authStatus, error.message, 'error');
-    setStatus(authStatus, 'Wenn die Adresse bekannt ist, wurde ein Link zum Zurücksetzen gesendet.', 'success');
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) {
+        const limited = /rate limit|too many|security purposes|after \d+ seconds/i.test(error.message);
+        return setStatus(authStatus, limited
+          ? 'Der Versand wurde wegen zu vieler Anfragen vorübergehend begrenzt. Bitte nicht mehrfach klicken, sondern nach der angegebenen Pause nur einmal erneut anfordern.'
+          : 'Der Passwort-Link konnte nicht angefordert werden: ' + error.message, 'error');
+      }
+      setStatus(authStatus, 'Passwort-Link angefordert. Bitte E-Mail-Posteingang und Spamordner prüfen. Die Zustellung kann technisch nicht garantiert werden; ältere Links können ungültig sein. Den neuesten Link nur einmal öffnen.', 'success');
+    } finally {
+      if (sendButton) sendButton.disabled = false;
+    }
   });
 
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY' && session?.user) {
+      try { sessionStorage.setItem('tsv-admin-password-flow', 'recovery'); } catch {}
+      showPasswordSetup(session.user);
+    } else if (event === 'SIGNED_IN' && requiresPasswordSetup && session?.user) {
       showPasswordSetup(session.user);
     }
   });
@@ -2920,5 +2957,9 @@ export async function initAdmin() {
   if (data.session?.user) {
     if (requiresPasswordSetup) showPasswordSetup(data.session.user);
     else await startApp(data.session.user);
+  } else if (requiresPasswordSetup) {
+    clearPasswordFlow();
+    authStatus?.classList.remove('hidden');
+    setStatus(authStatus, 'Dieser Einladungs- oder Passwort-Link ist nicht mehr gültig. Bitte unter „Passwort vergessen?“ einen neuen Link anfordern; nur den neuesten Link einmal öffnen.', 'error');
   }
 }

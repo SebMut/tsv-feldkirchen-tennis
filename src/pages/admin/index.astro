@@ -4,11 +4,27 @@ import '../../styles/admin-analytics.css';
 import '../../styles/admin-rsvp-export.css';
 ---
 <MainLayout title="Mein TSV | TSV Feldkirchen Tennis" description="Geschützter Bereich für Mannschaften und SuperAdmins." noindex={true}>
+  <script is:inline>
+    // This inline script runs before deferred Astro modules. Supabase Auth
+    // removes the one-time URL hash during initialization, so capture ONLY
+    // the flow type, never its access/refresh tokens.
+    (() => {
+      try {
+        const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
+        const query = new URLSearchParams(location.search);
+        const type = hash.get('type') || query.get('type') || '';
+        const containsToken = hash.has('access_token') || hash.has('refresh_token') || query.has('code');
+        if (containsToken && (type === 'invite' || type === 'recovery')) {
+          sessionStorage.setItem('tsv-admin-password-flow', type);
+        }
+      } catch {}
+    })();
+  </script>
   <div class="container stack admin-workspace" id="admin-root">
     <section id="auth-box" class="card admin-auth-card">
       <p class="eyebrow">Mein TSV</p>
       <h1>Login</h1>
-      <p class="muted">Mannschaftsverantwortliche und Administratoren melden sich hier an.</p>
+      <p class="muted">Mannschaftsverantwortliche und Administratoren melden sich hier an. Nach einer Einladung musst du zuerst über den E-Mail-Link ein persönliches Passwort festlegen.</p>
       <div id="auth-status" class="notice hidden" aria-live="polite"></div>
       <form id="login-form" class="form-grid">
         <div class="field"><label for="login-email">E-Mail</label><input id="login-email" name="email" type="email" autocomplete="email" required /></div>
@@ -22,7 +38,7 @@ import '../../styles/admin-rsvp-export.css';
           <div class="field"><button class="button secondary" type="submit">Link zum Zurücksetzen senden</button></div>
         </form>
       </details>
-      <p class="muted">Neue Mannschaftsnutzer werden ausschließlich durch den SuperAdmin eingeladen.</p>
+      <p class="muted">Neue Mannschaftsnutzer werden ausschließlich durch den SuperAdmin eingeladen. Falls ein Einladungslink schon verwendet wurde oder abgelaufen ist, fordere unter „Passwort vergessen?“ einen neuen Link an. Verwende nur den neuesten Link und öffne ihn einmal.</p>
     </section>
 
     <section id="password-setup-box" class="card admin-auth-card hidden">

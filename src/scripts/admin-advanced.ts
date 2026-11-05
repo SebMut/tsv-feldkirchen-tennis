@@ -634,8 +634,10 @@ export async function loadAdvancedUsers(base: BaseState) {
 
   target.innerHTML = `<div class="stack">${(data.users ?? []).map((user: Row) => {
     const membershipMap = new Map((user.team_memberships ?? []).filter((m: Row) => m.active).map((m: Row) => [m.team_id, m]));
-    const accountStatus = user.last_sign_in_at ? 'Aktiv' : user.invited_at ? 'Einladung offen' : 'Angelegt';
-    const accountTone = user.last_sign_in_at ? '' : ' pending';
+    // A token sign-in proves neither that a password was set nor that a
+    // subsequent password login works. Do not label such accounts "active".
+    const accountStatus = user.email_confirmed_at ? 'E-Mail bestätigt' : user.invited_at ? 'Einladung offen' : 'Angelegt';
+    const accountTone = user.email_confirmed_at ? '' : ' pending';
     const isSelf = user.id === base.user?.id;
     return `<article class="card flat user-admin-card" data-user-card="${user.id}">
       <div class="page-head">
@@ -693,7 +695,7 @@ export async function loadAdvancedUsers(base: BaseState) {
       </details>
       <div class="actions" style="margin-top:12px">
         <button class="button" data-save-user>Rechte speichern</button>
-        ${user.last_sign_in_at ? '' : '<button class="button secondary" data-send-access>Zugangs-Mail erneut senden</button>'}
+        ${isSelf ? '' : '<button class="button secondary" data-send-access>Neuen Passwort-Link senden</button>'}
         ${isSelf ? '' : '<button class="button danger" data-delete-user>Zugang löschen</button>'}
       </div>
     </article>`;
@@ -771,7 +773,7 @@ export async function loadAdvancedUsers(base: BaseState) {
         if (result.data?.ok !== true || result.data?.error) {
           return reportStatus(result.data?.error || 'Zugangs-Mail konnte nicht bestätigt werden.', 'error');
         }
-        reportStatus('Zugangs-Mail wurde gesendet.', 'success');
+        reportStatus('Ein neuer Passwort-Link wurde bei Supabase angefordert. Ob die E-Mail im Postfach zugestellt wird, kann hier nicht bestätigt werden. Bitte auch den Spamordner prüfen und nur den neuesten Link einmal öffnen.', 'success');
       } catch (error) {
         reportStatus('Versandstatus unklar: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler') +
           '. Bitte erst den Posteingang prüfen.', 'error');
