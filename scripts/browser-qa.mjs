@@ -124,6 +124,10 @@ async function deviceQA(device){
         if(expected!==3)assert.ok(result.rowTwo,width+'px should wrap the third card');
         assert.ok(result.widths.every(w=>w>=150),width+'px cards too narrow: '+JSON.stringify(result));
         await noOverflow(page,'/aktuelles/ at '+width+'px');
+        if(width===1024){
+          assert.equal(await page.locator('.desktop-nav').isVisible(),false,'Full desktop navigation must collapse before it overflows');
+          assert.equal(await page.locator('.mobile-nav').isVisible(),true,'Header dropdown must stay available on compact desktop');
+        }
       }
     } finally {
       if(original)await page.setViewportSize(original);
