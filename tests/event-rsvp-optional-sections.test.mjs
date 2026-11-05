@@ -59,7 +59,7 @@ test('signup CTA appears after short summary, above details in actual event card
   const cta=aktuell.indexOf('<p class="content-card__signup">',desc);
   const detail=aktuell.indexOf('<details class="content-card__details"',desc);
   assert.ok(desc>0&&cta>desc&&detail>cta,'CTA must be visible before opening full text');
-  const previewDesc=compose.indexOf('escapeHtml(plain(val(\\'excerpt\\') || val(\\'body\\')))');
+  const previewDesc=compose.indexOf("escapeHtml(plain(val('excerpt') || val('body')))");
   const previewCta=compose.indexOf('content-card__signup',previewDesc);
   const previewDetails=compose.indexOf('content-card__details',previewDesc);
   assert.ok(previewDesc>0&&previewCta>previewDesc&&previewDetails>previewCta);
