@@ -31,7 +31,7 @@ const surnameKey=(name:string)=>{
 };
 const nameCompare=(a:string,b:string)=>surnameKey(a).localeCompare(surnameKey(b),'de',{sensitivity:'base'})||
   a.localeCompare(b,'de',{sensitivity:'base'});
-const sorted=(entries:string[])=>entries.slice().sort(nameCompare);
+const sorted=(entries:string[])=>entries.slice().sort((a,b)=>nameCompare(a.split(/: | - | \s\(/)[0],b.split(/: | - | \s\(/)[0]));
 export const sortRsvpBySurname=(rows:RsvpPdfRow[]):RsvpPdfRow[]=>rows
   .filter(row=>!!String(row.member_name||'').trim()).slice()
   .sort((a,b)=>nameCompare(a.member_name,b.member_name));
@@ -75,7 +75,7 @@ function wrap(text:string,maxWidth:number,size:number,bold=false):string[]{
   return lines.length?lines:['–'];
 }
 
-export function downloadRsvpPdf(event:RsvpPdfEvent,records:RsvpPdfRow[]):void {
+export function buildRsvpPdf(event:RsvpPdfEvent,records:RsvpPdfRow[]):Uint8Array {
   const rows=sortRsvpBySurname(records);
   const yes=rows.filter(r=>r.attendance==='yes');
   const maybe=rows.filter(r=>r.attendance==='maybe');
@@ -158,11 +158,11 @@ export function downloadRsvpPdf(event:RsvpPdfEvent,records:RsvpPdfRow[]):void {
   const columns=[
     {label:'Name',width:162,value:(r:RsvpPdfRow)=>people(r)},
     {label:'Teilnahme',width:74,value:(r:RsvpPdfRow)=>r.attendance==='yes'?'Zusage':r.attendance==='maybe'?'Vielleicht':'Absage'},
-    {label:'Erw.',width:48,value:(r:RsvpPdfRow)=>r.attendance==='yes'?String(Number(r.adults_count||0)):'-'},
+    {label:'Erwachsene',width:60,value:(r:RsvpPdfRow)=>r.attendance==='yes'?String(Number(r.adults_count||0)):'-'},
     {label:'Kinder',width:48,value:(r:RsvpPdfRow)=>r.attendance==='yes'?String(Number(r.children_count||0)):'-'},
     ...(config.show_contributions!==false?[
-      {label:'Essen / Salat',width:145,value:(r:RsvpPdfRow)=>r.attendance==='yes'?(r.salad_contribution||'-'):'-'},
-      {label:'Kuchen / Nachtisch',width:145,value:(r:RsvpPdfRow)=>r.attendance==='yes'?(r.dessert_contribution||'-'):'-'},
+      {label:'Essen / Salat',width:139,value:(r:RsvpPdfRow)=>r.attendance==='yes'?(r.salad_contribution||'-'):'-'},
+      {label:'Kuchen / Nachtisch',width:139,value:(r:RsvpPdfRow)=>r.attendance==='yes'?(r.dessert_contribution||'-'):'-'},
     ]:[]),
     ...(config.show_help!==false?[
       {label:'Aufbau',width:72,value:(r:RsvpPdfRow)=>r.help_setup?'Ja':'-'},
@@ -249,7 +249,12 @@ export function downloadRsvpPdf(event:RsvpPdfEvent,records:RsvpPdfRow[]):void {
   pdf+=`xref\n0 ${offsets.length}\n0000000000 65535 f \n`;
   for(const offset of offsets.slice(1))pdf+=`${String(offset).padStart(10,'0')} 00000 n \n`;
   pdf+=`trailer\n<< /Size ${offsets.length} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  const url=URL.createObjectURL(new Blob([toBytes(pdf)],{type:'application/pdf'}));
+  return toBytes(pdf);
+}
+
+export function downloadRsvpPdf(event:RsvpPdfEvent,records:RsvpPdfRow[]):void {
+  const pdf=buildRsvpPdf(event,records);
+  const url=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
   const a=document.createElement('a');
   a.href=url;
   a.download='tsv-feldkirchen-'+(event.slug||'veranstaltung')+'-teilnehmerliste.pdf';

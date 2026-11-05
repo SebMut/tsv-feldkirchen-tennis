@@ -202,13 +202,14 @@ test('admin controls youth, women and men independently and PDF export exists',(
   assert.ok(admin.includes("downloadRsvpPdf({"));
   assert.ok(admin.includes("},verifiedResponses)"));
   assert.ok(report.includes('export function downloadRsvpPdf('));
-  assert.ok(report.includes("new Blob([toBytes(pdf)],{type:'application/pdf'})"));
+  assert.ok(report.includes("new Blob([pdf],{type:'application/pdf'})"));
   assert.ok(report.includes("a.download='tsv-feldkirchen-'"));
   assert.ok(report.includes("const pages:string[][]=[[]]"));
-  assert.ok(report.includes('7. Teilnehmer alphabetisch'));
+  assert.ok(report.includes('Teilnehmer alphabetisch nach Nachnamen'));
+  assert.ok(report.includes('sortRsvpBySurname(records)'));
   assert.ok(report.includes('6. Helfer'));
   assert.ok(report.includes('2. Buffet: Salate, Vorspeisen und Nachspeisen'));
-  assert.ok(report.includes("localeCompare(b,'de'"));
+  assert.ok(report.includes("'de',{sensitivity:'base'}"));
   assert.ok(report.includes("r.attendance==='yes'"));
 });
 
