@@ -15,6 +15,25 @@ const message = (text: string, error = false) => {
   el.classList.toggle('is-error', error);
 };
 
+const VERIFIED_RSVP_COLUMNS='member_name,member_email,attendance,party_size,adults_count,children_count,dessert_contribution,salad_contribution,help_setup,help_cleanup,youth_registrations,women_registrations,men_registrations,updated_at';
+
+/** Shared live, RLS-protected query for both the existing admin form and the direct PDF page.
+ *  Paging avoids dropping registrations when a celebration grows beyond 1,000 answers. */
+export async function fetchVerifiedEventRsvps(eventId: string) {
+  const rows: RsvpPdfRow[] = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase.from('event_rsvps')
+      .select(VERIFIED_RSVP_COLUMNS).eq('event_id', eventId)
+      .not('verified_at', 'is', null)
+      .order('id', { ascending: true }).range(offset, offset + pageSize - 1);
+    if (error) return { data: null, error };
+    rows.push(...((data || []) as RsvpPdfRow[]));
+    if (!data || data.length < pageSize) break;
+  }
+  return { data: rows, error: null };
+}
+
 export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: string } }) {
   if (!access.isSuper) return;
   const select = $<HTMLSelectElement>('rsvp-admin-select');
@@ -75,7 +94,7 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
   const renderVotes = async () => {
     if (!selectedId || !list || !summary) return;
     const fetchingId=selectedId; if(pdfButton)pdfButton.disabled=true; verifiedResponses=[];
-    const { data, error } = await supabase.from('event_rsvps').select('member_name,member_email,attendance,party_size,adults_count,children_count,dessert_contribution,salad_contribution,help_setup,help_cleanup,youth_registrations,women_registrations,men_registrations,updated_at').eq('event_id', selectedId).not('verified_at','is',null).order('updated_at', { ascending: false });
+    const { data, error } = await fetchVerifiedEventRsvps(selectedId);
     if (fetchingId!==selectedId) return;
     if (error) { list.textContent = 'Rückmeldungen konnten nicht geladen werden: ' + error.message; return; }
     const rows = sortRsvpBySurname((data ?? []) as RsvpPdfRow[]); verifiedResponses = rows; if(pdfButton)pdfButton.disabled = false;

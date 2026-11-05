@@ -183,6 +183,24 @@ async function deviceQA(device){
       assert.ok(y.nav<y.main,'Admin menu must appear above editing content');
     }
     await noOverflow(page,'/admin/ navigation');
+    // A separate, prominent page for downloading each event's registrations;
+    // unauthenticated QA only exercises static layout, never private row retrieval.
+    await page.evaluate(()=>{
+      document.querySelector('#panel-rsvp-export')?.classList.add('active');
+      const grid=document.querySelector('#rsvp-export-cards');
+      if(!grid)throw Error('RSVP export panel missing');
+      grid.innerHTML=Array.from({length:3},(_,i)=>'<article class="rsvp-export-card"><div class="rsvp-export-card__head"><h3>Veranstaltung '+(i+1)+'</h3><p>12. Dezember 2026</p></div><div class="rsvp-export-card__stats"><div>5 Zusagen</div><div>9 Personen</div></div><button class="button" type="button">PDF herunterladen</button></article>').join('');
+    });
+    const exportPanel=page.locator('#panel-rsvp-export');
+    assert.equal(await exportPanel.locator('.rsvp-export-card').count(),3);
+    const columns=await exportPanel.locator('#rsvp-export-cards').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(/\s+/).filter(Boolean).length);
+    assert.equal(columns,device.mobile?1:2,'RSVP export cards must be responsive');
+    await noOverflow(page,'/admin/ RSVP export');
+    await page.evaluate(()=>{
+      document.querySelector('#panel-rsvp-export')?.classList.remove('active');
+      document.querySelector('#rsvp-export-cards')?.replaceChildren();
+    });
+
   },page,true);
   if(device.mobile) await check(device.name+' public ICS feed is subscribable and includes event revisions',async()=>{
     const response=await page.request.get('https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/calendar-feed?type=events',{timeout:25000});

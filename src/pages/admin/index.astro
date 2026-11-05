@@ -1,6 +1,7 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 import '../../styles/admin-analytics.css';
+import '../../styles/admin-rsvp-export.css';
 ---
 <MainLayout title="Mein TSV | TSV Feldkirchen Tennis" description="Geschützter Bereich für Mannschaften und SuperAdmins." noindex={true}>
   <div class="container stack admin-workspace" id="admin-root">
@@ -65,6 +66,7 @@ import '../../styles/admin-analytics.css';
           <div class="admin-nav__group" data-admin-nav-group="start">
             <p class="admin-nav__label">Start</p>
             <button type="button" data-panel="dashboard" class="active" aria-current="page"><span aria-hidden="true" class="admin-nav__symbol">▦</span> Übersicht</button>
+            <button type="button" data-panel="rsvp-export" data-events-only><span aria-hidden="true" class="admin-nav__symbol">⇩</span> Anmeldungen &amp; PDF</button>
           </div>
           <details class="admin-nav__group admin-nav__dropdown" data-admin-nav-group="spielbetrieb">
             <summary class="admin-nav__label">Spielbetrieb</summary>
@@ -121,6 +123,7 @@ import '../../styles/admin-analytics.css';
                 <button class="admin-shortcut" type="button" data-admin-jump="matches" data-ticker-only><strong>Spiele &amp; Liveticker</strong><span>Spieltage bearbeiten <span aria-hidden="true">›</span></span></button>
                 <button class="admin-shortcut" type="button" data-admin-jump="players" data-editor-only><strong>Kader pflegen</strong><span>Spieler verwalten <span aria-hidden="true">›</span></span></button>
                 <button class="admin-shortcut" type="button" data-admin-jump="news" data-editorial-only><strong>Aktuelles &amp; Veranstaltungen</strong><span>Beiträge und Termine verwalten <span aria-hidden="true">›</span></span></button>
+                <button class="admin-shortcut" type="button" data-admin-jump="rsvp-export" data-events-only><strong>Anmeldungen &amp; PDF</strong><span>Teilnehmerzahlen prüfen und pro Fest PDF herunterladen <span aria-hidden="true">›</span></span></button>
                 <button class="admin-shortcut hidden" type="button" data-admin-jump="manual-results" data-super-only><strong>Ergebnisse nachtragen</strong><span>Fehlende Ergebnisse <span aria-hidden="true">›</span></span></button>
               </div>
             </div>
@@ -327,6 +330,41 @@ import '../../styles/admin-analytics.css';
               </details>
               <div id="players-list" class="table-wrap"></div>
             </div>
+          </section>
+
+          <section id="panel-rsvp-export" class="admin-panel" data-events-only>
+            <div class="card stack rsvp-export-intro">
+              <div class="rsvp-export-intro__top">
+                <div>
+                  <p class="eyebrow">Veranstaltungen · Teilnehmerverwaltung</p>
+                  <h2>Anmeldungen &amp; PDF-Export</h2>
+                  <p class="muted">Alle Veranstaltungen mit Anmeldung direkt auf einer Seite. Für jede Veranstaltung gibt es einen eigenen PDF-Download, auch nach dem Anmeldeschluss.</p>
+                </div>
+                <button type="button" id="rsvp-export-reload" class="button secondary">Aktualisieren</button>
+              </div>
+              <div class="rsvp-export-total" aria-label="Gesamtüberblick">
+                <div><span>Veranstaltungen</span><strong id="rsvp-export-events-count">–</strong></div>
+                <div><span>Bestätigte Zusagen</span><strong id="rsvp-export-yes-count">–</strong></div>
+                <div><span>Angemeldete Personen</span><strong id="rsvp-export-persons-count">–</strong></div>
+              </div>
+              <div class="rsvp-export-controls">
+                <div class="field">
+                  <label for="rsvp-export-search">Veranstaltung suchen</label>
+                  <input id="rsvp-export-search" type="search" placeholder="z. B. Weihnachtsfeier" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="rsvp-export-filter">Zeitraum</label>
+                  <select id="rsvp-export-filter">
+                    <option value="all">Alle Veranstaltungen</option>
+                    <option value="upcoming">Anstehende Veranstaltungen</option>
+                    <option value="past">Vergangene Veranstaltungen</option>
+                  </select>
+                </div>
+              </div>
+              <p id="rsvp-export-status" class="muted" role="status" aria-live="polite">Die Anmeldungen werden beim Öffnen dieser Seite geladen.</p>
+            </div>
+            <div id="rsvp-export-cards" class="rsvp-export-grid" aria-live="polite"></div>
+            <p class="muted rsvp-export-note">Die PDFs werden aus den aktuell bestätigten Anmeldungen erzeugt. Nicht bestätigte Rückmeldungen erscheinen weder in der Teilnehmerzahl noch im Export. Nur berechtigte Vereinsredakteure können diese geschützten Daten abrufen.</p>
           </section>
 
           <section id="panel-matches" class="admin-panel">

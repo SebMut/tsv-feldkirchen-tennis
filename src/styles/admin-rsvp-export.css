@@ -1,0 +1,49 @@
+/* Independent event registration & PDF overview in the existing role-safe admin. */
+#panel-rsvp-export{min-width:0}
+.rsvp-export-intro{padding:clamp(17px,2.5vw,26px);gap:17px}
+.rsvp-export-intro__top{display:flex;align-items:start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.rsvp-export-intro__top>div{min-width:0;flex:1}
+.rsvp-export-intro__top h2{margin:4px 0 7px;font-size:clamp(1.3rem,2.1vw,1.85rem)}
+.rsvp-export-intro__top .muted{margin:0;max-width:65ch}
+.rsvp-export-intro__top .button{min-height:44px}
+.rsvp-export-total{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.rsvp-export-total>div{display:grid;gap:6px;padding:16px 18px;border:1px solid #dae4dd;border-radius:12px;background:#f8faf8;min-width:0}
+.rsvp-export-total span{font-size:.82rem;font-weight:700;color:#4c6354}
+.rsvp-export-total strong{font-size:clamp(1.5rem,2.3vw,2.1rem);line-height:1.1;color:#153d2b;font-variant-numeric:tabular-nums}
+.rsvp-export-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,.55fr);gap:12px}
+.rsvp-export-controls>.field{min-width:0}
+.rsvp-export-controls input,.rsvp-export-controls select{width:100%;min-height:44px}
+#rsvp-export-status{margin:0;min-height:1.35em}
+#rsvp-export-status.is-error{color:#ac1826;font-weight:700}
+.rsvp-export-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;align-items:stretch;min-width:0}
+.rsvp-export-card{border:1px solid #dce5de;border-radius:16px;background:#fff;padding:clamp(17px,2.1vw,24px);box-shadow:0 5px 16px rgb(20 39 26 / .04);min-width:0;display:grid;gap:15px;align-content:start}
+.rsvp-export-card__head{display:flex;justify-content:space-between;align-items:start;gap:14px;flex-wrap:wrap;min-width:0}
+.rsvp-export-card__head>div{min-width:0;flex:1}
+.rsvp-export-card__head .eyebrow{margin:0 0 5px;font-size:.7rem}
+.rsvp-export-card__head h3{font-size:clamp(1.13rem,1.55vw,1.4rem);line-height:1.25;margin:0 0 7px;overflow-wrap:anywhere}
+.rsvp-export-card__date{margin:0;font-size:.85rem;color:#516358}
+.rsvp-export-card__status{font-size:.73rem;color:#54695c;border:1px solid #d7e2da;border-radius:50px;padding:5px 9px;max-width:100%;overflow-wrap:anywhere}
+.rsvp-export-card__stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.rsvp-export-card__stats>div{display:grid;gap:5px;text-align:center;min-width:0;border-radius:10px;padding:13px 5px;background:#f4f7f5}
+.rsvp-export-card__stats strong{color:#143c2a;font-size:clamp(1.2rem,1.7vw,1.7rem);line-height:1.1;font-variant-numeric:tabular-nums}
+.rsvp-export-card__stats span{font-size:.67rem;color:#526559;line-height:1.25;overflow-wrap:anywhere}
+.rsvp-export-card__foot{font-size:.82rem;color:#586c5f;margin:0}
+.rsvp-export-card__download{width:100%;min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;white-space:normal}
+.rsvp-export-card__download:disabled{opacity:.75;cursor:wait}
+.rsvp-export-empty{grid-column:1/-1;min-width:0}
+.rsvp-export-note{font-size:.78rem;margin:3px 0 0;line-height:1.55}
+@media(max-width:900px){
+  .rsvp-export-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:540px){
+  .rsvp-export-intro__top{display:grid;gap:12px}
+  .rsvp-export-intro__top .button{width:100%}
+  .rsvp-export-total{gap:6px}
+  .rsvp-export-total>div{padding:12px 8px}
+  .rsvp-export-total span{font-size:.65rem;line-height:1.2}
+  .rsvp-export-total strong{font-size:1.4rem}
+  .rsvp-export-controls{grid-template-columns:minmax(0,1fr)}
+  .rsvp-export-card__stats{gap:4px}
+  .rsvp-export-card__stats>div{padding:11px 4px}
+  .rsvp-export-card__stats span{font-size:.65rem}
+}

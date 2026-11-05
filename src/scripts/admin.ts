@@ -6,6 +6,7 @@ import { initPhase8Admin } from './phase8';
 import { initManualResultsPanel } from './manual-results-admin';
 import { initOfficialReportsPanel } from './official-reports-admin';
 import { initEventRsvpAdmin } from './event-rsvp-admin';
+import { initRsvpExportAdmin } from './rsvp-export-admin';
 import { initEditorialComposer } from './editorial-composer';
 import { initSystemMonitor } from './system-monitor';
 import { initSiteAnalyticsAdmin } from './site-analytics-admin';
@@ -323,6 +324,7 @@ const panelDescriptions: Record<string, string> = {
   'manual-results': 'Fehlende Mannschaftsergebnisse geschützt nachtragen.',
   'official-rubbers': 'Verifizierte Einzel- und Doppelberichte ansehen.',
   news: 'News, Spielberichte und Veranstaltungen an einem Ort verwalten.',
+  'rsvp-export': 'Anmeldungen je Veranstaltung prüfen und PDF-Teilnehmerlisten direkt herunterladen.',
   galleries: 'Fotos und Bilder für deine Mannschaft verwalten.',
   content: 'Seiten, Sponsoren und Vereinsinformationen pflegen.',
   facility: 'Den aktuellen Anlagenstatus ändern.',
@@ -387,6 +389,7 @@ function bindEditorialTabs(canNews: boolean, canEvents: boolean) {
 function showPanel(name: string) {
   const legacyEvents = name === 'rsvp-events';
   if (legacyEvents && !hasGlobalPermission('events')) return;
+  if (name === 'rsvp-export' && !hasGlobalPermission('events')) return;
   if (legacyEvents) name = 'news';
   if (name === 'manual-results' && !state.isSuper) return;
   if (name === 'official-rubbers' && !state.isSuper) return;
@@ -426,6 +429,7 @@ function showPanel(name: string) {
   if (name === 'news') selectEditorialKind(legacyEvents ? 'events' : selectedEditorialKind);
   if (name === 'btv-import' && state.isSuper) void refreshWinterBtvHealth();
   if (name === 'analytics' && state.isSuper) document.dispatchEvent(new Event('tsv:analytics-open'));
+  if (name === 'rsvp-export' && hasGlobalPermission('events')) document.dispatchEvent(new Event('tsv:rsvp-export-open'));
 }
 
 // Navigation may be used from deep inside a long form or the dashboard's
@@ -2827,7 +2831,10 @@ async function startApp(user: any) {
   await Promise.all([refreshDashboard(), refreshPlayers(), refreshMatches(), refreshNews(), refreshNewsReferenceEvents(), refreshGalleries()]);
   if (state.isSuper) await Promise.all([loadFacility(), loadContent(), loadUsers(), loadClubEntries()]);
   await initAdvancedAdmin(state);
-  if (canEvents) initEventRsvpAdmin({ isSuper: canEvents, user: state.user });
+  if (canEvents) {
+    initEventRsvpAdmin({ isSuper: canEvents, user: state.user });
+    initRsvpExportAdmin(true);
+  }
   await initPhase8Admin(state);
   if (state.isSuper) {
     initManualResultsPanel();
