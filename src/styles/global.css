@@ -43,8 +43,8 @@ main{min-height:70vh;padding:36px 0 74px}
 .site-footer{background:#101010;color:#f3f3f3;padding:42px 0;border-top:3px solid var(--accent)}
 .footer-grid{display:flex;justify-content:space-between;gap:30px}.footer-brand{display:flex;align-items:flex-start;gap:16px}.footer-logo{width:72px;height:72px;object-fit:contain}.site-footer p{margin:.45rem 0;color:#d4d4d4}.footer-links{display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:flex-end;gap:14px}.footer-links a{color:#fff}
 h1,h2,h3{line-height:1.08;margin-top:0}
-h1{font-size:clamp(2.25rem,6vw,4.7rem);letter-spacing:-.045em}
-h2{font-size:clamp(1.55rem,3vw,2.45rem);letter-spacing:-.025em}
+h1{font-size:clamp(1.7rem,2.75vw,2.55rem);letter-spacing:-.035em}
+h2{font-size:clamp(1.2rem,1.9vw,1.75rem);letter-spacing:-.02em}
 h3{font-size:1.15rem}
 p{line-height:1.65}
 .eyebrow{margin:0 0 8px;font-size:.76rem;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:var(--green-700)}
@@ -106,7 +106,7 @@ p{line-height:1.65}
 .premium-hero:after{content:"";position:absolute;inset:auto -8vw -25vw auto;width:62vw;height:62vw;border:1px solid rgb(227 6 19 / .18);border-radius:50%;box-shadow:0 0 0 5vw rgb(227 6 19 / .035),0 0 0 10vw rgb(227 6 19 / .02)}
 .premium-hero__inner{position:relative;z-index:2;padding-top:110px;padding-bottom:70px}
 .premium-hero .eyebrow{color:var(--accent)}
-.premium-hero h1{font-size:clamp(4rem,9vw,7.5rem);line-height:.88;margin:18px 0 26px;letter-spacing:-.055em;max-width:1050px}
+.premium-hero h1{font-size:clamp(2.4rem,4.8vw,3.7rem);line-height:1;margin:18px 0 26px;letter-spacing:-.055em;max-width:1050px}
 .premium-hero h1 span{color:var(--accent)}
 .premium-hero__lead{font-size:1.25rem;max-width:700px;color:#dfe6e1;line-height:1.6}
 .premium-metrics{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#10211e}
@@ -114,7 +114,7 @@ p{line-height:1.65}
 .premium-metrics>div:last-child{border-right:0}.premium-metrics strong{font-size:2.6rem;color:var(--accent);display:block;line-height:1}.premium-metrics span{display:block;margin-top:7px;color:#d9e1dd}
 .premium-content{display:flex;flex-direction:column;gap:28px;padding-top:80px;padding-bottom:80px}
 .premium-editorial{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:start}
-.premium-editorial>div>h2{font-size:clamp(2.8rem,5vw,4rem);margin-bottom:30px}
+.premium-editorial>div>h2{font-size:clamp(1.7rem,2.7vw,2.5rem);margin-bottom:30px}
 .premium-feature{min-height:520px;position:relative;overflow:hidden;border-radius:8px;padding:30px;border:1px solid var(--line);background:
   linear-gradient(180deg,transparent 20%,#0d1b18ee 100%),
   radial-gradient(circle at 70% 25%,rgb(227 6 19 / .18),transparent 26%),
@@ -139,7 +139,7 @@ p{line-height:1.65}
 .matchday-page .status-pill{background:#fde9eb;color:#b0000d}.matchday-page .status-pill.live{background:#ffe2df;color:#9d2018}
 .matchday-hero{background:#173d36;color:#fff;padding:72px 0 58px}.matchday-hero--compact{padding:55px 0 78px}
 .matchday-hero__grid{display:grid;grid-template-columns:1.1fr .9fr;gap:44px;align-items:center}
-.matchday-hero h1{font-size:clamp(3rem,6vw,5rem);margin:12px 0 18px;line-height:.98}.matchday-hero h1 span{color:#ff4a55}
+.matchday-hero h1{font-size:clamp(2rem,3.3vw,2.9rem);margin:12px 0 18px;line-height:.98}.matchday-hero h1 span{color:#ff4a55}
 .matchday-hero p{font-size:1.15rem;color:#dce8e4;max-width:680px}
 .matchday-badge{display:inline-flex;padding:6px 10px;border-radius:999px;background:#fde9eb;color:#b0000d;font-size:.72rem;font-weight:950;letter-spacing:.08em}
 .matchday-hero__mark{justify-self:end;width:min(360px,100%);aspect-ratio:1.35;display:grid;place-items:center;align-content:center;border-radius:24px;border:1px solid #ffffff2c;background:linear-gradient(135deg,#ffffff10,#00000015);box-shadow:inset 0 0 0 1px #0001}.matchday-hero__mark span{font-size:clamp(3.5rem,8vw,6rem);font-weight:950;line-height:.8}.matchday-hero__mark strong{margin-top:12px;letter-spacing:.28em;color:#ff4a55}
@@ -159,7 +159,7 @@ p{line-height:1.65}
 
 @media(max-width:1050px){.matchday-topgrid{grid-template-columns:1fr 1fr}.premium-editorial{grid-template-columns:1fr}.premium-story-stack{padding-top:0}}
 @media(max-width:850px){.premium-metrics{grid-template-columns:1fr 1fr}.premium-metrics>div:nth-child(2){border-right:0}.matchday-hero__grid,.matchday-newsgrid{grid-template-columns:1fr}.matchday-hero__mark{justify-self:start;max-width:300px}}
-@media(max-width:680px){.premium-hero{min-height:610px}.premium-hero__inner{padding-top:80px;padding-bottom:55px}.premium-hero h1{font-size:clamp(3.2rem,17vw,5.5rem)}.premium-metrics{grid-template-columns:1fr 1fr}.premium-metrics>div{padding:24px}.premium-metrics strong{font-size:2.1rem}.premium-content{padding-top:55px}.matchday-topgrid{grid-template-columns:1fr}.matchday-hero{padding:50px 0 55px}.matchday-dashboard{margin-top:-18px}.matchday-panel{padding:20px}}
+@media(max-width:680px){.premium-hero{min-height:610px}.premium-hero__inner{padding-top:80px;padding-bottom:55px}.premium-hero h1{font-size:clamp(2.3rem,9vw,3.5rem)}.premium-metrics{grid-template-columns:1fr 1fr}.premium-metrics>div{padding:24px}.premium-metrics strong{font-size:2.1rem}.premium-content{padding-top:55px}.matchday-topgrid{grid-template-columns:1fr}.matchday-hero{padding:50px 0 55px}.matchday-dashboard{margin-top:-18px}.matchday-panel{padding:20px}}
 
 
 /* Phase 2 – Mannschaften & Medien */
@@ -201,7 +201,7 @@ p{line-height:1.65}
 @keyframes nextMatchPulse{0%,100%{box-shadow:0 0 0 0 rgb(227 6 19 / 0)}50%{box-shadow:0 0 0 8px rgb(227 6 19 / .12)}}
 
 .match-detail-hero{padding:34px;border:1px solid rgb(227 6 19 / .3);border-radius:18px;background:linear-gradient(135deg,#1b2926,#101a18)}
-.match-detail-hero h1{font-size:clamp(2.2rem,5vw,4.5rem);margin-bottom:16px}
+.match-detail-hero h1{font-size:clamp(1.8rem,3.4vw,2.65rem);margin-bottom:16px}
 .match-detail-hero h1 span{color:var(--accent);font-size:.55em;text-transform:uppercase;letter-spacing:.08em}
 .match-detail-score{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;text-align:center}
 .match-detail-score strong{font-size:clamp(2.8rem,8vw,5rem);font-variant-numeric:tabular-nums}
@@ -679,7 +679,7 @@ body{background:var(--sand);color:var(--text)}
   .next-match-tsv-logo{width:30px;height:30px;flex-basis:30px}
   .team-card .actions{display:grid}
   .team-card .actions .button{width:100%}
-  .match-detail-titleline h1{font-size:clamp(1.7rem,7vw,2.4rem)}
+  .match-detail-titleline h1{font-size:clamp(1.5rem,5.3vw,2rem)}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
@@ -887,7 +887,7 @@ body:has(.calendar-day-modal[open]){overflow:hidden}
 @media(max-width:1050px){.calendar-layout{grid-template-columns:1fr}.calendar-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.calendar-day{min-height:80px}}
 @media(max-width:680px){
   .calendar-page-heading{align-items:stretch;flex-direction:column;gap:14px;padding-top:4px}
-  .calendar-page-heading h1{font-size:clamp(2.4rem,9vw,3.4rem)}
+  .calendar-page-heading h1{font-size:clamp(1.7rem,6vw,2.2rem)}
   .calendar-heading-today{min-width:0;padding:11px 14px}
   .calendar-filter-heading .muted{display:none}
   .calendar-filters{grid-template-columns:1fr 1fr}
@@ -976,7 +976,7 @@ body:has(.calendar-day-modal[open]){overflow:hidden}
 .breadcrumbs [aria-current="page"]{color:#18231f;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32ch}
 .breadcrumbs__separator{margin:0 8px;color:#9aa49f}
 .teams-page__intro{padding:12px 0 0}
-.teams-page__intro h1{margin:0;font-size:clamp(2.4rem,5.5vw,4.6rem);letter-spacing:-.055em}
+.teams-page__intro h1{margin:0;font-size:clamp(1.75rem,3.2vw,2.7rem);letter-spacing:-.055em}
 .teams-page__intro h1 span{color:#e30613}
 .teams-page__intro>p:last-child{margin:12px 0 0;color:#53645d;font-size:1.1rem}
 .teams-seasons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
@@ -1197,7 +1197,7 @@ main.main--flush{padding:0}
       rgba(6,19,16,.62) 54%,
       rgba(6,19,16,.17) 100%);
   }
-  .premium-hero h1{font-size:clamp(2.8rem,12vw,4.6rem)}
+  .premium-hero h1{font-size:clamp(2.2rem,8.8vw,3.15rem)}
 }
 
 
@@ -1305,7 +1305,7 @@ main.main--flush{padding:0}
   /* Compact homepage hero, stats and information cards on phones only. */
   .premium-hero{min-height:365px}
   .premium-hero__inner{padding-top:32px;padding-bottom:27px}
-  .premium-hero h1{font-size:clamp(2.35rem,10vw,3.2rem);line-height:.96;margin:10px 0 14px}
+  .premium-hero h1{font-size:clamp(2rem,8.2vw,2.6rem);line-height:.96;margin:10px 0 14px}
   .premium-hero__lead{font-size:.89rem;line-height:1.4;max-width:430px;margin:0 0 13px}
   .premium-hero .facility-pill{font-size:.75rem;padding:7px 11px;margin-bottom:10px}
   .premium-hero__inner>.actions{gap:7px}
@@ -1317,11 +1317,11 @@ main.main--flush{padding:0}
   .home-intro-grid,.home-columns{gap:13px}
   .home-intro-grid>.card,.home-columns>.card{padding:15px}
   .home-welcome{gap:7px}
-  .home-welcome h2,.home-columns h2{font-size:clamp(1.36rem,6vw,1.65rem);line-height:1.18}
+  .home-welcome h2,.home-columns h2{font-size:clamp(1.2rem,4.5vw,1.5rem);line-height:1.18}
   .home-welcome>p{font-size:.87rem;line-height:1.43}
   .home-welcome>p:nth-of-type(2){display:none}
   .home-weather{justify-content:flex-start;gap:10px}
-  .home-weather h2{font-size:1.48rem}
+  .home-weather h2{font-size:1.3rem}
   .weather-grid{gap:6px}
   .weather-day{padding:8px 3px;gap:3px;font-size:.82rem}
   .weather-day small{font-size:.69rem}
@@ -1352,7 +1352,7 @@ main.main--flush{padding:0}
 }
 .matchday-page--ticker .matchday-hero h1{
   margin:9px 0 13px;
-  font-size:clamp(2.3rem,4.3vw,3.9rem);
+  font-size:clamp(1.85rem,3.2vw,2.85rem);
   line-height:1.05;
 }
 .matchday-page--ticker .matchday-hero p{max-width:730px;margin:0;font-size:1rem;line-height:1.5}
@@ -1368,7 +1368,7 @@ main.main--flush{padding:0}
 @media(max-width:760px){
   .matchday-page--ticker .matchday-hero{padding:22px 0 32px}
   .matchday-page--ticker .matchday-hero__grid{grid-template-columns:minmax(0,1fr);gap:0}
-  .matchday-page--ticker .matchday-hero h1{font-size:clamp(2rem,9vw,2.8rem);margin:7px 0 10px}
+  .matchday-page--ticker .matchday-hero h1{font-size:clamp(1.7rem,6.5vw,2.25rem);margin:7px 0 10px}
   .matchday-page--ticker .matchday-hero p{font-size:.87rem;line-height:1.45}
   .matchday-page--ticker .matchday-dashboard{margin-top:-9px;padding-bottom:26px}
   .matchday-page--ticker .matchday-today-panel{margin-bottom:12px}
@@ -1429,7 +1429,7 @@ main.main--flush{padding:0}
 }
 @media(max-width:760px){
   .teams-page{gap:18px}
-  .teams-page__intro h1{font-size:clamp(2rem,8vw,2.75rem);overflow-wrap:anywhere}
+  .teams-page__intro h1{font-size:clamp(1.6rem,6vw,2.05rem);overflow-wrap:anywhere}
   .teams-page .team-grid{grid-template-columns:minmax(0,1fr);gap:12px}
   .teams-page .team-overview-card{padding:15px;gap:11px}
   .teams-page .team-overview-card>.actions{
@@ -1503,7 +1503,7 @@ main.main--flush{padding:0}
   display:flex;justify-content:space-between;align-items:center;gap:24px;
   padding:8px 0 23px;border-bottom:1px solid #e2e6e3;margin-bottom:22px;
 }
-.admin-workspace-head h1{font-size:clamp(2rem,3.7vw,3.35rem);margin:0 0 10px;letter-spacing:-.045em}
+.admin-workspace-head h1{font-size:clamp(1.7rem,2.8vw,2.65rem);margin:0 0 10px;letter-spacing:-.045em}
 .admin-workspace-head .eyebrow{display:flex;gap:9px;align-items:center}
 .admin-workspace-head .eyebrow span{color:#9fa8a2}
 .admin-workspace-head .muted{margin:0;font-size:.96rem}
@@ -1513,7 +1513,7 @@ main.main--flush{padding:0}
 .admin-public-link{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-size:.86rem;font-weight:800;color:#a50b14;border:1px solid #e2d9d9;border-radius:10px;padding:10px 13px;background:#fff}
 .admin-public-link:hover,.admin-public-link:focus-visible{border-color:#c93c47;background:#fff5f5}
 .admin-auth-card{max-width:540px;width:100%;margin:clamp(20px,5vh,70px) auto;padding:clamp(24px,4vw,42px)}
-.admin-auth-card h1{font-size:clamp(2rem,4vw,3.2rem);margin-bottom:12px}
+.admin-auth-card h1{font-size:clamp(1.7rem,2.7vw,2.55rem);margin-bottom:12px}
 .admin-auth-card .form-grid{grid-template-columns:1fr}
 .admin-auth-card .field.full{grid-column:1}
 .admin-auth-card .button[type="submit"]{width:100%;min-height:48px}
@@ -1761,7 +1761,7 @@ main.main--flush{padding:0}
 .live-page-refresh .matchday-hero .matchday-badge{letter-spacing:.13em;padding:8px 13px;background:#fff;border:1px solid #ebc8cb;color:#a90c18}
 .live-match-heading{display:grid;gap:8px;max-width:100%}
 .live-match-heading .eyebrow{margin:0;color:#a90c18;letter-spacing:.13em;font-weight:900}
-.live-match-heading h1{margin:0;font-size:clamp(1.75rem,3.65vw,3.35rem);line-height:1.12;letter-spacing:-.04em;overflow-wrap:anywhere;max-width:1100px}
+.live-match-heading h1{margin:0;font-size:clamp(1.55rem,2.7vw,2.65rem);line-height:1.12;letter-spacing:-.04em;overflow-wrap:anywhere;max-width:1100px}
 .live-match-heading h1 span{font-size:.5em;color:#79847c;font-weight:500;letter-spacing:0}
 .live-match-heading__meta{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:0;color:#526159;font-size:.95rem;font-weight:670}
 .live-match-heading__separator{color:#aab6ac}
@@ -1915,7 +1915,7 @@ main.main--flush{padding:0}
 }
 @media(max-width:740px){
   .live-page-refresh .matchday-hero{padding:24px 0 75px}
-  .live-match-heading h1{font-size:clamp(1.6rem,6.7vw,2.35rem)}
+  .live-match-heading h1{font-size:clamp(1.45rem,5.5vw,2rem)}
   .live-page-refresh .matchday-dashboard{margin-top:-46px;padding-bottom:30px}
   .live-page-refresh .matchday-live-panel{padding:15px;border-radius:17px}
   .live-score-topline{align-items:flex-start;margin-bottom:14px}
@@ -2323,7 +2323,7 @@ main.main--flush{padding:0}
 .rsvp-intro{min-width:0;display:grid;justify-items:start;gap:17px;padding:20px 0}
 .rsvp-intro .eyebrow{color:#ba0c1e;font-weight:950;letter-spacing:.14em;font-size:.77rem;margin:0}
 .rsvp-mode-label{background:#fff0f1;border:1px solid #f3c9cd;color:#af1829;border-radius:999px;padding:7px 12px;font-weight:850;font-size:.76rem}
-.rsvp-intro h1{font-size:clamp(2.15rem,4.6vw,4.4rem);line-height:1.05;letter-spacing:-.055em;margin:0;overflow-wrap:anywhere}
+.rsvp-intro h1{font-size:clamp(1.7rem,3.1vw,2.75rem);line-height:1.05;letter-spacing:-.055em;margin:0;overflow-wrap:anywhere}
 .rsvp-intro__lead{font-size:clamp(1rem,1.5vw,1.15rem);line-height:1.68;color:#536c5b;max-width:590px;margin:0}
 .rsvp-event-facts{display:grid;gap:17px;width:100%;margin:5px 0 14px;padding:22px;background:#fff;border:1px solid #e6ebe5;border-radius:17px}
 .rsvp-event-facts>div{display:flex;align-items:center;gap:15px}
@@ -2385,7 +2385,7 @@ main.main--flush{padding:0}
 .rsvp-admin-table th,.rsvp-admin-table td{border-bottom:1px solid #e3e9e4;padding:11px;text-align:left;color:#263a2c}
 .rsvp-admin-table th{font-weight:850}
 @media(max-width:950px){.rsvp-page__grid{grid-template-columns:minmax(0,1fr)}.rsvp-intro{gap:12px}.rsvp-summary{max-width:750px}.rsvp-form-panel{max-width:750px}}
-@media(max-width:520px){.rsvp-page{padding-top:18px;padding-bottom:45px}.rsvp-breadcrumb{margin-bottom:16px}.rsvp-intro h1{font-size:2.2rem}.rsvp-summary__stats{gap:7px}.rsvp-form-panel{padding:16px;border-radius:16px}.rsvp-choice{gap:10px;padding:11px}.rsvp-choice__icon{display:none}}
+@media(max-width:520px){.rsvp-page{padding-top:18px;padding-bottom:45px}.rsvp-breadcrumb{margin-bottom:16px}.rsvp-intro h1{font-size:1.85rem}.rsvp-summary__stats{gap:7px}.rsvp-form-panel{padding:16px;border-radius:16px}.rsvp-choice{gap:10px;padding:11px}.rsvp-choice__icon{display:none}}
 
 
 /* Sommerfest nach der Papier-Einladung 2024: Einladung & Rückmeldung */

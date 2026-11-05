@@ -9,10 +9,12 @@ import MainLayout from '../../layouts/MainLayout.astro';
         <div><p class="eyebrow">Termine</p><h2 id="event-news-title">Demnächst bei uns</h2></div>
         <a href="/termine/" class="button ghost">Alle Termine →</a>
       </div>
-      <div id="event-news-list" class="content-card-grid"><p class="muted">Veranstaltungen werden geladen …</p></div>
     </section>
-    <section class="news-section" aria-label="Weitere Neuigkeiten">
-      <div id="news-list" class="content-card-grid"><p class="muted">Aktuelle Beiträge werden ermittelt …</p></div>
+    <section class="news-section" aria-label="Veranstaltungen und Neuigkeiten">
+      <div id="aktuelles-card-grid" class="content-card-grid">
+        <div id="event-news-list" class="content-card-grid__items"><p class="muted">Veranstaltungen werden geladen …</p></div>
+        <div id="news-list" class="content-card-grid__items"><p class="muted">Aktuelle Beiträge werden ermittelt …</p></div>
+      </div>
     </section>
   </div>
 </MainLayout>
@@ -271,15 +273,14 @@ import MainLayout from '../../layouts/MainLayout.astro';
   };
   document.addEventListener('tsv-news-batch', decorateNewsCards);
   decorateNewsCards();
-  // On this combined page, an empty News collection must not contradict the
-  // published event cards above it. Keep retrieval errors visible.
-  const newsSection = document.querySelector<HTMLElement>('.news-section');
+  // The shared grid must never be hidden when one type has no published cards.
+  // Keep the original news/event loading and deep-link elements for compatibility.
   const hasPublishedEvents = !!list?.querySelector('.content-card--event');
   const hasVisibleNews = !!newsList?.querySelector('.content-card--news');
   const newsMessage = newsList?.textContent?.trim() || '';
   const newsLoadFailed = newsMessage.includes('Beiträge sind momentan nicht abrufbar.');
   if (!hasVisibleNews && hasPublishedEvents && !newsLoadFailed) {
-    if (newsSection && !newsSection.querySelector('[data-news-more]:not([hidden])')) newsSection.hidden = true;
+    if (newsMessage === 'Noch keine Beiträge veröffentlicht.') newsList?.replaceChildren();
   } else if (!hasVisibleNews && !hasPublishedEvents && newsMessage === 'Noch keine Beiträge veröffentlicht.') {
     if (newsList) newsList.textContent = 'Derzeit sind keine Neuigkeiten oder Veranstaltungen veröffentlicht.';
   }
@@ -287,17 +288,17 @@ import MainLayout from '../../layouts/MainLayout.astro';
 <style>
   /* Prevent the outer grid from inheriting the min-content width of long cards/headers. */
   .aktuelles-page{padding-bottom:calc(130px + env(safe-area-inset-bottom));gap:34px;min-width:0;grid-template-columns:minmax(0,1fr)}
-  #event-news[aria-busy="true"] #event-news-list{min-height:300px;align-content:start}
-  #news-list:has(> p.muted:only-child){min-height:240px;align-content:start}
+  /* Keep the two original Supabase loading targets, with one common grid. */
+  .content-card-grid__items{display:contents}
   .aktuelles-page{min-height:calc(100dvh + 100px)}
   .aktuelles-page__head{padding-bottom:4px}
   .aktuelles-page__head h1{max-width:760px;color:#193c2c;overflow-wrap:anywhere}
   .event-news,.news-section{margin:0;min-width:0}
-  :global(.news-pagination){display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:20px}
+  :global(.news-pagination){display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:20px;grid-column:1/-1}
   :global(.news-pagination [data-news-more][hidden]){display:none}
   .event-news__head{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:18px}
   .event-news__head h2{margin:2px 0 0;color:#193c2c}
-  /* Both event and news lists use the same responsive three-column layout. */
+  /* One common grid: event and news cards share each desktop row. */
   .content-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
   :global(.content-card){content-visibility:auto;contain-intrinsic-size:auto 430px;overflow:hidden;border:1px solid #dfe7e1;border-radius:20px;background:#fff;box-shadow:0 10px 30px rgb(25 60 44 / .08)}
   /* Exact aspect ratio of the supplied event banner: no letterboxing above or below.
@@ -329,9 +330,9 @@ import MainLayout from '../../layouts/MainLayout.astro';
   }
   @media(max-width:760px){
     .aktuelles-page{gap:28px;padding-bottom:calc(150px + env(safe-area-inset-bottom))}
-    .aktuelles-page__head{padding-top:4px}.aktuelles-page__head h1{font-size:clamp(2rem,9vw,2.65rem);line-height:1.02}
+    .aktuelles-page__head{padding-top:4px}.aktuelles-page__head h1{font-size:clamp(1.7rem,6.2vw,2.1rem);line-height:1.12}
     .event-news__head{align-items:flex-end;margin-bottom:13px}.event-news__head .button{font-size:.76rem;padding:8px 10px}
-    .event-news__head h2{font-size:1.45rem}
+    .event-news__head h2{font-size:1.25rem}
     .content-card-grid{grid-template-columns:1fr;gap:16px}
     :global(.content-card){border-radius:17px;box-shadow:0 7px 22px rgb(25 60 44 / .075)}
     :global(.content-card__media){aspect-ratio:1773/885}

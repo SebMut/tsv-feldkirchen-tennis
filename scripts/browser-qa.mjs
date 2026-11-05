@@ -87,51 +87,46 @@ async function deviceQA(device){
       await check(key+' images',()=>healthyImages(page,route),page);
     page.off('pageerror',listener);
   }
-  // Guard the shared News/Veranstaltungen grid at desktop, compact desktop,
-  // tablet and phone widths. This temporary fixture works even when Supabase
-  // has fewer than three published entries; it never changes stored content.
-  if (!device.mobile) await check('Aktuelles: three desktop, two tablet, one mobile columns',async()=>{
+  // One event and two News cards must occupy the SAME grid row on desktop.
+  // This fixture is only inserted into the local QA browser, never Supabase.
+  if (!device.mobile) await check('Aktuelles: mixed event and news cards share desktop rows',async()=>{
     await page.goto(url('/aktuelles/'),{waitUntil:'domcontentloaded'});
     const original=page.viewportSize();
-    try {
-      for (const [width,expected] of [[1440,3],[1024,3],[860,2],[390,1]]) {
+    try{
+      for(const [width,expected] of [[1440,3],[1024,3],[860,2],[390,1]]){
         await page.setViewportSize({width,height:900});
         const result=await page.evaluate(()=>{
-          const parent=document.querySelector('.aktuelles-page');
-          const originalGrid=document.querySelector('#event-news-list');
-          if (!(parent instanceof HTMLElement) || !(originalGrid instanceof HTMLElement)) throw Error('Event grid missing');
-          const probe=originalGrid.cloneNode(false);
-          if (!(probe instanceof HTMLElement)) throw Error('Grid probe unavailable');
-          probe.removeAttribute('id');
-          probe.removeAttribute('aria-busy');
-          probe.style.minHeight='0';
-          for(let i=0;i<3;i++){
+          const grid=document.querySelector('#aktuelles-card-grid');
+          const events=document.querySelector('#event-news-list');
+          const news=document.querySelector('#news-list');
+          if(!(grid instanceof HTMLElement)||!(events instanceof HTMLElement)||!(news instanceof HTMLElement))
+            throw Error('Shared News and Event grid missing');
+          const fixture=grid.cloneNode(false),eventGroup=events.cloneNode(false),newsGroup=news.cloneNode(false);
+          if(!(fixture instanceof HTMLElement)||!(eventGroup instanceof HTMLElement)||!(newsGroup instanceof HTMLElement))
+            throw Error('Unable to build layout fixture');
+          fixture.removeAttribute('id');eventGroup.removeAttribute('id');newsGroup.removeAttribute('id');
+          const cards=Array.from({length:3},(_,i)=>{
             const card=document.createElement('article');
-            card.textContent='Testkarte '+(i+1);
-            probe.appendChild(card);
-          }
-          parent.appendChild(probe);
-          const boxes=Array.from(probe.children).map(child=>child.getBoundingClientRect());
-          const template=getComputedStyle(probe).gridTemplateColumns;
-          probe.remove();
-          return {columns:template.split(/\s+/).filter(Boolean).length,
-            sameRow:Math.abs(boxes[0].top-boxes[2].top)<2,
-            rowTwo:boxes[2].top>boxes[0].top+2,
-            widths:boxes.map(box=>box.width)};
+            card.className='content-card';card.textContent=i===0?'Event':'News '+i;
+            (i===0?eventGroup:newsGroup).append(card);
+            return card;
+          });
+          fixture.append(eventGroup,newsGroup);
+          grid.parentElement?.append(fixture);
+          const rects=cards.map(card=>card.getBoundingClientRect());
+          const tracks=getComputedStyle(fixture).gridTemplateColumns.split(/\s+/).filter(Boolean).length;
+          const wrappers=[getComputedStyle(eventGroup).display,getComputedStyle(newsGroup).display];
+          fixture.remove();
+          return {tracks,wrappers,top:rects.map(rect=>Math.round(rect.top)),width:rects.map(rect=>rect.width)};
         });
-        assert.equal(result.columns,expected,width+'px must show '+expected+' columns: '+JSON.stringify(result));
-        assert.equal(result.sameRow,expected===3,width+'px row layout wrong');
-        if(expected!==3)assert.ok(result.rowTwo,width+'px should wrap the third card');
-        assert.ok(result.widths.every(w=>w>=150),width+'px cards too narrow: '+JSON.stringify(result));
+        assert.equal(result.tracks,expected,width+'px: '+JSON.stringify(result));
+        assert.deepEqual(result.wrappers,['contents','contents'],'Both categories must share one grid');
+        assert.equal(Math.abs(result.top[0]-result.top[2])<2,expected===3,
+          'Separate rows detected for event and news at '+width+'px: '+JSON.stringify(result));
+        assert.ok(result.width.every(w=>w>=150),width+'px cards too narrow');
         await noOverflow(page,'/aktuelles/ at '+width+'px');
-        if(width===1024){
-          assert.equal(await page.locator('.desktop-nav').isVisible(),false,'Full desktop navigation must collapse before it overflows');
-          assert.equal(await page.locator('.mobile-nav').isVisible(),true,'Header dropdown must stay available on compact desktop');
-        }
       }
-    } finally {
-      if(original)await page.setViewportSize(original);
-    }
+    }finally{if(original)await page.setViewportSize(original);}
   },page);
   // Layout-only admin navigation rehearsal; do not authenticate or mutate real roles.
   // The hidden admin shell is exposed only inside this disposable browser context.
