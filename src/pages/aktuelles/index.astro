@@ -186,11 +186,12 @@ import MainLayout from '../../layouts/MainLayout.astro';
               <div class="content-card__meta"><span class="content-card__badge">Veranstaltung</span><time>${event.all_day ? 'Ganztägig · ' : ''}${escapeHtml(formatDateTime(event.starts_at))}</time></div>
               <h3><a href="${href}" data-open-detail>${escapeHtml(cleanTitle(event.title))}</a></h3>
               <p class="content-card__description">${escapeHtml(description)}</p>
+              ${signupHref ? `<p class="content-card__signup"><a class="button" href="${signupHref}">Zur Anmeldung & Teilnahme →</a></p>` : ''}
               <div class="content-card__footer"><span>📍 ${escapeHtml(event.location_name || 'TSV Feldkirchen')}</span><a href="${href}" data-open-detail data-detail-toggle-label aria-expanded="false">Details lesen →</a></div>
               <details class="content-card__details" data-expanded-details>
                 <summary>Vollständigen Text anzeigen →</summary>
                 <div class="content-card__full-text">${fullDescription}</div>
-                ${signupHref ? `<p class="content-card__signup"><a class="button" href="${signupHref}">Zur Anmeldung & Teilnahme →</a></p>` : ''}
+                
               </details>
             </div>
           </article>`;

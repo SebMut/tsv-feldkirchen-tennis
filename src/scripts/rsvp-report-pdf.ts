@@ -89,14 +89,15 @@ export function downloadRsvpPdf(event:RsvpPdfEvent,records:RsvpPdfRow[]):void {
   line('Bestätigte Rückmeldungen: '+rows.length+'  |  Zusagen: '+yes.length+'  |  Vielleicht: '+maybe.length+'  |  Absagen: '+no.length,11,true,8,5);
   line('Teilnehmende Personen: '+(adults+children)+'  |  Erwachsene: '+adults+'  |  Kinder / Jugendliche: '+children,11,true,8,5);
 
-  section('2. Buffet: Salate, Vorspeisen und Nachspeisen');
-  items(yes.filter(r=>r.salad_contribution||r.dessert_contribution).map(r=>
-    people(r)+': '+[
-      r.salad_contribution?'Salat / Vorspeise: '+r.salad_contribution:'',
-      r.dessert_contribution?'Kuchen / Nachspeise: '+r.dessert_contribution:'',
-    ].filter(Boolean).join('; ')));
-
   const config=event.rsvp_details||{};
+  if(config.show_contributions!==false){
+    section('2. Buffet: Salate, Vorspeisen und Nachspeisen');
+    items(yes.filter(r=>r.salad_contribution||r.dessert_contribution).map(r=>
+      people(r)+': '+[
+        r.salad_contribution?'Salat / Vorspeise: '+r.salad_contribution:'',
+        r.dessert_contribution?'Kuchen / Nachspeise: '+r.dessert_contribution:'',
+      ].filter(Boolean).join('; ')));
+  }
   if(config.tournament_youth_enabled!==false){
     section('3. Teilnehmer Jugendvereinsmeisterschaft');
     items(rows.flatMap(r=>(Array.isArray(r.youth_registrations)?r.youth_registrations:[])
@@ -111,9 +112,12 @@ export function downloadRsvpPdf(event:RsvpPdfEvent,records:RsvpPdfRow[]):void {
     items(rows.flatMap(r=>Array.isArray(r.men_registrations)?r.men_registrations:[]));
   }
 
+  if(config.show_help!==false){
   section('6. Helfer');
   items(rows.filter(r=>r.help_setup||r.help_cleanup).map(r=>people(r)+' - '+
     [r.help_setup?'Aufbau / Vorbereitung':'',r.help_cleanup?'Abbau / Aufräumen':''].filter(Boolean).join(' und ')));
+
+  }
 
   section('7. Teilnehmer alphabetisch');
   items(yes.map(r=>people(r)+' - '+Number(r.adults_count||0)+' Erwachsene, '+Number(r.children_count||0)+' Kinder / Jugendliche'));
