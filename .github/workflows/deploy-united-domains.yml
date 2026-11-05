@@ -124,6 +124,7 @@ jobs:
       # Identical saved-permissions cards for signed-in users and SuperAdmin.
       # Privacy-friendly website analytics with SuperAdmin-only reports and domain-restricted counting.
       # Three responsive cards per desktop row on Aktuelles; all browser, build and audit checks passed.
+      # Combine event and news cards into one actual three-column feed and reduce all page heading sizes; browser QA passed.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
