@@ -581,8 +581,7 @@ export async function loadHome() {
         ...(newsRelatedEventsResult.data ?? []),
       ].map(event => [event.id, event]));
       const announcedNews = (newsResult.data ?? []).filter(item =>
-        !linkedNewsIds.has(item.id) && !upcomingClubEvents.some(event =>
-          event.id === item.related_event_id || event.title === item.title));
+        !linkedNewsIds.has(item.id) && !upcomingClubEvents.some(event => event.title === item.title || event.id === item.related_event_id));
       const homeItems = [
         ...upcomingClubEvents.map(item => ({
           title: item.title,
