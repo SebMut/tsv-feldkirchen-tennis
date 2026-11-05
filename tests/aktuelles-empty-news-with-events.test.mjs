@@ -8,7 +8,10 @@ test('published events suppress the misleading empty news message', () => {
   assert.match(source, /const hasPublishedEvents = !!list\?\.querySelector\('\.content-card--event'\)/);
   assert.match(source, /const hasVisibleNews = !!newsList\?\.querySelector\('\.content-card--news'\)/);
   assert.match(source, /if \(!hasVisibleNews && hasPublishedEvents && !newsLoadFailed\)/);
-  assert.match(source, /if \(newsSection && !newsSection\.querySelector/);
+  // Both categories now share a grid: removing the empty News placeholder
+  // must never hide the entire area containing the published event cards.
+  assert.match(source, /if \(newsMessage === 'Noch keine Beiträge veröffentlicht\.'\) newsList\?\.replaceChildren\(\)/);
+  assert.doesNotMatch(source, /newsSection\.hidden = true/);
 });
 
 test('empty combined page still shows useful feedback, and news loading errors remain visible', () => {
