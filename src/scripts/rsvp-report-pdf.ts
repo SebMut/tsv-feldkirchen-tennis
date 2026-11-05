@@ -4,7 +4,7 @@
  * No data is uploaded to a third party.
  */
 export type RsvpPdfRow = {
-  member_name:string; member_email?:string|null; attendance:string;
+  member_name:string; member_email?:string|null; attendance:string; updated_at:string;
   party_size:number; adults_count:number; children_count:number;
   dessert_contribution?:string|null; salad_contribution?:string|null;
   help_setup?:boolean; help_cleanup?:boolean;
