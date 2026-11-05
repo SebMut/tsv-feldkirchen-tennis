@@ -93,3 +93,35 @@ test('PDF name export is admin-only and contains verified rows, not public submi
   assert.ok(admin.includes("supabase.from('event_rsvps')"));
   assert.ok(admin.includes("downloadRsvpPdf({"));
 });
+
+
+test('TSV corporate identity appears on every PDF page, with readable dark text and red table headers',()=>{
+  const rows=Array.from({length:75},(_,i)=>({
+    ...data[i%data.length],member_name:'Teilnehmer Muster '+String(i).padStart(3,'0'),
+    salad_contribution:'Salat mit frischen Kräutern und selbstgemachtem Brot '.repeat(3),
+    dessert_contribution:'Gedeckter Apfelkuchen und weihnachtliche Nachspeisen '.repeat(3),
+  }));
+  const pdf=Buffer.from(buildRsvpPdf(event,rows)).toString('latin1');
+  const pageCount=(pdf.match(/\/Type \/Page\b/g)||[]).length;
+  assert.ok(pageCount>1);
+  assert.equal((pdf.match(/\(TSV FELDKIRCHEN\)/g)||[]).length,pageCount,'club name in each repeated letterhead');
+  assert.equal((pdf.match(/\(TENNIS  \/  VEREINSVERANSTALTUNGEN\)/g)||[]).length,pageCount);
+  assert.equal((pdf.match(/\(ANMELDUNGEN & TEILNEHMER\)/g)||[]).length,pageCount);
+  assert.ok(pdf.includes('0.890 0.024 0.075 rg'),'TSV red should be used for the title and the table header');
+  assert.ok(pdf.includes('0.850 0.941 0.431 rg'),'yellow-green tennis ball in the offline logo fallback');
+  assert.equal((pdf.match(/\(Essen \/ Salat\)/g)||[]).length,pageCount,'colored table headings repeat');
+  assert.ok(pdf.includes('(TSV Feldkirchen Tennis | Vertraulich - nur fuer die Vereinsorganisation)'));
+  assert.match(pdf,/%%EOF/);
+});
+
+test('actual Supabase logo is embedded as a PDF image XObject when available',()=>{
+  // Browser obtains the JPEG from the already-existing media bucket; the
+  // synchronous generator is still deterministic for testing.
+  const jpeg=new Uint8Array([0xff,0xd8,0xff,0xe0,0x00,0x10,0x4a,0x46,0x49,0x46,0,1,0,0,0,0,0,0,0xff,0xd9]);
+  const pdf=Buffer.from(buildRsvpPdf(event,data,{width:10,height:10,data:jpeg})).toString('latin1');
+  assert.match(pdf,/\/Subtype \/Image \/Width 10 \/Height 10/);
+  assert.match(pdf,/\/Filter \/DCTDecode/);
+  assert.match(pdf,/\/XObject << \/ClubLogo \d+ 0 R >>/);
+  assert.match(pdf,/\/ClubLogo Do Q/);
+  assert.ok(!pdf.includes('0.850 0.941 0.431 rg'),'embedded logo replaces fallback');
+});

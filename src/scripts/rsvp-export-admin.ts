@@ -150,7 +150,7 @@ async function download(eventId:string,button:HTMLButtonElement){
     if(error)throw error;
     // Even if an event has no answers, the PDF contains the event's empty
     // participant overview and the explicit zero totals.
-    downloadRsvpPdf({
+    await downloadRsvpPdf({
       title:event.title,slug:event.slug,starts_at:event.starts_at,
       rsvp_details:event.rsvp_details||{},
     },data||[]);
