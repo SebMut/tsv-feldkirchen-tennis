@@ -83,6 +83,12 @@ jobs:
           test -f dist/admin/index.html
           test -f dist/.htaccess
           grep -Fq 'DirectoryIndex index.html index.php' dist/.htaccess
+          test -f dist/datenschutz/index.html
+          if grep -Eq '^[[:space:]]*(Redirect|RedirectMatch)[[:space:]]+30[1278][[:space:]]+/datenschutz/?[[:space:]]+' dist/.htaccess; then
+            echo '::error::Privacy page cannot be redirected to the main club'
+            exit 1
+          fi
+          grep -Fq 'Datenschutzerklärung' dist/datenschutz/index.html
           grep -Fq 'https://www.tennis-tsvfeldkirchen.de' dist/index.html
           if grep -Fq 'noindex,nofollow' dist/index.html; then exit 1; fi
           grep -Fq 'noindex,nofollow' dist/admin/index.html
@@ -136,6 +142,13 @@ jobs:
         run: |
           set -euo pipefail
           domain='https://www.tennis-tsvfeldkirchen.de'
+          # The ?policy-check=... variant also avoids old browser/proxy caches
+          # of the removed permanent 301 response.
+          privacy_redirect=$(curl -sS -o /tmp/tsv-privacy.html -w '%{http_code}|%{redirect_url}' --connect-timeout 10 --max-time 30 "$domain/datenschutz/?policy-check=${GITHUB_SHA}" || true)
+          case "$privacy_redirect" in
+            200\|) grep -Fq 'Datenschutzerklärung' /tmp/tsv-privacy.html ;;
+            *) echo "::error::Datenschutz still redirects or is unavailable: $privacy_redirect"; exit 1 ;;
+          esac
           for attempt in 1 2 3 4 5; do
             home=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/" || true)
             admin=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/admin/" || true)
