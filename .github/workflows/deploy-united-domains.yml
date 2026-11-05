@@ -123,6 +123,7 @@ jobs:
       # Self-service individual rights, with test-gated deployment and intact RLS.
       # Identical saved-permissions cards for signed-in users and SuperAdmin.
       # Privacy-friendly website analytics with SuperAdmin-only reports and domain-restricted counting.
+      # Three responsive cards per desktop row on Aktuelles; all browser, build and audit checks passed.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
