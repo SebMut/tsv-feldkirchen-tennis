@@ -89,6 +89,7 @@ export function initEditorialComposer(access: Access) {
     clearUnsaved();
     revokeImage();
     if (!access.canNews) input('event').checked = true;
+    for (const option of ['show-expectations','show-volunteer-info','show-contributions','show-help']) input(option).checked = true;
     invalidate();
     if (calendarStatus) calendarStatus.textContent = '';
   };
@@ -113,6 +114,8 @@ export function initEditorialComposer(access: Access) {
     input('rsvp').checked = !!entry.event?.rsvp_enabled;
     input('deadline').value = localTime(entry.event?.rsvp_deadline);
     const details = entry.event?.rsvp_details || {};
+    for (const [id,key] of [['show-expectations','show_expectations'],['show-volunteer-info','show_volunteer_info'],['show-contributions','show_contributions'],['show-help','show_help']])
+      input(id).checked = details[key] !== false;
     for (const [field, property] of [['fees','fee_note'],['setup','setup_note'],['cleanup','cleanup_note'],['youth-note','youth_note']]) {
       input(field).value = String(details[property] || '');
     }
@@ -178,11 +181,11 @@ export function initEditorialComposer(access: Access) {
         '<div class="content-card__body"><div class="content-card__meta"><span class="content-card__badge">Veranstaltung</span><time>' +
         escapeHtml(formatDateTime(iso(val('start')) || new Date().toISOString())) + '</time></div><h3><a href="#">' + title +
         '</a></h3><p class="content-card__description">' + escapeHtml(plain(val('excerpt') || val('body'))) + '</p>' +
+        (on('rsvp') ? '<p class="content-card__signup"><a href="#" class="button">Zur Anmeldung &amp; Teilnahme →</a></p>' : '') +
         '<div class="content-card__footer"><span>📍 ' + escapeHtml(val('location') || 'TSV Feldkirchen') +
         '</span><a href="#">Details lesen →</a></div><details class="content-card__details">' +
         '<summary>Vollständigen Text anzeigen →</summary><div class="content-card__full-text">' +
         body.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') + '</div>' +
-        (on('rsvp') ? '<p class="content-card__signup"><a href="#" class="button">Zur Anmeldung &amp; Teilnahme →</a></p>' : '') +
         '</details></div></article>';
     }
     return '<article class="content-card content-card--news">' + (image ? media(image) : '') +
@@ -248,6 +251,8 @@ export function initEditorialComposer(access: Access) {
       if (eventActive) {
         const details = { ...(oldEvent?.rsvp_details || {}),
           fee_note: val('fees'), setup_note: val('setup'), cleanup_note: val('cleanup'), youth_note: val('youth-note'),
+          show_expectations:on('show-expectations'), show_volunteer_info:on('show-volunteer-info'),
+          show_contributions:on('show-contributions'), show_help:on('show-help'),
           tournament_youth_enabled: on('rsvp') && on('tournaments') && on('youth'),
           tournament_women_enabled: on('rsvp') && on('tournaments') && on('women'),
           tournament_men_enabled: on('rsvp') && on('tournaments') && on('men') };

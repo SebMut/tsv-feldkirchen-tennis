@@ -63,6 +63,7 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     field('rsvp-admin-description').value = '';
     field('rsvp-admin-deadline').value = ''; field('rsvp-admin-fees').value = ''; field('rsvp-admin-setup').value = ''; field('rsvp-admin-cleanup').value = '';
     field('rsvp-admin-youth-note').value = '';
+    for (const option of ['show-expectations','show-volunteer-info','show-contributions','show-help']) field('rsvp-admin-'+option).checked = true;
     ($<HTMLSelectElement>('rsvp-admin-status')!).value = 'draft'; field('rsvp-admin-enabled').checked = false;
     field('rsvp-admin-tournament-youth').checked = false; field('rsvp-admin-tournament-women').checked = false; field('rsvp-admin-tournament-men').checked = false;
     if (imageInput) imageInput.value = ''; renderImage(); verifiedResponses = [];
@@ -99,6 +100,8 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     const event = events.find(row => row.id === selectedId); if (!event) return;
     field('rsvp-admin-title').value = event.title || ''; field('rsvp-admin-slug').value = event.slug || ''; field('rsvp-admin-start').value = localDatetime(event.starts_at); field('rsvp-admin-deadline').value = localDatetime(event.rsvp_deadline || ''); field('rsvp-admin-location').value = event.location_name || ''; field('rsvp-admin-description').value = event.description || '';
     const details = event.rsvp_details || {};
+    for (const [id,key] of [['show-expectations','show_expectations'],['show-volunteer-info','show_volunteer_info'],['show-contributions','show_contributions'],['show-help','show_help']])
+      field('rsvp-admin-'+id).checked = details[key] !== false;
     field('rsvp-admin-fees').value = details.fee_note || ''; field('rsvp-admin-setup').value = details.setup_note || ''; field('rsvp-admin-cleanup').value = details.cleanup_note || ''; field('rsvp-admin-youth-note').value = details.youth_note || '';
     field('rsvp-admin-tournament-youth').checked = details.tournament_youth_enabled !== false; field('rsvp-admin-tournament-women').checked = details.tournament_women_enabled === true; field('rsvp-admin-tournament-men').checked = details.tournament_men_enabled === true;
     ($<HTMLSelectElement>('rsvp-admin-status')!).value = event.status || 'draft'; field('rsvp-admin-enabled').checked = !!event.rsvp_enabled;
@@ -130,7 +133,12 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     if (!title || !/^[a-z0-9-]{2,70}$/.test(slug) || !start) { message('Bitte Titel, Kurzlink (nur Kleinbuchstaben/Ziffern/Bindestriche) und Termin angeben.', true); (!title ? field('rsvp-admin-title') : !start ? field('rsvp-admin-start') : field('rsvp-admin-slug')).focus(); return; }
     if (status === 'published' && new Date(start).getTime() <= Date.now()) { message('Zum Veröffentlichen bitte einen zukünftigen Termin auswählen.', true); return; }
     const date = new Date(start); if (Number.isNaN(date.getTime()) || (deadline && Number.isNaN(new Date(deadline).getTime()))) { message('Das Datum ist ungültig. Bitte Datum und Uhrzeit vollständig eingeben.', true); field('rsvp-admin-start').focus(); return; }
-    const patch = { title, slug, starts_at: date.toISOString(), rsvp_deadline: deadline ? new Date(deadline).toISOString() : null, rsvp_details: { fee_note: field('rsvp-admin-fees').value.trim(), setup_note: field('rsvp-admin-setup').value.trim(), cleanup_note: field('rsvp-admin-cleanup').value.trim(), youth_note: field('rsvp-admin-youth-note').value.trim(), tournament_youth_enabled:field('rsvp-admin-tournament-youth').checked, tournament_women_enabled:field('rsvp-admin-tournament-women').checked, tournament_men_enabled:field('rsvp-admin-tournament-men').checked }, location_name: field('rsvp-admin-location').value.trim() || null, description: field('rsvp-admin-description').value.trim() || null, status, rsvp_enabled: field('rsvp-admin-enabled').checked, category: 'club', team_id: null };
+    const patch = { title, slug, starts_at: date.toISOString(), rsvp_deadline: deadline ? new Date(deadline).toISOString() : null, rsvp_details: { ...(events.find(e=>e.id===selectedId)?.rsvp_details||{}),
+      show_expectations:field('rsvp-admin-show-expectations').checked,
+      show_volunteer_info:field('rsvp-admin-show-volunteer-info').checked,
+      show_contributions:field('rsvp-admin-show-contributions').checked,
+      show_help:field('rsvp-admin-show-help').checked,
+      fee_note: field('rsvp-admin-fees').value.trim(), setup_note: field('rsvp-admin-setup').value.trim(), cleanup_note: field('rsvp-admin-cleanup').value.trim(), youth_note: field('rsvp-admin-youth-note').value.trim(), tournament_youth_enabled:field('rsvp-admin-tournament-youth').checked, tournament_women_enabled:field('rsvp-admin-tournament-women').checked, tournament_men_enabled:field('rsvp-admin-tournament-men').checked }, location_name: field('rsvp-admin-location').value.trim() || null, description: field('rsvp-admin-description').value.trim() || null, status, rsvp_enabled: field('rsvp-admin-enabled').checked, category: 'club', team_id: null };
     const button = $<HTMLButtonElement>('rsvp-admin-save')!; button.disabled = true; button.textContent = 'Speichert …'; message('Speichere Veranstaltung …');
     try {
       const query = selectedId ? supabase.from('events').update(patch).eq('id', selectedId) : supabase.from('events').insert({ ...patch, created_by: access.user.id });
