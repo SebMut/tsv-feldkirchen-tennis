@@ -197,12 +197,47 @@ export async function initEventRsvp() {
     turnstileId = cf.turnstile.render(widget,{
       sitekey: siteKey,
       theme:'light',size:'flexible',
-      callback:(token: string)=>{turnstileToken=token;status.textContent='Menschprüfung erfolgreich.';},
-      'expired-callback':()=>{turnstileToken='';status.textContent='Bitte die Menschprüfung erneut ausführen.';},
-      'error-callback':()=>{turnstileToken='';status.textContent='Menschprüfung fehlgeschlagen, bitte erneut versuchen.';},
+      callback:(token: string)=>{
+        turnstileToken=token;
+        status.textContent='Menschprüfung erfolgreich.';
+        const retry=byId<HTMLButtonElement>('rsvp-turnstile-retry');
+        if(retry) retry.hidden=true;
+      },
+      'expired-callback':()=>{
+        turnstileToken='';
+        status.textContent='Menschprüfung abgelaufen. Bitte erneut ausführen.';
+        const retry=byId<HTMLButtonElement>('rsvp-turnstile-retry');
+        if(retry) retry.hidden=false;
+      },
+      'error-callback':(code: string)=>{
+        turnstileToken='';
+        const id=String(code||'').replace(/[^0-9]/g,'').slice(0,8);
+        const invalidDomain=id==='110200'||id==='400021';
+        status.textContent=invalidDomain
+          ? 'Cloudflare ist für diese Website-Domain nicht freigegeben (Fehler '+id+'). Bitte den Verein informieren.'
+          : id==='200500'
+            ? 'Verbindung zur Cloudflare-Menschprüfung fehlgeschlagen (200500). Bitte erneut versuchen oder anderen Browser / anderes Netzwerk testen.'
+            : 'Cloudflare-Menschprüfung fehlgeschlagen'+(id?' (Code '+id+')':'')+'. Bitte erneut versuchen.';
+        const retry=byId<HTMLButtonElement>('rsvp-turnstile-retry');
+        if(retry) retry.hidden=false;
+        return true;
+      },
     });
     status.textContent = 'Bitte die Cloudflare-Menschprüfung abschließen.';
   };
+
+  byId<HTMLButtonElement>('rsvp-turnstile-retry')?.addEventListener('click',()=>{
+    const retry=byId<HTMLButtonElement>('rsvp-turnstile-retry');
+    if(retry) retry.hidden=true;
+    if(!cf.turnstile || turnstileId===undefined) {
+      // Retry the original verification script if its initial network load failed.
+      window.location.reload();
+      return;
+    }
+    resetChallenge();
+    const status=byId<HTMLElement>('rsvp-turnstile-status');
+    if(status) status.textContent='Menschprüfung wird neu gestartet …';
+  });
 
   if (event) {
     submit.disabled = true;
