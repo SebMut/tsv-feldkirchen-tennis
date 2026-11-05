@@ -54,8 +54,8 @@ const toBytes=(text:string)=>Uint8Array.from(text,c=>c.charCodeAt(0)&255);
 
 type Line={text:string;size:number;bold:boolean;indent:number;spaceBefore:number}|{table:true};
 function wrap(text:string,maxWidth:number,size:number,bold=false):string[]{
-  const canvas=document.createElement('canvas');
-  const ctx=canvas.getContext('2d');
+  const canvas=typeof document!=='undefined'?document.createElement('canvas'):null;
+  const ctx=canvas?.getContext('2d') || null;
   if(ctx)ctx.font=`${bold?'bold ':''}${size}px Helvetica,Arial,sans-serif`;
   const lines:string[]=[];
   let current='';
