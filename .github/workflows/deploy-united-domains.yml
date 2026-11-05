@@ -126,6 +126,7 @@ jobs:
       # Three responsive cards per desktop row on Aktuelles; all browser, build and audit checks passed.
       # Combine event and news cards into one actual three-column feed and reduce all page heading sizes; browser QA passed.
       # Publish four configurable RSVP sections, an upfront signup CTA and Turnstile error recovery; CI and browser QA passed.
+      # Ship alphabetically sorted A4 landscape RSVP PDF tables: verified admin records, food, cake, adults and kids, repeated page headers.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
