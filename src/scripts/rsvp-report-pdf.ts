@@ -254,7 +254,7 @@ export function buildRsvpPdf(event:RsvpPdfEvent,records:RsvpPdfRow[]):Uint8Array
 
 export function downloadRsvpPdf(event:RsvpPdfEvent,records:RsvpPdfRow[]):void {
   const pdf=buildRsvpPdf(event,records);
-  const url=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
+  const url=URL.createObjectURL(new Blob([new Uint8Array(pdf)],{type:'application/pdf'}));
   const a=document.createElement('a');
   a.href=url;
   a.download='tsv-feldkirchen-'+(event.slug||'veranstaltung')+'-teilnehmerliste.pdf';

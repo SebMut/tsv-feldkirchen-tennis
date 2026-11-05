@@ -202,7 +202,7 @@ test('admin controls youth, women and men independently and PDF export exists',(
   assert.ok(admin.includes("downloadRsvpPdf({"));
   assert.ok(admin.includes("},verifiedResponses)"));
   assert.ok(report.includes('export function downloadRsvpPdf('));
-  assert.ok(report.includes("new Blob([pdf],{type:'application/pdf'})"));
+  assert.ok(report.includes("new Blob([new Uint8Array(pdf)],{type:'application/pdf'})"));
   assert.ok(report.includes("a.download='tsv-feldkirchen-'"));
   assert.ok(report.includes("const pages:string[][]=[[]]"));
   assert.ok(report.includes('Teilnehmer alphabetisch nach Nachnamen'));
