@@ -1,7 +1,7 @@
 import { mediaUrl, supabase } from '../lib/supabase';
 import { replaceMediaImage, removeMediaImage } from '../lib/media-upload';
 import { escapeHtml, formatDateTime } from '../lib/ui';
-import { downloadRsvpPdf, type RsvpPdfRow } from './rsvp-report-pdf';
+import { downloadRsvpPdf, sortRsvpBySurname, type RsvpPdfRow } from './rsvp-report-pdf';
 import { verifyEventCalendarPublication } from '../lib/calendar-feed-diagnostics';
 
 type Row = Record<string, any>;
@@ -78,7 +78,7 @@ export function initEventRsvpAdmin(access: { isSuper: boolean; user: { id: strin
     const { data, error } = await supabase.from('event_rsvps').select('member_name,member_email,attendance,party_size,adults_count,children_count,dessert_contribution,salad_contribution,help_setup,help_cleanup,youth_registrations,women_registrations,men_registrations,updated_at').eq('event_id', selectedId).not('verified_at','is',null).order('updated_at', { ascending: false });
     if (fetchingId!==selectedId) return;
     if (error) { list.textContent = 'Rückmeldungen konnten nicht geladen werden: ' + error.message; return; }
-    const rows = data ?? []; verifiedResponses = rows as RsvpPdfRow[]; if(pdfButton)pdfButton.disabled = false;
+    const rows = sortRsvpBySurname((data ?? []) as RsvpPdfRow[]); verifiedResponses = rows; if(pdfButton)pdfButton.disabled = false;
     const yes = rows.filter(r => r.attendance === 'yes'), no = rows.filter(r => r.attendance === 'no'), maybe = rows.filter(r => r.attendance === 'maybe');
     const people = yes.reduce((n, r) => n + Number(r.party_size), 0), adults = yes.reduce((n, r) => n + Number(r.adults_count || 0), 0), children = yes.reduce((n, r) => n + Number(r.children_count || 0), 0);
     const setup = rows.filter(r => r.help_setup).length, cleanup = rows.filter(r => r.help_cleanup).length;
