@@ -1,0 +1,53 @@
+name: Hallenfinder provider login probe
+
+on:
+  push:
+    branches:
+      - feature/astro-supabase-foundation
+    paths:
+      - .github/workflows/hall-provider-probe.yml
+      - scripts/probe-hall-providers.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Test hall logins without booking
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: hallenfinder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install project dependencies
+        run: npm ci
+      - name: Install isolated browser runner
+        run: |
+          npm install --no-save --package-lock=false playwright@1.65.0
+          npx playwright install --with-deps chromium
+      - name: Probe logins and public availability
+        env:
+          HALL_SPORTTRAUM_EVERSPORTS_EMAIL: ${{ secrets.HALL_SPORTTRAUM_EVERSPORTS_EMAIL }}
+          HALL_SPORTTRAUM_EVERSPORTS_PASSWORD: ${{ secrets.HALL_SPORTTRAUM_EVERSPORTS_PASSWORD }}
+          HALL_ROTHOF_EVERSPORTS_EMAIL: ${{ secrets.HALL_ROTHOF_EVERSPORTS_EMAIL }}
+          HALL_ROTHOF_EVERSPORTS_PASSWORD: ${{ secrets.HALL_ROTHOF_EVERSPORTS_PASSWORD }}
+          HALL_HAAR_EVERSPORTS_EMAIL: ${{ secrets.HALL_HAAR_EVERSPORTS_EMAIL }}
+          HALL_HAAR_EVERSPORTS_PASSWORD: ${{ secrets.HALL_HAAR_EVERSPORTS_PASSWORD }}
+          HALL_ASCHHEIM_EBUSY_USERNAME: ${{ secrets.HALL_ASCHHEIM_EBUSY_USERNAME }}
+          HALL_ASCHHEIM_EBUSY_PASSWORD: ${{ secrets.HALL_ASCHHEIM_EBUSY_PASSWORD }}
+          HALL_KIRCHHEIM_ETENNIS_USERNAME: ${{ secrets.HALL_KIRCHHEIM_ETENNIS_USERNAME }}
+          HALL_KIRCHHEIM_ETENNIS_PASSWORD: ${{ secrets.HALL_KIRCHHEIM_ETENNIS_PASSWORD }}
+        run: node scripts/probe-hall-providers.mjs
+      - name: Archive sanitized provider report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hall-provider-probe
+          path: artifacts/hall-provider-probe/report.json
+          retention-days: 3
+          if-no-files-found: error
