@@ -71,7 +71,14 @@ function aschheimDate(date: string) {
   return month + "/" + day + "/" + year;
 }
 
-function parseAschheim(html: string, expectedDate: string): Slot[] {
+type AschheimReservation = { court?: number | string; date?: string; fromTime?: string; toTime?: string };
+
+function minutes(value: string) {
+  const [hour, minute] = value.split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+function parseAschheim(html: string, expectedDate: string, reservations: AschheimReservation[]): Slot[] {
   const grouped = new Map<string, Slot>();
   for (const match of html.matchAll(/(<td\s+class="slot[^"]*"[\s\S]*?>)([\s\S]*?)<\/td>/gi)) {
     if (!/slot-label\s+bookable/i.test(match[2]) || !/>\s*Buchen\s*</i.test(match[2])) continue;
@@ -80,6 +87,13 @@ function parseAschheim(html: string, expectedDate: string): Slot[] {
     const start = data["data-minor-begin"];
     const end = data["data-minor-end"];
     if (!/^\d{2}:\d{2}$/.test(start || "") || !/^\d{2}:\d{2}$/.test(end || "")) continue;
+    const court = data["data-court"];
+    const providerDate = data["data-date"];
+    const occupied = reservations.some((reservation) =>
+      String(reservation.court) === court && reservation.date === providerDate
+      && /^\d{2}:\d{2}$/.test(reservation.fromTime || "") && /^\d{2}:\d{2}$/.test(reservation.toTime || "")
+      && minutes(reservation.fromTime!) < minutes(end) && minutes(reservation.toTime!) > minutes(start));
+    if (occupied) continue;
     const key = expectedDate + "|" + start + "|" + end;
     const existing = grouped.get(key);
     if (existing) existing.availableCourts = (existing.availableCourts || 1) + 1;
@@ -93,6 +107,26 @@ function parseAschheim(html: string, expectedDate: string): Slot[] {
     });
   }
   return [...grouped.values()];
+}
+
+async function fetchAschheim(date: string) {
+  const selectedDate = aschheimDate(date);
+  const url = ASCHHEIM_URL + "?selectedDate=" + encodeURIComponent(selectedDate);
+  const [html, occupancyResponse] = await Promise.all([
+    providerHtml(url),
+    fetch(url, {
+      headers: {
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141 Safari/537.36",
+        "X-Requested-With": "XMLHttpRequest",
+        "Referer": url,
+      },
+      signal: AbortSignal.timeout(12_000),
+    }),
+  ]);
+  if (!occupancyResponse.ok) throw new Error("aschheim_occupancy_" + occupancyResponse.status);
+  const occupancy = await occupancyResponse.json();
+  return parseAschheim(html, date, Array.isArray(occupancy?.reservations) ? occupancy.reservations : []);
 }
 
 function setCookies(response: Response) {
@@ -203,6 +237,15 @@ function addHours(time: string, hours: number) {
   return String(Math.floor(total / 60) % 24).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0");
 }
 
+function berlinNoonEpoch(date: string) {
+  for (let utcHour = 9; utcHour <= 12; utcHour++) {
+    const epoch = Math.floor(Date.parse(date + "T" + String(utcHour).padStart(2, "0") + ":00:00Z") / 1000);
+    const parts = berlinParts(epoch);
+    if (parts.date === date && parts.time === "12:00") return epoch;
+  }
+  throw new Error("invalid_berlin_date");
+}
+
 function parseKirchheim(html: string, allowedDates: ReadonlySet<string>): Slot[] {
   const prices = Object.fromEntries([...html.matchAll(/class="price\s+price(\d+)"[^>]*>\s*(?:&euro;|€)\s*(\d+)/gi)]
     .map((match) => ["price" + match[1], match[2] + " €"]));
@@ -218,7 +261,7 @@ function parseKirchheim(html: string, allowedDates: ReadonlySet<string>): Slot[]
       const parts = berlinParts(epoch);
       if (!allowedDates.has(parts.date)) continue;
       const priceClass = match[1].match(/price\d+/)?.[0];
-      const dayEpoch = Math.floor(Date.parse(parts.date + "T12:00:00Z") / 1000);
+          const dayEpoch = berlinNoonEpoch(parts.date);
       slots.push({
         venueId: "kirchheim",
         date: parts.date,
@@ -251,10 +294,7 @@ Deno.serve(async (req: Request) => {
     haar: { status: "loading" },
   };
 
-  const aschheimResults = await Promise.allSettled(dates.map(async (date) => {
-    const html = await providerHtml(ASCHHEIM_URL + "?selectedDate=" + encodeURIComponent(aschheimDate(date)));
-    return parseAschheim(html, date);
-  }));
+  const aschheimResults = await Promise.allSettled(dates.map(fetchAschheim));
   const aschheimOk = aschheimResults.filter((result) => result.status === "fulfilled");
   for (const result of aschheimOk) slots.push(...result.value);
   sources.aschheim = aschheimOk.length
@@ -273,8 +313,7 @@ Deno.serve(async (req: Request) => {
   });
 
   try {
-    const midpoint = dates[Math.floor(dates.length / 2)];
-    const dayEpoch = Math.floor(Date.parse(midpoint + "T12:00:00Z") / 1000);
+    const dayEpoch = berlinNoonEpoch(dates[0]);
     const html = await providerHtml(KIRCHHEIM_URL + "&d=" + dayEpoch);
     slots.push(...parseKirchheim(html, new Set(dates)));
     sources.kirchheim = { status: "live" };

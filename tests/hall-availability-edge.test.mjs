@@ -14,6 +14,9 @@ test('public hall endpoint limits searches to seven days and does not expose cre
 test('Aschheim uses only explicitly bookable slots and never invents prices',()=>{
  assert.match(edge,/slot-label\\s\+bookable/);
  assert.match(edge,/>\\s\*Buchen\\s\*</);
+ assert.match(edge,/occupancyResponse/);
+ assert.match(edge,/occupancy\?\.reservations/);
+ assert.match(edge,/minutes\(reservation\.fromTime!\) < minutes\(end\)/);
  assert.match(edge,/availableCourts/);
  assert.doesNotMatch(edge,/venueId: "aschheim"[\s\S]{0,300}price:/);
 });
@@ -23,6 +26,8 @@ test('Kirchheim prices are read from provider price classes and bound to availab
  assert.match(edge,/class="slot\\s\+av/);
  assert.match(edge,/priceClass && prices\[priceClass\]/);
  assert.match(edge,/court: "Platz " \+ \(\(courtIndex % 2\) \+ 7\)/);
+ assert.match(edge,/class="slot\\s\+av/);
+ assert.match(edge,/berlinNoonEpoch\(dates\[0\]\)/);
 });
 
 test('Sporttraum and Haar use the public Eversports tennis calendar and only free priced cells',()=>{
