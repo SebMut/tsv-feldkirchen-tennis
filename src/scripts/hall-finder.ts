@@ -6,8 +6,7 @@ type LiveResponse={checkedAt:string;sources:Record<string,{status:string;message
 const venues:Venue[]=[
  {id:'aschheim',short:'Aschheim',name:'TC Aschheim',distance:'ca. 7 km',bookingUrl:'https://tcaschheim.ebusy.de/'},
  {id:'sporttraum',short:'Sporttraum',name:'SPORTTRAUM',distance:'ca. 5 km',bookingUrl:'https://www.sporttraum.de/buchen/'},
- {id:'rothof',short:'Rothof',name:'Rothof München',distance:'ca. 14 km',bookingUrl:'https://www.eversports.de/widget/w/jmjffr'},
- {id:'haar',short:'Haar',name:'Racket-Park TSV Haar',distance:'ca. 8 km',bookingUrl:'https://www.eversports.de/s/racket-park-tsv-haar'},
+ {id:'haar',short:'Haar',name:'Racket-Park TSV Haar',distance:'ca. 8 km',bookingUrl:'https://www.eversports.de/sb/racket-park-tsv-haar'},
  {id:'kirchheim',short:'Kirchheim',name:'TC Kirchheim',distance:'ca. 6 km',bookingUrl:'https://tckirchheim.tennisplatz.info/reservierung?c=2015'}
 ];
 const pad=(v:number)=>String(v).padStart(2,'0');

@@ -13,6 +13,7 @@ test('public hall endpoint limits searches to seven days and does not expose cre
 
 test('Aschheim uses only explicitly bookable slots and never invents prices',()=>{
  assert.match(edge,/slot-label\\s\+bookable/);
+ assert.match(edge,/>\\s\*Buchen\\s\*</);
  assert.match(edge,/availableCourts/);
  assert.doesNotMatch(edge,/venueId: "aschheim"[\s\S]{0,300}price:/);
 });
@@ -24,7 +25,10 @@ test('Kirchheim prices are read from provider price classes and bound to availab
  assert.match(edge,/court: "Platz " \+ \(\(courtIndex % 2\) \+ 7\)/);
 });
 
-test('Eversports security barriers are shown honestly without bypassing them',()=>{
- for(const venue of ['sporttraum','rothof','haar'])assert.ok(edge.includes(venue+': { status: "provider_security"'));
- assert.doesNotMatch(edge,/captcha|turnstile|cloudflare/i);
+test('Sporttraum and Haar use the public Eversports tennis calendar and only free priced cells',()=>{
+ assert.match(edge,/6yi8rm/);assert.match(edge,/hwhk63/);
+ assert.match(edge,/data-state="free"/);
+ assert.match(edge,/data-price/);
+ assert.match(edge,/fetchEversports\("sporttraum"/);assert.match(edge,/fetchEversports\("haar"/);
+ assert.doesNotMatch(edge,/rothof/i);
 });
