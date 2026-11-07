@@ -17,8 +17,12 @@ for(const item of ACTIVE_SEASONS) {
   const report=await item.source();
   if(report.fixtures.length!==item.expected)throw Error('BTV_SOURCE_FIXTURE_COUNT_CHANGED');
   const published=report.fixtures.filter(f=>parseScore(f.score)).length;
+  console.log('BTV_RESULTS_SOURCE_'+item.code+'='+report.fixtures.length);
+  console.log('BTV_RESULTS_SCORED_SOURCE_'+item.code+'='+published);
   if(item.code==='sommer-2026' && published<100)throw Error('SUMMER_BTV_RESULTS_INCOMPLETE');
-  if(item.code==='winter-2026-2027' && published<4)throw Error('WINTER_BTV_RESULTS_INCOMPLETE');
+  // Winter results appear gradually during the active round. The verified
+  // fixture count above protects the source shape; zero or a few final scores
+  // are a valid early-season state and must not fail the scheduled import.
   sources.push({...item,fixtures:report.fixtures});
 }
 const key=process.env.BTV_SUPABASE_SECRET_KEY;
@@ -55,8 +59,6 @@ for(const source of sources){
   const selected=selectOfficialResults(source.fixtures,matches,mapped,states,Date.now(),
     source.code==='sommer-2026'?120:45);
   console.log('BTV_RESULTS_MATCHES_'+source.code+'='+matches.length);
-  console.log('BTV_RESULTS_SCORED_SOURCE_'+source.code+'='+
-    source.fixtures.filter(f=>parseScore(f.score)).length);
   console.log('BTV_RESULTS_SAFE_UPDATES_'+source.code+'='+selected.updates.length);
   console.log('BTV_RESULTS_UNMATCHED_'+source.code+'='+selected.unmatched);
   console.log('BTV_RESULTS_AMBIGUOUS_'+source.code+'='+selected.ambiguous);
