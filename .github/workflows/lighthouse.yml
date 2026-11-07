@@ -25,7 +25,7 @@ jobs:
       - run: npm ci
       - name: Install pinned Lighthouse and Chromium
         run: |
-          npm install --no-save --package-lock=false lighthouse@12.8.2 playwright@1.56.1
+          npm install --no-save --package-lock=false lighthouse@12.8.2 playwright@1.65.0
           npx playwright install --with-deps chromium
       - name: Build site
         run: npm run build
