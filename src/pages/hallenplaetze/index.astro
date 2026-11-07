@@ -18,10 +18,10 @@ import MainLayout from '../../layouts/MainLayout.astro';
         <label><span>Spätestens</span><select id="hall-time-to" name="ende"></select></label>
         <button class="button hall-search__submit" type="submit">Hallen vergleichen</button>
       </div>
-      <p class="hall-search__hint">Verfügbarkeiten ändern sich laufend. Die verbindliche Anzeige und Buchung erfolgt immer im Kalender des jeweiligen Anbieters.</p>
+      <p class="hall-search__hint">Aschheim und Kirchheim werden beim Aufruf aktuell abgefragt. Die verbindliche Anzeige und Buchung erfolgt immer im Kalender des jeweiligen Anbieters.</p>
     </form>
     <section class="hall-results">
-      <div class="hall-results__head"><div><p class="eyebrow">Ergebnisübersicht</p><h2 id="hall-results-title">Deine Spielzeiten</h2><p id="hall-results-summary" class="muted"></p></div><button class="button ghost" id="hall-copy-search" type="button">Suche teilen</button></div>
+      <div class="hall-results__head"><div><p class="eyebrow">Ergebnisübersicht</p><h2 id="hall-results-title">Deine Spielzeiten</h2><p id="hall-results-summary" class="muted"></p><p id="hall-live-status" class="hall-live-status" role="status"></p></div><button class="button ghost" id="hall-copy-search" type="button">Suche teilen</button></div>
       <div class="hall-venue-strip" id="hall-venue-strip" aria-label="Berücksichtigte Tennishallen"></div>
       <div id="hall-results-grid" class="hall-results-grid" aria-live="polite"></div>
     </section>
