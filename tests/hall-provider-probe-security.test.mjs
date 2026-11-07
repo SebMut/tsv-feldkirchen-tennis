@@ -36,6 +36,7 @@ test('provider security challenges are reported without attempting a bypass', ()
 test('sanitized report is short-lived and contains useful availability fields', () => {
   assert.match(probe, /values: safeAvailability/);
   assert.match(probe, /slot\.av\[data-begin\]/);
+  assert.match(probe, /courtElement\.parentElement\.children/);
   assert.match(workflow, /retention-days: 3/);
   assert.match(workflow, /artifacts\/hall-provider-probe\/report\.json/);
 });
