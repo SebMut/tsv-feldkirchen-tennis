@@ -14,6 +14,13 @@ test('provider probe receives secrets only outside pull requests', () => {
   }
 });
 
+test('future push runs collect public values without repeating password attempts', () => {
+  assert.match(workflow, /HALL_PROBE_ATTEMPT_LOGIN:/);
+  assert.match(workflow, /github\.event_name == 'workflow_dispatch'/);
+  assert.match(probe, /const attemptLogin = process\.env\.HALL_PROBE_ATTEMPT_LOGIN === 'true'/);
+  assert.match(probe, /if \(attemptLogin\)/);
+});
+
 test('provider probe never books, screenshots, traces or logs credential values', () => {
   assert.match(probe, /bookingAttempted: false/);
   assert.doesNotMatch(probe, /screenshot|tracing|storageState|console\.log\([^\n]*(username|password)/i);
@@ -28,6 +35,7 @@ test('provider security challenges are reported without attempting a bypass', ()
 
 test('sanitized report is short-lived and contains useful availability fields', () => {
   assert.match(probe, /values: safeAvailability/);
+  assert.match(probe, /slot\.av\[data-begin\]/);
   assert.match(workflow, /retention-days: 3/);
   assert.match(workflow, /artifacts\/hall-provider-probe\/report\.json/);
 });

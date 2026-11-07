@@ -8,6 +8,12 @@ on:
       - .github/workflows/hall-provider-probe.yml
       - scripts/probe-hall-providers.mjs
   workflow_dispatch:
+    inputs:
+      attempt_login:
+        description: Attempt exactly one login per provider (never books)
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -42,6 +48,7 @@ jobs:
           HALL_ASCHHEIM_EBUSY_PASSWORD: ${{ secrets.HALL_ASCHHEIM_EBUSY_PASSWORD }}
           HALL_KIRCHHEIM_ETENNIS_USERNAME: ${{ secrets.HALL_KIRCHHEIM_ETENNIS_USERNAME }}
           HALL_KIRCHHEIM_ETENNIS_PASSWORD: ${{ secrets.HALL_KIRCHHEIM_ETENNIS_PASSWORD }}
+          HALL_PROBE_ATTEMPT_LOGIN: ${{ github.event_name == 'workflow_dispatch' && inputs.attempt_login && 'true' || 'false' }}
         run: node scripts/probe-hall-providers.mjs
       - name: Archive sanitized provider report
         if: always()
