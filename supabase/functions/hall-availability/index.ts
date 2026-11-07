@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 type Slot = {
-  venueId: "aschheim" | "kirchheim";
+  venueId: "aschheim" | "sporttraum" | "haar" | "kirchheim";
   date: string;
   start: string;
   end: string;
@@ -19,6 +19,12 @@ type Slot = {
 
 const ASCHHEIM_URL = "https://tcaschheim.ebusy.de/court-module/372";
 const KIRCHHEIM_URL = "https://tckirchheim.tennisplatz.info/reservierung?c=2015";
+const EVERSPORTS_ORIGIN = "https://www.eversports.de";
+const TENNIS = { id: "433", slug: "tennis", name: "Tennis", uuid: "b38729e9-69de-11e8-bdc6-02bd505aa7b2" };
+const eversportsVenues = {
+  sporttraum: { shortId: "6yi8rm", facilityId: "69336", bookingUrl: EVERSPORTS_ORIGIN + "/widget/w/6yi8rm" },
+  haar: { shortId: "hwhk63", facilityId: "24105", bookingUrl: EVERSPORTS_ORIGIN + "/sb/racket-park-tsv-haar" },
+} as const;
 
 function json(body: unknown, status = 200) {
   return Response.json(body, {
@@ -68,7 +74,7 @@ function aschheimDate(date: string) {
 function parseAschheim(html: string, expectedDate: string): Slot[] {
   const grouped = new Map<string, Slot>();
   for (const match of html.matchAll(/(<td\s+class="slot[^"]*"[\s\S]*?>)([\s\S]*?)<\/td>/gi)) {
-    if (!/slot-label\s+bookable/i.test(match[2])) continue;
+    if (!/slot-label\s+bookable/i.test(match[2]) || !/>\s*Buchen\s*</i.test(match[2])) continue;
     const data = attrs(match[1]);
     if (data["data-date-iso"] !== expectedDate) continue;
     const start = data["data-minor-begin"];
@@ -87,6 +93,99 @@ function parseAschheim(html: string, expectedDate: string): Slot[] {
     });
   }
   return [...grouped.values()];
+}
+
+function setCookies(response: Response) {
+  const values = (response.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie?.()
+    ?? (response.headers.get("set-cookie") ? [response.headers.get("set-cookie")!] : []);
+  return values.map((value) => value.split(";", 1)[0]).join("; ");
+}
+
+async function eversportsRequest(path: string, init: RequestInit = {}, cookie = "") {
+  return fetch(EVERSPORTS_ORIGIN + path, {
+    ...init,
+    headers: {
+      "Accept": init.method === "POST" ? "text/html, */*; q=0.01" : "application/json, text/plain, */*",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141 Safari/537.36",
+      "Referer": EVERSPORTS_ORIGIN + "/widget/w/" + path,
+      "X-Requested-With": "XMLHttpRequest",
+      ...(cookie ? { Cookie: cookie } : {}),
+      ...(init.headers || {}),
+    },
+    signal: AbortSignal.timeout(12_000),
+  });
+}
+
+function compactTime(value: string) {
+  return value.slice(0, 2) + ":" + value.slice(2, 4);
+}
+
+function parseEversportsCalendar(
+  html: string,
+  venueId: "sporttraum" | "haar",
+  bookingUrl: string,
+  allowedDates: ReadonlySet<string>,
+  booked: ReadonlySet<string>,
+): Slot[] {
+  const slots: Slot[] = [];
+  for (const dateMatch of html.matchAll(/<tbody[^>]*data-date="(\d{4}-\d{2}-\d{2})"[^>]*>([\s\S]*?)<\/tbody>/gi)) {
+    const date = dateMatch[1];
+    if (!allowedDates.has(date)) continue;
+    for (const courtMatch of dateMatch[2].matchAll(/<tr[^>]*class="[^"]*court[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi)) {
+      const courtId = courtMatch[1].match(/<td[^>]*data-court="(\d+)"[^>]*>/i)?.[1];
+      const court = courtMatch[1].match(/class="court-name[^"]*"[^>]*>([^<]+)</i)?.[1]?.trim();
+      if (!courtId) continue;
+      for (const cell of courtMatch[1].matchAll(/<td([^>]*)data-state="free"([^>]*)>([\s\S]*?)<\/td>/gi)) {
+        const data = attrs("<td" + cell[1] + ' data-state="free"' + cell[2] + ">");
+        const start = data["data-start"], end = data["data-end"];
+        if (!/^\d{4}$/.test(start || "") || !/^\d{4}$/.test(end || "")) continue;
+        if (booked.has(courtId + "|" + date + "|" + start)) continue;
+        const price = data["data-price"];
+        slots.push({
+          venueId, date, start: compactTime(start), end: compactTime(end),
+          ...(court ? { court } : {}),
+          ...(price && /^\d+(?:[.,]\d+)?$/.test(price) ? { price: price.replace(".", ",") + " €" } : {}),
+          bookingUrl,
+        });
+      }
+    }
+  }
+  return slots;
+}
+
+async function fetchEversports(venueId: "sporttraum" | "haar", dates: string[]) {
+  const venue = eversportsVenues[venueId];
+  const landing = await eversportsRequest("/widget/w/" + venue.shortId);
+  if (!landing.ok) throw new Error("eversports_landing_" + landing.status);
+  const cookie = setCookies(landing);
+  const form = new URLSearchParams({
+    facilityShortId: venue.shortId,
+    "sport[id]": TENNIS.id,
+    "sport[slug]": TENNIS.slug,
+    "sport[name]": TENNIS.name,
+    "sport[uuid]": TENNIS.uuid,
+    date: dates[0], calendarDays: String(dates.length),
+  });
+  const calendar = await eversportsRequest("/widget/api/booking/calendar/update", {
+    method: "POST", body: form,
+    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+  }, cookie);
+  if (!calendar.ok) throw new Error("eversports_calendar_" + calendar.status);
+  const html = await calendar.text();
+  const courts = [...new Set([...html.matchAll(/<td[^>]*data-court="(\d+)"[^>]*>/gi)].map((match) => match[1]))];
+  const query = new URLSearchParams({ facilityId: venue.facilityId, sport: "tennis", startDate: dates[0] });
+  courts.forEach((court) => query.append("courts[]", court));
+  const occupancy = await eversportsRequest("/widget/api/slot?" + query, {}, cookie);
+  if (!occupancy.ok) throw new Error("eversports_slots_" + occupancy.status);
+  const payload = await occupancy.json();
+  const booked = new Set<string>();
+  for (const slot of Array.isArray(payload?.slots) ? payload.slots : []) {
+    const court = String(slot.court ?? slot.courtId ?? slot.court_id ?? slot.court?.id ?? "");
+    const date = String(slot.date ?? slot.startDate ?? "").slice(0, 10);
+    const start = String(slot.start ?? "").replace(":", "").slice(0, 4);
+    if (court && date && start) booked.add(court + "|" + date + "|" + start);
+  }
+  return parseEversportsCalendar(html, venueId, venue.bookingUrl, new Set(dates), booked);
 }
 
 function berlinParts(epochSeconds: number) {
@@ -148,9 +247,8 @@ Deno.serve(async (req: Request) => {
 
   const slots: Slot[] = [];
   const sources: Record<string, { status: string; message?: string }> = {
-    sporttraum: { status: "provider_security", message: "Live-Verfügbarkeit beim Anbieter prüfen" },
-    rothof: { status: "provider_security", message: "Live-Verfügbarkeit beim Anbieter prüfen" },
-    haar: { status: "provider_security", message: "Live-Verfügbarkeit beim Anbieter prüfen" },
+    sporttraum: { status: "loading" },
+    haar: { status: "loading" },
   };
 
   const aschheimResults = await Promise.allSettled(dates.map(async (date) => {
@@ -162,6 +260,17 @@ Deno.serve(async (req: Request) => {
   sources.aschheim = aschheimOk.length
     ? { status: "live", ...(aschheimOk.length < dates.length ? { message: "Einzelne Tage nicht abrufbar" } : {}) }
     : { status: "unavailable", message: "Anbieter derzeit nicht erreichbar" };
+
+  const eversportsResults = await Promise.allSettled([
+    fetchEversports("sporttraum", dates), fetchEversports("haar", dates),
+  ]);
+  (["sporttraum", "haar"] as const).forEach((venueId, index) => {
+    const result = eversportsResults[index];
+    if (result.status === "fulfilled") {
+      slots.push(...result.value);
+      sources[venueId] = { status: "live" };
+    } else sources[venueId] = { status: "unavailable", message: "Live-Kalender beim Anbieter öffnen" };
+  });
 
   try {
     const midpoint = dates[Math.floor(dates.length / 2)];
