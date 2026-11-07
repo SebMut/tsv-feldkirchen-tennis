@@ -139,10 +139,18 @@ async function extractEtennisAvailability(page, bookingUrl) {
       const epoch = Number(element.getAttribute('data-begin'));
       const parts = Object.fromEntries(formatter.formatToParts(new Date(epoch * 1000)).map((part) => [part.type, part.value]));
       const priceClass = [...element.classList].find((name) => /^price\d+$/.test(name));
-      const courtGroup = element.closest('.day-courts');
-      const courts = courtGroup ? [...courtGroup.querySelectorAll(':scope > .court')] : [];
-      const court = Math.max(0, courts.indexOf(element.parentElement)) + 7;
-      const dayStart = element.closest('.day')?.querySelector('.day-date')?.getAttribute('href')?.match(/[?&]d=(\d+)/)?.[1];
+      const courtElement = element.closest('.court');
+      const courts = courtElement?.parentElement
+        ? [...courtElement.parentElement.children].filter((child) => child.classList.contains('court'))
+        : [];
+      const court = Math.max(0, courts.indexOf(courtElement)) + 7;
+      const day = element.closest('.day');
+      const dayStarts = day
+        ? [...day.querySelectorAll('.slot[data-begin]')]
+          .map((slot) => Number(slot.getAttribute('data-begin')))
+          .filter(Number.isFinite)
+        : [];
+      const dayStart = dayStarts.length ? Math.min(...dayStarts) : null;
       return {
         date: `${parts.year}-${parts.month}-${parts.day}`,
         start: `${parts.hour}:${parts.minute}`,
