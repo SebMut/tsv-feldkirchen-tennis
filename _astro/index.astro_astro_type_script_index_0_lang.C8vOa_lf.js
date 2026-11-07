@@ -1,0 +1,1 @@
+import{t as e}from"./public.B1KvGibK.js";var t=document.querySelector(`#calendar-extra-filters`);t&&window.matchMedia(`(max-width: 680px)`).matches&&(t.open=!1),e();

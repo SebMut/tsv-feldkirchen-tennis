@@ -1,0 +1,1 @@
+import{r as e}from"./public.B1KvGibK.js";var t=new URLSearchParams(location.search).get(`match`);e(t);

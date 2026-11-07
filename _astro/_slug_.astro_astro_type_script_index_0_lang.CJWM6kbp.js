@@ -1,0 +1,1 @@
+import{l as e}from"./public.B1KvGibK.js";var t=document.querySelector(`[data-team-slug]`);t?.dataset.teamSlug&&e(t.dataset.teamSlug);
