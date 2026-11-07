@@ -4,16 +4,24 @@ import { fileURLToPath } from 'node:url';
 
 export const credentialGroups = [
   {
-    provider: 'Eversports (SPORTTRAUM, Rothof und Racket-Park Haar)',
-    fields: ['HALL_EVERSPORTS_EMAIL', 'HALL_EVERSPORTS_PASSWORD'],
+    provider: 'SPORTTRAUM Heimstetten (Eversports)',
+    fields: ['HALL_SPORTTRAUM_EVERSPORTS_EMAIL', 'HALL_SPORTTRAUM_EVERSPORTS_PASSWORD'],
+  },
+  {
+    provider: 'Rothof München (Eversports)',
+    fields: ['HALL_ROTHOF_EVERSPORTS_EMAIL', 'HALL_ROTHOF_EVERSPORTS_PASSWORD'],
+  },
+  {
+    provider: 'Racket-Park TSV Haar (Eversports)',
+    fields: ['HALL_HAAR_EVERSPORTS_EMAIL', 'HALL_HAAR_EVERSPORTS_PASSWORD'],
   },
   {
     provider: 'Tennishalle Aschheim (eBuSy)',
-    fields: ['HALL_ASCHHEIM_USERNAME', 'HALL_ASCHHEIM_PASSWORD'],
+    fields: ['HALL_ASCHHEIM_EBUSY_USERNAME', 'HALL_ASCHHEIM_EBUSY_PASSWORD'],
   },
   {
     provider: 'Tennishalle Kirchheim (eTennis)',
-    fields: ['HALL_KIRCHHEIM_USERNAME', 'HALL_KIRCHHEIM_PASSWORD'],
+    fields: ['HALL_KIRCHHEIM_ETENNIS_USERNAME', 'HALL_KIRCHHEIM_ETENNIS_PASSWORD'],
   },
 ];
 

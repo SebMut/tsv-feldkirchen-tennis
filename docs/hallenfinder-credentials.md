@@ -8,22 +8,26 @@ Die Zugangsdaten liegen als **Environment-Secrets** in der geschützten GitHub-U
 
 Direkter Einstieg: **Repository → Settings → Environments → hallenfinder → Environment secrets**
 
-Dort werden genau diese sechs Secrets angelegt:
+Dort werden genau diese zehn Secrets angelegt:
 
-- `HALL_EVERSPORTS_EMAIL`
-- `HALL_EVERSPORTS_PASSWORD`
-- `HALL_ASCHHEIM_USERNAME`
-- `HALL_ASCHHEIM_PASSWORD`
-- `HALL_KIRCHHEIM_USERNAME`
-- `HALL_KIRCHHEIM_PASSWORD`
+- `HALL_SPORTTRAUM_EVERSPORTS_EMAIL`
+- `HALL_SPORTTRAUM_EVERSPORTS_PASSWORD`
+- `HALL_ROTHOF_EVERSPORTS_EMAIL`
+- `HALL_ROTHOF_EVERSPORTS_PASSWORD`
+- `HALL_HAAR_EVERSPORTS_EMAIL`
+- `HALL_HAAR_EVERSPORTS_PASSWORD`
+- `HALL_ASCHHEIM_EBUSY_USERNAME`
+- `HALL_ASCHHEIM_EBUSY_PASSWORD`
+- `HALL_KIRCHHEIM_ETENNIS_USERNAME`
+- `HALL_KIRCHHEIM_ETENNIS_PASSWORD`
 
-Rothof, Racket-Park Haar und SPORTTRAUM verwenden Eversports und können in der Regel denselben Eversports-Zugang verwenden. TC Aschheim nutzt eBuSy, TC Kirchheim eTennis.
+Rothof, Racket-Park Haar und SPORTTRAUM verwenden Eversports. Die Secrets sind absichtlich je Halle getrennt; wenn zwei Hallen denselben Eversports-Account verwenden, werden für beide Hallen dieselben Werte eingetragen. TC Aschheim nutzt eBuSy, TC Kirchheim eTennis.
 
 ## Zugangsdaten eintragen
 
 1. In GitHub das Repository `SebMut/tsv-feldkirchen-tennis` öffnen.
 2. **Settings → Environments → hallenfinder** wählen.
-3. Unter **Environment secrets** nacheinander die sechs Namen aus der Liste anlegen.
+3. Unter **Environment secrets** nacheinander die zehn Namen aus der Liste anlegen.
 4. Als Wert jeweils ausschließlich den echten Benutzernamen, die E-Mail-Adresse oder das Passwort eintragen. Keine Anführungszeichen und keine Platzhalter verwenden.
 5. Erst danach Pull Request #119 mergen. Die Prüfung startet beim Merge in den Website-Branch automatisch. Später kann sie unter **Actions → Hallenfinder login data check** erneut ausgeführt werden.
 

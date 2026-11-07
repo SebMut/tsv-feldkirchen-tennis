@@ -20,7 +20,7 @@ test('hall login check runs only on the deployment branch or manually and stays 
 
 test('every required hall credential comes from GitHub secrets', () => {
   const fields = credentialGroups.flatMap((group) => group.fields);
-  assert.equal(new Set(fields).size, 6);
+  assert.equal(new Set(fields).size, 10);
   for (const field of fields) {
     assert.match(workflow, new RegExp(`${field}: \\$\\{\\{ secrets\\.${field} \\}\\}`));
   }
@@ -37,9 +37,12 @@ test('credential report never includes secret values', () => {
 
 test('empty and placeholder credentials are rejected', () => {
   const status = credentialStatus({
-    HALL_EVERSPORTS_EMAIL: 'todo',
-    HALL_EVERSPORTS_PASSWORD: '',
+    HALL_SPORTTRAUM_EVERSPORTS_EMAIL: 'todo',
+    HALL_SPORTTRAUM_EVERSPORTS_PASSWORD: '',
   });
   assert.equal(status[0].ready, false);
-  assert.deepEqual(status[0].missing, ['HALL_EVERSPORTS_EMAIL', 'HALL_EVERSPORTS_PASSWORD']);
+  assert.deepEqual(status[0].missing, [
+    'HALL_SPORTTRAUM_EVERSPORTS_EMAIL',
+    'HALL_SPORTTRAUM_EVERSPORTS_PASSWORD',
+  ]);
 });
