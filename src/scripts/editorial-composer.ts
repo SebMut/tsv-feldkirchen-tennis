@@ -177,7 +177,7 @@ export function initEditorialComposer(access: Access) {
     const title = escapeHtml(cleanTitle(val('title'))), body = escapeHtml(val('body'));
     const media = (source: string) => '<a href="#" class="content-card__media"><img src="' + escapeHtml(source) + '" alt="" /></a>';
     if (hasEvent()) {
-      return '<article class="content-card content-card--event">' + media(image || '/images/veranstaltung-ai.svg') +
+      return '<article class="content-card content-card--event">' + media(image || '/images/tsv-feldkirchen-tennisanlage-hero.avif') +
         '<div class="content-card__body"><div class="content-card__meta"><span class="content-card__badge">Veranstaltung</span><time>' +
         escapeHtml(formatDateTime(iso(val('start')) || new Date().toISOString())) + '</time></div><h3><a href="#">' + title +
         '</a></h3><p class="content-card__description">' + escapeHtml(plain(val('excerpt') || val('body'))) + '</p>' +
