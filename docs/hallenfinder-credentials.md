@@ -25,7 +25,7 @@ Rothof, Racket-Park Haar und SPORTTRAUM verwenden Eversports und können in der 
 2. **Settings → Environments → hallenfinder** wählen.
 3. Unter **Environment secrets** nacheinander die sechs Namen aus der Liste anlegen.
 4. Als Wert jeweils ausschließlich den echten Benutzernamen, die E-Mail-Adresse oder das Passwort eintragen. Keine Anführungszeichen und keine Platzhalter verwenden.
-5. Anschließend unter **Actions → Hallenfinder login data check → Run workflow** die manuelle Prüfung starten.
+5. Erst danach Pull Request #119 mergen. Die Prüfung startet beim Merge in den Website-Branch automatisch. Später kann sie unter **Actions → Hallenfinder login data check** erneut ausgeführt werden.
 
 Die Prüfung meldet pro Anbietergruppe nur **Bereit** oder **Fehlt**. Sie meldet sich noch nicht bei den Hallen an und gibt keinerlei Secret-Werte aus.
 

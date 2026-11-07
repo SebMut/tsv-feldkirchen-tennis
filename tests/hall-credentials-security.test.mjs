@@ -9,7 +9,9 @@ import {
 
 const workflow = readFileSync('.github/workflows/hall-credentials-check.yml', 'utf8');
 
-test('hall login check is manual and isolated in the hallenfinder environment', () => {
+test('hall login check runs only on the deployment branch or manually and stays isolated', () => {
+  assert.match(workflow, /push:/);
+  assert.match(workflow, /feature\/astro-supabase-foundation/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /environment: hallenfinder/);
   assert.doesNotMatch(workflow, /pull_request:/);
