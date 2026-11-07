@@ -72,6 +72,12 @@ test('repository and secret scope are strictly restricted, only score fields cha
   assert.match(text,/ACTIVE_SEASONS\.map\(s=>s\.code\)/);
 });
 
+test('active winter import accepts an early-season result count',()=>{
+  assert.match(text,/\{code:'winter-2026-2027',expected:15,source:getWinterSchedule\}/);
+  assert.doesNotMatch(text,/WINTER_BTV_RESULTS_INCOMPLETE/);
+  assert.match(text,/BTV_RESULTS_SCORED_SOURCE_/);
+});
+
 
 test('Sommer 2026 rescheduled 84-day official result is matched only when explicitly enabled',()=>{
   const original='2026-05-02T07:00:00Z';
