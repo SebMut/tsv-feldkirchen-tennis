@@ -9,6 +9,7 @@ test('public hall endpoint limits searches to seven days and does not expose cre
  assert.match(config,/\[functions\.hall-availability\][\s\S]*verify_jwt = false/);
  assert.match(edge,/days < 1 \|\| days > 7/);
  assert.doesNotMatch(edge,/HALL_.*(?:PASSWORD|USERNAME|EMAIL)|service_role/i);
+ assert.match(edge,/"Cache-Control": "no-store, max-age=0"/);
 });
 
 test('Aschheim uses only explicitly bookable slots and never invents prices',()=>{

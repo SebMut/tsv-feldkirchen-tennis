@@ -31,7 +31,8 @@ function json(body: unknown, status = 200) {
     status,
     headers: {
       ...corsHeaders,
-      "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
+      "Cache-Control": "no-store, max-age=0",
+      "Pragma": "no-cache",
       "X-Content-Type-Options": "nosniff",
     },
   });
@@ -59,6 +60,7 @@ function attrs(tag: string) {
 
 async function providerHtml(url: string) {
   const response = await fetch(url, {
+    cache: "no-store",
     headers: { "Accept": "text/html", "User-Agent": "TSV-Feldkirchen-Hallenfinder/1.0" },
     signal: AbortSignal.timeout(12_000),
   });
@@ -138,6 +140,7 @@ function setCookies(response: Response) {
 async function eversportsRequest(path: string, init: RequestInit = {}, cookie = "") {
   return fetch(EVERSPORTS_ORIGIN + path, {
     ...init,
+    cache: "no-store",
     headers: {
       "Accept": init.method === "POST" ? "text/html, */*; q=0.01" : "application/json, text/plain, */*",
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141 Safari/537.36",
