@@ -2,7 +2,7 @@ type Venue={id:string;short:string;name:string;address:string;distance:string;co
 const venues:Venue[]=[
  {id:'aschheim',short:'Aschheim',name:'TC Aschheim',address:'Am Sportpark 1 · 85609 Aschheim',distance:'ca. 7 km',courts:'Tennishalle',system:'eBuSy',bookingUrl:'https://tcaschheim.ebusy.de/',price:()=> 'Preis im Kalender'},
  {id:'sporttraum',short:'Sporttraum',name:'SPORTTRAUM',address:'Hürderstraße 2a · 85551 Kirchheim',distance:'ca. 5 km',courts:'2 Hallenplätze',system:'Eversports',bookingUrl:'https://www.sporttraum.de/buchen/',price:(date,from)=>[0,6].includes(date.getDay())?(from>=21?'ab 24 € / Std.':'ab 30 € / Std.'):(from>=21||from<16?'ab 24 € / Std.':'ab 34 € / Std.')},
- {id:'rothof',short:'Rothof',name:'Rothof München',address:'Denninger Straße 120 · 81925 München',distance:'ca. 14 km',courts:'6 Hallenplätze',system:'Eversports',bookingUrl:'https://www.eversports.de/s/rothof',price:()=> 'Preis im Kalender'},
+ {id:'rothof',short:'Rothof',name:'Rothof München',address:'Denninger Straße 120 · 81925 München',distance:'ca. 14 km',courts:'6 Hallenplätze',system:'Eversports',bookingUrl:'https://www.eversports.de/widget/w/jmjffr',price:()=> 'Preis im Kalender'},
  {id:'haar',short:'Haar',name:'Racket-Park TSV Haar',address:'Höglweg 7 · 85540 Haar',distance:'ca. 8 km',courts:'5 Hallenplätze',system:'Eversports',bookingUrl:'https://www.eversports.de/s/racket-park-tsv-haar',price:()=> 'Preis im Kalender'},
  {id:'kirchheim',short:'Kirchheim',name:'TC Kirchheim',address:'Florianstraße 26 · 85551 Kirchheim',distance:'ca. 6 km',courts:'2 Hallenplätze',system:'eTennis',bookingUrl:'https://tckirchheim.tennisplatz.info/reservierung?c=2015',price:()=> 'ab 20 € / Std.'}
 ];
