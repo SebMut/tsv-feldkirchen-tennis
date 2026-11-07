@@ -33,7 +33,7 @@ test('the Liveticker page keeps uniform logo and placeholder image sizes', () =>
 });
 
 test('original event images, linked news images, fallbacks and homepage thumbnails remain intact', () => {
-  assert.match(actual, /const eventImage = event\.hero_image_path \? mediaUrl\(event\.hero_image_path\) : '\/images\/veranstaltung-ai\.svg'/);
+  assert.match(actual, /const eventImage = event\.hero_image_path \? mediaUrl\(event\.hero_image_path\) : '\/images\/tsv-feldkirchen-tennisanlage-hero\.avif'/);
   assert.match(actual, /data-event-has-image/);
   assert.match(actual, /card\.classList\.add\('content-card', 'content-card--news'\)/);
   assert.match(pub, /item\.label === 'Veranstaltung' \? ' home-news-item__image--event'/);

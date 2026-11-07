@@ -44,7 +44,7 @@ test('public home card renders fallback when image lookup or Storage object fail
   assert.match(code,/\.in\('id', linkedIdsToFetch\)/);
   assert.match(code,/\.in\('related_event_id', missingEventIds\)/);
   assert.match(code,/eventImagePathCandidates\(item, relatedNews\)\.map\(mediaUrl\)/);
-  assert.match(code,/\/images\/veranstaltung-ai\.svg/);
+  assert.match(code,/\/images\/tsv-feldkirchen-tennisanlage-hero\.avif/);
   assert.match(code,/image\.addEventListener\('error', onError\)/);
   assert.match(code,/data-home-image-alternates/);
   assert.match(code,/!linkedNewsIds\.has\(item\.id\)/);

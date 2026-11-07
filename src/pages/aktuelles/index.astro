@@ -176,7 +176,7 @@ import MainLayout from '../../layouts/MainLayout.astro';
         const description = plainText(event.excerpt || event.description) || 'Weitere Informationen zur Veranstaltung folgen.';
         const fullDescription = escapeHtml(String(event.description || description).trim()).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         const linkedNewsId = typeof event.slug === 'string' ? /^news-([0-9a-f-]{36})$/i.exec(event.slug)?.[1] : undefined;
-        const eventImage = event.hero_image_path ? mediaUrl(event.hero_image_path) : '/images/veranstaltung-ai.svg';
+        const eventImage = event.hero_image_path ? mediaUrl(event.hero_image_path) : '/images/tsv-feldkirchen-tennisanlage-hero.avif';
         return `
           <article id="event-${escapeHtml(event.id)}" class="content-card content-card--event">
             <a class="content-card__media${event.hero_image_path ? ' content-card__media--poster' : ''}" href="${href}" data-open-detail aria-label="${escapeHtml(cleanTitle(event.title))} vollständig lesen">

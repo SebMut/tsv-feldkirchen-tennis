@@ -589,7 +589,7 @@ export async function loadHome() {
           // Priority: event picture, linked news picture, technical fallback.
           imageCandidates: [
             ...eventImagePathCandidates(item, relatedNews).map(mediaUrl),
-            '/images/veranstaltung-ai.svg',
+            '/images/tsv-feldkirchen-tennisanlage-hero.avif',
           ],
           when: item.starts_at,
           label: 'Veranstaltung',
