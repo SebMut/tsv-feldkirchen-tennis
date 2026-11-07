@@ -1,0 +1,37 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+---
+<MainLayout title="Hallenplätze in der Nähe | TSV Feldkirchen Tennis" description="Tennishallen rund um Feldkirchen nach Datum und Spielzeit vergleichen und direkt beim Anbieter buchen." canonicalPath="/hallenplaetze/">
+  <section class="hall-finder-hero">
+    <div class="container hall-finder-hero__inner">
+      <div><p class="eyebrow">Tennis rund um Feldkirchen</p><h1>Hallenplätze<br /><em>in der Nähe.</em></h1><p class="hall-finder-lead">Fünf Tennishallen, ein schneller Vergleich. Wähle Zeitraum und Spielzeit – wir bringen dich direkt zum passenden Buchungskalender.</p></div>
+      <div class="hall-finder-ball" aria-hidden="true">●</div>
+    </div>
+  </section>
+  <div class="container hall-finder-page" id="hall-finder">
+    <form class="card hall-search" id="hall-search-form">
+      <div class="hall-search__heading"><span class="hall-search__icon" aria-hidden="true">⌕</span><div><p class="eyebrow">Suche</p><h2>Wann möchtest du spielen?</h2></div></div>
+      <div class="hall-search__fields">
+        <label><span>Von</span><input id="hall-date-from" name="von" type="date" required /></label>
+        <label><span>Bis</span><input id="hall-date-to" name="bis" type="date" required /></label>
+        <label><span>Frühestens</span><select id="hall-time-from" name="start"></select></label>
+        <label><span>Spätestens</span><select id="hall-time-to" name="ende"></select></label>
+        <button class="button hall-search__submit" type="submit">Hallen vergleichen</button>
+      </div>
+      <p class="hall-search__hint">Verfügbarkeiten ändern sich laufend. Die verbindliche Anzeige und Buchung erfolgt immer im Kalender des jeweiligen Anbieters.</p>
+    </form>
+    <section class="hall-results">
+      <div class="hall-results__head"><div><p class="eyebrow">Ergebnisübersicht</p><h2 id="hall-results-title">Deine Spielzeiten</h2><p id="hall-results-summary" class="muted"></p></div><button class="button ghost" id="hall-copy-search" type="button">Suche teilen</button></div>
+      <div class="hall-venue-strip" id="hall-venue-strip" aria-label="Berücksichtigte Tennishallen"></div>
+      <div id="hall-results-grid" class="hall-results-grid" aria-live="polite"></div>
+    </section>
+    <section class="hall-finder-info grid two">
+      <div class="card"><p class="eyebrow">So funktioniert es</p><h2>Vergleichen, prüfen, buchen.</h2><ol class="hall-steps"><li><strong>Zeitraum wählen</strong><span>Bis zu sieben Tage vergleichen.</span></li><li><strong>Halle auswählen</strong><span>Lage und Preiseinschätzung ansehen.</span></li><li><strong>Live prüfen</strong><span>Im offiziellen Kalender verbindlich buchen.</span></li></ol></div>
+      <div class="card hall-finder-note"><p class="eyebrow">Gut zu wissen</p><h2>Direkt beim Anbieter.</h2><p>Der TSV Feldkirchen vermittelt keine Buchungen und speichert keine persönlichen Daten. Preise und freie Zeiten stammen verbindlich aus dem jeweiligen externen Buchungssystem.</p><p class="muted">Je nach Halle ist eine kostenlose Registrierung erforderlich. Beim Öffnen gelten die Datenschutz- und Buchungsbedingungen des Anbieters.</p></div>
+    </section>
+  </div>
+</MainLayout>
+<script>
+  import { initHallFinder } from '../../scripts/hall-finder';
+  initHallFinder();
+</script>
