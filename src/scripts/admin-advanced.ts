@@ -585,6 +585,7 @@ export function renderStoredUserPermissions(user: Row, base: BaseState, editing 
     ['news', 'News erstellen und bearbeiten'],
     ['events', 'Veranstaltungen verwalten'],
     ['ticker', 'Liveticker aller Mannschaften'],
+    ['pyramid', 'Forderungspyramide verwalten'],
   ];
   const globals = labels.filter(([key]) => explicitGlobals.has(key));
   const teamRoleLabels: Record<string,string> = {
@@ -658,7 +659,7 @@ export async function loadAdvancedUsers(base: BaseState) {
         <strong>Globale Berechtigungen (unabhängig von Mannschaften)</strong>
         ${user.global_role === 'super_admin' ? '<p class="muted">SuperAdmins haben alle globalen Rechte.</p>' : `
           <div class="grid">
-            ${[['events','Veranstaltungen hinzufügen'],['news','News hinzufügen'],['ticker','Liveticker (alle Mannschaften)']].map(([permission,label]) =>
+            ${[['events','Veranstaltungen hinzufügen'],['news','News hinzufügen'],['ticker','Liveticker (alle Mannschaften)'],['pyramid','Forderungspyramide verwalten']].map(([permission,label]) =>
               `<label><input type="checkbox" data-user-permission value="${permission}" ${(user.global_permissions ?? []).includes(permission) ? 'checked' : ''} /> ${label}</label>`
             ).join('')}
           </div>`}
