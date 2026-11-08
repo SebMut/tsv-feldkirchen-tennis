@@ -61,7 +61,7 @@ test('pyramid stays private with reuse of Supabase Auth and secured RPCs',()=>{
  assert.match(js,/function demoReportResult\(/);
  assert.match(js,/function demoInitialize\(/);
  assert.match(js,/location\.search\)\.get\('demo'\)/);
- assert.match(js,/data-demo-mode/);
+ assert.match(js,/root\.dataset\.demoMode='true'/);
  assert.ok(source('scripts/pyramid-demo-browser-qa.mjs').includes("await checkDevice('mobile'"));
 
  assert.match(sql,/enable row level security/g);
