@@ -36,6 +36,13 @@ async function checkDevice(name,viewport,isMobile){
     await page.locator('#pyramid-demo-role').selectOption('demo-user-13');
     await page.locator('button[data-pyramid-accept="demo-game-2"]').click();
     assert.match(await page.locator('#pyramid-status').innerText(),/Forderung angenommen/);
+    assert.match(await page.locator('#pyramid-demo-mails').innerText(),/Musterperson/);
+    const competing=page.locator('#pyramid-games .pyramid-game')
+      .filter({hasText:'Musterperson fordert Spieler 13'});
+    await page.locator('#pyramid-demo-role').selectOption('demo-user-15');
+    assert.match(await competing.innerText(),/Automatisch abgelehnt/);
+    assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-13"]').count(),0,
+      'A player with an accepted match must be blocked from new challenges.');
     // Open and close a dialog with Escape and re-open for a real score submission.
     await page.locator('#pyramid-demo-role').selectOption('admin');
     await page.locator('button[data-pyramid-result="demo-game-2"]').click();
@@ -50,6 +57,10 @@ async function checkDevice(name,viewport,isMobile){
     assert.match(await page.locator('#pyramid-status').innerText(),/Rangliste wurde neu sortiert/);
     const updatedRank=page.locator('#pyramid-board .pyramid-entry').filter({hasText:'Spieler 14'});
     assert.match(await updatedRank.innerText(),/#13/);
+    await page.locator('#pyramid-demo-role').selectOption('demo-user-15');
+    assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-13"]').count(),1,
+      'After the accepted game ends, the defender must be challengeable again.');
+    await page.locator('#pyramid-demo-role').selectOption('admin');
     // The SuperAdmin can sort the initial positions in this ephemeral mock.
     await page.locator('button[data-pyramid-move="demo-entry-2"][data-delta="-1"]').click();
     assert.match(await page.locator('#pyramid-board .pyramid-entry').filter({hasText:'Spieler 2'}).innerText(),/#1/);
