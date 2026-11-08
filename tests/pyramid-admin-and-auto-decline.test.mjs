@@ -102,7 +102,8 @@ test('demo allows acceptance by selected defender and simulates auto-email witho
  assert.match(member,/This browser-only staging simulation|This browser-only/);
  assert.match(read('scripts/pyramid-demo-browser-qa.mjs'),/Forderung gegen Spieler 12 erstellt/);
  assert.match(member,/demoAutomaticMailLog\.push/);
- assert.match(read('scripts/pyramid-demo-browser-qa.mjs'),/After the accepted game ends/);
+ assert.match(read('scripts/pyramid-demo-browser-qa.mjs'),/pyramid-entry-away/);
+ assert.match(read('scripts/pyramid-demo-browser-qa.mjs'),/pending request blocks BOTH players/);
 });
 
 test('the administrative result entry is a real modal with X, cancel, Escape and backdrop',()=>{
