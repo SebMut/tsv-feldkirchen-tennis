@@ -2,10 +2,10 @@ import {supabase} from '../lib/supabase';
 import {escapeHtml,setStatus} from '../lib/ui';
 import {scoreWinner,canChallenge,canQualifyAgainst} from '../lib/pyramid-rules.mjs';
 
-type Ladder={id:string;title:string;season_label:string;starts_on:string;ends_on:string;seeded_at:string|null};
+type Ladder={id:string;title:string;season_label:string;starts_on:string;ends_on:string;seeded_at:string|null;active:boolean};
 type Entry={id:string;display_name:string;position:number;qualified:boolean;lk_rating:number|null;neutralized_at?:string|null;neutralized_reason?:string|null};
 type Join={id:string;display_name:string;status:string};
-type Match={id:string;challenger_id:string;defender_id:string;status:string;score:string|null;created_at:string;winner_id:string|null;decline_reason?:string|null;source?:string;play_deadline?:string|null;scheduled_for?:string|null;refusal_reason?:string|null};
+type Match={id:string;challenger_id:string;defender_id:string;status:string;score:string|null;created_at:string;winner_id:string|null;decline_reason?:string|null;source?:string;play_deadline?:string|null;scheduled_for?:string|null;refusal_reason?:string|null;proposed_winner_id?:string|null;proposed_score?:string|null;confirmation_deadline?:string|null;dispute_reason?:string|null;weather_extended_at?:string|null;overdue_extended_at?:string|null;no_show_requested_at?:string|null;no_show_reporter_id?:string|null};
 const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T|null;
 let ladders:Ladder[]=[];
 let ladderId='';
@@ -58,10 +58,13 @@ function render(){
    +(i===ranked.length-1?' disabled':'')+' aria-label="'+escapeHtml(e.display_name)+' nach unten">↓</button></div></div>'
  ).join(''):'<p class="muted">Keine eingeordneten Spieler.</p>');
  display('pyramid-admin-qualifiers',pendingQualifiers.length
-  ?'<h4>Qualifikationsspiele offen</h4><p class="muted">Diese Personen gehören erst nach dem Einforderungsspiel zur Rangliste.</p>'
-    +pendingQualifiers.map(e=>'<div class="pyramid-admin-qualifier">'+escapeHtml(e.display_name)
-      +' · wartet auf Qualifikationsspiel (Regel 6.1)</div>').join('')
+  ?'<h4>Ältere, noch nicht eingeordnete Einträge</h4><p class="muted">Im Master-Regelwerk werden neue Mitglieder unmittelbar auf den letzten Rang gesetzt. Bitte alte Einträge prüfen.</p>'
+    +pendingQualifiers.map(e=>'<div class="pyramid-admin-qualifier">'+escapeHtml(e.display_name)+'</div>').join('')
   :'');
+ const archive=$<HTMLButtonElement>('pyramid-admin-archive');
+ const reactivate=$<HTMLButtonElement>('pyramid-admin-reactivate');
+ if(archive)archive.disabled=!current||!current.active;
+ if(reactivate)reactivate.disabled=!current||current.active;
  const sort=$<HTMLButtonElement>('pyramid-admin-sort-lk');
  if(sort)sort.disabled=!manualSeed||ranked.length<2;
  renderPrivateForm();
@@ -70,37 +73,65 @@ function render(){
   finish.disabled=!current||!!current.seeded_at||entries.length<2;
   finish.textContent=current?.seeded_at?'Startaufstellung festgelegt':'Startaufstellung abschließen';
  }
- const statuses:Record<string,string>={pending:'Annahme ausstehend',accepted:'Angenommen',
-  completed:'Beendet',declined:'Abgelehnt',forfeit:'Wegen Fristüberschreitung gewertet',cancelled:'Abgebrochen'};
- display('pyramid-admin-challenges',challenges.length?challenges.map(ch=>
-  '<div class="pyramid-admin-item"><span><strong>'+escapeHtml(label(ch.challenger_id))+' → '+escapeHtml(label(ch.defender_id))+'</strong>'
-  +'<small style="display:block">'+escapeHtml(statuses[ch.status]||ch.status)
-  +(ch.decline_reason==='another_match_accepted'?' · Automatisch abgelehnt':'')
-  +(ch.source==='private'?' · Privat vereinbart':'')
-  +(ch.status==='accepted'&&ch.play_deadline&&new Date(ch.play_deadline).getTime()<Date.now()
-     ?' · 10-Tage-Spielempfehlung überschritten':'')
-  +(ch.refusal_reason?' · Absageprüfung: '+escapeHtml(ch.refusal_reason):'')
-  +(ch.scheduled_for?' · Termin: '+new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Berlin'}).format(new Date(ch.scheduled_for)):'')
-  +(ch.score?' · '+escapeHtml(ch.score):'')+'</small></span>'
-  +'<div class="actions">'
-  +(ch.refusal_reason&&['pending','accepted'].includes(ch.status)
-    ?'<button class="button secondary" type="button" data-pyramid-admin-valid-refusal="'+ch.id+'">Grund anerkennen</button>'
-     +'<button class="button secondary" type="button" data-pyramid-admin-invalid-refusal="'+ch.id+'">Als Niederlage werten</button>':'')
-  +(ch.status==='accepted'&&!ch.refusal_reason
-    ?'<button type="button" class="button secondary" data-pyramid-admin-report="'+ch.id+'">Ergebnis melden</button>':'')
-  +(ch.status==='accepted'&&ch.scheduled_for&&new Date(ch.scheduled_for).getTime()<=Date.now()
-    ?'<button class="button secondary" type="button" data-pyramid-admin-noshow="'+ch.id+'">Nichtantreten bestätigen</button>':'')
-  +'</div></div>'
- ).join(''):'<p class="muted">Noch keine Forderungen.</p>');
- const ongoing=challenges.filter(ch=>ch.status==='accepted');
+ const statuses:Record<string,string>={pending:'Offene Forderung',
+   accepted:'Angenommen',result_pending:'Ergebnis wartet auf Bestätigung',
+   result_disputed:'Ergebnis strittig',completed:'Bestätigt und beendet',
+   declined:'Abgelehnt',forfeit:'Kampflos gewertet',cancelled:'Ohne Wertung beendet'};
+ display('pyramid-admin-challenges',challenges.length?challenges.map(ch=>{
+   const open=['pending','accepted'].includes(ch.status);
+   const deadline=ch.play_deadline||new Date(new Date(ch.created_at).getTime()+14*86400000).toISOString();
+   const overdue=open&&new Date(deadline).getTime()<Date.now();
+   const awaitingResult=['result_pending','result_disputed'].includes(ch.status);
+   return '<div class="pyramid-admin-item"><span><strong>'
+     +escapeHtml(label(ch.challenger_id))+' → '+escapeHtml(label(ch.defender_id))+'</strong>'
+     +'<small style="display:block">'+escapeHtml(statuses[ch.status]||ch.status)
+     +(ch.source==='private'?' · Persönlich vereinbart':'')
+     +(ch.scheduled_for?' · Spieltermin: '+new Intl.DateTimeFormat('de-DE',{dateStyle:'short',
+       timeStyle:'short',timeZone:'Europe/Berlin'}).format(new Date(ch.scheduled_for)):'')
+     +(overdue?' · 14-Tage-Frist überschritten':'')
+     +(ch.refusal_reason?' · Absageprüfung: '+escapeHtml(ch.refusal_reason):'')
+     +(ch.no_show_requested_at?' · Nichtantreten gemeldet: '+escapeHtml(label(ch.no_show_reporter_id||'')):'')
+     +(ch.proposed_score?' · Vorgeschlagen: '+escapeHtml(label(ch.proposed_winner_id||''))
+       +' '+escapeHtml(ch.proposed_score):'')
+     +(ch.dispute_reason?' · Widerspruch: '+escapeHtml(ch.dispute_reason):'')
+     +(ch.confirmation_deadline&&ch.status==='result_pending'
+       ?' · Bestätigung bis: '+new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'short',
+         timeZone:'Europe/Berlin'}).format(new Date(ch.confirmation_deadline)):'')
+     +(ch.score?' · Endstand: '+escapeHtml(ch.score):'')+'</small></span>'
+     +'<div class="actions">'
+     +(ch.refusal_reason&&open
+       ?'<button class="button secondary" type="button" data-pyramid-admin-valid-refusal="'+ch.id+'">Absage anerkennen</button>'
+        +'<button class="button secondary" type="button" data-pyramid-admin-invalid-refusal="'+ch.id+'">Kampflos werten</button>':'')
+     +(ch.status==='accepted'&&!ch.refusal_reason&&!overdue
+       ?'<button class="button secondary" type="button" data-pyramid-admin-report="'+ch.id+'">Ergebnis melden</button>':'')
+     +(awaitingResult
+       ?'<button class="button secondary" type="button" data-pyramid-admin-approve-result="'+ch.id+'">Ergebnis bestätigen</button>'
+        +'<button class="button secondary" type="button" data-pyramid-admin-edit-result="'+ch.id+'">Ergebnis korrigieren</button>'
+        +'<button class="button secondary" type="button" data-pyramid-admin-reject-result="'+ch.id+'">Meldung zurückweisen</button>':'')
+     +(ch.no_show_requested_at&&ch.status==='accepted'
+       ?'<button class="button secondary" type="button" data-pyramid-admin-approve-noshow="'+ch.id+'">Nichtantreten werten</button>'
+        +'<button class="button secondary" type="button" data-pyramid-admin-reject-noshow="'+ch.id+'">Nichtantreten ablehnen</button>':'')
+     +(open&&!ch.weather_extended_at
+       ?'<button class="button secondary" type="button" data-pyramid-admin-weather="'+ch.id+'">Wetterverlängerung</button>':'')
+     +(overdue
+       ?'<button class="button secondary" type="button" data-pyramid-admin-extend="'+ch.id+'"'
+          +(ch.overdue_extended_at?' disabled':'')+'>Frist verlängern</button>'
+        +'<button class="button secondary" type="button" data-pyramid-admin-cancel="'+ch.id+'">Ohne Wertung schließen</button>'
+        +'<button class="button secondary" type="button" data-pyramid-admin-forfeit="'+ch.id
+          +'" data-winner="'+ch.challenger_id+'">Kampflos: '+escapeHtml(label(ch.challenger_id))+'</button>'
+        +'<button class="button secondary" type="button" data-pyramid-admin-forfeit="'+ch.id
+          +'" data-winner="'+ch.defender_id+'">Kampflos: '+escapeHtml(label(ch.defender_id))+'</button>':'')
+     +'</div></div>';
+ }).join(''):'<p class="muted">Noch keine Forderungen.</p>');
+ const ongoing=challenges.filter(ch=>['accepted','result_pending','result_disputed'].includes(ch.status));
  const scheduleMatches=$<HTMLSelectElement>('pyramid-admin-schedule-match');
  if(scheduleMatches){
-   scheduleMatches.innerHTML=ongoing.map(ch=>'<option value="'+ch.id+'">'
+   scheduleMatches.innerHTML=ongoing.filter(ch=>ch.status==='accepted').map(ch=>'<option value="'+ch.id+'">'
       +escapeHtml(label(ch.challenger_id)+' gegen '+label(ch.defender_id))+'</option>').join('');
-   scheduleMatches.disabled=ongoing.length===0;
+   scheduleMatches.disabled=!ongoing.some(ch=>ch.status==='accepted');
  }
  const scheduleButton=$<HTMLButtonElement>('pyramid-admin-schedule-form')?.querySelector<HTMLButtonElement>('button[type="submit"]');
- if(scheduleButton)scheduleButton.disabled=ongoing.length===0;
+ if(scheduleButton)scheduleButton.disabled=!ongoing.some(ch=>ch.status==='accepted');
  const matches=$<HTMLSelectElement>('pyramid-admin-match');
  if(matches){
   matches.innerHTML=ongoing.map(ch=>'<option value="'+ch.id+'">'
@@ -123,11 +154,11 @@ function renderPrivateForm(){
  if(entries.some(e=>e.id===old))challenger.value=old;
  const current=entries.find(e=>e.id===challenger.value);
  const previous=defender.value;
- const busy=new Set(challenges.filter(c=>['pending','accepted'].includes(c.status))
+ const busy=new Set(challenges.filter(c=>['pending','accepted','result_pending','result_disputed'].includes(c.status))
    .flatMap(c=>[c.challenger_id,c.defender_id]));
- const eligible=entries.filter(target=>target.qualified&&!target.neutralized_at
+ const eligible=entries.filter(target=>target.qualified&&(!target.neutralized_at||Date.now()-new Date(target.neutralized_at).getTime()>=28*86400000)
    &&current?.id!==target.id&&!busy.has(target.id)&&(!current||!busy.has(current.id))
-   &&!current?.neutralized_at
+   &&(!current?.neutralized_at||Date.now()-new Date(current.neutralized_at).getTime()>=28*86400000)
    &&(current?.qualified
      ?canChallenge(current.position,target.position)
      :canQualifyAgainst(target.position,entries)));
@@ -152,7 +183,7 @@ async function callRpc(functionName:string,args:Record<string,unknown>){
 }
 async function load(){
  const {data,error}=await supabase.from('pyramid_ladders')
-  .select('id,title,season_label,starts_on,ends_on,seeded_at')
+  .select('id,title,season_label,starts_on,ends_on,seeded_at,active')
   .order('starts_on',{ascending:false}).order('title');
  if(error)throw error;
  ladders=(data||[]) as Ladder[];
@@ -167,7 +198,7 @@ async function loadSelected(){
   supabase.from('pyramid_requests').select('id,display_name,status')
    .eq('ladder_id',ladderId),
   supabase.from('pyramid_challenges')
-   .select('id,challenger_id,defender_id,status,score,created_at,winner_id,decline_reason,source,play_deadline,scheduled_for,refusal_reason')
+   .select('id,challenger_id,defender_id,status,score,created_at,winner_id,decline_reason,source,play_deadline,scheduled_for,refusal_reason,proposed_winner_id,proposed_score,confirmation_deadline,dispute_reason,weather_extended_at,overdue_extended_at,no_show_requested_at,no_show_reporter_id')
    .eq('ladder_id',ladderId).order('created_at',{ascending:false}).limit(100)
  ]);
  for(const result of [players,joins,encounters])if(result.error)throw result.error;
