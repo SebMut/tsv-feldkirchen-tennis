@@ -29,3 +29,10 @@ test('other footer legal links and established functions stay unchanged',()=>{
   assert.match(footer,/<a href=\{COURTBOOKING_URL\} target="_blank"/);
   assert.match(footer,/<a href="\/kontakt\/">Kontakt<\/a>/);
 });
+
+test('footer credits SmartWerk.art with the supplied linked logo',()=>{
+  assert.match(footer,/Entwickelt und gehostet von/);
+  assert.match(footer,/href="https:\/\/smartwerk\.art\/"/);
+  assert.match(footer,/src="\/images\/smartwerk-art-logo\.png"/);
+  assert.match(footer,/alt="SmartWerk\.art 3D Druck"/);
+});
