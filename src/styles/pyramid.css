@@ -30,6 +30,7 @@
 .pyramid-member-nav a{flex:0 0 auto;padding:9px 13px;border-radius:9px;color:#27342f;text-decoration:none;font-size:.82rem;font-weight:850;white-space:nowrap}
 .pyramid-member-nav a:hover,.pyramid-member-nav a:focus-visible,.pyramid-member-nav a[aria-current="page"]{background:#fff0f1;color:#b50917;outline:2px solid #e30613;outline-offset:-2px}
 .pyramid-member-nav .pyramid-session{flex:0 0 auto}
+.pyramid-mobile-menu-toggle{display:none}
 .pyramid-section-disabled{display:none!important}
 .pyramid-upcoming{display:grid;gap:9px;padding:13px 14px;border:1px solid #e5d8d9;border-radius:12px;background:#fff9f9}
 .pyramid-upcoming h2{margin:0;color:#7f0912;font-size:1.15rem}
@@ -83,10 +84,20 @@
  .pyramid-entry-name{font-size:.67rem}
  .pyramid-entry-hint{font-size:.56rem}
  .pyramid-entry button{font-size:.59rem;min-height:25px;padding:2px}
- .pyramid-member-nav{top:62px;margin-inline:-4px;padding:7px;align-items:stretch;flex-direction:column}
- .pyramid-member-nav .pyramid-session{width:100%;justify-content:flex-end}
+ .pyramid-member-nav{top:62px;margin-inline:-4px;padding:6px;align-items:stretch;flex-direction:column;gap:0;border-radius:12px}
+ .pyramid-mobile-menu-toggle{display:flex;width:100%;min-height:52px;padding:7px 10px;align-items:center;justify-content:space-between;gap:12px;border:0;border-radius:8px;background:#fff;color:#17251f;text-align:left}
+ .pyramid-mobile-menu-toggle span:first-child{display:grid;gap:1px}
+ .pyramid-mobile-menu-toggle small{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:#69766f;font-weight:800}
+ .pyramid-mobile-menu-toggle strong{font-size:.92rem;color:#a10b17}
+ .pyramid-mobile-menu-icon{font-size:1.25rem;color:#e30613;transition:transform .18s ease}
+ .pyramid-member-nav-links{display:none;grid-template-columns:1fr 1fr;gap:6px;padding-top:7px;overflow:visible}
+ .pyramid-member-nav.is-open .pyramid-member-nav-links{display:grid}
+ .pyramid-member-nav.is-open .pyramid-mobile-menu-icon{transform:rotate(90deg)}
+ .pyramid-member-nav .pyramid-session{display:none;width:100%;justify-content:flex-end;padding:7px 3px 2px;border-top:1px solid #e8ece9;margin-top:7px}
+ .pyramid-member-nav.is-open .pyramid-session{display:flex}
  .pyramid-member-nav .pyramid-session>span{display:none}
- .pyramid-member-nav a{padding:8px 10px;font-size:.75rem}
+ .pyramid-member-nav a{display:flex;align-items:center;min-height:44px;padding:9px 10px;font-size:.75rem;white-space:normal}
+ .pyramid-member-nav .pyramid-session .button{min-height:40px;padding:7px 10px;font-size:.74rem}
  .pyramid-upcoming-game{grid-template-columns:1fr;gap:3px}
  .pyramid-rules-grid,.pyramid-create-form{grid-template-columns:1fr}
 }

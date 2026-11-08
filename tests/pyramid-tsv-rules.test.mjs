@@ -11,6 +11,7 @@ const adminPage=read('src/pages/admin/index.astro');
 const styles=read('src/styles/pyramid.css');
 const mail=read('supabase/functions/pyramid-auto-decline-email/index.ts');
 const memberNavigation=read('supabase/migrations/20261108205922_pyramid_member_navigation_and_neutrality.sql');
+const scheduleConfirmation=read('supabase/migrations/20261108224000_pyramid_schedule_confirmation.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
  'src/pages/forderungspyramide/meine-ranglisten/index.astro',
@@ -146,10 +147,25 @@ test('every member navigation item has a separate page and home shows only the n
  assert.match(client,/hidden\('pyramid-upcoming-panel',!upcoming\.length\)/);
 });
 
-test('challenged player cannot change an existing scheduled date',()=>{
- assert.match(memberNavigation,/c\.scheduled_for is not null/);
- assert.match(memberNavigation,/own=c\.defender_id/);
- assert.match(client,/!c\.scheduled_for\|\|state\.superAdmin\|\|me\?\.id===c\.challenger_id/);
+test('only challenger proposes dates and defender must explicitly accept each proposal',()=>{
+ assert.match(scheduleConfirmation,/own<>c\.challenger_id/);
+ assert.match(scheduleConfirmation,/scheduled_confirmed_at=null/);
+ assert.match(scheduleConfirmation,/create or replace function public\.pyramid_confirm_schedule/);
+ assert.match(scheduleConfirmation,/own<>c\.defender_id/);
+ assert.match(scheduleConfirmation,/set scheduled_confirmed_at=now\(\)/);
+ assert.match(scheduleConfirmation,/c\.scheduled_confirmed_at is null/);
+ assert.match(client,/me\?\.id===c\.challenger_id/);
+ assert.match(client,/data-pyramid-confirm-schedule/);
+ assert.match(client,/pyramid_confirm_schedule/);
+ assert.match(client,/!!c\.scheduled_confirmed_at/);
+});
+
+test('mobile member menu is compact, expandable and accessible',()=>{
+ assert.match(page,/id="pyramid-mobile-menu-toggle"/);
+ assert.match(page,/aria-controls="pyramid-member-nav-content"/);
+ assert.match(client,/setAttribute\('aria-expanded',String\(open\)\)/);
+ assert.match(styles,/\.pyramid-member-nav\.is-open \.pyramid-member-nav-links\{display:grid\}/);
+ assert.match(styles,/min-height:44px/);
 });
 
 test('User request: Urlaub and Verletzung badges bottom-right on phone and desktop',()=>{

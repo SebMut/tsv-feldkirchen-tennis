@@ -78,7 +78,10 @@ const sectionTitle = sectionTitles[activeSection];
     <p id="pyramid-status" class="notice hidden" role="status" aria-live="polite"></p>
     <section id="pyramid-app" class="hidden stack" aria-label="Interne Ranglisten">
       <nav class="pyramid-member-nav" aria-label="Bereiche der Forderungspyramide">
-        <div class="pyramid-member-nav-links">
+        <button id="pyramid-mobile-menu-toggle" class="pyramid-mobile-menu-toggle" type="button" aria-expanded="false" aria-controls="pyramid-member-nav-content">
+          <span><small>Ranglisten-Menü</small><strong>{sectionTitle}</strong></span><span class="pyramid-mobile-menu-icon" aria-hidden="true">☰</span>
+        </button>
+        <div id="pyramid-member-nav-content" class="pyramid-member-nav-links">
           <a href="/forderungspyramide/" aria-current={activeSection === 'pyramid' ? 'page' : undefined}>Pyramide</a>
           <a href="/forderungspyramide/so-funktionierts/" aria-current={activeSection === 'rules' ? 'page' : undefined}>So funktioniert’s</a>
           <a href="/forderungspyramide/meine-ranglisten/" aria-current={activeSection === 'ladders' ? 'page' : undefined}>Meine Ranglisten</a>
@@ -96,7 +99,7 @@ const sectionTitle = sectionTitles[activeSection];
         <ul class="pyramid-rules-list">
           <li>Mitspielen dürfen Vereinsmitglieder nach Freigabe. Neue Spieler beginnen auf dem letzten Rang.</li>
           <li>Fordern darfst du links in der eigenen Reihe und rechts oben in der nächsten Reihe; für Platz 3 gilt auch Platz 1. Die verbindliche Beispieltabelle regelt Sonderfälle.</li>
-          <li>Der Spieltermin sollte innerhalb von <strong>3 Tagen</strong> vereinbart werden. Das Match muss innerhalb von <strong>14 Tagen</strong> nach der Forderung stattfinden.</li>
+          <li>Der Herausforderer schlägt den Spieltermin vor. Der Geforderte muss ihn ausdrücklich akzeptieren. Der Termin sollte möglichst innerhalb von drei Tagen feststehen; das Match muss innerhalb von <strong>14 Tagen</strong> stattfinden.</li>
           <li>Gespielt werden <strong>zwei Gewinnsätze</strong>. Der dritte Satz ist ein Match-Tie-Break bis mindestens 10 Punkte mit 2 Punkten Abstand.</li>
           <li>Der Herausforderer organisiert den Platz und stellt die Bälle.</li>
           <li>Pro Spieler ist nur <strong>eine offene Forderung</strong> zulässig.</li>
@@ -189,10 +192,10 @@ const sectionTitle = sectionTitles[activeSection];
     <div class="pyramid-dialog-content">
       <div class="pyramid-dialog-top"><h2 id="pyramid-schedule-title">Verbindlichen Spieltermin eintragen</h2>
         <button id="pyramid-schedule-close" class="pyramid-dialog-close" aria-label="Termin-Dialog schließen" type="button">✕</button></div>
-      <p class="muted">Stimmt den Termin möglichst innerhalb von drei Tagen nach der Forderung ab und tragt ihn hier ein. Das Match muss spätestens 14 Tage nach der ursprünglichen Forderung gespielt werden. Bei schlechtem Wetter darf der Ranglistenwart einmalig um bis zu sieben Tage verlängern.</p>
+      <p class="muted">Nur der Herausforderer trägt den abgestimmten Termin ein oder ändert ihn. Der Geforderte muss den Vorschlag anschließend ausdrücklich akzeptieren. Das Match muss spätestens 14 Tage nach der ursprünglichen Forderung gespielt werden.</p>
       <form id="pyramid-schedule-form" class="form-grid">
         <div class="field full"><label for="pyramid-schedule-date">Vereinbarter Spieltermin</label><input id="pyramid-schedule-date" type="datetime-local" required /></div>
-        <div class="field full pyramid-dialog-actions"><button class="button button--hot" type="submit">Termin speichern</button>
+        <div class="field full pyramid-dialog-actions"><button class="button button--hot" type="submit">Termin vorschlagen</button>
           <button id="pyramid-schedule-cancel" class="button ghost" type="button">Abbrechen</button></div>
       </form>
     </div>
