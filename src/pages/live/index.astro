@@ -3,14 +3,21 @@ import MainLayout from '../../layouts/MainLayout.astro';
 ---
 <MainLayout
   title="Liveticker | TSV Feldkirchen Tennis"
-  description="Live vom Spieltag beim TSV Feldkirchen Tennis."
+  description="TSV Feldkirchen Tennis live: aktuelle Spielstände, Einzel, Doppel und Meldungen unserer Mannschaften direkt vom Spieltag verfolgen."
   headerVariant="light"
   mainClass="main--flush"
 >
   <div class="matchday-page live-page-refresh live-scorecenter">
     <section class="scorecenter-head">
       <div class="container">
-        <div id="live-match-head"><p role="status">Spieltag wird geladen …</p></div>
+        <div id="live-match-head">
+          <div class="live-static-intro">
+            <p class="eyebrow">TSV Feldkirchen Tennis live</p>
+            <h1>Liveticker vom Spieltag</h1>
+            <p>Verfolge hier die aktuellen Spielstände unserer Mannschaften. Der Liveticker zeigt Begegnungen, Einzel, Doppel und wichtige Meldungen direkt vom Spieltag. Sobald ein Spiel ausgewählt ist, werden die verfügbaren Ergebnisse automatisch geladen und während der Partie fortlaufend aktualisiert.</p>
+            <p role="status">Aktuelle Live-Daten werden geladen …</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -35,6 +42,11 @@ import MainLayout from '../../layouts/MainLayout.astro';
 <style>
   :global(.live-scorecenter){background:#eef1f3;min-height:100vh;color:#071f27}
   :global(.live-scorecenter .scorecenter-head){background:#06242d;color:#fff;padding:18px 0 20px;border-bottom:1px solid #173b44}
+  :global(.live-scorecenter .live-static-intro){max-width:760px}
+  :global(.live-scorecenter .live-static-intro .eyebrow){margin:0 0 5px;color:#ffabb1;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+  :global(.live-scorecenter .live-static-intro h1){margin:0 0 7px;color:#fff;font-size:clamp(1.15rem,3vw,1.55rem)}
+  :global(.live-scorecenter .live-static-intro p){margin:0 0 6px;color:#c7d2d5;font-size:.78rem;line-height:1.5}
+  :global(.live-scorecenter .live-static-intro [role="status"]){margin:0;color:#9fb0b5;font-size:.7rem}
   :global(.live-scorecenter .live-match-heading){display:grid;gap:5px;text-align:left}
   :global(.live-scorecenter .live-match-heading .eyebrow){display:none}
   :global(.live-scorecenter .live-match-heading h1){margin:0;font-size:clamp(1.15rem,3vw,1.55rem);font-weight:800;letter-spacing:-.02em;color:#fff}

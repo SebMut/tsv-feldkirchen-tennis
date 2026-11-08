@@ -65,8 +65,8 @@ test('mobile TSV dock offers five visible icon tabs with a conditional Teams/Tic
   const dockStart = header.indexOf('<nav class="mobile-dock"');
   const dockEnd = header.indexOf('</nav>', dockStart);
   const dockMarkup = header.slice(dockStart, dockEnd);
-  const primaryLabels = Array.from(dockMarkup.matchAll(/<span>(Startseite|Live-Ticker|Mannschaften|Aktuelles|Kalender|Mehr)<\/span>/g), match => match[1]);
-  assert.deepEqual(primaryLabels, ['Startseite', 'Live-Ticker', 'Mannschaften', 'Aktuelles', 'Kalender', 'Mehr']);
+  const primaryLabels = Array.from(dockMarkup.matchAll(/<span>(Startseite|Live-Ticker|Teams|Aktuelles|Kalender|Mehr)<\/span>/g), match => match[1]);
+  assert.deepEqual(primaryLabels, ['Startseite', 'Live-Ticker', 'Teams', 'Aktuelles', 'Kalender', 'Mehr']);
   assert.match(dockMarkup,/js-live-nav-dock-link[^>]*hidden/);
   assert.match(dockMarkup,/js-live-nav-fallback/);
   const topLinks = dockMarkup.slice(0, dockMarkup.indexOf('<details class="mobile-dock__more">'));
