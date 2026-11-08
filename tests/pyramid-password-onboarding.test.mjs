@@ -94,5 +94,5 @@ test('a failed internal email attempt is refundable by service role while retain
  assert.doesNotMatch(refund,/ip:/);
  assert.match(mail,/refundFailedEmailRequest\(client,emailHash\)/);
  assert.match(mail,/invalid generated link/);
- assert.match(ui,/const explanation='Passwort-Link nicht versendet:'/);
+ assert.match(ui,/const explanation='Passwort-Link nicht versendet: '/);
 });
