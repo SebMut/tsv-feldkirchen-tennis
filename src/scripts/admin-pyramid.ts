@@ -1,11 +1,11 @@
 import {supabase} from '../lib/supabase';
 import {escapeHtml,setStatus} from '../lib/ui';
-import {scoreWinner} from '../lib/pyramid-rules.mjs';
+import {scoreWinner,canChallenge,canQualifyAgainst} from '../lib/pyramid-rules.mjs';
 
 type Ladder={id:string;title:string;season_label:string;starts_on:string;ends_on:string;seeded_at:string|null};
-type Entry={id:string;display_name:string;position:number};
+type Entry={id:string;display_name:string;position:number;qualified:boolean;lk_rating:number|null};
 type Join={id:string;display_name:string;status:string};
-type Match={id:string;challenger_id:string;defender_id:string;status:string;score:string|null;created_at:string;winner_id:string|null;decline_reason?:string|null};
+type Match={id:string;challenger_id:string;defender_id:string;status:string;score:string|null;created_at:string;winner_id:string|null;decline_reason?:string|null;source?:string;play_deadline?:string|null};
 const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T|null;
 let ladders:Ladder[]=[];
 let ladderId='';
@@ -36,14 +36,30 @@ function render(){
    '<div class="pyramid-admin-item"><strong>'+escapeHtml(r.display_name)+'</strong>'
    +'<button class="button secondary" type="button" data-pyramid-admin-approve="'+r.id+'">Teilnahme freigeben</button></div>'
   ).join(''):'<p class="muted">Keine offenen Anfragen.</p>');
- display('pyramid-admin-order',entries.length?entries.map((e,i)=>
-  '<div class="pyramid-admin-item"><span><strong>#'+e.position+'</strong> · '+escapeHtml(e.display_name)+'</span>'
-  +'<div class="actions"><button type="button" data-pyramid-admin-move="'+e.id+'" data-delta="-1"'
-  +(i===0?' disabled':'')+' aria-label="'+escapeHtml(e.display_name)+' nach oben">↑</button>'
-  +'<button type="button" data-pyramid-admin-move="'+e.id+'" data-delta="1"'
-  +(i===entries.length-1?' disabled':'')+' aria-label="'+escapeHtml(e.display_name)+' nach unten">↓</button></div></div>'
- ).join(''):'<p class="muted">Keine freigegebenen Spieler.</p>');
  const current=ladders.find(l=>l.id===ladderId);
+ const ranked=entries.filter(e=>e.qualified);
+ const pendingQualifiers=entries.filter(e=>!e.qualified);
+ const manualSeed=!current?.seeded_at;
+ display('pyramid-admin-order',ranked.length?ranked.map((e,i)=>
+   '<div class="pyramid-admin-item"><span><strong>#'+e.position+'</strong> · '+escapeHtml(e.display_name)
+   +(e.lk_rating!=null?' · LK '+e.lk_rating.toFixed(1):' · ohne LK')+'</span>'
+   +'<div class="pyramid-admin-lk">'
+   +(manualSeed?'<label>LK <input type="number" min="1" max="25" step="0.1" aria-label="LK von '
+      +escapeHtml(e.display_name)+'" data-pyramid-admin-lk="'+e.id+'" value="'
+      +(e.lk_rating==null?'':e.lk_rating)+'" placeholder="z. B. 12.5" /></label>':'')
+   +'<button type="button" data-pyramid-admin-move="'+e.id+'" data-delta="-1"'
+   +(i===0?' disabled':'')+' aria-label="'+escapeHtml(e.display_name)+' nach oben">↑</button>'
+   +'<button type="button" data-pyramid-admin-move="'+e.id+'" data-delta="1"'
+   +(i===ranked.length-1?' disabled':'')+' aria-label="'+escapeHtml(e.display_name)+' nach unten">↓</button></div></div>'
+ ).join(''):'<p class="muted">Keine eingeordneten Spieler.</p>');
+ display('pyramid-admin-qualifiers',pendingQualifiers.length
+  ?'<h4>Qualifikationsspiele offen</h4><p class="muted">Diese Personen gehören erst nach dem Einforderungsspiel zur Rangliste.</p>'
+    +pendingQualifiers.map(e=>'<div class="pyramid-admin-qualifier">'+escapeHtml(e.display_name)
+      +' · wartet auf Qualifikationsspiel (Regel 6.1)</div>').join('')
+  :'');
+ const sort=$<HTMLButtonElement>('pyramid-admin-sort-lk');
+ if(sort)sort.disabled=!manualSeed||ranked.length<2;
+ renderPrivateForm();
  const finish=$<HTMLButtonElement>('pyramid-admin-finalize');
  if(finish){
   finish.disabled=!current||!!current.seeded_at||entries.length<2;
@@ -55,6 +71,9 @@ function render(){
   '<div class="pyramid-admin-item"><span><strong>'+escapeHtml(label(ch.challenger_id))+' → '+escapeHtml(label(ch.defender_id))+'</strong>'
   +'<small style="display:block">'+escapeHtml(statuses[ch.status]||ch.status)
   +(ch.decline_reason==='another_match_accepted'?' · Automatisch abgelehnt':'')
+  +(ch.source==='private'?' · Privat vereinbart':'')
+  +(ch.status==='accepted'&&ch.play_deadline&&new Date(ch.play_deadline).getTime()<Date.now()
+     ?' · 10-Tage-Spielempfehlung überschritten':'')
   +(ch.score?' · '+escapeHtml(ch.score):'')+'</small></span>'
   +(ch.status==='accepted'?'<button type="button" class="button secondary" data-pyramid-admin-report="'+ch.id+'">Ergebnis melden</button>':'')+'</div>'
  ).join(''):'<p class="muted">Noch keine Forderungen.</p>');
@@ -70,6 +89,28 @@ function render(){
  if(trigger)trigger.disabled=ongoing.length===0;
  const form=$<HTMLFormElement>('pyramid-admin-result');
  form?.querySelectorAll<HTMLButtonElement>('button[type="submit"]').forEach(button=>button.disabled=ongoing.length===0);
+}
+function renderPrivateForm(){
+ const challenger=$<HTMLSelectElement>('pyramid-admin-private-challenger');
+ const defender=$<HTMLSelectElement>('pyramid-admin-private-defender');
+ if(!challenger||!defender)return;
+ const old=challenger.value;
+ challenger.innerHTML=entries.map(e=>'<option value="'+e.id+'">'
+   +escapeHtml(e.display_name)+(e.qualified?' · #'+e.position:' · Qualifikation')+'</option>').join('');
+ if(entries.some(e=>e.id===old))challenger.value=old;
+ const current=entries.find(e=>e.id===challenger.value);
+ const previous=defender.value;
+ const eligible=entries.filter(target=>target.qualified
+   &&current?.id!==target.id
+   &&(current?.qualified
+     ?canChallenge(current.position,target.position)
+     :canQualifyAgainst(target.position,entries)));
+ defender.innerHTML=eligible.map(target=>'<option value="'+target.id+'">'
+   +escapeHtml(target.display_name+' · #'+target.position)+'</option>').join('');
+ if(eligible.some(target=>target.id===previous))defender.value=previous;
+ const form=$<HTMLFormElement>('pyramid-admin-private-challenge');
+ form?.querySelectorAll<HTMLButtonElement>('button[type="submit"]')
+   .forEach(button=>button.disabled=eligible.length===0);
 }
 function renderWinner(){
  const id=$<HTMLSelectElement>('pyramid-admin-match')?.value;
@@ -95,12 +136,12 @@ async function load(){
 async function loadSelected(){
  if(!ladderId){entries=[];requests=[];challenges=[];render();return;}
  const [players,joins,encounters]=await Promise.all([
-  supabase.from('pyramid_entries').select('id,display_name,position')
+  supabase.from('pyramid_entries').select('id,display_name,position,qualified,lk_rating')
    .eq('ladder_id',ladderId).order('position'),
   supabase.from('pyramid_requests').select('id,display_name,status')
    .eq('ladder_id',ladderId),
   supabase.from('pyramid_challenges')
-   .select('id,challenger_id,defender_id,status,score,created_at,winner_id,decline_reason')
+   .select('id,challenger_id,defender_id,status,score,created_at,winner_id,decline_reason,source,play_deadline')
    .eq('ladder_id',ladderId).order('created_at',{ascending:false}).limit(100)
  ]);
  for(const result of [players,joins,encounters])if(result.error)throw result.error;
@@ -171,13 +212,47 @@ export function initPyramidAdmin(canManage:boolean){
   const id=(event.target as Element).closest<HTMLButtonElement>('[data-pyramid-admin-approve]')?.dataset.pyramidAdminApprove;
   if(id)void act(()=>callRpc('pyramid_approve_join',{p_request:id}),'Teilnahme freigegeben.');
  });
+ $('pyramid-admin-order')?.addEventListener('change',event=>{
+  const input=(event.target as Element).closest<HTMLInputElement>('[data-pyramid-admin-lk]');
+  if(!input)return;
+  const raw=input.value.trim().replace(',','.');
+  const number=raw?Number(raw):null;
+  if(number!==null&&(!Number.isFinite(number)||number<1||number>25)){
+    msg('LK muss zwischen 1.0 und 25.0 liegen. Leeres Feld = ohne LK.','error');return;
+  }
+  void act(()=>callRpc('pyramid_set_lk',{p_entry:input.dataset.pyramidAdminLk,p_lk:number}),
+    'LK-Wert gespeichert.');
+ });
+ $('pyramid-admin-sort-lk')?.addEventListener('click',()=>{
+  if(!ladderId||!confirm('Startaufstellung nach LK sortieren (unbekannte LK ans Ende)?'))return;
+  void act(()=>callRpc('pyramid_sort_seed_by_lk',{p_ladder:ladderId}),
+    'Startaufstellung nach LK sortiert.');
+ });
+ $<HTMLSelectElement>('pyramid-admin-private-challenger')?.addEventListener('change',renderPrivateForm);
+ $<HTMLFormElement>('pyramid-admin-private-challenge')?.addEventListener('submit',event=>{
+  event.preventDefault();
+  const challenger=$<HTMLSelectElement>('pyramid-admin-private-challenger')?.value;
+  const defender=$<HTMLSelectElement>('pyramid-admin-private-defender')?.value;
+  const accepted=$<HTMLInputElement>('pyramid-admin-private-accepted')?.checked||false;
+  if(!challenger||!defender){msg('Bitte ein zulässiges Forderungspaar auswählen.','error');return;}
+  if(!confirm(accepted
+   ?'Bestätigst du, dass die geforderte Person das privat vereinbarte Spiel bereits angenommen hat?'
+   :'Soll die privat ausgesprochene Forderung verbindlich eingetragen werden?'))return;
+  void act(async()=>{
+    await callRpc('pyramid_register_private_challenge',{
+      p_challenger:challenger,p_defender:defender,p_already_accepted:accepted
+    });
+    const checkbox=$<HTMLInputElement>('pyramid-admin-private-accepted');
+    if(checkbox)checkbox.checked=false;
+  },accepted?'Private Forderung und Annahme gespeichert.':'Private Forderung angelegt; die geforderte Person wird per E-Mail benachrichtigt.');
+ });
  $('pyramid-admin-order')?.addEventListener('click',event=>{
   const button=(event.target as Element).closest<HTMLButtonElement>('[data-pyramid-admin-move]');
   if(!button||button.disabled)return;
   void act(()=>callRpc('pyramid_move_entry',{p_entry:button.dataset.pyramidAdminMove,p_delta:Number(button.dataset.delta)}),'Rangfolge aktualisiert.');
  });
  $('pyramid-admin-finalize')?.addEventListener('click',()=>{
-  if(!ladderId||!confirm('Startaufstellung verbindlich abschließen?'))return;
+  if(!ladderId||!confirm('Sind die LK-Werte und die Reihenfolge geprüft? Startaufstellung verbindlich abschließen?'))return;
   void act(()=>callRpc('pyramid_finalize_seed',{p_ladder:ladderId}),'Startaufstellung abgeschlossen.',true);
  });
  resultForm?.addEventListener('submit',event=>{
