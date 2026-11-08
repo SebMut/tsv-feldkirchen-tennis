@@ -55,7 +55,8 @@ function render(){
   '<div class="pyramid-admin-item"><span><strong>'+escapeHtml(label(ch.challenger_id))+' → '+escapeHtml(label(ch.defender_id))+'</strong>'
   +'<small style="display:block">'+escapeHtml(statuses[ch.status]||ch.status)
   +(ch.decline_reason==='another_match_accepted'?' · Automatisch abgelehnt':'')
-  +(ch.score?' · '+escapeHtml(ch.score):'')+'</small></span></div>'
+  +(ch.score?' · '+escapeHtml(ch.score):'')+'</small></span>'
+  +(ch.status==='accepted'?'<button type="button" class="button secondary" data-pyramid-admin-report="'+ch.id+'">Ergebnis melden</button>':'')+'</div>'
  ).join(''):'<p class="muted">Noch keine Forderungen.</p>');
  const ongoing=challenges.filter(ch=>ch.status==='accepted');
  const matches=$<HTMLSelectElement>('pyramid-admin-match');
@@ -65,6 +66,8 @@ function render(){
   matches.disabled=ongoing.length===0;
  }
  renderWinner();
+ const trigger=$<HTMLButtonElement>('pyramid-admin-result-open');
+ if(trigger)trigger.disabled=ongoing.length===0;
  const form=$<HTMLFormElement>('pyramid-admin-result');
  form?.querySelectorAll<HTMLButtonElement>('button[type="submit"]').forEach(button=>button.disabled=ongoing.length===0);
 }
@@ -115,6 +118,33 @@ export function initPyramidAdmin(canManage:boolean){
  if(!panel||!canManage||initialized)return;
  initialized=true;
  panel.classList.remove('hidden');
+ const dialog=$<HTMLDialogElement>('pyramid-admin-result-dialog');
+ const resultForm=$<HTMLFormElement>('pyramid-admin-result');
+ const modalError=$('pyramid-admin-result-error');
+ const closeModal=()=>dialog?.close();
+ function openModal(matchId?:string){
+   if(!dialog)return;
+   const selector=$<HTMLSelectElement>('pyramid-admin-match');
+   if(matchId&&selector)selector.value=matchId;
+   renderWinner();
+   if(modalError){modalError.textContent='';modalError.classList.add('hidden');}
+   dialog.showModal();
+   $<HTMLInputElement>('pyramid-admin-score')?.focus();
+ }
+ const reportError=(message:string)=>{
+   if(!modalError)return;
+   modalError.textContent=message;modalError.classList.remove('hidden');
+ };
+ $('pyramid-admin-result-open')?.addEventListener('click',()=>openModal());
+ $('pyramid-admin-result-close')?.addEventListener('click',closeModal);
+ $('pyramid-admin-result-cancel')?.addEventListener('click',closeModal);
+ dialog?.addEventListener('click',event=>{
+   if(event.target===dialog)closeModal();
+ });
+ $('pyramid-admin-challenges')?.addEventListener('click',event=>{
+   const target=(event.target as Element).closest<HTMLButtonElement>('[data-pyramid-admin-report]');
+   if(target?.dataset.pyramidAdminReport)openModal(target.dataset.pyramidAdminReport);
+ });
  $('pyramid-admin-refresh')?.addEventListener('click',()=>void act(async()=>{},'Aktualisiert.',true));
  $<HTMLSelectElement>('pyramid-admin-ladder')?.addEventListener('change',event=>{
   ladderId=(event.target as HTMLSelectElement).value;
@@ -150,19 +180,30 @@ export function initPyramidAdmin(canManage:boolean){
   if(!ladderId||!confirm('Startaufstellung verbindlich abschließen?'))return;
   void act(()=>callRpc('pyramid_finalize_seed',{p_ladder:ladderId}),'Startaufstellung abgeschlossen.',true);
  });
- $<HTMLFormElement>('pyramid-admin-result')?.addEventListener('submit',event=>{
-  event.preventDefault();
-  const id=$<HTMLSelectElement>('pyramid-admin-match')?.value;
-  const winner=$<HTMLSelectElement>('pyramid-admin-winner')?.value;
-  const score=$<HTMLInputElement>('pyramid-admin-score')?.value.trim()||'';
-  if(!id||!winner||scoreWinner(score)!==1){
-   msg('Bitte ein angenommenes Spiel und zwei Gewinnsätze aus Sicht des Siegers eingeben.','error');return;
-  }
-  void act(async()=>{
-   await callRpc('pyramid_report_result',{p_challenge:id,p_score:score,p_winner:winner});
-   const input=$<HTMLInputElement>('pyramid-admin-score');
-   if(input)input.value='';
-  },'Ergebnis und Rangliste gespeichert.');
+ resultForm?.addEventListener('submit',event=>{
+   event.preventDefault();
+   const id=$<HTMLSelectElement>('pyramid-admin-match')?.value;
+   const winner=$<HTMLSelectElement>('pyramid-admin-winner')?.value;
+   const score=$<HTMLInputElement>('pyramid-admin-score')?.value.trim()||'';
+   if(!id||!winner||scoreWinner(score)!==1){
+     reportError('Bitte zwei gültige Gewinnsätze aus Sicht des Siegers eintragen, zum Beispiel 6:4, 4:6, 10:8.');
+     return;
+   }
+   const button=$<HTMLButtonElement>('pyramid-admin-result-save');
+   if(button?.disabled)return;
+   if(button)button.disabled=true;
+   void (async()=>{
+     try{
+       await callRpc('pyramid_report_result',{p_challenge:id,p_score:score,p_winner:winner});
+       dialog?.close();
+       const input=$<HTMLInputElement>('pyramid-admin-score');
+       if(input)input.value='';
+       await loadSelected();
+       msg('Ergebnis und Rangliste erfolgreich gespeichert.','success');
+     }catch(error){
+       reportError('Ergebnis konnte nicht gespeichert werden: '+String((error as Error)?.message||error));
+     }finally{if(button)button.disabled=false;}
+   })();
  });
  void load().catch(error=>msg('Ranglisten nicht erreichbar: '+error.message,'error'));
 }
