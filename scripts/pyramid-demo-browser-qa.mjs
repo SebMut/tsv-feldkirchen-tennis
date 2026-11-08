@@ -95,6 +95,18 @@ async function checkDevice(name,viewport,isMobile){
     }));
     assert.ok(overflow.document<=overflow.width+3&&overflow.body<=overflow.width+3,
       name+' horizontal overflow '+JSON.stringify(overflow));
+
+    // The new Admin result form must be a properly sized native modal on all tested devices.
+    await page.goto(origin+base+'/admin/',{waitUntil:'domcontentloaded'});
+    const adminDialog=page.locator('#pyramid-admin-result-dialog');
+    assert.equal(await adminDialog.count(),1,'Admin result modal missing');
+    await adminDialog.evaluate(el=>el.showModal());
+    assert.equal(await adminDialog.isVisible(),true);
+    const bounds=await adminDialog.boundingBox();
+    assert.ok(bounds&&bounds.x>=-2&&bounds.width<=viewport.width+3,
+      name+' admin modal is horizontally clipped: '+JSON.stringify(bounds));
+    await page.keyboard.press('Escape');
+    assert.equal(await adminDialog.isHidden(),true,'Escape did not close admin result dialog');
     console.log('PASS '+name+': interactive buttons, challenge, acceptance, score, ranking, approvals, group creation, reset, privacy, responsive');
   }finally{await context.close();}
 }
