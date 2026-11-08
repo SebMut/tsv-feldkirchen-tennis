@@ -902,7 +902,7 @@ import '../../styles/pyramid.css';
               <div id="pyramid-admin-pending"><p class="muted">Rangliste auswählen.</p></div>
             </div>
             <div class="card stack">
-              <h3>Rangliste und LK-Startaufstellung</h3>
+              <h3>Rangliste, Neutralisierung und LK-Startaufstellung</h3>
               <p class="muted">Vor dem ersten Spiel die LK-Werte (Stand zum Saisonstart) eingeben und nach LK sortieren. Kleinere LK bedeutet besserer Rang; Spieler ohne LK stehen am Ende. Das vorhandene Kadersystem enthält derzeit keine LK-Werte, deshalb werden diese hier manuell gepflegt.</p>
               <button type="button" class="button secondary" id="pyramid-admin-sort-lk">Nach LK sortieren</button>
               <div id="pyramid-admin-order"><p class="muted">Rangliste auswählen.</p></div>
@@ -923,6 +923,13 @@ import '../../styles/pyramid.css';
               <h3>Forderungen und Ergebnisse</h3>
               <p class="muted">Sobald eine Forderung angenommen ist, sind beide Spielpartner bis zum Abschluss blockiert. Weitere offene Forderungen an diese Spieler werden automatisch abgelehnt und die Herausforderer per E-Mail informiert.</p>
               <div id="pyramid-admin-challenges"></div>
+              <form id="pyramid-admin-schedule-form" class="form-grid">
+                <div class="field"><label for="pyramid-admin-schedule-match">Angenommene Forderung</label><select id="pyramid-admin-schedule-match" required></select></div>
+                <div class="field"><label for="pyramid-admin-schedule-date">Verbindlicher Spieltermin</label><input type="datetime-local" id="pyramid-admin-schedule-date" required /></div>
+                <div class="field full"><button type="submit" class="button secondary">Spieltermin speichern</button></div>
+                <p class="muted full">Der Termin muss spätestens sieben Tage nach der Forderung festgelegt werden; das Spiel muss zehn Tage nach der Terminvereinbarung stattfinden. Bei Fristüberschreitung kann die Verwaltung einen Termin nachtragen.</p>
+              </form>
+              <p class="muted">Bei begründeten Absagen prüft die Ranglistenverwaltung den triftigen Grund. Ohne anerkannten Grund oder bei bestätigtem Nichtantreten wird das Spiel für die geforderte Person als verloren gewertet.</p>
               <button type="button" id="pyramid-admin-result-open" class="button secondary" disabled>Ergebnismeldung öffnen</button>
               <p class="muted">Für ein angenommenes Spiel „Ergebnis melden“ wählen. Die Eingabe erfolgt in einem eigenen Dialog.</p>
             </div>
