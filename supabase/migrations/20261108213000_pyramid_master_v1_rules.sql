@@ -104,7 +104,15 @@ begin
  end if;
  cr:=private.pyramid_row(c.position); dr:=private.pyramid_row(d.position);
  cc:=c.position-(cr*(cr+1)/2)-1; dc:=d.position-(dr*(dr+1)/2)-1;
- allowed:=(c.position<=3 or (dr=cr and dc<cc) or (dr=cr-1 and dc>=cc));
+ -- The master's binding table intentionally overrides the generic formula
+ -- for ranks 5 and 15; both frontend and backend must agree.
+ if c.position=5 then
+   allowed:=d.position in (2,3,4);
+ elsif c.position=15 then
+   allowed:=d.position between 11 and 14;
+ else
+   allowed:=(c.position<=3 or (dr=cr and dc<cc) or (dr=cr-1 and dc>=cc));
+ end if;
  if not allowed then raise exception 'Forderung nach Tannenbaum-Regeln unzulässig'; end if;
  insert into public.pyramid_challenges(ladder_id,challenger_id,defender_id,
   challenger_position_at_start,defender_position_at_start,source,
