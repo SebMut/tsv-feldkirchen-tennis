@@ -64,10 +64,10 @@ export function initHallFinder(){
   target.innerHTML=dates.map(d=>loadingCard(d,first,last)).join('');
   history.replaceState({},'',location.pathname+'?'+new URLSearchParams({von:from.value,bis:to.value,start:start.value,ende:end.value}));
   try{
-   const api=new URL(SUPABASE_URL+'/functions/v1/hall-availability');api.searchParams.set('from',from.value);api.searchParams.set('to',to.value);api.searchParams.set('_',String(Date.now()));
-   const response=await fetch(api,{cache:'no-store',headers:{Accept:'application/json'}});if(!response.ok)throw new Error('HTTP '+response.status);const live=await response.json() as LiveResponse;if(currentRequest!==requestId)return;
-   target.innerHTML=dates.map(d=>liveCard(d,first,last,live)).join('');
-   const checked=new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit'}).format(new Date(live.checkedAt));status.textContent='Live geprüft um '+checked+' Uhr · Preise nur bei eindeutiger Anbieterangabe';status.className='hall-live-status is-success';
+   const nonce=Date.now();
+   const liveDays=await Promise.all(dates.map(async(d,index)=>{const date=iso(d),api=new URL(SUPABASE_URL+'/functions/v1/hall-availability');api.searchParams.set('from',date);api.searchParams.set('to',date);api.searchParams.set('_',String(nonce+index));const response=await fetch(api,{cache:'no-store',headers:{Accept:'application/json'}});if(!response.ok)throw new Error('HTTP '+response.status);return response.json() as Promise<LiveResponse>}));if(currentRequest!==requestId)return;
+   target.innerHTML=dates.map((d,index)=>liveCard(d,first,last,liveDays[index])).join('');
+   const checkedAt=liveDays.reduce((latest,live)=>live.checkedAt>latest?live.checkedAt:latest,'');const checked=new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit'}).format(new Date(checkedAt));status.textContent='Live geprüft um '+checked+' Uhr · Preise nur bei eindeutiger Anbieterangabe';status.className='hall-live-status is-success';
   }catch{if(currentRequest!==requestId)return;status.textContent='Die Live-Abfrage ist gerade nicht erreichbar. Bitte direkt beim Anbieter prüfen.';status.className='hall-live-status is-error';target.innerHTML=dates.map(d=>fallbackCard(d,first,last)).join('')}
  };
  form.addEventListener('submit',e=>{e.preventDefault();void render();document.querySelector('#hall-results-title')?.scrollIntoView({behavior:'smooth',block:'start'})});document.querySelector<HTMLButtonElement>('#hall-copy-search')?.addEventListener('click',async e=>{const b=e.currentTarget as HTMLButtonElement;try{await navigator.clipboard.writeText(location.href);b.textContent='Link kopiert ✓';setTimeout(()=>b.textContent='Suche teilen',1800)}catch{b.textContent='Link oben kopieren'}});void render();
