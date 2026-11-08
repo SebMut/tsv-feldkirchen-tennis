@@ -232,6 +232,14 @@ async function checkOnboarding(){
     }
     if(pathname==='/functions/v1/pyramid-access-email')
       return reply(200,{enabled:false,message:'Mocked Gmail config'});
+    // Other site components (navigation logo and live ticker) load globally.
+    // Stub their public, read-only assets; they are unrelated to onboarding.
+    if(pathname.startsWith('/storage/v1/object/public/media/'))
+      return route.fulfill({status:200,contentType:'image/svg+xml',
+        headers:{'access-control-allow-origin':appOrigin},
+        body:'<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'});
+    if(pathname==='/rest/v1/match_live_state'&&req.method()==='GET')
+      return reply(200,[]);
     if(pathname==='/rest/v1/profiles')return reply(200,profile);
     if(pathname==='/rest/v1/pyramid_ladders')return reply(200,[{
       id:ladderId,title:'Herren',season_label:'Sommer 2027',
