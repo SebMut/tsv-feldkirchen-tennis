@@ -555,15 +555,47 @@ function wireEvents(){
       'Reihenfolge geändert.');
   });
   const avatarUpload=el<HTMLFormElement>('pyramid-avatar-form');
+  const avatarInput=el<HTMLInputElement>('pyramid-avatar-file');
+  let avatarSaving=false;
+  let temporaryAvatarUrl:string|null=null;
+  const releasePreview=()=>{
+    if(temporaryAvatarUrl)URL.revokeObjectURL(temporaryAvatarUrl);
+    temporaryAvatarUrl=null;
+  };
+  avatarInput?.addEventListener('change',()=>{
+    const file=avatarInput.files?.[0];
+    if(!file){releasePreview();renderMemberPortrait();return;}
+    try{assertImageFile(file);}catch(e){
+      releasePreview();
+      avatarInput.value='';
+      renderMemberPortrait();
+      notice('Profilbild ungültig: '+safeError(e),'error');
+      text('pyramid-avatar-save-state','Bitte ein gültiges Foto bis 8 MB auswählen.');
+      return;
+    }
+    releasePreview();
+    temporaryAvatarUrl=URL.createObjectURL(file);
+    const preview=el('pyramid-avatar-preview');
+    if(preview){
+      const image=document.createElement('img');
+      image.className='pyramid-member-avatar-preview';
+      image.alt='Vorschau deines ausgewählten Profilbilds';
+      image.src=temporaryAvatarUrl;
+      preview.replaceChildren(image);
+    }
+    text('pyramid-avatar-save-state','Foto wird automatisch gespeichert …');
+    avatarUpload?.requestSubmit();
+  });
   avatarUpload?.addEventListener('submit',async event=>{
     event.preventDefault();
-    const input=el<HTMLInputElement>('pyramid-avatar-file');
-    const file=input?.files?.[0];
-    const uid=state.user?.id;
-    if(!uid||!file){notice('Bitte zuerst ein Profilbild auswählen.','error');return;}
-    const submit=avatarUpload.querySelector<HTMLButtonElement>('button[type="submit"]');
-    if(submit?.disabled)return;
-    if(submit)submit.disabled=true;
+    if(avatarSaving)return;
+    const file=avatarInput?.files?.[0],uid=state.user?.id;
+    if(!uid||!file){
+      notice('Bitte zuerst ein Profilbild auswählen.','error');
+      return;
+    }
+    avatarSaving=true;
+    if(avatarInput)avatarInput.disabled=true;
     try{
       const path=await replaceMediaImage({
         directory:'users/'+uid,file,basename:'avatar',maxDimension:512,quality:0.78,
@@ -575,11 +607,18 @@ function wireEvents(){
       });
       state.profile={...state.profile,avatar_path:path};
       state.avatars[uid]=path;
-      if(input)input.value='';
-      renderMemberPortrait();renderBoard();
-      notice('Dein Profilbild wurde gespeichert.','success');
-    }catch(e){notice('Profilbild konnte nicht gespeichert werden: '+safeError(e),'error');}
-    finally{if(submit)submit.disabled=false;}
+      if(avatarInput)avatarInput.value='';
+      releasePreview();renderMemberPortrait();renderBoard();
+      text('pyramid-avatar-save-state','Dein Profilbild ist gespeichert und wird auf deiner Spieler-Kachel angezeigt.');
+      notice('Profilbild automatisch gespeichert.','success');
+    }catch(e){
+      releasePreview();renderMemberPortrait();
+      text('pyramid-avatar-save-state','Speichern fehlgeschlagen. Du kannst das Foto erneut auswählen.');
+      notice('Profilbild konnte nicht gespeichert werden: '+safeError(e),'error');
+    }finally{
+      avatarSaving=false;
+      if(avatarInput)avatarInput.disabled=false;
+    }
   });
   el('pyramid-avatar-remove')?.addEventListener('click',async()=>{
     const uid=state.user?.id;
