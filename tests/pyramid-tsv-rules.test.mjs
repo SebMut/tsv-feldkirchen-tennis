@@ -11,6 +11,12 @@ const adminPage=read('src/pages/admin/index.astro');
 const styles=read('src/styles/pyramid.css');
 const mail=read('supabase/functions/pyramid-auto-decline-email/index.ts');
 const memberNavigation=read('supabase/migrations/20261108205922_pyramid_member_navigation_and_neutrality.sql');
+const portalPages=[
+ 'src/pages/forderungspyramide/so-funktionierts/index.astro',
+ 'src/pages/forderungspyramide/meine-ranglisten/index.astro',
+ 'src/pages/forderungspyramide/mitgliederprofil/index.astro',
+ 'src/pages/forderungspyramide/meine-verfuegbarkeit/index.astro'
+];
 
 test('Master §2 Tannenbaum examples including rank 3 special rule',()=>{
  const examples=[
@@ -126,6 +132,18 @@ test('member view has top navigation, upcoming games and requested highlights',(
  assert.match(client,/function renderUpcomingGames/);
  assert.match(styles,/\.pyramid-entry\.is-self\{[^}]*background:#eef9f0/);
  assert.match(styles,/\.pyramid-entry\.is-target\{[^}]*border-color:#e30613[^}]*animation:pyramid-target-pulse/);
+});
+
+test('every member navigation item has a separate page and home shows only the next own match',()=>{
+ for(const route of ['/forderungspyramide/so-funktionierts/','/forderungspyramide/meine-ranglisten/',
+   '/forderungspyramide/mitgliederprofil/','/forderungspyramide/meine-verfuegbarkeit/'])
+   assert.ok(page.includes('href="'+route+'"'));
+ for(const file of portalPages)assert.match(read(file),/PyramidPortal/);
+ assert.match(page,/Mein nächstes vereinbartes Spiel/);
+ assert.ok(page.indexOf('id="pyramid-upcoming-panel"')<page.indexOf('id="pyramid-overview"'));
+ assert.match(client,/filter\(c=>c\.status==='accepted'&&isInvolved\(c\)/);
+ assert.match(client,/\.slice\(0,1\)/);
+ assert.match(client,/hidden\('pyramid-upcoming-panel',!upcoming\.length\)/);
 });
 
 test('challenged player cannot change an existing scheduled date',()=>{

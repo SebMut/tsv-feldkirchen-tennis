@@ -217,14 +217,15 @@ function renderGames() {
 }
 function renderUpcomingGames(){
   const upcoming=state.challenges
-    .filter(c=>c.status==='accepted'&&!!c.scheduled_for
+    .filter(c=>c.status==='accepted'&&isInvolved(c)&&!!c.scheduled_for
       &&new Date(c.scheduled_for).getTime()>=Date.now()-15*60000)
-    .sort((a,b)=>String(a.scheduled_for).localeCompare(String(b.scheduled_for))).slice(0,4);
+    .sort((a,b)=>String(a.scheduled_for).localeCompare(String(b.scheduled_for))).slice(0,1);
+  hidden('pyramid-upcoming-panel',!upcoming.length);
   html('pyramid-upcoming-games',upcoming.length?upcoming.map(c=>
     '<article class="pyramid-upcoming-game"><time datetime="'+escapeHtml(c.scheduled_for||'')+'">'
       +escapeHtml(formatTime(c.scheduled_for))+'</time><strong>'+escapeHtml(entryName(c.challenger_id))
       +' gegen '+escapeHtml(entryName(c.defender_id))+'</strong></article>'
-  ).join(''):'<p class="muted">Aktuell ist noch kein kommendes Forderungsspiel terminiert.</p>');
+  ).join(''):'');
 }
 function renderJoin() {
   const ladder=currentLadder();
@@ -1133,6 +1134,13 @@ function renderDemo(){
   const root=el('pyramid-root');
   if(!root)return;
   root.dataset.demoMode='true';
+  // The staging demo intentionally keeps every tool on one page so the
+  // interaction check can exercise the complete flow without real accounts.
+  root.querySelectorAll<HTMLElement>('.pyramid-section-disabled').forEach(node=>node.classList.remove('pyramid-section-disabled'));
+  for(const id of ['pyramid-ladders','pyramid-avatar-panel','pyramid-overview','pyramid-availability-panel','pyramid-games-panel','pyramid-admin-panel'])
+    hidden(id,false);
+  const availability=el<HTMLDetailsElement>('pyramid-availability-panel');
+  if(availability)availability.open=true;
   hidden('pyramid-auth',true);
   hidden('pyramid-public-panel',true);
   hidden('pyramid-app',false);
