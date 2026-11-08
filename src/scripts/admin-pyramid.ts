@@ -5,7 +5,7 @@ import {scoreWinner} from '../lib/pyramid-rules.mjs';
 type Ladder={id:string;title:string;season_label:string;starts_on:string;ends_on:string;seeded_at:string|null};
 type Entry={id:string;display_name:string;position:number};
 type Join={id:string;display_name:string;status:string};
-type Match={id:string;challenger_id:string;defender_id:string;status:string;score:string|null;created_at:string;winner_id:string|null};
+type Match={id:string;challenger_id:string;defender_id:string;status:string;score:string|null;created_at:string;winner_id:string|null;decline_reason?:string|null};
 const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T|null;
 let ladders:Ladder[]=[];
 let ladderId='';
@@ -54,6 +54,7 @@ function render(){
  display('pyramid-admin-challenges',challenges.length?challenges.map(ch=>
   '<div class="pyramid-admin-item"><span><strong>'+escapeHtml(label(ch.challenger_id))+' → '+escapeHtml(label(ch.defender_id))+'</strong>'
   +'<small style="display:block">'+escapeHtml(statuses[ch.status]||ch.status)
+  +(ch.decline_reason==='another_match_accepted'?' · Automatisch abgelehnt':'')
   +(ch.score?' · '+escapeHtml(ch.score):'')+'</small></span></div>'
  ).join(''):'<p class="muted">Noch keine Forderungen.</p>');
  const ongoing=challenges.filter(ch=>ch.status==='accepted');
@@ -96,7 +97,7 @@ async function loadSelected(){
   supabase.from('pyramid_requests').select('id,display_name,status')
    .eq('ladder_id',ladderId),
   supabase.from('pyramid_challenges')
-   .select('id,challenger_id,defender_id,status,score,created_at,winner_id')
+   .select('id,challenger_id,defender_id,status,score,created_at,winner_id,decline_reason')
    .eq('ladder_id',ladderId).order('created_at',{ascending:false}).limit(100)
  ]);
  for(const result of [players,joins,encounters])if(result.error)throw result.error;
