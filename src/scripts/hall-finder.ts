@@ -52,7 +52,7 @@ function liveCard(d:Date,first:number,last:number,live:LiveResponse){
 export function initHallFinder(){
  const form=document.querySelector<HTMLFormElement>('#hall-search-form'),from=document.querySelector<HTMLInputElement>('#hall-date-from'),to=document.querySelector<HTMLInputElement>('#hall-date-to'),start=document.querySelector<HTMLSelectElement>('#hall-time-from'),end=document.querySelector<HTMLSelectElement>('#hall-time-to'),target=document.querySelector<HTMLElement>('#hall-results-grid'),summary=document.querySelector<HTMLElement>('#hall-results-summary'),status=document.querySelector<HTMLElement>('#hall-live-status'),strip=document.querySelector<HTMLElement>('#hall-venue-strip');
  if(!form||!from||!to||!start||!end||!target||!summary||!status||!strip)return;
- fill(start,7,22,18);fill(end,8,24,23);const q=new URLSearchParams(location.search),today=new Date();today.setHours(12,0,0,0);const plus=new Date(today);plus.setDate(plus.getDate()+6);from.value=q.get('von')||iso(today);to.value=q.get('bis')||iso(plus);start.value=q.get('start')||'18';end.value=q.get('ende')||'23';
+ fill(start,7,22,7);fill(end,8,24,23);const q=new URLSearchParams(location.search),today=new Date();today.setHours(12,0,0,0);const plus=new Date(today);plus.setDate(plus.getDate()+3);from.value=q.get('von')||iso(today);to.value=q.get('bis')||iso(plus);start.value=q.get('start')||'7';end.value=q.get('ende')||'23';
  strip.innerHTML=venues.map(v=>'<article class="hall-venue-chip"><span>'+v.short[0]+'</span><div><strong>'+v.short+'</strong><small>'+v.distance+'</small></div></article>').join('');
  let requestId=0;
  const render=async()=>{
