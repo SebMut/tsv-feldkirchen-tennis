@@ -28,43 +28,47 @@ async function checkDevice(name,viewport,isMobile){
     assert.equal(await page.locator('#pyramid-login-form').isHidden(),true);
     assert.equal(await page.locator('.pyramid-entry:not(.is-empty)').count(),15);
     assert.equal(await page.locator('#pyramid-demo-role').inputValue(),'admin');
-    // A challenge from place #15 to #13 must be a real clickable browser action.
-    await page.locator('button[data-pyramid-challenge="demo-entry-13"]').click();
-    assert.match(await page.locator('#pyramid-status').innerText(),/Forderung gegen Spieler 13 erstellt/);
+    // TSV: a pending request blocks BOTH players. Player 13 is already
+    // in game #2; player 15 can instead challenge an unengaged player #12.
+    assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-13"]').count(),0);
+    await page.locator('button[data-pyramid-challenge="demo-entry-12"]').click();
+    assert.match(await page.locator('#pyramid-status').innerText(),/Forderung gegen Spieler 12 erstellt/);
     assert.equal(await page.locator('#pyramid-games .pyramid-game').count(),3);
-    // The defender can accept an existing incoming challenge.
-    await page.locator('#pyramid-demo-role').selectOption('demo-user-13');
-    await page.locator('button[data-pyramid-accept="demo-game-2"]').click();
+    assert.match(await page.locator('#pyramid-demo-mails').innerText(),/Spieler 12/);
+    assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-11"]').count(),0,
+      'Player with a pending match cannot issue another challenge.');
+    // The defender accepts, then the admin enters a final result.
+    await page.locator('#pyramid-demo-role').selectOption('demo-user-12');
+    await page.locator('button[data-pyramid-accept="demo-challenge-31"]').click();
     assert.match(await page.locator('#pyramid-status').innerText(),/Forderung angenommen/);
-    assert.match(await page.locator('#pyramid-demo-mails').innerText(),/Musterperson/);
-    const competing=page.locator('#pyramid-games .pyramid-game')
-      .filter({hasText:'Musterperson fordert Spieler 13'});
-    await page.locator('#pyramid-demo-role').selectOption('demo-user-15');
-    assert.match(await competing.innerText(),/Automatisch abgelehnt/);
-    assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-13"]').count(),0,
-      'A player with an accepted match must be blocked from new challenges.');
-    // Open and close a dialog with Escape and re-open for a real score submission.
     await page.locator('#pyramid-demo-role').selectOption('admin');
-    await page.locator('button[data-pyramid-result="demo-game-2"]').click();
+    await page.locator('button[data-pyramid-result="demo-challenge-31"]').click();
     assert.equal(await page.locator('#pyramid-dialog').isVisible(),true);
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('#pyramid-dialog').isHidden(),true);
-    await page.locator('button[data-pyramid-result="demo-game-2"]').click();
-    await page.locator('#pyramid-result-winner').selectOption('demo-entry-14');
+    await page.locator('button[data-pyramid-result="demo-challenge-31"]').click();
+    await page.locator('#pyramid-result-winner').selectOption('demo-entry-15');
     await page.locator('#pyramid-result-score').fill('6:4, 6:3');
     await page.locator('#pyramid-result-form button[type="submit"]').click();
     assert.equal(await page.locator('#pyramid-dialog').isHidden(),true);
     assert.match(await page.locator('#pyramid-status').innerText(),/Rangliste wurde neu sortiert/);
-    const updatedRank=page.locator('#pyramid-board .pyramid-entry').filter({hasText:'Spieler 14'});
-    assert.match(await updatedRank.innerText(),/#13/);
+    const ownTile=page.locator('#pyramid-board .pyramid-entry').filter({hasText:'Musterperson'});
+    assert.match(await ownTile.innerText(),/#12/);
+    // Vacation is a prominent bottom-left badge and locks challenge buttons;
+    // clearing it re-enables the normal club challenge rules.
     await page.locator('#pyramid-demo-role').selectOption('demo-user-15');
-    assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-13"]').count(),1,
-      'After the accepted game ends, the defender must be challengeable again.');
-    await page.locator('#pyramid-demo-role').selectOption('admin');
-    // The SuperAdmin can sort the initial positions in this ephemeral mock.
-    await page.locator('button[data-pyramid-move="demo-entry-2"][data-delta="-1"]').click();
-    assert.match(await page.locator('#pyramid-board .pyramid-entry').filter({hasText:'Spieler 2'}).innerText(),/#1/);
-    // Membership request and approval in two distinct demo roles.
+    assert.equal(await page.locator('#pyramid-avatar-panel').isVisible(),true);
+    assert.equal(await page.locator('#pyramid-avatar-file').count(),1);
+    assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-11"]').count(),1);
+    await page.locator('#pyramid-neutral-reason').selectOption('vacation');
+    await page.locator('#pyramid-availability-form button[type="submit"]').click();
+    assert.equal(await ownTile.locator('.pyramid-entry-away').innerText(),'Urlaub');
+    assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-11"]').count(),0);
+    await page.locator('#pyramid-neutral-reason').selectOption('');
+    await page.locator('#pyramid-availability-form button[type="submit"]').click();
+    assert.equal(await ownTile.locator('.pyramid-entry-away').count(),0);
+    assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-11"]').count(),1);
+    // Join requests after initial seeding are NOT ranked until entry game.
     await page.locator('#pyramid-demo-role').selectOption('demo-guest');
     await page.locator('#pyramid-display-name').fill('Test-Mitglied');
     await page.locator('#pyramid-join-form button[type="submit"]').click();
@@ -72,8 +76,9 @@ async function checkDevice(name,viewport,isMobile){
     await page.locator('#pyramid-demo-role').selectOption('admin');
     const row=page.locator('#pyramid-admin-requests .pyramid-admin-item').filter({hasText:'Test-Mitglied'});
     await row.locator('button[data-pyramid-approve]').click();
-    assert.equal(await page.locator('.pyramid-entry:not(.is-empty)').count(),16);
-    // Season switch and creating an additional test list must also respond.
+    assert.equal(await page.locator('.pyramid-entry:not(.is-empty)').count(),15);
+    assert.match(await page.locator('#pyramid-admin-entries').innerText(),/Qualifikationsspiel offen/);
+    // Season switching, new list creation and reset work in the mock.
     await page.locator('#pyramid-ladder-select').selectOption('demo-summer');
     assert.equal(await page.locator('.pyramid-entry:not(.is-empty)').count(),6);
     await page.locator('#pyramid-new-name').fill('Neue Testgruppe');
