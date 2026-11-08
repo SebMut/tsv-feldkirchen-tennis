@@ -87,7 +87,8 @@ function renderGuestStandings(){
    html('pyramid-public-board','<p class="muted">Momentan ist keine öffentliche Rangliste eingerichtet.</p>');
    text('pyramid-public-message','');return;
  }
- const entries=publicStandings.filter(x=>x.ladder_id===chosenPublicLadder
+ const entries=publicStandings.filter((x):x is PublicStanding & {position:number;display_name:string}=>
+   x.ladder_id===chosenPublicLadder
    &&typeof x.position==='number'&&typeof x.display_name==='string'
    &&x.display_name.trim().length>0);
  if(!entries.length){
