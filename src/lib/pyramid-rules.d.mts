@@ -5,3 +5,5 @@ export declare function dateWithinPeriod(startsOn:string,endsOn:string,today?:Da
 export declare function scoreWinner(score:string): 1|2|null;
 
 export declare function canQualifyAgainst(defenderPosition:number, rankedEntries:Array<{position:number;qualified?:boolean}>):boolean;
+
+export declare function defaultMasterSeason(today?:Date):{label:string;startsOn:string;endsOn:string};
