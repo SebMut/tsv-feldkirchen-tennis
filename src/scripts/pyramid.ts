@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { escapeHtml, setStatus } from '../lib/ui';
 import { canChallenge, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
 
-type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends_on:string;active:boolean };
+type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends_on:string;active:boolean;seeded_at:string|null };
 type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;last_loss_at:string|null };
 type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
 type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
@@ -119,6 +119,9 @@ function renderJoin() {
 function renderAdmin() {
   hidden('pyramid-admin-panel',!state.superAdmin);
   if(!state.superAdmin)return;
+  const finalized=!!currentLadder()?.seeded_at;
+  const seedButton=el<HTMLButtonElement>('pyramid-finalize-seed');
+  if(seedButton){seedButton.disabled=finalized||state.entries.length<2;seedButton.textContent=finalized?'Startaufstellung bereits festgelegt':'Startaufstellung verbindlich abschließen';}
   const pending=state.requests.filter((r)=>r.status==='pending');
   html('pyramid-admin-requests',pending.length ? pending.map((r)=>
     '<div class="pyramid-admin-item"><span>'+escapeHtml(r.display_name)+'</span>'
@@ -171,7 +174,7 @@ async function load() {
     state.superAdmin=profile.data?.global_role==='super_admin';
     text('pyramid-user-name',profile.data?.display_name||state.user.email||'Mein TSV');
     const {data,error}=await supabase.from('pyramid_ladders')
-      .select('id,title,season_label,starts_on,ends_on,active').order('starts_on',{ascending:false}).order('title');
+      .select('id,title,season_label,starts_on,ends_on,active,seeded_at').order('starts_on',{ascending:false}).order('title');
     if(error)throw error;
     state.ladders=(data||[]) as Ladder[];
     if(!state.ladders.some((item)=>item.id===state.ladderId))state.ladderId=state.ladders[0]?.id||'';
@@ -210,6 +213,12 @@ function wireEvents(){
       if(error)throw error;
       notice('Falls die Adresse einen Zugang erhalten darf, wurde ein Anmeldelink angefordert.','success');
     }catch(e){notice(safeError(e),'error');}
+  });
+  el('pyramid-finalize-seed')?.addEventListener('click',()=>{
+    if(!state.superAdmin||!state.ladderId)return;
+    if(confirm('Startaufstellung abschließen? Spätere Neueintritte bleiben vorläufig.'))
+      void runAction(()=>rpc('pyramid_finalize_seed',{p_ladder:state.ladderId}),
+        'Startaufstellung abgeschlossen.');
   });
   el('pyramid-sign-out')?.addEventListener('click',async()=>{
     const {error}=await supabase.auth.signOut();
