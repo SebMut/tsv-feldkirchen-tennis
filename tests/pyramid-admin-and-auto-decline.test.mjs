@@ -100,7 +100,8 @@ test('demo allows acceptance by selected defender and simulates auto-email witho
  assert.match(member,/c\.decline_reason='another_match_accepted'/);
  assert.match(member,/function renderDemoMails/);
  assert.match(member,/This browser-only staging simulation|This browser-only/);
- assert.match(read('scripts/pyramid-demo-browser-qa.mjs'),/Automatisch abgelehnt/);
+ assert.match(read('scripts/pyramid-demo-browser-qa.mjs'),/Forderung gegen Spieler 12 erstellt/);
+ assert.match(member,/demoAutomaticMailLog\.push/);
  assert.match(read('scripts/pyramid-demo-browser-qa.mjs'),/After the accepted game ends/);
 });
 
