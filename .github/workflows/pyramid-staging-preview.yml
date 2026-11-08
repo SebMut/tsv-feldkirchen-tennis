@@ -38,6 +38,15 @@ jobs:
         run: |
           npm run audit:site
           grep -Fq '<meta name="robots" content="noindex,nofollow"' dist/forderungspyramide/index.html
+      - name: Install Chromium for staging interaction tests
+        run: |
+          npm install --no-save --package-lock=false playwright@1.65.0
+          npx playwright install --with-deps chromium
+      - name: Verify demo buttons on desktop, mobile and small mobile
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis/pyramid-staging
+          PUBLIC_PREVIEW_MODE: 'true'
+        run: node scripts/pyramid-demo-browser-qa.mjs
       - name: Restrict indexing
         run: |
           printf 'User-agent: *\nDisallow: /\n' > dist/robots.txt
