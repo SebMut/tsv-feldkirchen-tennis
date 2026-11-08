@@ -110,6 +110,9 @@ jobs:
           npm run audit:site
           test -f dist/index.html
           test -f dist/admin/index.html
+          test -f dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-auth"' dist/forderungspyramide/index.html
+          grep -Fq 'noindex,nofollow' dist/forderungspyramide/index.html
           test -f dist/.htaccess
           grep -Fq 'DirectoryIndex index.html index.php' dist/.htaccess
           test -f dist/datenschutz/index.html
@@ -183,8 +186,21 @@ jobs:
           for attempt in 1 2 3 4 5; do
             home=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/" || true)
             admin=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/admin/" || true)
-            if echo "$home" | grep -Fq 'TSV Feldkirchen Tennis' && echo "$admin" | grep -Fq 'id="auth-box"'; then
-              echo 'Public front page and protected admin login HTML are served at the live domain.'
+            pyramid=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/forderungspyramide/?release-check=$GITHUB_SHA" || true)
+            if echo "$home" | grep -Fq 'TSV Feldkirchen Tennis' && echo "$admin" | grep -Fq 'id="auth-box"' &&
+               echo "$pyramid" | grep -Fq 'id="pyramid-login-form"' &&
+               echo "$pyramid" | grep -Fq 'noindex,nofollow'; then
+              missing=0
+              while IFS= read -r asset; do
+                [ -n "$asset" ] || continue
+                code=$(curl -sSL -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 25 "$domain$asset" || true)
+                if [ "$code" != "200" ]; then
+                  echo "::error::Referenced pyramid JS/CSS asset not served: $asset HTTP $code"
+                  missing=1
+                fi
+              done < <(printf '%s' "$pyramid" | grep -oE '/_astro/[^"<> ]+\.(js|css)' | sort -u)
+              [ "$missing" -eq 0 ] || exit 1
+              echo 'Production homepage, protected admin login and hidden /forderungspyramide/ (noindex) plus its JS/CSS are served.'
               exit 0
             fi
             echo "Deployment visibility check $attempt/5: domain may still be propagating."
