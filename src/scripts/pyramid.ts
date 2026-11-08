@@ -6,7 +6,7 @@ type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends
 type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;last_loss_at:string|null };
 type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
 type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
-  created_at:string;accept_deadline:string;play_deadline:string|null;winner_id:string|null;score:string|null};
+  created_at:string;accept_deadline:string;play_deadline:string|null;winner_id:string|null;score:string|null;decline_reason?:string|null};
 const state: {
   user:any;profile:any;superAdmin:boolean;ladders:Ladder[];ladderId:string;
   entries:Entry[];requests:Request[];challenges:Challenge[];resultChallenge:string;
@@ -64,7 +64,10 @@ function renderBoard() {
     '<div class="pyramid-board-row" role="list" aria-label="Pyramidenreihe '+(index+1)+'">'+row.map((item)=>{
       if(!item)return '<div class="pyramid-entry is-empty" aria-hidden="true"></div>';
       const mine=me?.id===item.id;
-      const canTarget=!!me && canPlay && canChallenge(me.position,item.position,me.provisional)
+      const engaged=state.challenges.some(c=>c.status==='accepted'
+        && (c.challenger_id===item.id||c.defender_id===item.id));
+      const canTarget=!!me && canPlay && !engaged && canChallenge(me.position,item.position,me.provisional)
+        && !state.challenges.some(c=>['pending','accepted'].includes(c.status)&&c.challenger_id===me.id)
         && !(me.last_loss_at && new Date(me.last_loss_at).getTime()>Date.now()-14*86400000);
       return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canTarget?' is-target':'')+'">'
         +'<span class="pyramid-entry-rank">#'+item.position+'</span>'
@@ -94,6 +97,8 @@ function renderGames() {
     return '<article class="pyramid-game"><div><strong>'+escapeHtml(entryName(c.challenger_id))
       +' fordert '+escapeHtml(entryName(c.defender_id))+'</strong>'
       +'<small>'+escapeHtml(labels[c.status]||c.status)+' · '+formatTime(c.created_at)+'</small>'
+      +(c.status==='declined' && c.decline_reason==='another_match_accepted'
+        ?'<small>Automatisch abgelehnt: Ein anderes Forderungsspiel wurde angenommen.</small>':'')
       +(c.status==='pending'?'<small>Annahmefrist: '+formatTime(c.accept_deadline)+'</small>':'')
       +(c.status==='accepted'?'<small>Wunschtermin bis: '+formatTime(c.play_deadline)+'</small>':'')
       +(c.winner_id?'<small>Sieger: '+escapeHtml(entryName(c.winner_id))
@@ -151,7 +156,7 @@ async function loadLadder(){
       .eq('ladder_id',ladder.id).order('position'),
     supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
       .eq('ladder_id',ladder.id),
-    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,winner_id,score')
+    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,winner_id,score,decline_reason')
       .eq('ladder_id',ladder.id).order('created_at',{ascending:false}).limit(150)
   ]);
   for(const answer of [entries,requests,challenges])if(answer.error)throw answer.error;
@@ -168,10 +173,10 @@ async function load() {
     hidden('pyramid-auth',!!state.user);
     hidden('pyramid-app',!state.user);
     if(!state.user)return;
-    const profile=await supabase.from('profiles').select('id,display_name,global_role').eq('id',state.user.id).maybeSingle();
+    const profile=await supabase.from('profiles').select('id,display_name,global_role,global_permissions').eq('id',state.user.id).maybeSingle();
     if(profile.error)throw profile.error;
     state.profile=profile.data;
-    state.superAdmin=profile.data?.global_role==='super_admin';
+    state.superAdmin=profile.data?.global_role==='super_admin'||(profile.data?.global_permissions||[]).includes('pyramid');
     text('pyramid-user-name',profile.data?.display_name||state.user.email||'Mein TSV');
     const {data,error}=await supabase.from('pyramid_ladders')
       .select('id,title,season_label,starts_on,ends_on,active,seeded_at').order('starts_on',{ascending:false}).order('title');
@@ -333,6 +338,10 @@ function demoMakeChallenge(targetId:string){
     && item.challenger_id===me.id)){
     demoMessage('Du hast bereits eine offene Forderung. Beende sie zuerst.','error');return;
   }
+  if(state.challenges.some(item=>item.status==='accepted'
+    && (item.challenger_id===defender.id||item.defender_id===defender.id))){
+    demoMessage('Dieser Spieler ist bis zum Abschluss seines angenommenen Spiels gesperrt.','error');return;
+  }
   const id='demo-challenge-'+(++demoSequence);
   state.challenges.unshift({
     id,ladder_id:state.ladderId,challenger_id:me.id,defender_id:defender.id,
@@ -342,6 +351,14 @@ function demoMakeChallenge(targetId:string){
   demoRefresh();
   demoMessage('Forderung gegen '+defender.display_name+' erstellt. Wechsle oben zur Rolle der geforderten Person, um sie anzunehmen.','success');
 }
+const demoAutomaticMailLog:string[]=[];
+function renderDemoMails(){
+  const list=el('pyramid-demo-mails');
+  if(list)list.innerHTML=demoAutomaticMailLog.length
+    ?'<h3>Simulierte E-Mail-Benachrichtigungen</h3><p class="muted">Diese Nachrichten werden in der Demo nicht verschickt.</p>'
+      +demoAutomaticMailLog.map(line=>'<p>'+escapeHtml(line)+'</p>').join('')
+    :'<p class="muted">Noch keine automatisch abgelehnten Forderungen.</p>';
+}
 function demoRespond(id:string,accept:boolean){
   const item=state.challenges.find((c)=>c.id===id);
   if(!item||item.status!=='pending')return;
@@ -349,9 +366,21 @@ function demoRespond(id:string,accept:boolean){
     demoMessage('Nur die geforderte Person kann antworten.','error');return;
   }
   item.status=accept?'accepted':'declined';
-  if(accept)item.play_deadline=demoDeadline(10);
-  demoRefresh();
-  demoMessage(accept?'Forderung angenommen. Jetzt kann das Ergebnis eingetragen werden.':'Forderung abgelehnt.','success');
+  if(accept){
+    item.play_deadline=demoDeadline(10);
+    const rejected=state.challenges.filter(c=>c.id!==item.id && c.status==='pending'
+      && (c.defender_id===item.defender_id || c.defender_id===item.challenger_id));
+    for(const c of rejected){
+      c.status='declined';c.decline_reason='another_match_accepted';
+      demoAutomaticMailLog.push('An '+entryName(c.challenger_id)+': Forderung an '+entryName(c.defender_id)
+        +' automatisch abgelehnt, weil ein anderes Spiel angenommen wurde.');
+    }
+    demoRefresh();renderDemoMails();
+    demoMessage('Forderung angenommen. '+rejected.length+' weitere Forderung(en) automatisch abgelehnt. E-Mail-Benachrichtigung im Testprotokoll simuliert.','success');
+  }else{
+    item.decline_reason='player_declined';demoRefresh();
+    demoMessage('Forderung abgelehnt.','success');
+  }
 }
 function demoReportResult(event:SubmitEvent){
   event.preventDefault();
@@ -486,6 +515,8 @@ function demoHandleForm(event:SubmitEvent){
 function demoInitialize(){
   demoSequence=30;
   demoRecords.clear();
+  demoAutomaticMailLog.length=0;
+  renderDemoMails();
   state.ladders=[{
     id:'demo-winter',title:'Herren · Mustergruppe',
     season_label:'Winter 2026/2027',starts_on:'2026-11-01',
@@ -555,6 +586,11 @@ function renderDemo(){
     +'</select><button type="button" class="button secondary" id="pyramid-demo-reset">'
     +'Demo zurücksetzen</button></div>';
   root.insertBefore(banner,el('pyramid-app'));
+  const mailBox=document.createElement('section');
+  mailBox.id='pyramid-demo-mails';
+  mailBox.className='card';
+  mailBox.setAttribute('aria-label','Simulierte E-Mail-Benachrichtigungen');
+  root.insertBefore(mailBox,el('pyramid-app'));
   el('pyramid-app')?.addEventListener('click',demoHandleButton);
   banner.addEventListener('click',demoHandleButton);
   el('pyramid-app')?.addEventListener('submit',demoHandleForm);
