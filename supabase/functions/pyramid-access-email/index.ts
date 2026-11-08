@@ -50,13 +50,13 @@ async function hash(v:string){
  return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 async function send(to:string,link:string){
- const subject='TSV Feldkirchen Tennis · Dein Zugangslink';
+ const subject='TSV Feldkirchen Tennis · Passwort einrichten';
  const plain=[
   'TSV FELDKIRCHEN TENNIS','','Hallo,',
-  'du hast einen einmaligen Zugangslink für die Forderungspyramide angefordert.','',
-  'Mit diesem Link anmelden:',link,'',
+  'du hast einen einmaligen Link angefordert, mit dem du dein Passwort für Mein TSV einrichten kannst.','',
+  'Passwort einrichten:',link,'',
   'Der Link ist nur einmal gültig und verfällt nach der in Mein TSV eingestellten Gültigkeitsdauer.',
-  'Die Teilnahme an der Rangliste wird separat vom Verein freigegeben.',
+  'Nach dem Festlegen deines Passworts kannst du die Teilnahme an einer Pyramide beantragen. Die Ranglistenverwaltung prüft deine Anfrage.',
   'Falls du keinen Link angefordert hast, kannst du diese Nachricht ignorieren.','','TSV Feldkirchen Tennis'
  ].join('\n');
  const html='<!doctype html><html lang="de"><head><meta charset="UTF-8"></head>'
@@ -64,11 +64,11 @@ async function send(to:string,link:string){
   +'<main style="max-width:620px;margin:auto;background:#fff;border:1px solid #dce4dd;border-radius:14px;overflow:hidden">'
   +'<header style="background:#e30613;color:white;padding:24px">'
   +'<p style="font-size:12px;letter-spacing:2px;margin:0">TSV FELDKIRCHEN TENNIS</p>'
-  +'<h1 style="margin:10px 0 0;font-size:24px">Dein Zugangslink</h1></header>'
-  +'<section style="padding:26px"><p>Hallo,</p><p>du hast einen einmaligen Zugangslink zur Forderungspyramide angefordert.</p>'
+  +'<h1 style="margin:10px 0 0;font-size:24px">Passwort einrichten</h1></header>'
+  +'<section style="padding:26px"><p>Hallo,</p><p>du hast einen einmaligen Link angefordert, mit dem du dein Passwort für Mein TSV einrichten kannst.</p>'
   +'<p><a href="'+escapeHtml(link)+'" style="display:inline-block;background:#e30613;'
-  +'color:#fff;padding:13px 22px;text-decoration:none;border-radius:9px;font-weight:bold">Jetzt bei Mein TSV anmelden</a></p>'
-  +'<p>Der Link ist nur einmal gültig. Die Freigabe für eine Rangliste erfolgt separat durch den Verein.</p>'
+  +'color:#fff;padding:13px 22px;text-decoration:none;border-radius:9px;font-weight:bold">Passwort festlegen</a></p>'
+  +'<p>Nach dem Festlegen deines Passworts kannst du dich direkt für eine Forderungspyramide anmelden. Die Aufnahme wird vom Verein freigegeben. Der Link ist nur einmal gültig.</p>'
   +'<p>Falls du keinen Link angefordert hast, kannst du diese Nachricht ignorieren.</p>'
   +'<p>Sportliche Grüße<br><strong>TSV Feldkirchen Tennis</strong></p></section>'
   +'<footer style="background:#16392f;color:#fff;padding:16px 26px;font-size:12px">Automatische E-Mail der Tennisabteilung</footer>'
@@ -137,17 +137,31 @@ Deno.serve(async req=>{
   console.error('pyramid-access-mail: auth link failed',generateError?.status||generateError?.code);
   return reply(503,{error:'Der Zugangslink konnte nicht erstellt werden. Bitte die Ranglistenverwaltung kontaktieren.'},origin);
  }
- const link=generated.properties.action_link;
+ // Use the one-time token hash supplied by GoTrue, but deliver the link to
+ // our own first-party page (not the Supabase verification URL). Tokens are
+ // carried in a fragment: they never reach hosting access logs or referers.
+ // The browser exchanges this token through verifyOtp, then sets a password.
+ const action=generated.properties.action_link;
+ const hashed=generated.properties.hashed_token;
+ const verification=generated.properties.verification_type;
  try{
-  const url=new URL(link);
+  const authLink=new URL(action);
   const domain=new URL(env('SUPABASE_URL'));
-  if(url.origin!==domain.origin||!url.pathname.endsWith('/auth/v1/verify'))
+  if(authLink.origin!==domain.origin||!authLink.pathname.endsWith('/auth/v1/verify'))
    throw new Error('Unexpected link destination');
+  if(typeof hashed!=='string'||!/^[a-f0-9]{64}$/i.test(hashed))
+   throw new Error('Unexpected token');
+  if(!['magiclink','signup','invite','recovery','email'].includes(verification))
+   throw new Error('Unexpected verification type');
  }catch{
-  console.error('pyramid-access-mail: unsafe generated link');
+  console.error('pyramid-access-mail: invalid generated authentication link');
   return reply(503,{error:'Zugangslink konnte nicht sicher erstellt werden.'},origin);
  }
+ const fragment=new URLSearchParams({
+  pyramid_token_hash:hashed,pyramid_token_type:verification
+ });
+ const link=LIVE_URL+'#'+fragment.toString();
  const accepted=await send(email,link);
  if(!accepted)return reply(503,{error:'Gmail konnte den Zugangslink nicht versenden. Bitte die Ranglistenverwaltung informieren.'},origin);
- return reply(200,{ok:true,message:'Dein Zugangslink wurde an Gmail zur Zustellung übergeben. Prüfe bitte dein Postfach.'},origin);
+ return reply(200,{ok:true,message:'Dein Link zur Passworteinrichtung wurde an Gmail zur Zustellung übergeben. Prüfe bitte dein Postfach.'},origin);
 });
