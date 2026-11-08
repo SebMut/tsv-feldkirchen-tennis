@@ -236,7 +236,7 @@ async function loadLadder(){
       .eq('ladder_id',ladder.id).order('position'),
     supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
       .eq('ladder_id',ladder.id),
-    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,scheduled_for,scheduled_at,refusal_reason,winner_id,score,decline_reason,source,resolved_at')
+    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,scheduled_for,scheduled_at,refusal_reason,winner_id,score,decline_reason,source,resolved_at,proposed_winner_id,proposed_score,reported_at,confirmation_deadline,dispute_reason,weather_extended_at,overdue_extended_at,no_show_requested_at,no_show_reporter_id')
       .eq('ladder_id',ladder.id).order('created_at',{ascending:false}).limit(150)
   ]);
   for(const answer of [entries,requests,challenges])if(answer.error)throw answer.error;
@@ -356,7 +356,7 @@ function wireEvents(){
     }catch(e){notice(safeError(e),'error');}
   });
   el('pyramid-app')?.addEventListener('click',(event)=>{
-    const target=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-challenge],[data-pyramid-accept],[data-pyramid-decline],[data-pyramid-schedule],[data-pyramid-result],[data-pyramid-approve],[data-pyramid-move]');
+    const target=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-challenge],[data-pyramid-accept],[data-pyramid-decline],[data-pyramid-schedule],[data-pyramid-result],[data-pyramid-confirm],[data-pyramid-dispute],[data-pyramid-noshow],[data-pyramid-approve],[data-pyramid-move]');
     if(!target)return;
     const challenge=target.dataset.pyramidChallenge;
     if(challenge){if(confirm('Diese Person verbindlich herausfordern?'))void runAction(
@@ -384,6 +384,31 @@ function wireEvents(){
     }
     const result=target.dataset.pyramidResult;
     if(result){openResult(result);return;}
+    const confirmId=target.dataset.pyramidConfirm;
+    if(confirmId){
+      if(confirm('Stimmen Sieger und Satzergebnis? Erst danach wird die Rangliste geändert.'))
+        void runAction(()=>rpc('pyramid_confirm_result',{
+          p_challenge:confirmId,p_confirm:true,p_reason:null
+        }),'Ergebnis bestätigt. Die Rangliste wurde aktualisiert.');
+      return;
+    }
+    const disputeId=target.dataset.pyramidDispute;
+    if(disputeId){
+      const reason=prompt('Was stimmt am gemeldeten Ergebnis nicht? Der Ranglistenwart entscheidet.');
+      if(reason===null)return;
+      if(reason.trim().length<5){notice('Bitte den Widerspruch kurz begründen (mindestens 5 Zeichen).','error');return;}
+      void runAction(()=>rpc('pyramid_confirm_result',{
+        p_challenge:disputeId,p_confirm:false,p_reason:reason.trim()
+      }),'Ergebnis bestritten. Die Rangliste bleibt bis zur Entscheidung unverändert.');
+      return;
+    }
+    const noShow=target.dataset.pyramidNoshow;
+    if(noShow){
+      if(confirm('Ist dein Gegner mehr als 15 Minuten nach dem vereinbarten Termin nicht erschienen? Die Ranglistenverwaltung prüft die Meldung.'))
+        void runAction(()=>rpc('pyramid_request_no_show',{p_challenge:noShow}),
+          'Nichtantreten gemeldet. Entscheidung des Ranglistenwarts ausstehend.');
+      return;
+    }
     const approve=target.dataset.pyramidApprove;
     if(approve){void runAction(()=>rpc('pyramid_approve_join',{p_request:approve}),'Teilnahme freigegeben.');return;}
     const move=target.dataset.pyramidMove;
@@ -458,7 +483,7 @@ function wireEvents(){
     try{
       await rpc('pyramid_schedule_match',{p_challenge:state.resultChallenge,p_date:date.toISOString()});
       scheduleDialog?.close();
-      notice('Spieltermin eingetragen. Bitte innerhalb von 10 Tagen nach der Vereinbarung spielen.','success');
+      notice('Spieltermin eingetragen. Das Spiel muss innerhalb von 14 Tagen nach der ursprünglichen Forderung stattfinden.','success');
       await loadLadder();
     }catch(e){notice(safeError(e),'error');}
   });
@@ -474,7 +499,7 @@ function wireEvents(){
     try{
       await rpc('pyramid_report_result',{p_challenge:state.resultChallenge,p_score:value,
         ...(winner?{p_winner:winner}:{})});
-      dialog?.close();notice('Ergebnis und Rangliste aktualisiert.','success');await loadLadder();
+      dialog?.close();notice('Ergebnis gemeldet. Die Rangliste ändert sich erst nach Bestätigung des Gegners (innerhalb von 48 Stunden) oder Entscheidung des Ranglistenwarts.','success');await loadLadder();
     }catch(e){notice(safeError(e),'error');}
   });
 }
