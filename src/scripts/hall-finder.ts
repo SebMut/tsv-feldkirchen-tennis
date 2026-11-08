@@ -27,14 +27,14 @@ function slotText(slot:LiveSlot){
  const detail=slot.venueId==='aschheim'||slot.venueId==='ismaning'
   ? (slot.availableCourts||1)+' '+(slot.availableCourts===1?'Platz':'Plätze')+' frei'
   : [slot.court,slot.price].filter(Boolean).join(' · ');
- return '<a class="hall-slot-live" href="'+esc(slot.bookingUrl)+'" target="_blank" rel="noopener noreferrer"><strong>'+esc(slot.start)+'–'+esc(slot.end)+'</strong><span>'+esc(detail)+'</span></a>';
+ return '<a class="hall-slot-live" data-hall-venue="'+esc(slot.venueId)+'" href="'+esc(slot.bookingUrl)+'" target="_blank" rel="noopener noreferrer"><strong>'+esc(slot.start)+'–'+esc(slot.end)+'</strong><span>'+esc(detail)+'</span></a>';
 }
 function venueName(v:Venue){return '<div class="hall-slot__venue"><span class="hall-slot__initial" aria-hidden="true">'+esc(v.short[0])+'</span><div><strong>'+esc(v.name)+'</strong><small>'+esc(v.distance)+'</small></div></div>'}
 function loadingCard(d:Date,first:number,last:number){
  return '<article class="hall-day-card is-loading"><header><div><p>'+day(d)+'</p><span>'+time(first)+'–'+time(last)+' Uhr</span></div><span class="hall-day-card__count">Wird geladen …</span></header><div class="hall-day-card__venues">'+venues.map(v=>'<div class="hall-slot">'+venueName(v)+'<div class="hall-slot__availability"><span class="hall-slot-note">Freie Zeiten werden geprüft …</span></div></div>').join('')+'</div></article>';
 }
 function fallbackCard(d:Date,first:number,last:number){
- return '<article class="hall-day-card"><header><div><p>'+day(d)+'</p><span>'+time(first)+'–'+time(last)+' Uhr</span></div><span class="hall-day-card__count is-muted">Direkt prüfen</span></header><div class="hall-day-card__venues">'+venues.map(v=>'<div class="hall-slot">'+venueName(v)+'<div class="hall-slot__availability"><span class="hall-slot-note">Live beim Anbieter prüfen</span></div><a class="hall-slot__booking" href="'+bookingUrl(v,d)+'" target="_blank" rel="noopener noreferrer">Kalender <span aria-hidden="true">↗</span></a></div>').join('')+'</div></article>';
+ return '<article class="hall-day-card"><header><div><p>'+day(d)+'</p><span>'+time(first)+'–'+time(last)+' Uhr</span></div><span class="hall-day-card__count is-muted">Direkt prüfen</span></header><div class="hall-day-card__venues">'+venues.map(v=>'<div class="hall-slot">'+venueName(v)+'<div class="hall-slot__availability"><span class="hall-slot-note">Live beim Anbieter prüfen</span></div><a class="hall-slot__booking" data-hall-venue="'+esc(v.id)+'" href="'+bookingUrl(v,d)+'" target="_blank" rel="noopener noreferrer">Kalender <span aria-hidden="true">↗</span></a></div>').join('')+'</div></article>';
 }
 function liveCard(d:Date,first:number,last:number,live:LiveResponse){
  const date=iso(d);
@@ -47,7 +47,7 @@ function liveCard(d:Date,first:number,last:number,live:LiveResponse){
     ? '<span class="hall-slot-empty">Nichts frei</span>'
     : '<span class="hall-slot-note">'+esc(source?.message||'Live beim Anbieter prüfen')+'</span>';
   const href=slots[0]?.bookingUrl||bookingUrl(v,d);
-  return '<div class="hall-slot">'+venueName(v)+'<div class="hall-slot__availability">'+content+'</div><a class="hall-slot__booking" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(v.name+' am '+long(d)+' im Buchungskalender prüfen')+'">Kalender <span aria-hidden="true">↗</span></a></div>';
+  return '<div class="hall-slot">'+venueName(v)+'<div class="hall-slot__availability">'+content+'</div><a class="hall-slot__booking" data-hall-venue="'+esc(v.id)+'" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(v.name+' am '+long(d)+' im Buchungskalender prüfen')+'">Kalender <span aria-hidden="true">↗</span></a></div>';
  }).join('');
  const freeTimes=new Set(live.slots.filter(slot=>slot.date===date&&slotHour(slot.start)>=first&&slotHour(slot.end)<=last).map(slot=>slot.venueId+'|'+slot.start+'|'+slot.end)).size;
  return '<article class="hall-day-card"><header><div><p>'+day(d)+'</p><span>'+time(first)+'–'+time(last)+' Uhr</span></div><span class="hall-day-card__count">'+freeTimes+' '+(freeTimes===1?'freie Zeit':'freie Zeiten')+'</span></header><div class="hall-day-card__venues">'+cells+'</div></article>';
