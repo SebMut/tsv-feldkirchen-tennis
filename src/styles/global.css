@@ -298,6 +298,8 @@ body{background:var(--sand);color:var(--text)}
 .site-footer p{color:var(--muted)}
 .footer-links a{color:var(--text)}
 .footer-links a:hover,.footer-links a:focus-visible{color:var(--accent)}
+.footer-credit{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:30px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}.footer-credit a{display:inline-flex;border-radius:6px}.footer-credit a:focus-visible{outline:3px solid var(--accent);outline-offset:4px}.footer-credit img{display:block;width:150px;height:auto}
+@media(max-width:600px){.footer-credit{flex-direction:column;gap:10px;text-align:center}.footer-credit img{width:142px}}
 
 .card{background:#fff;border-color:var(--line);box-shadow:var(--shadow)}
 .card.flat{box-shadow:none}
