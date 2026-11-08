@@ -19,6 +19,9 @@ const esc=(value:string)=>value.replace(/[&<>'"]/g,char=>({"&":"&amp;","<":"&lt;
 function bookingUrl(v:Venue,d:Date){if(v.id!=='kirchheim')return v.bookingUrl;const seconds=Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate(),12).getTime()/1000);return v.bookingUrl+'&d='+seconds}
 function fill(select:HTMLSelectElement,min:number,max:number,selected:number){for(let h=min;h<=max;h++){const o=document.createElement('option');o.value=String(h);o.textContent=time(h);o.selected=h===selected;select.append(o)}}
 function slotHour(value:string){return Number(value.slice(0,2))+Number(value.slice(3,5))/60}
+function byTime(a:LiveSlot,b:LiveSlot){
+ return slotHour(a.start)-slotHour(b.start)||slotHour(a.end)-slotHour(b.end)||(a.court||'').localeCompare(b.court||'','de');
+}
 function slotText(slot:LiveSlot){
  const detail=slot.venueId==='aschheim'
   ? (slot.availableCourts||1)+' '+(slot.availableCourts===1?'Platz':'Plätze')+' frei'
@@ -34,7 +37,7 @@ function fallbackCard(d:Date,first:number,last:number){
 function liveCard(d:Date,first:number,last:number,live:LiveResponse){
  const date=iso(d);
  const cells=venues.map(v=>{
-  const slots=live.slots.filter(slot=>slot.venueId===v.id&&slot.date===date&&slotHour(slot.start)>=first&&slotHour(slot.end)<=last);
+  const slots=live.slots.filter(slot=>slot.venueId===v.id&&slot.date===date&&slotHour(slot.start)>=first&&slotHour(slot.end)<=last).sort(byTime);
   const source=live.sources[v.id];
   const content=slots.length
    ? '<div class="hall-slot-times">'+slots.map(slotText).join('')+'</div>'
