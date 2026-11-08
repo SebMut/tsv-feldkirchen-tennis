@@ -177,6 +177,115 @@ async function checkDevice(name,viewport,isMobile){
     console.log('PASS '+name+': master result confirmation, ranking, bottom-right neutral badges, membership, privacy and responsive');
   }finally{await context.close();}
 }
+
+// Full one-time-email → password setup → membership-request rehearsal.
+// Every Supabase call is mocked. No real account, email or DB write occurs.
+async function checkOnboarding(){
+  const context=await browser.newContext({
+    viewport:{width:390,height:844},isMobile:true,hasTouch:true,locale:'de-DE'
+  });
+  const id='c3e21e52-3010-4010-9010-701010101010';
+  const ladderId='a1e21e52-3010-4010-9010-701010101010';
+  const email='synthetic-onboarding@example.invalid';
+  const now=Math.floor(Date.now()/1000);
+  const b64=x=>Buffer.from(JSON.stringify(x)).toString('base64url');
+  const jwt=b64({alg:'HS256',typ:'JWT'})+'.'
+    +b64({sub:id,email,role:'authenticated',aud:'authenticated',iat:now,exp:now+3600})+'.signature';
+  const user={
+    id,email,aud:'authenticated',role:'authenticated',
+    app_metadata:{provider:'email',providers:['email']},
+    user_metadata:{},identities:[],created_at:new Date().toISOString(),
+    updated_at:new Date().toISOString(),email_confirmed_at:new Date().toISOString()
+  };
+  const profile={id,display_name:'Muster-Neumitglied',global_role:'user',
+    global_permissions:[],avatar_path:null};
+  let applied=false,passwordSaved=false;
+  const requests=[],errors=[];
+  const appOrigin=origin;
+  const cors={
+    'access-control-allow-origin':appOrigin,
+    'access-control-allow-methods':'GET,POST,PUT,OPTIONS',
+    'access-control-allow-headers':'authorization,apikey,content-type,x-client-info,prefer,range,x-supabase-api-version',
+    'content-type':'application/json'
+  };
+  await context.route('**/eaurnufdochjapfzqwvm.supabase.co/**',async route=>{
+    const req=route.request(),u=new URL(req.url()),pathname=u.pathname;
+    requests.push(req.method()+' '+pathname);
+    const reply=(status,body)=>route.fulfill({
+      status,headers:cors,body:typeof body==='string'?body:JSON.stringify(body)
+    });
+    if(req.method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
+    if(pathname==='/auth/v1/verify'&&req.method()==='POST'){
+      const body=req.postDataJSON();
+      assert.equal(body.type,'magiclink');
+      assert.equal(body.token_hash,'a'.repeat(64));
+      return reply(200,{access_token:jwt,refresh_token:'synthetic-refresh-token',
+        token_type:'bearer',expires_in:3600,user});
+    }
+    if(pathname==='/auth/v1/user'){
+      if(req.method()==='PUT'){
+        const body=req.postDataJSON();
+        assert.ok(typeof body.password==='string'&&body.password.length>=10);
+        passwordSaved=true;
+      }
+      return reply(200,user);
+    }
+    if(pathname==='/functions/v1/pyramid-access-email')
+      return reply(200,{enabled:false,message:'Mocked Gmail config'});
+    if(pathname==='/rest/v1/profiles')return reply(200,profile);
+    if(pathname==='/rest/v1/pyramid_ladders')return reply(200,[{
+      id:ladderId,title:'Herren',season_label:'Sommer 2027',
+      starts_on:'2027-05-01',ends_on:'2027-09-30',active:true,seeded_at:null
+    }]);
+    if(pathname==='/rest/v1/pyramid_entries'||pathname==='/rest/v1/pyramid_challenges')
+      return reply(200,[]);
+    if(pathname==='/rest/v1/pyramid_requests')
+      return reply(200,applied?[{
+        id:'b1e21e52-3010-4010-9010-701010101010',
+        ladder_id:ladderId,user_id:id,display_name:'Muster-Neumitglied',status:'pending'
+      }]:[]);
+    if(pathname==='/rest/v1/rpc/pyramid_request_join'&&req.method()==='POST'){
+      const body=req.postDataJSON();
+      assert.equal(body.p_ladder,ladderId);
+      assert.equal(body.p_name,'Muster-Neumitglied');
+      applied=true;
+      return reply(200,null);
+    }
+    errors.push('Unexpected Supabase request: '+req.method()+' '+pathname);
+    return reply(404,{message:'Unexpected mock request'});
+  });
+  const page=await context.newPage();
+  page.on('pageerror',error=>errors.push(error.message));
+  try{
+    const link=origin+base+'/forderungspyramide/#pyramid_token_hash='
+      +'a'.repeat(64)+'&pyramid_token_type=magiclink';
+    await page.goto(link,{waitUntil:'domcontentloaded'});
+    await page.locator('#pyramid-password-setup-form').waitFor({state:'visible',timeout:15000});
+    assert.equal(new URL(page.url()).hash,'','Token hash must be removed immediately');
+    assert.equal(await page.locator('#pyramid-auth').isHidden(),true);
+    assert.equal(await page.locator('#pyramid-app').isHidden(),true);
+    await page.locator('#pyramid-new-password').fill('CorrectHorseBattery2026!');
+    await page.locator('#pyramid-confirm-password').fill('CorrectHorseBattery2026!');
+    await page.locator('#pyramid-password-setup-save').click();
+    await page.locator('#pyramid-join-panel').waitFor({state:'visible',timeout:15000});
+    assert.equal(passwordSaved,true,'Password updateUser not reached');
+    assert.equal(await page.locator('#pyramid-ladder-select').inputValue(),ladderId);
+    assert.equal(await page.locator('#pyramid-join-panel').isVisible(),true);
+    await page.locator('#pyramid-display-name').fill('Muster-Neumitglied');
+    await page.locator('#pyramid-join-form button[type="submit"]').click();
+    await page.waitForFunction(()=>{
+      return document.querySelector('#pyramid-join-state')?.textContent?.includes('wartet auf Freigabe');
+    },undefined,{timeout:10000});
+    assert.equal(applied,true,'User could not apply after setting password');
+    assert.equal(await page.locator('#pyramid-join-form').isHidden(),true);
+    assert.equal(await page.locator('#pyramid-auth').isHidden(),true);
+    assert.deepEqual(errors,[], 'Unexpected fake-auth requests or UI errors');
+    console.log('PASS onboarding: email token verified, password stored, new user applied to a ladder.');
+  }finally{
+    await context.close();
+  }
+}
+
 try{
   server=spawn('node_modules/.bin/astro',['preview','--host','127.0.0.1','--port','4321','--strictPort'],{
     env:{...process.env,PREVIEW_BASE:process.env.PREVIEW_BASE||'/'},
@@ -197,6 +306,7 @@ try{
   await checkDevice('desktop',{width:1440,height:900},false);
   await checkDevice('mobile',{width:390,height:844},true);
   await checkDevice('small-mobile',{width:320,height:640},true);
+  await checkOnboarding();
 }catch(error){
   console.error(error?.stack||error);process.exitCode=1;
 }finally{
