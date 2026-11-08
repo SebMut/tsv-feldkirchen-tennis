@@ -141,6 +141,10 @@ jobs:
           grep -Fq 'id="pyramid-rules-heading"' dist/forderungspyramide/index.html
           grep -Fq 'pyramid-rules-list' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-access-turnstile-widget"' dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-password-setup"' dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-password-setup-form"' dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-password-change"' dist/forderungspyramide/index.html
+          grep -Fq 'Jetzt Teilnahme beantragen' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-avatar-save-state"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-avatar-panel"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-avatar-file"' dist/forderungspyramide/index.html
@@ -210,6 +214,7 @@ jobs:
       # Fix global Datenschutz footer href to local Tennis policy instead of external main club; tested in responsive browser QA.
       # User-approved hidden Forderungspyramide rollout: private login, delegated admin, modal results, guarded SQL/RLS and Gmail queue; browser QA passed.
       # Master v1.0: 14-day play / 3-day desired scheduling / 48h confirmed results / 7-day cooldowns / 28-day automatic un-neutralization; bottom-right Urlaub/Verletzung badges; desktop/mobile/small mobile QA green.
+      # Password onboarding: email link -> verifyOtp -> updateUser -> open pyramid request form, tested with isolated synthetic browser account.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
@@ -230,6 +235,9 @@ jobs:
                echo "$pyramid" | grep -Fq 'id="pyramid-public-board"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-rules-heading"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-access-turnstile-widget"' &&
+               echo "$pyramid" | grep -Fq 'id="pyramid-password-setup-form"' &&
+               echo "$pyramid" | grep -Fq 'id="pyramid-password-change"' &&
+               echo "$pyramid" | grep -Fq 'Jetzt Teilnahme beantragen' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-avatar-save-state"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-avatar-panel"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-avatar-file"' &&
