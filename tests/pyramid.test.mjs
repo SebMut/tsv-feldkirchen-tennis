@@ -40,7 +40,7 @@ test('saison boundaries follow dates instead of hard-coded summer 2026',()=>{
  assert.equal(dateWithinPeriod('2027-04-01','2027-10-31',new Date(2027,10,1)),false);
 });
 test('pyramid stays private with reuse of Supabase Auth and secured RPCs',()=>{
- const sql=source('supabase/migrations/20261108150000_forderungspyramide_staging.sql');
+ const sql=source('supabase/migrations/20261108153000_forderungspyramide_staging.sql');
  const page=source('src/pages/forderungspyramide/index.astro');
  const js=source('src/scripts/pyramid.ts');
  const siteNav=source('src/components/SiteHeader.astro');
@@ -57,10 +57,11 @@ test('pyramid stays private with reuse of Supabase Auth and secured RPCs',()=>{
  assert.match(js,/pyramid_report_result/);
  assert.match(sql,/enable row level security/g);
  assert.match(sql,/private\.is_super_admin\(\)/);
- assert.match(sql,/current_date not between l\.starts_on and l\.ends_on/);
+ assert.match(sql,/time zone 'Europe\/Berlin'\)::date not between l\.starts_on and l\.ends_on/);
  assert.match(sql,/interval '14 days'/);
  assert.match(sql,/interval '10 days'/);
  assert.match(sql,/cron\.schedule/);
- assert.match(sql,/revoke all on function public\.pyramid_challenge/);
+ assert.match(sql,/private\.pyramid_valid_winning_score\(p_score\)/);
+ assert.match(sql,/public\.pyramid_challenge\(uuid\), public\.pyramid_respond/);
  assert.doesNotMatch(sql,/grant .* to anon/);
 });
