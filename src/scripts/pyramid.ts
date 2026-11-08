@@ -106,34 +106,55 @@ function renderBoard() {
     :'<p class="muted">Neue Mitglieder werden nach Freigabe automatisch am Ende der Rangliste eingereiht.</p>');
 }
 function renderGames() {
-  const visible=state.challenges.filter((item)=>state.superAdmin||isInvolved(item)).sort(
-    (a,b)=>b.created_at.localeCompare(a.created_at)
-  ).slice(0,40);
+  const visible=state.challenges.filter(c=>state.superAdmin||isInvolved(c))
+    .sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,40);
   if(!myEntry()&&!state.superAdmin){hidden('pyramid-games-panel',true);return;}
   hidden('pyramid-games-panel',false);
   if(!visible.length){html('pyramid-games','<p class="muted">Noch keine Forderungsspiele eingetragen.</p>');return;}
-  const labels:Record<string,string>={pending:'Annahme ausstehend',accepted:'Spiel vereinbaren',completed:'Beendet',
-    forfeit:'Annahmefrist verpasst',declined:'Abgelehnt',cancelled:'Abgebrochen'};
-  html('pyramid-games',visible.map((c)=>{
-    const myDefender=myEntry()?.id===c.defender_id;
-    const canReport=c.status==='accepted'&&(state.superAdmin||isInvolved(c));
-    const actions= (c.status==='pending'&&myDefender&&!c.refusal_reason
-      ? '<button type="button" data-pyramid-accept="'+c.id+'">Annehmen</button>'
-        +'<button type="button" data-pyramid-decline="'+c.id+'">Absage begründen</button>' : '')
-      +(c.status==='accepted'&&!c.refusal_reason&&(state.superAdmin||isInvolved(c))
+  const labels:Record<string,string>={pending:'Forderung offen',accepted:'Spiel vereinbart',
+    result_pending:'Ergebnis wartet auf Bestätigung',result_disputed:'Ergebnis strittig – Ranglistenwart prüft',
+    completed:'Beendet',forfeit:'Kampflos gewertet',declined:'Abgelehnt',cancelled:'Abgebrochen'};
+  html('pyramid-games',visible.map(c=>{
+    const me=myEntry();
+    const opponentMayConfirm=c.status==='result_pending'&&!!me
+      &&[c.challenger_id,c.defender_id].includes(me.id)
+      &&me.id!==c.proposed_winner_id
+      &&(!c.confirmation_deadline||new Date(c.confirmation_deadline).getTime()>=Date.now());
+    const open=!!me&&isInvolved(c);
+    const expiresAt=c.play_deadline||new Date(new Date(c.created_at).getTime()+14*86400000).toISOString();
+    const late=['pending','accepted'].includes(c.status)
+      &&new Date(expiresAt).getTime()<Date.now();
+    const noShowAllowed=c.status==='accepted'&&open&&!!c.scheduled_for
+      &&new Date(c.scheduled_for).getTime()+15*60000<=Date.now()
+      &&!c.no_show_requested_at;
+    const actions=(c.status==='pending'&&me?.id===c.defender_id&&!c.refusal_reason&&!late
+      ?'<button type="button" data-pyramid-accept="'+c.id+'">Annehmen</button>'
+        +'<button type="button" data-pyramid-decline="'+c.id+'">Absage begründen</button>':'')
+      +(c.status==='accepted'&&!late&&!c.refusal_reason&&(state.superAdmin||open)
         ?'<button type="button" data-pyramid-schedule="'+c.id+'">Spieltermin eintragen</button>':'')
-      +(canReport&&!c.refusal_reason?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis melden</button>':'');
+      +(c.status==='accepted'&&!late&&!c.refusal_reason&&(state.superAdmin||open)
+        ?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis melden</button>':'')
+      +(opponentMayConfirm?'<button type="button" data-pyramid-confirm="'+c.id+'">Ergebnis bestätigen</button>'
+        +'<button type="button" data-pyramid-dispute="'+c.id+'">Widersprechen</button>':'')
+      +(noShowAllowed?'<button type="button" data-pyramid-noshow="'+c.id+'">Nichtantreten melden</button>':'');
     return '<article class="pyramid-game"><div><strong>'+escapeHtml(entryName(c.challenger_id))
       +' fordert '+escapeHtml(entryName(c.defender_id))+'</strong>'
       +'<small>'+escapeHtml(labels[c.status]||c.status)+' · '+formatTime(c.created_at)+'</small>'
-      +(c.status==='declined' && c.decline_reason==='another_match_accepted'
-        ?'<small>Automatisch abgelehnt: Ein anderes Forderungsspiel wurde angenommen.</small>':'')
-      +(c.refusal_reason?'<small>Absage zur Prüfung eingereicht: '+escapeHtml(c.refusal_reason)+'</small>':'')
-      +(c.status==='pending'?'<small>Terminvereinbarung bis: '+formatTime(new Date(new Date(c.created_at).getTime()+7*86400000).toISOString())+'</small>':'')
-      +(c.scheduled_for?'<small>Vereinbarter Spieltermin: '+formatTime(c.scheduled_for)+'</small>':'')
-      +(c.status==='accepted'&&!c.scheduled_for?'<small>Spieltermin bitte innerhalb von 7 Tagen nach Forderung festlegen.</small>':'')
-      +(c.status==='accepted'&&c.play_deadline&&new Date(c.play_deadline).getTime()<Date.now()
-        ?'<small class="muted">10-Tage-Frist nach Terminvereinbarung überschritten – Verwaltung kontaktieren.</small>':'')
+      +(c.refusal_reason?'<small>Absage zur Prüfung: '+escapeHtml(c.refusal_reason)+'</small>':'')
+      +(c.status==='pending'?'<small>Spieltermin möglichst innerhalb von 3 Tagen vereinbaren.</small>':'')
+      +(c.scheduled_for?'<small>Vereinbarter Termin: '+formatTime(c.scheduled_for)+'</small>':'')
+      +(['pending','accepted'].includes(c.status)?'<small>Spielfrist: '+formatTime(expiresAt)+'</small>':'')
+      +(late?'<small class="pyramid-deadline-warning">Frist überschritten – Ranglistenwart entscheidet; keine automatische Rangänderung.</small>':'')
+      +(c.no_show_requested_at?'<small>Nichtantreten gemeldet – Entscheidung des Ranglistenwarts offen.</small>':'')
+      +(c.status==='result_pending' || c.status==='result_disputed'
+        ?'<small>Gemeldetes Ergebnis: '+escapeHtml(entryName(c.proposed_winner_id||''))
+         +(c.proposed_score?' · '+escapeHtml(c.proposed_score):'')+'</small>':'')
+      +(c.status==='result_pending'&&c.confirmation_deadline
+        ?'<small>Bestätigen bis: '+formatTime(c.confirmation_deadline)
+        +(new Date(c.confirmation_deadline).getTime()<Date.now()
+          ?' · Ranglistenwart entscheidet':'')+'</small>':'')
+      +(c.status==='result_disputed'&&c.dispute_reason
+        ?'<small>Widerspruch: '+escapeHtml(c.dispute_reason)+'</small>':'')
       +(c.winner_id?'<small>Sieger: '+escapeHtml(entryName(c.winner_id))
         +(c.score?' · '+escapeHtml(c.score):'')+'</small>':'')
       +'</div><div class="pyramid-game-actions">'+actions+'</div></article>';
