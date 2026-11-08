@@ -138,6 +138,7 @@ jobs:
       # Publish tested homepage image priority: event hero, linked News hero (including Christmas party), technical fallback; deduplicated and browser-QA verified.
       # Publish expanded Tennis privacy information for Supabase, registration, Gmail, Turnstile, hosting, ICS, analytics and rights, after browser QA.
       # Fix global Datenschutz footer href to local Tennis policy instead of external main club; tested in responsive browser QA.
+      # User-approved hidden Forderungspyramide rollout: private login, delegated admin, modal results, guarded SQL/RLS and Gmail queue; browser QA passed.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
