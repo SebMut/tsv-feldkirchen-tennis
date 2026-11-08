@@ -17,6 +17,16 @@ Vorgesehenes Supabase-Projekt: `eaurnufdochjapfzqwvm` (kein anderes Projekt verw
 - Forderungen und Ergebnisfestschreibung erfolgen **atomar in Supabase-RPCs**; UI-Rechte allein sind niemals maßgeblich. RLS verhindert Lesezugriff Unbeteiligter, keine öffentlichen Ranglisten personenbezogener Daten.
 - Automatische Fristverwaltung nutzt das im Projekt bereits installierte `pg_cron`.
 
+
+## Browser-Demo (keine echten Daten)
+
+- Separater GitHub-Pages-Pfad: `https://sebmut.github.io/tsv-feldkirchen-tennis/pyramid-staging/forderungspyramide/?demo=1`.
+- Die Demo verwendet vollständig fiktive Namen und speichert **nur im Arbeitsspeicher des jeweiligen Browser-Tabs**. Auch der Demo-Admin hat keine Supabase-Berechtigungen.
+- Über **Testrolle auswählen** lassen sich Herausforderungen, Annahmen, Ergebnisse, Teilnehmerfreigaben, Rangänderungen, Saisonwechsel und neue Ranglisten demonstrieren.
+- Über **Demo zurücksetzen** wird der ursprüngliche Musterzustand hergestellt. Beim Neuladen gehen Änderungen verloren.
+- Ohne `?demo=1` zeigt die Route die echte Auth-Oberfläche; die Datenbankmigration bleibt unverändert nicht ausgeführt.
+- Das getrennte Vorschau-Workflow muss Build, Unit-Tests, Audit und Chromium-Interaktionstests bestehen, ehe es die Vorschau aktualisiert.
+
 ## Freigabe-Voraussetzungen
 
 1. Produktivdatenbank NICHT ändern, bevor eine separate Freigabe zur Aktivierung vorliegt. Die Migration `20261108153000_forderungspyramide_staging.sql` wird nur versioniert; sie wird hier nicht ausgeführt.
