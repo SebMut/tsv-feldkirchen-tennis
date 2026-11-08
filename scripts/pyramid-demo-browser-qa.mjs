@@ -121,6 +121,48 @@ async function checkDevice(name,viewport,isMobile){
     assert.ok(overflow.document<=overflow.width+3&&overflow.body<=overflow.width+3,
       name+' horizontal overflow '+JSON.stringify(overflow));
 
+    // The signed-out route must show a minimal public ladder, ahead of login.
+    // Intercept the read-only Supabase RPC to keep this test deterministic and
+    // ensure no real member names or internal IDs enter the test runner.
+    const publicPage=await context.newPage();
+    publicPage.on('pageerror',error=>errors.push(error.message));
+    await publicPage.route('**/rest/v1/rpc/pyramid_public_standings',route=>
+      route.fulfill({status:200,contentType:'application/json',
+        body:JSON.stringify([
+          {ladder_id:'demo-public-a',ladder_title:'Herren',season_label:'Sommer 2027',
+            starts_on:'2027-05-01',ends_on:'2027-09-30',seeded:true,
+            position:1,display_name:'Mustermitglied Eins'},
+          {ladder_id:'demo-public-a',ladder_title:'Herren',season_label:'Sommer 2027',
+            starts_on:'2027-05-01',ends_on:'2027-09-30',seeded:true,
+            position:2,display_name:'Mustermitglied Zwei'}
+        ])}));
+    await publicPage.goto(origin+base+'/forderungspyramide/',{waitUntil:'domcontentloaded'});
+    await publicPage.locator('.pyramid-entry-public').first().waitFor({timeout:15000});
+    assert.equal(await publicPage.locator('#pyramid-login-form').isVisible(),true);
+    assert.equal(await publicPage.locator('#pyramid-public-panel').isVisible(),true);
+    assert.equal(await publicPage.locator('.pyramid-entry-public').count(),2);
+    assert.match(await publicPage.locator('#pyramid-public-board').innerText(),/Mustermitglied Eins/);
+    assert.equal(await publicPage.locator('#pyramid-public-board img').count(),0,
+      'Guests must never see player photos');
+    assert.equal(await publicPage.locator('#pyramid-public-board .pyramid-entry-away').count(),0,
+      'Guests must never see holiday/injury status');
+    assert.equal(await publicPage.locator('#pyramid-public-board button').count(),0,
+      'Guests must not challenge players');
+    assert.equal(await publicPage.locator('#pyramid-avatar-panel').isVisible(),false);
+    const order=await publicPage.evaluate(()=>{
+      const rules=document.querySelector('.pyramid-rules');
+      const board=document.querySelector('#pyramid-public-panel');
+      return !!rules&&!!board&&!!(rules.compareDocumentPosition(board)&Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    assert.ok(order,'Rule bullet points must appear before public ladder and login');
+    assert.ok((await publicPage.locator('.pyramid-rules-list li').count())>=9);
+    const guestWidth=await publicPage.evaluate(()=>({
+      scroll:document.documentElement.scrollWidth,viewport:innerWidth
+    }));
+    assert.ok(guestWidth.scroll<=guestWidth.viewport+3,
+      name+' signed-out public ladder overflows viewport '+JSON.stringify(guestWidth));
+    await publicPage.close();
+
     // The new Admin result form must be a properly sized native modal on all tested devices.
     await page.goto(origin+base+'/admin/',{waitUntil:'domcontentloaded'});
     const adminDialog=page.locator('#pyramid-admin-result-dialog');
