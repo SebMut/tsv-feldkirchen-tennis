@@ -2,31 +2,28 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 import '../../styles/pyramid.css';
 const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
+const pagePath = Astro.url.pathname.replace(/\/+$/, '');
+const activeSection = pagePath.endsWith('/so-funktionierts') ? 'rules'
+  : pagePath.endsWith('/meine-ranglisten') ? 'ladders'
+  : pagePath.endsWith('/mitgliederprofil') ? 'profile'
+  : pagePath.endsWith('/meine-verfuegbarkeit') ? 'availability'
+  : 'pyramid';
+const sectionTitles = {
+  pyramid: 'Forderungspyramide',
+  rules: 'So funktioniert die Forderungspyramide',
+  ladders: 'Meine Ranglisten',
+  profile: 'Mitgliederprofil',
+  availability: 'Meine Verfügbarkeit',
+};
+const sectionTitle = sectionTitles[activeSection];
 ---
-<MainLayout title="Forderungspyramide | TSV Feldkirchen Tennis" description="Geschützter vereinsinterner Bereich für Forderungsspiele." noindex={true}>
+<MainLayout title={`${sectionTitle} | TSV Feldkirchen Tennis`} description="Geschützter vereinsinterner Bereich für Forderungsspiele." noindex={true}>
   <div class="container pyramid-page stack" id="pyramid-root">
     <header class="pyramid-heading">
       <div><p class="eyebrow">TSV Feldkirchen Tennis · {isPreview ? 'Testvorschau' : 'Ranglisten'}</p><h1>Forderungspyramide</h1>
         <p>Fordere andere Vereinsmitglieder heraus, vereinbare ein Einzel und kämpfe dich in der vereinsinternen Rangliste nach oben.</p></div>
       {isPreview && <span class="pyramid-stage">Testvorschau</span>}
     </header>
-
-    <section id="pyramid-rules" class="card pyramid-rules" aria-labelledby="pyramid-rules-heading">
-      <p class="eyebrow">So funktioniert's</p><h2 id="pyramid-rules-heading">Regeln der Forderungspyramide</h2>
-      <ul class="pyramid-rules-list">
-        <li>Mitspielen dürfen Vereinsmitglieder nach Freigabe. Neue Spieler beginnen auf dem letzten Rang.</li>
-        <li>Fordern darfst du links in der eigenen Reihe und rechts oben in der nächsten Reihe; für Platz 3 gilt auch Platz 1. Die verbindliche Beispieltabelle regelt Sonderfälle.</li>
-        <li>Der Spieltermin sollte innerhalb von <strong>3 Tagen</strong> vereinbart werden. Das Match muss innerhalb von <strong>14 Tagen</strong> nach der Forderung stattfinden.</li>
-        <li>Gespielt werden <strong>zwei Gewinnsätze</strong>. Der dritte Satz ist ein Match-Tie-Break bis mindestens 10 Punkte mit 2 Punkten Abstand.</li>
-        <li>Der Herausforderer organisiert den Platz und stellt die Bälle.</li>
-        <li>Pro Spieler ist nur <strong>eine offene Forderung</strong> zulässig.</li>
-        <li>Der Sieger meldet das Ergebnis, der Gegner bestätigt es innerhalb von <strong>48 Stunden</strong>. Bei Streit entscheidet der Ranglistenwart.</li>
-        <li>Nach einer Niederlage und vor einer erneuten Forderung desselben Gegners gelten <strong>7 Tage Wartezeit</strong>. Der Sieger ist <strong>48 Stunden</strong> gegen neue Forderungen geschützt.</li>
-        <li>Bei Fristüberschreitung, Nichtantreten nach 15 Minuten oder schlechtem Wetter entscheidet die Ranglistenverwaltung. Eine Wetterverlängerung ist einmalig um bis zu 7 Tage möglich.</li>
-        <li>Urlaub, Krankheit oder Verletzung können bis zu <strong>28 Tage</strong> neutralisiert werden. Danach wirst du ans Ende deiner aktuellen Reihe gesetzt. Stehst du dort bereits, wechselst du in die Mitte der nächsten Reihe.</li>
-      </ul>
-      <p class="muted pyramid-rules-foot">Saisonstandard: 1. Mai bis 30. September. Es gilt das Master-Regelwerk der Forderungspyramide, Version 1.0.</p>
-    </section>
 
     <section id="pyramid-public-panel" class="card stack" aria-labelledby="pyramid-public-heading">
       <div class="pyramid-section-head"><div><p class="eyebrow">Öffentliche Vereinsrangliste</p>
@@ -81,18 +78,40 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
     <p id="pyramid-status" class="notice hidden" role="status" aria-live="polite"></p>
     <section id="pyramid-app" class="hidden stack" aria-label="Interne Ranglisten">
       <nav class="pyramid-member-nav" aria-label="Bereiche der Forderungspyramide">
-        <a href="#pyramid-overview">Pyramide</a>
-        <a href="#pyramid-rules">So funktioniert’s</a>
-        <a href="#pyramid-ladders">Meine Ranglisten</a>
-        <a href="#pyramid-avatar-panel">Mitgliederprofil</a>
-        <a href="#pyramid-availability-panel">Meine Verfügbarkeit</a>
+        <div class="pyramid-member-nav-links">
+          <a href="/forderungspyramide/" aria-current={activeSection === 'pyramid' ? 'page' : undefined}>Pyramide</a>
+          <a href="/forderungspyramide/so-funktionierts/" aria-current={activeSection === 'rules' ? 'page' : undefined}>So funktioniert’s</a>
+          <a href="/forderungspyramide/meine-ranglisten/" aria-current={activeSection === 'ladders' ? 'page' : undefined}>Meine Ranglisten</a>
+          <a href="/forderungspyramide/mitgliederprofil/" aria-current={activeSection === 'profile' ? 'page' : undefined}>Mitgliederprofil</a>
+          <a href="/forderungspyramide/meine-verfuegbarkeit/" aria-current={activeSection === 'availability' ? 'page' : undefined}>Meine Verfügbarkeit</a>
+        </div>
+        <div class="pyramid-session"><span id="pyramid-user-name"></span><button id="pyramid-password-change" class="button ghost" type="button">Passwort ändern</button><button id="pyramid-sign-out" class="button ghost" type="button">Abmelden</button></div>
       </nav>
-      <div id="pyramid-ladders" class="pyramid-toolbar card">
+      <section id="pyramid-upcoming-panel" class:list={["card pyramid-upcoming", { hidden: activeSection !== 'pyramid', "pyramid-section-disabled": activeSection !== 'pyramid' }]} aria-labelledby="pyramid-upcoming-heading">
+        <div><p class="eyebrow">Als Nächstes</p><h2 id="pyramid-upcoming-heading">Mein nächstes vereinbartes Spiel</h2></div>
+        <div id="pyramid-upcoming-games" aria-live="polite"><p class="muted">Spieltermin wird geladen …</p></div>
+      </section>
+      <section id="pyramid-rules" class:list={["card pyramid-rules", { hidden: activeSection !== 'rules' }]} aria-labelledby="pyramid-rules-heading">
+        <p class="eyebrow">So funktioniert's</p><h2 id="pyramid-rules-heading">Regeln der Forderungspyramide</h2>
+        <ul class="pyramid-rules-list">
+          <li>Mitspielen dürfen Vereinsmitglieder nach Freigabe. Neue Spieler beginnen auf dem letzten Rang.</li>
+          <li>Fordern darfst du links in der eigenen Reihe und rechts oben in der nächsten Reihe; für Platz 3 gilt auch Platz 1. Die verbindliche Beispieltabelle regelt Sonderfälle.</li>
+          <li>Der Spieltermin sollte innerhalb von <strong>3 Tagen</strong> vereinbart werden. Das Match muss innerhalb von <strong>14 Tagen</strong> nach der Forderung stattfinden.</li>
+          <li>Gespielt werden <strong>zwei Gewinnsätze</strong>. Der dritte Satz ist ein Match-Tie-Break bis mindestens 10 Punkte mit 2 Punkten Abstand.</li>
+          <li>Der Herausforderer organisiert den Platz und stellt die Bälle.</li>
+          <li>Pro Spieler ist nur <strong>eine offene Forderung</strong> zulässig.</li>
+          <li>Der Sieger meldet das Ergebnis, der Gegner bestätigt es innerhalb von <strong>48 Stunden</strong>. Bei Streit entscheidet der Ranglistenwart.</li>
+          <li>Nach einer Niederlage und vor einer erneuten Forderung desselben Gegners gelten <strong>7 Tage Wartezeit</strong>. Der Sieger ist <strong>48 Stunden</strong> gegen neue Forderungen geschützt.</li>
+          <li>Bei Fristüberschreitung, Nichtantreten nach 15 Minuten oder schlechtem Wetter entscheidet die Ranglistenverwaltung. Eine Wetterverlängerung ist einmalig um bis zu 7 Tage möglich.</li>
+          <li>Urlaub, Krankheit oder Verletzung können bis zu <strong>28 Tage</strong> neutralisiert werden. Danach wirst du ans Ende deiner aktuellen Reihe gesetzt. Stehst du dort bereits, wechselst du in die Mitte der nächsten Reihe.</li>
+        </ul>
+        <p class="muted pyramid-rules-foot">Saisonstandard: 1. Mai bis 30. September. Es gilt das Master-Regelwerk der Forderungspyramide, Version 1.0.</p>
+      </section>
+      <div id="pyramid-ladders" class:list={["pyramid-toolbar card", { hidden: activeSection !== 'ladders' }]}>
         <div><p class="eyebrow">Meine Ranglisten</p><label for="pyramid-ladder-select" class="pyramid-toolbar-label">Saison und Gruppe</label>
           <select id="pyramid-ladder-select" aria-label="Rangliste auswählen"></select></div>
-        <div class="pyramid-session"><span id="pyramid-user-name"></span><button id="pyramid-password-change" class="button ghost" type="button">Passwort ändern</button><button id="pyramid-sign-out" class="button ghost" type="button">Abmelden</button></div>
       </div>
-      <section id="pyramid-join-panel" class="card hidden">
+      <section id="pyramid-join-panel" class:list={["card hidden", { "pyramid-section-disabled": activeSection !== 'ladders' }]}>
         <p class="eyebrow">Teilnahme</p><h2>Für diese Pyramide bewerben</h2>
         <p>Du bist angemeldet. Wähle oben die gewünschte Gruppe und stelle hier deine Anfrage. Die Ranglistenverwaltung gibt deine Teilnahme anschließend frei.</p>
         <form id="pyramid-join-form" class="form-grid">
@@ -101,7 +120,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         </form>
         <p id="pyramid-join-state" class="muted"></p>
       </section>
-      <section id="pyramid-avatar-panel" class="card stack hidden">
+      <section id="pyramid-avatar-panel" class:list={["card stack hidden", { "pyramid-section-disabled": activeSection !== 'profile' }]}>
         <div><p class="eyebrow">Mitgliederprofil</p><h2>Mein Profilbild</h2>
           <p class="muted">Dein Foto erscheint oben links auf deiner Spieler-Kachel in der Forderungspyramide. Es ist für angemeldete, berechtigte Ranglistenmitglieder sichtbar. Beim Auswählen wird dein Bild sofort angezeigt und automatisch gespeichert. Erlaubt sind JPG, PNG, WebP und AVIF bis 8 MB.</p>
         </div>
@@ -117,18 +136,14 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
           </div>
         </div>
       </section>
-      <section id="pyramid-overview" class="card stack">
+      <section id="pyramid-overview" class:list={["card stack", { hidden: activeSection !== 'pyramid' }]}>
         <div class="pyramid-section-head"><div><p class="eyebrow">Rangliste</p><h2 id="pyramid-ladder-heading">Pyramide</h2>
           <p id="pyramid-ladder-dates" class="muted"></p></div><span id="pyramid-own-rank" class="pyramid-own-rank"></span></div>
-        <div class="pyramid-upcoming" aria-labelledby="pyramid-upcoming-heading">
-          <h3 id="pyramid-upcoming-heading">Nächste eingetragene Spiele</h3>
-          <div id="pyramid-upcoming-games" aria-live="polite"><p class="muted">Spieltermine werden geladen …</p></div>
-        </div>
         <div id="pyramid-board" class="pyramid-board" aria-live="polite"></div>
         <div id="pyramid-qualifier" aria-live="polite"></div>
         <p class="muted pyramid-board-help">Innerhalb der eigenen Reihe nach links oder eine Reihe höher nach rechts fordern. Ab Rang 3 aufwärts ist Rang 1 erreichbar. Neue Mitglieder werden am Ende eingereiht.</p>
       </section>
-      <details id="pyramid-availability-panel" class="card pyramid-availability hidden">
+      <details id="pyramid-availability-panel" class:list={["card pyramid-availability hidden", { "pyramid-section-disabled": activeSection !== 'availability' }]} open={activeSection === 'availability'}>
         <summary><span><span class="eyebrow">Meine Verfügbarkeit</span><strong>Spielbereit oder neutralisiert?</strong></span><span aria-hidden="true">⌄</span></summary>
         <div class="pyramid-availability-content stack">
           <p class="muted">Du kannst deine Spieler-Kachel bei Urlaub, Krankheit, Verletzung oder sonstiger Abwesenheit höchstens 28 Tage neutralisieren. Währenddessen sind Forderungen gesperrt. Danach wirst du automatisch wieder spielbereit und ans Ende deiner aktuellen Reihe gesetzt. Stehst du dort bereits, wechselst du in die Mitte der nächsten Reihe.</p>
@@ -147,11 +162,11 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
           <p class="muted" id="pyramid-neutral-state" aria-live="polite"></p>
         </div>
       </details>
-      <section id="pyramid-games-panel" class="card stack">
+      <section id="pyramid-games-panel" class:list={["card stack", { hidden: activeSection !== 'pyramid', "pyramid-section-disabled": activeSection !== 'pyramid' }]}>
         <div class="pyramid-section-head"><div><p class="eyebrow">Forderungsspiele</p><h2>Offene und letzte Begegnungen</h2></div></div>
         <div id="pyramid-games" class="pyramid-games" aria-live="polite"></div>
       </section>
-      <section id="pyramid-admin-panel" class="card stack hidden">
+      <section id="pyramid-admin-panel" class:list={["card stack hidden", { "pyramid-section-disabled": activeSection !== 'ladders' }]}>
         <div><p class="eyebrow">Nur Ranglistenverwaltung</p><h2>Ranglistenverwaltung</h2>
           <p class="muted">Saisons und Gruppen werden separat verwaltet. Bereits vorhandene Mannschaftskader bleiben unverändert.</p></div>
         <form id="pyramid-create-form" class="pyramid-create-form">

@@ -25,11 +25,14 @@
 .pyramid-entry-hint{font-size:.67rem;color:#6b7c72}
 .pyramid-entry button{border:0;border-radius:7px;background:#e30613;color:white;font-size:.77rem;font-weight:850;min-height:30px}
 .pyramid-board-help{font-size:.86rem;margin:0}
-.pyramid-member-nav{position:sticky;top:72px;z-index:24;display:flex;gap:7px;overflow-x:auto;padding:9px;border:1px solid #dfe5e1;border-radius:13px;background:#fff;box-shadow:0 8px 24px #14201d12;scrollbar-width:thin}
+.pyramid-member-nav{position:sticky;top:72px;z-index:24;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px;border:1px solid #dfe5e1;border-radius:13px;background:#fff;box-shadow:0 8px 24px #14201d12}
+.pyramid-member-nav-links{display:flex;gap:7px;overflow-x:auto;scrollbar-width:thin}
 .pyramid-member-nav a{flex:0 0 auto;padding:9px 13px;border-radius:9px;color:#27342f;text-decoration:none;font-size:.82rem;font-weight:850;white-space:nowrap}
-.pyramid-member-nav a:hover,.pyramid-member-nav a:focus-visible{background:#fff0f1;color:#b50917;outline:2px solid #e30613;outline-offset:-2px}
+.pyramid-member-nav a:hover,.pyramid-member-nav a:focus-visible,.pyramid-member-nav a[aria-current="page"]{background:#fff0f1;color:#b50917;outline:2px solid #e30613;outline-offset:-2px}
+.pyramid-member-nav .pyramid-session{flex:0 0 auto}
+.pyramid-section-disabled{display:none!important}
 .pyramid-upcoming{display:grid;gap:9px;padding:13px 14px;border:1px solid #e5d8d9;border-radius:12px;background:#fff9f9}
-.pyramid-upcoming h3{margin:0;color:#7f0912;font-size:1rem}
+.pyramid-upcoming h2{margin:0;color:#7f0912;font-size:1.15rem}
 #pyramid-upcoming-games{display:grid;gap:7px}
 .pyramid-upcoming-game{display:grid;grid-template-columns:minmax(155px,.55fr) 1fr;gap:12px;padding:9px 10px;border-radius:9px;background:#fff;border:1px solid #eadfe0}
 .pyramid-upcoming-game time{color:#a20b17;font-weight:850}
@@ -80,7 +83,9 @@
  .pyramid-entry-name{font-size:.67rem}
  .pyramid-entry-hint{font-size:.56rem}
  .pyramid-entry button{font-size:.59rem;min-height:25px;padding:2px}
- .pyramid-member-nav{top:62px;margin-inline:-4px;padding:7px}
+ .pyramid-member-nav{top:62px;margin-inline:-4px;padding:7px;align-items:stretch;flex-direction:column}
+ .pyramid-member-nav .pyramid-session{width:100%;justify-content:flex-end}
+ .pyramid-member-nav .pyramid-session>span{display:none}
  .pyramid-member-nav a{padding:8px 10px;font-size:.75rem}
  .pyramid-upcoming-game{grid-template-columns:1fr;gap:3px}
  .pyramid-rules-grid,.pyramid-create-form{grid-template-columns:1fr}
