@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/forderungspyramide-staging
+      - feature/astro-supabase-foundation
   workflow_dispatch:
 
 permissions:
