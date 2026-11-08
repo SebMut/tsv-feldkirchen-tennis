@@ -7,7 +7,7 @@ type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends
 type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null;last_win_at?:string|null;neutralized_at?:string|null;neutralized_reason?:string|null };
 type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
 type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
-  created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;refusal_reason?:string|null;winner_id:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
+  created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;refusal_reason?:string|null;winner_id:string|null;proposed_winner_id?:string|null;proposed_score?:string|null;reported_at?:string|null;confirmation_deadline?:string|null;dispute_reason?:string|null;weather_extended_at?:string|null;overdue_extended_at?:string|null;no_show_requested_at?:string|null;no_show_reporter_id?:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
 const state: {
   user:any;profile:any;superAdmin:boolean;ladders:Ladder[];ladderId:string;
   entries:Entry[];requests:Request[];challenges:Challenge[];resultChallenge:string;avatars:Record<string,string>;
@@ -36,16 +36,17 @@ const currentLadder = () => state.ladders.find((item)=>item.id===state.ladderId)
 const entryName = (id:string) => state.entries.find((item)=>item.id===id)?.display_name || 'Teilnehmer';
 const isInvolved = (c:Challenge) => !!myEntry() && (c.challenger_id===myEntry()?.id || c.defender_id===myEntry()?.id);
 const waitingDays=(date:string|null|undefined,days:number)=>!!date && new Date(date).getTime()>Date.now()-days*86400000;
+const openStatuses=['pending','accepted','result_pending','result_disputed'];
+const neutralNow=(e:Entry)=>!!e.neutralized_at&&waitingDays(e.neutralized_at,28);
 function canSendChallenge(me:Entry,target:Entry){
-  if(target.qualified===false||me.id===target.id||target.neutralized_at||me.neutralized_at)return false;
-  if(waitingDays(me.last_loss_at,3)||waitingDays(target.last_win_at,3))return false;
-  if(state.challenges.some(game=>['pending','accepted'].includes(game.status)
+  if(me.id===target.id||neutralNow(target)||neutralNow(me))return false;
+  if(waitingDays(me.last_loss_at,7)||waitingDays(target.last_win_at,2))return false;
+  if(state.challenges.some(game=>openStatuses.includes(game.status)
     &&[me.id,target.id].some(id=>game.challenger_id===id||game.defender_id===id)))return false;
   if(state.challenges.some(game=>game.challenger_id===me.id&&game.defender_id===target.id
     &&['completed','forfeit'].includes(game.status)
-    &&waitingDays(game.resolved_at,14)))return false;
-  return me.qualified===false?canQualifyAgainst(target.position,state.entries):
-    canChallenge(me.position,target.position);
+    &&waitingDays(game.resolved_at,7)))return false;
+  return canChallenge(me.position,target.position);
 }
 const friendlyReason=(reason:string|null|undefined)=>({
   injury:'Verletzung',illness:'Krankheit',vacation:'Urlaub',other:'Sonstiges'
@@ -66,11 +67,11 @@ async function signIn(email:string,password:string) {
 function renderBoard() {
   const ladder=currentLadder();
   const me=myEntry();
-  const qualified=state.entries.filter(entry=>entry.qualified!==false);
+  const qualified=state.entries;
   text('pyramid-ladder-heading',ladder ? ladder.title+' · '+ladder.season_label : 'Noch keine Rangliste');
   text('pyramid-ladder-dates',ladder ? formatDate(ladder.starts_on)+' bis '+formatDate(ladder.ends_on)
     : 'Die erste Rangliste kann von der Ranglistenverwaltung angelegt werden.');
-  text('pyramid-own-rank',me ? (me.qualified===false?'Qualifikation offen':'Mein Platz #'+me.position) : '');
+  text('pyramid-own-rank',me ? 'Mein Platz #'+me.position : '');
   hidden('pyramid-own-rank',!me);
   if(!ladder){html('pyramid-board','<p class="muted">Noch keine Ranglisten vorhanden.</p>');html('pyramid-qualifier','');return;}
   const canPlay=ladder.active && !!ladder.seeded_at
@@ -85,28 +86,24 @@ function renderBoard() {
         const canTarget=!!me&&canPlay&&canSendChallenge(me,item);
         const portrait=state.avatars[item.user_id];
         return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canTarget?' is-target':'')
-          +(item.neutralized_at?' is-neutralized':'')+'">'
+          +(neutralNow(item)?' is-neutralized':'')+'">'
           +(portrait?'<img class="pyramid-entry-avatar" src="'+escapeHtml(mediaUrl(portrait))
              +'" alt="Profilbild von '+escapeHtml(item.display_name)+'" loading="lazy" decoding="async" />':'')
           +'<span class="pyramid-entry-rank">#'+item.position+'</span>'
           +'<span class="pyramid-entry-name">'+escapeHtml(item.display_name)+'</span>'
           +(mine?'<span class="pyramid-entry-hint">Du</span>':'')
-          +(item.neutralized_at?'<span class="pyramid-entry-away" aria-label="Aktueller Status: '
+          +(neutralNow(item)?'<span class="pyramid-entry-away" aria-label="Aktueller Status: '
             +escapeHtml(friendlyReason(item.neutralized_reason))+'">'
             +escapeHtml(friendlyReason(item.neutralized_reason))+'</span>':'')
-          +(item.last_win_at&&waitingDays(item.last_win_at,3)?'<span class="pyramid-entry-hint">Siegerschutz (3 Tage)</span>':'')
-          +(canTarget?'<button type="button" data-pyramid-challenge="'+item.id+'">'
-            +(me?.qualified===false?'Einfordern':'Fordern')+'</button>':'')
+          +(item.last_win_at&&waitingDays(item.last_win_at,2)?'<span class="pyramid-entry-hint">Siegerschutz (48 Stunden)</span>':'')
+          +(canTarget?'<button type="button" data-pyramid-challenge="'+item.id+'">Fordern</button>':'')
           +'</div>';
       }).join('')+'</div>').join('');
     html('pyramid-board',board);
   }
-  html('pyramid-qualifier',me?.qualified===false
-    ?'<div class="pyramid-qualification-help"><strong>Dein Einforderungsspiel steht noch aus.</strong>'
-       +'<p>Nach den TSV-Regeln kannst du jeden bereits platzierten Spieler herausfordern. '
-       +'Gewinnst du, steigst du an deren Platz ein; bei einer Niederlage erhältst du den letzten Rang. '
-       +'Wähle zum Fordern einen der markierten Spieler.</p></div>'
-    :(!ladder.seeded_at?'<p class="muted">Die LK-Startaufstellung muss noch durch die Ranglistenverwaltung freigegeben werden. Vorher sind keine Forderungen möglich.</p>':''));
+  html('pyramid-qualifier',!ladder.seeded_at
+    ?'<p class="muted">Die LK-Startaufstellung muss noch durch die Ranglistenverwaltung freigegeben werden.</p>'
+    :'<p class="muted">Neue Mitglieder werden nach Freigabe automatisch am Ende der Rangliste eingereiht.</p>');
 }
 function renderGames() {
   const visible=state.challenges.filter((item)=>state.superAdmin||isInvolved(item)).sort(
@@ -196,9 +193,9 @@ function renderOwnAvailability(){
   hidden('pyramid-availability-panel',!me);
   const field=el<HTMLSelectElement>('pyramid-neutral-reason');
   if(field&&me)field.value=me.neutralized_reason||'';
-  text('pyramid-neutral-state',me?.neutralized_at
+  text('pyramid-neutral-state',me&&neutralNow(me)
     ?'Neutralisiert seit '+formatDate(me.neutralized_at)+': '+friendlyReason(me.neutralized_reason)
-       +(['injury','vacation'].includes(me.neutralized_reason||'')?' · Nach 4 Wochen beginnt die Rangverschiebung':'')
+       +' · maximal 28 Tage, danach automatisch wieder spielbereit (keine automatische Rückstufung)'
     :'Du bist spielbereit und kannst unter Beachtung der Forderungsregeln gefordert werden.');
 }
 function renderAll(){
@@ -298,7 +295,7 @@ function wireEvents(){
   });
   el('pyramid-finalize-seed')?.addEventListener('click',()=>{
     if(!state.superAdmin||!state.ladderId)return;
-    if(confirm('Startaufstellung abschließen? Spätere Neueintritte bleiben vorläufig.')) {
+    if(confirm('LK-Startaufstellung verbindlich abschließen? Später freigegebene Mitglieder werden am Ende eingereiht.')) {
       void (async () => {
         try {
           await rpc('pyramid_finalize_seed',{p_ladder:state.ladderId});
@@ -652,7 +649,7 @@ function demoHandleForm(event:SubmitEvent){
     const me=myEntry();
     const reason=el<HTMLSelectElement>('pyramid-neutral-reason')?.value||null;
     if(!me){demoMessage('Wähle zunächst einen Teilnehmer aus.','error');return;}
-    if(state.challenges.some(c=>['pending','accepted'].includes(c.status)
+    if(state.challenges.some(c=>openStatuses.includes(c.status)
        &&(c.challenger_id===me.id||c.defender_id===me.id))&&reason){
       demoMessage('Bitte zuerst dein eingetragenes Forderungsspiel abschließen.','error');return;
     }
