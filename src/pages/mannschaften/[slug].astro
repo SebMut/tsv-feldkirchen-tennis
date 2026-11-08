@@ -21,6 +21,16 @@ const teamNames: Record<string, string> = {
   'bambini-12-iii': 'Bambini 12 III', 'kleinfeld-u9': 'Kleinfeld U9'
 };
 const teamName = teamNames[slug ?? ''] ?? 'Mannschaft';
+const teamDescription = `${teamName} des TSV Feldkirchen Tennis: Spielplan, Ergebnisse, Tabelle, Kader und aktuelle Saisoninformationen.`;
+const teamIntro = `Alle Informationen zur Mannschaft ${teamName}: aktuelle Begegnungen, Ergebnisse, Tabellenstand, Saisonbilanz und Neuigkeiten aus dem Team.`;
+const teamSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SportsTeam',
+  name: `${teamName} – TSV Feldkirchen Tennis`,
+  sport: 'Tennis',
+  url: `https://www.tennis-tsvfeldkirchen.de/mannschaften/${slug}/`,
+  memberOf: {'@id': 'https://www.tennis-tsvfeldkirchen.de/#organization'},
+};
 const teamGroup = slug?.startsWith('herren') ? { label: 'Herren', key: 'herren' }
   : slug?.startsWith('damen') ? { label: 'Damen', key: 'damen' }
   : slug?.startsWith('junioren') ? { label: 'Junioren', key: 'junioren' }
@@ -35,10 +45,10 @@ const breadcrumbItems = [
   { label: teamName }
 ];
 ---
-<MainLayout title="Mannschaft | TSV Feldkirchen Tennis">
+<MainLayout title={`${teamName} | TSV Feldkirchen Tennis`} description={teamDescription} structuredData={teamSchema}>
   <div class="container stack team-detail-page" data-team-slug={slug}>
     <Breadcrumbs items={breadcrumbItems} />
-    <div id="team-header"><p class="muted">Mannschaft wird geladen …</p></div>
+    <header id="team-header" class="team-detail-static-head"><p class="eyebrow">Mannschaft</p><h1>{teamName}</h1><p class="muted">{teamIntro}</p></header>
     <section id="team-next-match" class="hidden" aria-live="polite"></section>
     <section class="grid two">
       <details class="card team-roster-disclosure" id="team-roster-details">

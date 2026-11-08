@@ -1,13 +1,14 @@
 // Static Astro build audit. No production deployment or private credentials are needed.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const dist = new URL('../dist/', import.meta.url).pathname;
+const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const preview = process.env.PUBLIC_PREVIEW_MODE === 'true';
 const basePath = (process.env.PREVIEW_BASE || '/').replace(/\/$/, '');
 const required = [
   '/', '/aktuelles/', '/mannschaften/', '/termine/', '/spieltag/', '/training/',
-  '/mitglied-werden/', '/sponsoren/', '/funktionaere/', '/kontakt/', '/admin/', '/verwaltung/ergebnisse/', '/spiel/', '/live/'
+  '/mitglied-werden/', '/hallenplaetze/', '/sponsoren/', '/ueber-uns/', '/funktionaere/', '/kontakt/', '/admin/', '/verwaltung/ergebnisse/', '/spiel/', '/live/'
 ];
 const errors = [];
 
@@ -28,14 +29,20 @@ walk(dist);
 for (const file of htmlFiles) {
   const html = readFileSync(file, 'utf8');
   const name = relative(dist, file).split(sep).join('/');
+  const protectedPage = name === 'admin/index.html' || name === 'verwaltung/ergebnisse/index.html' || name === 'impressum/index.html' || name === 'datenschutz/index.html';
   if (!/<html\s+lang="de"/.test(html)) errors.push(name + ': lang=de fehlt');
   if (!/<meta\s+name="description"/.test(html)) errors.push(name + ': Beschreibung fehlt');
   if (!/<link\s+rel="canonical"/.test(html)) errors.push(name + ': Canonical fehlt');
   if (!/<title>[^<]+<\/title>/.test(html)) errors.push(name + ': Titel fehlt');
+  if (!protectedPage && !/<meta\s+name="twitter:card"/.test(html)) errors.push(name + ': Twitter Card fehlt');
+  if (!protectedPage && !/application\/ld\+json/.test(html)) errors.push(name + ': strukturierte Daten fehlen');
+  if (name.startsWith('mannschaften/') && name !== 'mannschaften/index.html') {
+    if (!/<h1\b[^>]*>[^<]+<\/h1>/.test(html)) errors.push(name + ': statisches Mannschafts-H1 fehlt');
+    if (/<title>Mannschaft \|/.test(html)) errors.push(name + ': generischer Mannschaftstitel');
+  }
   if (preview && !/<meta\s+name="robots"\s+content="noindex,nofollow"/.test(html)) {
     errors.push(name + ': Preview darf nicht indexierbar sein');
   }
-  const protectedPage = name === 'admin/index.html' || name === 'verwaltung/ergebnisse/index.html' || name === 'impressum/index.html' || name === 'datenschutz/index.html';
   if (protectedPage && !/<meta\s+name="robots"\s+content="noindex,nofollow"/.test(html)) {
     errors.push(name + ': geschützte/Brückenseite muss noindex sein');
   }
@@ -54,6 +61,11 @@ if (!htmlFiles.length) errors.push('Keine HTML-Seiten im Build');
 const sitemap = join(dist, 'sitemap.xml');
 if (!existsSync(sitemap)) errors.push('Sitemap fehlt');
 else if (!readFileSync(sitemap, 'utf8').includes('<urlset')) errors.push('Sitemap ungültig');
+else {
+  const sitemapXml = readFileSync(sitemap, 'utf8');
+  if (!sitemapXml.includes('/hallenplaetze/')) errors.push('Hallenfinder fehlt in Sitemap');
+  if (!sitemapXml.includes('<lastmod>')) errors.push('Sitemap enthält kein lastmod');
+}
 const manifestPath = join(dist, 'manifest.webmanifest');
 const workerPath = join(dist, 'sw.js');
 const iconPath = join(dist, 'app-icon.svg');

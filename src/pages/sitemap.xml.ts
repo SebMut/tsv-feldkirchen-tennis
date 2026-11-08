@@ -9,7 +9,8 @@ const teamSlugs = [
 
 const paths = [
   '/', '/aktuelles/', '/termine/', '/spieltag/', '/mannschaften/', '/training/',
-  '/mitglied-werden/', '/sponsoren/', '/funktionaere/', '/kontakt/',
+  '/mitglied-werden/', '/hallenplaetze/', '/sponsoren/', '/ueber-uns/', '/funktionaere/', '/kontakt/',
+  '/live/', '/spieltag/live-ticker/',
   ...teamSlugs.map((slug) => `/mannschaften/${slug}/`),
 ];
 
@@ -17,10 +18,11 @@ export const GET: APIRoute = () => {
   // Canonical URLs belong to the eventual production domain, even in a
   // noindex preview. The preview is separately blocked via robots.txt.
   const root = 'https://www.tennis-tsvfeldkirchen.de';
+  const lastmod = new Date().toISOString().slice(0, 10);
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    ...paths.map((path) => `  <url><loc>${root}${path}</loc></url>`),
+    ...paths.map((path) => `  <url><loc>${root}${path}</loc><lastmod>${lastmod}</lastmod></url>`),
     '</urlset>',
     '',
   ].join('\n');
