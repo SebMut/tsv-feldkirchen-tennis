@@ -228,7 +228,8 @@ begin
      update public.pyramid_challenges
        set status='declined', resolved_at=now(),decline_reason='another_match_accepted'
      where ladder_id=c.ladder_id and id<>c.id and status='pending'
-       and defender_id in (c.challenger_id,c.defender_id)
+       and (defender_id in (c.challenger_id,c.defender_id)
+         or challenger_id in (c.challenger_id,c.defender_id))
      returning id
    )
    insert into private.pyramid_auto_decline_notices(challenge_id)
