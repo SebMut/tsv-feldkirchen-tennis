@@ -32,6 +32,22 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
           <select id="pyramid-ladder-select" aria-label="Rangliste auswählen"></select></div>
         <div class="pyramid-session"><span id="pyramid-user-name"></span><button id="pyramid-sign-out" class="button ghost" type="button">Abmelden</button></div>
       </div>
+      <section id="pyramid-avatar-panel" class="card stack hidden">
+        <div><p class="eyebrow">Mitgliederprofil</p><h2>Mein Profilbild</h2>
+          <p class="muted">Dein Foto erscheint oben links auf deiner Spieler-Kachel in der Forderungspyramide. Es ist für angemeldete, berechtigte Ranglistenmitglieder sichtbar. Erlaubt sind JPG, PNG, WebP und AVIF bis 8 MB.</p>
+        </div>
+        <div class="pyramid-avatar-editor">
+          <div id="pyramid-avatar-preview" aria-live="polite"></div>
+          <div class="stack">
+            <form id="pyramid-avatar-form" class="form-grid">
+              <div class="field full"><label for="pyramid-avatar-file">Profilbild auswählen</label>
+                <input id="pyramid-avatar-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif" required /></div>
+              <div class="field full"><button type="submit" class="button button--hot">Profilbild speichern</button></div>
+            </form>
+            <button id="pyramid-avatar-remove" type="button" class="button ghost">Profilbild entfernen</button>
+          </div>
+        </div>
+      </section>
       <section id="pyramid-overview" class="card stack">
         <div class="pyramid-section-head"><div><p class="eyebrow">Rangliste</p><h2 id="pyramid-ladder-heading">Pyramide</h2>
           <p id="pyramid-ladder-dates" class="muted"></p></div><span id="pyramid-own-rank" class="pyramid-own-rank"></span></div>
@@ -50,12 +66,12 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       </section>
       <section id="pyramid-availability-panel" class="card stack hidden">
         <p class="eyebrow">Meine Verfügbarkeit</p><h2>Spielbereit oder neutralisiert?</h2>
-        <p class="muted">Bei Urlaub, Krankheit oder Verletzung kannst du deine Ranglistentafel neutralisieren. Du kannst dann weder fordern noch gefordert werden. Bei Verletzung rutschst du erstmals nach vier Wochen an das Ende deiner Reihe, danach alle weiteren vier Wochen eine Reihe tiefer, bis du wieder spielbereit bist.</p>
+        <p class="muted">Bei Urlaub, Krankheit oder Verletzung kannst du deine Spieler-Kachel neutralisieren. Der Status „Urlaub“ wird unten links angezeigt. Solange du neutralisiert bist, kannst du weder fordern noch gefordert werden. Bei Urlaub und Verletzung bleibt dein Rang vier Wochen unverändert; danach fällst du zunächst ans Ende deiner Reihe und anschließend alle vier Wochen eine Reihe tiefer, bis du dich wieder als spielbereit meldest.</p>
         <form id="pyramid-availability-form" class="form-grid">
           <div class="field"><label for="pyramid-neutral-reason">Status</label>
             <select id="pyramid-neutral-reason">
               <option value="">Spielbereit</option>
-              <option value="vacation">Urlaub</option>
+              <option value="vacation">Urlaub (bis 4 Wochen ohne Rangverschiebung)</option>
               <option value="illness">Krankheit</option>
               <option value="injury">Verletzung</option>
               <option value="other">Sonstige Abwesenheit</option>
