@@ -50,7 +50,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         <div class="field"><label for="pyramid-password">Passwort</label><input id="pyramid-password" type="password" autocomplete="current-password" required /></div>
         <div class="field full pyramid-auth-actions">
           <button class="button button--hot" type="submit">Anmelden</button>
-          <button class="button ghost" type="button" id="pyramid-magic-link" disabled>Zugangslink per E-Mail</button>
+          <button class="button ghost" type="button" id="pyramid-magic-link" disabled>Passwort-Link per E-Mail</button>
         </div>
       </form>
       <div id="pyramid-access-turnstile-wrap" class="hidden">
@@ -58,7 +58,24 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         <p id="pyramid-access-turnstile-status" class="muted" role="status">Menschprüfung wird geladen …</p>
       </div>
       <p id="pyramid-access-mail-status" class="muted" role="status" aria-live="polite">Der sichere E-Mail-Versand wird geprüft …</p>
-      <p class="muted">Noch kein Zugang oder Passwort vergessen? Gib deine E-Mail-Adresse ein, schließe die Menschprüfung ab und fordere einen einmaligen Zugangslink an. Einladungen und Freigaben verwaltet der Verein.</p>
+      <p class="muted">Noch kein Zugang oder Passwort vergessen? Gib deine E-Mail-Adresse ein, schließe die Menschprüfung ab und fordere einen einmaligen Link an. Über diesen legst du dein Passwort fest. Einladungen und Freigaben verwaltet der Verein.</p>
+    </section>
+
+    <section id="pyramid-password-setup" class="card pyramid-password-setup stack hidden" aria-labelledby="pyramid-password-setup-title">
+      <div><p class="eyebrow">Mein TSV · Sicherer Zugang</p>
+        <h2 id="pyramid-password-setup-title">Passwort festlegen</h2>
+        <p id="pyramid-password-setup-intro" class="muted">Dein Zugangslink wird geprüft …</p></div>
+      <form id="pyramid-password-setup-form" class="form-grid hidden">
+        <div class="field full"><label for="pyramid-new-password">Neues Passwort (mindestens 10 Zeichen)</label>
+          <input id="pyramid-new-password" type="password" minlength="10" maxlength="128" required autocomplete="new-password" /></div>
+        <div class="field full"><label for="pyramid-confirm-password">Passwort wiederholen</label>
+          <input id="pyramid-confirm-password" type="password" minlength="10" maxlength="128" required autocomplete="new-password" /></div>
+        <div class="field full pyramid-auth-actions">
+          <button id="pyramid-password-setup-save" class="button button--hot" type="submit">Passwort speichern und zur Pyramide</button>
+          <button id="pyramid-password-setup-cancel" class="button ghost hidden" type="button">Abbrechen</button>
+        </div>
+      </form>
+      <p id="pyramid-password-setup-status" class="muted" role="status" aria-live="polite"></p>
     </section>
 
     <p id="pyramid-status" class="notice hidden" role="status" aria-live="polite"></p>
@@ -66,8 +83,17 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       <div class="pyramid-toolbar card">
         <div><p class="eyebrow">Meine Ranglisten</p><label for="pyramid-ladder-select" class="pyramid-toolbar-label">Saison und Gruppe</label>
           <select id="pyramid-ladder-select" aria-label="Rangliste auswählen"></select></div>
-        <div class="pyramid-session"><span id="pyramid-user-name"></span><button id="pyramid-sign-out" class="button ghost" type="button">Abmelden</button></div>
+        <div class="pyramid-session"><span id="pyramid-user-name"></span><button id="pyramid-password-change" class="button ghost" type="button">Passwort ändern</button><button id="pyramid-sign-out" class="button ghost" type="button">Abmelden</button></div>
       </div>
+      <section id="pyramid-join-panel" class="card hidden">
+        <p class="eyebrow">Teilnahme</p><h2>Für diese Pyramide bewerben</h2>
+        <p>Du bist angemeldet. Wähle oben die gewünschte Gruppe und stelle hier deine Anfrage. Die Ranglistenverwaltung gibt deine Teilnahme anschließend frei.</p>
+        <form id="pyramid-join-form" class="form-grid">
+          <div class="field"><label for="pyramid-display-name">Name für die Rangliste</label><input id="pyramid-display-name" maxlength="80" minlength="2" required autocomplete="name" /></div>
+          <div class="field pyramid-form-end"><button class="button button--hot" type="submit">Jetzt Teilnahme beantragen</button></div>
+        </form>
+        <p id="pyramid-join-state" class="muted"></p>
+      </section>
       <section id="pyramid-avatar-panel" class="card stack hidden">
         <div><p class="eyebrow">Mitgliederprofil</p><h2>Mein Profilbild</h2>
           <p class="muted">Dein Foto erscheint oben links auf deiner Spieler-Kachel in der Forderungspyramide. Es ist für angemeldete, berechtigte Ranglistenmitglieder sichtbar. Beim Auswählen wird dein Bild sofort angezeigt und automatisch gespeichert. Erlaubt sind JPG, PNG, WebP und AVIF bis 8 MB.</p>
@@ -90,15 +116,6 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         <div id="pyramid-board" class="pyramid-board" aria-live="polite"></div>
         <div id="pyramid-qualifier" aria-live="polite"></div>
         <p class="muted pyramid-board-help">Innerhalb der eigenen Reihe nach links oder eine Reihe höher nach rechts fordern. Ab Rang 3 aufwärts ist Rang 1 erreichbar. Neue Mitglieder werden am Ende eingereiht.</p>
-      </section>
-      <section id="pyramid-join-panel" class="card hidden">
-        <p class="eyebrow">Teilnahme</p><h2>Mitspielen</h2>
-        <p>Ein Mitgliedskonto allein berechtigt noch nicht zur Teilnahme. Deine Anfrage wird von der Ranglistenverwaltung geprüft.</p>
-        <form id="pyramid-join-form" class="form-grid">
-          <div class="field"><label for="pyramid-display-name">Name für die Rangliste</label><input id="pyramid-display-name" maxlength="80" minlength="2" required autocomplete="name" /></div>
-          <div class="field pyramid-form-end"><button class="button button--hot" type="submit">Teilnahme anfragen</button></div>
-        </form>
-        <p id="pyramid-join-state" class="muted"></p>
       </section>
       <section id="pyramid-availability-panel" class="card stack hidden">
         <p class="eyebrow">Meine Verfügbarkeit</p><h2>Spielbereit oder neutralisiert?</h2>
