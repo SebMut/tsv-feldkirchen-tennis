@@ -4,8 +4,8 @@ import {createClient} from 'npm:@supabase/supabase-js@2.57.4';
 
 const env=(key:string)=>Deno.env.get(key)?.trim()||'';
 type Notice={
- id:string;recipient_email:string|null;challenger_name:string;
- defender_name:string;ladder_title:string;season_label:string;
+ id:string;kind:'auto_decline'|'challenge_created';recipient_email:string|null;challenger_name:string;
+ defender_name:string;ladder_title:string;season_label:string;challenge_status:string;
 };
 const reply=(status:number,data:unknown)=>new Response(JSON.stringify(data),{
  status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'},
@@ -41,29 +41,43 @@ function gmailRaw(to:string,subject:string,plain:string,html:string) {
  return b64(source).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
 }
 function buildMail(row:Notice) {
- const title='TSV Feldkirchen Tennis · Forderung automatisch abgelehnt';
+ const newChallenge=row.kind==='challenge_created';
+ const accepted=row.challenge_status==='accepted';
+ const title=newChallenge
+   ?(accepted?'TSV Feldkirchen Tennis · Privates Forderungsspiel eingetragen'
+      :'TSV Feldkirchen Tennis · Neue Forderung für dich')
+   :'TSV Feldkirchen Tennis · Forderung automatisch abgelehnt';
+ const greeting='Hallo '+(newChallenge?row.defender_name:row.challenger_name)+',';
+ const stateText=newChallenge
+   ?(accepted
+     ?'Ein privat vereinbartes Forderungsspiel gegen '+row.challenger_name+' wurde in der Rangliste eingetragen und als angenommen markiert.'
+     :'Du wurdest von '+row.challenger_name+' herausgefordert. Bitte melde dich innerhalb von zehn Tagen im geschützten Mitgliederbereich an und beantworte die Forderung.')
+   :'Deine Forderung an '+row.defender_name+' wurde automatisch abgelehnt, weil eines der beteiligten Mitglieder ein anderes Forderungsspiel angenommen hat.';
+ const followup=newChallenge
+   ?(accepted
+     ?'Vereinbart euren Spieltermin möglichst innerhalb von zehn Tagen. Nach dem Match trägt der Sieger das Ergebnis ein.'
+     :'Eine Forderung ist grundsätzlich anzunehmen. Nur bei einer weiteren offenen Forderung darfst du sie gemäß den Ranglistenregeln ablehnen. Erfolgt innerhalb von zehn Tagen keine Annahme, gilt das Spiel als verloren.')
+   :'Solange das angenommene Spiel läuft, können die Beteiligten nicht erneut gefordert werden. Danach darfst du nach den geltenden Regeln wieder fordern.';
+ const link='https://www.tennis-tsvfeldkirchen.de/forderungspyramide/';
  const plain=[
- 'TSV FELDKIRCHEN TENNIS','Forderung automatisch abgelehnt','','Hallo '+row.challenger_name+',',
- 'deine offene Forderung an '+row.defender_name+' in der Forderungspyramide '+row.ladder_title+
- ' ('+row.season_label+') wurde automatisch abgelehnt.',
- 'Grund: Für diese Person wurde inzwischen eine andere Forderung angenommen.',
- 'Solange das angenommene Spiel nicht abgeschlossen ist, kann die Person nicht erneut gefordert werden.',
- 'Du kannst danach eine neue Forderung stellen, sofern die Ranglistenregeln dies erlauben.','',
- 'Diese E-Mail wurde automatisch erstellt. Du musst nichts weiter tun.','',
- 'TSV Feldkirchen Tennis'
+  'TSV FELDKIRCHEN TENNIS',title,'',greeting,'',stateText,'',
+  'Gruppe: '+row.ladder_title+' · '+row.season_label,'',followup,'',
+  'Geschützter Mitgliederbereich: '+link,'',
+  'Diese E-Mail wurde automatisch erstellt. Bitte antworte nicht direkt auf diese Nachricht.',
+  'TSV Feldkirchen Tennis'
  ].join('\n');
  const html='<!doctype html><html lang="de"><head><meta charset="UTF-8"></head><body style="margin:0;background:#f4f5f5;font-family:Arial,Helvetica,sans-serif;color:#183026">'
   +'<div style="max-width:640px;margin:25px auto;background:white;border:1px solid #dde4e1;border-radius:14px;overflow:hidden">'
   +'<header style="background:#e30613;color:#fff;padding:24px 28px"><p style="margin:0;font-size:12px;letter-spacing:2px;font-weight:bold">TSV FELDKIRCHEN TENNIS</p>'
-  +'<h1 style="font-size:24px;margin:9px 0 0">Forderung automatisch abgelehnt</h1></header>'
-  +'<main style="padding:26px 28px"><p>Hallo '+escapeHtml(row.challenger_name)+',</p>'
-  +'<p>deine Forderung an <strong>'+escapeHtml(row.defender_name)+'</strong> in der '
-  +'<strong>'+escapeHtml(row.ladder_title)+' · '+escapeHtml(row.season_label)+'</strong> wurde automatisch abgelehnt.</p>'
+  +'<h1 style="font-size:24px;margin:9px 0 0">'+escapeHtml(title.replace('TSV Feldkirchen Tennis · ',''))+'</h1></header>'
+  +'<main style="padding:26px 28px"><p>'+escapeHtml(greeting)+'</p>'
+  +'<p>'+escapeHtml(stateText)+'</p>'
   +'<p style="background:#fff2f2;border-left:5px solid #e30613;padding:14px">'
-  +'Die geforderte Person hat inzwischen ein anderes Forderungsspiel angenommen. Bis zum Abschluss '
-  +'dieses Spiels kann sie nicht erneut herausgefordert werden.</p>'
-  +'<p>Danach kannst du gemäß den Ranglistenregeln eine neue Forderung stellen. '
-  +'Für die abgelehnte Forderung musst du nichts weiter unternehmen.</p>'
+  +'<strong>'+escapeHtml(row.ladder_title)+' · '+escapeHtml(row.season_label)+'</strong></p>'
+  +'<p>'+escapeHtml(followup)+'</p>'
+  +'<p><a href="'+link+'" style="display:inline-block;background:#e30613;color:white;'
+  +'border-radius:8px;padding:13px 20px;text-decoration:none;font-weight:bold">'
+  +'Zur Forderungspyramide</a></p>'
   +'<p>Sportliche Grüße<br><strong>TSV Feldkirchen Tennis</strong></p></main>'
   +'<footer style="padding:16px 28px;background:#15382f;color:#f6f6f6;font-size:12px">'
   +'Automatische Benachrichtigung der Tennisabteilung</footer></div></body></html>';
@@ -107,7 +121,7 @@ Deno.serve(async(req)=>{
  if(authError||authorized!==true)return reply(401,{error:'Unauthorized'});
  let sent=0,failed=0;
  for(let n=0;n<10;n++){
-  const {data,error}=await db.rpc('claim_pyramid_auto_decline_notice');
+  const {data,error}=await db.rpc('claim_pyramid_notification');
   if(error){console.error('pyramid_notice_claim_failed');return reply(503,{error:'Queue unavailable',sent,failed})}
   const row=(Array.isArray(data)?data[0]:null) as Notice|null;
   if(!row)break;
