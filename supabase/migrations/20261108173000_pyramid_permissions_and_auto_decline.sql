@@ -177,6 +177,9 @@ begin
 end;
 $$;
 
+alter table public.pyramid_challenges add column decline_reason text
+ check (decline_reason in ('another_match_accepted','player_declined'));
+
 -- Rejection emails: transactional outbox, committed with each automatic decline.
 create table private.pyramid_auto_decline_notices(
  id uuid primary key default gen_random_uuid(),
@@ -224,7 +227,7 @@ begin
      accepted_at=now(),play_deadline=now()+interval '10 days' where id=c.id;
    with rejected as (
      update public.pyramid_challenges
-       set status='declined', resolved_at=now()
+       set status='declined', resolved_at=now(),decline_reason='another_match_accepted'
      where ladder_id=c.ladder_id and id<>c.id and status='pending'
        and defender_id in (c.challenger_id,c.defender_id)
      returning id
@@ -237,7 +240,7 @@ begin
      and (challenger_id=c.defender_id or defender_id=c.defender_id)) then
      raise exception 'Ablehnen ist nur bei einer anderen offenen Forderung erlaubt';
    end if;
-   update public.pyramid_challenges set status='declined',resolved_at=now() where id=c.id;
+   update public.pyramid_challenges set status='declined',resolved_at=now(),decline_reason='player_declined' where id=c.id;
  end if;
 end;
 $$;
