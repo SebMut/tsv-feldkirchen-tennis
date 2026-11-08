@@ -134,7 +134,7 @@ create or replace function private.pyramid_accept_locked(p_challenge uuid)
 declare c public.pyramid_challenges%rowtype;
 begin
  select * into strict c from public.pyramid_challenges where id=p_challenge for update;
- if c.status<>'pending' or c.created_at+interval '14 days'<=now() then
+ if c.status<>'pending' or coalesce(c.accept_deadline,c.created_at+interval '14 days')<=now() then
    raise exception 'Die Forderungsfrist ist abgelaufen; Ranglistenverwaltung entscheidet';
  end if;
  if exists(select 1 from public.pyramid_challenges where id<>c.id
