@@ -15,14 +15,9 @@ export function canChallenge(challengerPosition, defenderPosition) {
     || (c.row === d.row && d.column < c.column)
     || (d.row === c.row - 1 && d.column >= c.column);
 }
-// PDF §6.1: An unranked entrant may qualify against any ranked player
-// no lower than the penultimate existing row. Initial seed entries count.
+// TSV §Neueinsteiger: any ranked player may be challenged in the entry game.
 export function canQualifyAgainst(defenderPosition, rankedEntries) {
-  const eligible = rankedEntries.filter(entry => entry.qualified !== false);
-  const bottom = Math.max(-1,...eligible.map(entry=>pyramidCell(entry.position)?.row ?? -1));
-  const defender = eligible.find(entry=>entry.position===defenderPosition);
-  const row = pyramidCell(defenderPosition)?.row;
-  return !!defender && bottom >= 1 && row != null && row < bottom;
+  return rankedEntries.some(entry=>entry.qualified!==false && entry.position===defenderPosition);
 }
 export function pyramidRows(entries) {
   const positions = new Map(entries.map((entry) => [entry.position, entry]));
