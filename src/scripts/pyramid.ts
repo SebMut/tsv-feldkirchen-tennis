@@ -489,7 +489,7 @@ function demoRole(role:string){
   state.superAdmin=role==='admin';
   state.user={id:role==='admin'?'demo-user-15':role};
   state.profile={display_name:role==='admin'?'Muster-Admin'
-    :role==='demo-user-13'?'Spieler 13':role==='demo-user-15'?'Musterperson':'Gastkonto'};
+    :role==='demo-user-12'?'Spieler 12':role==='demo-user-13'?'Spieler 13':role==='demo-user-15'?'Musterperson':'Gastkonto'};
   text('pyramid-user-name','Demo · '+state.profile.display_name);
   demoRefresh();
 }
@@ -618,7 +618,8 @@ function demoHandleButton(event:MouseEvent){
     state.entries.push({
       id:'demo-entry-'+(++demoSequence),
       ladder_id:state.ladderId,user_id:request.user_id,
-      display_name:request.display_name,position,provisional:true,last_loss_at:null
+      display_name:request.display_name,position,provisional:true,
+      qualified:!currentLadder()?.seeded_at,last_loss_at:null
     });
     demoRefresh();
     demoMessage(request.display_name+' auf Rang '+position+' freigegeben.','success');
@@ -773,6 +774,7 @@ function renderDemo(){
     +'<select id="pyramid-demo-role">'
     +'<option value="admin">Muster-Admin (mit Teilnehmerplatz 15)</option>'
     +'<option value="demo-user-15">Mitglied · Musterperson (Platz 15)</option>'
+    +'<option value="demo-user-12">Geforderte Person · Spieler 12</option>'
     +'<option value="demo-user-13">Geforderte Person · Spieler 13</option>'
     +'<option value="demo-guest">Mitglied ohne Ranglistenplatz</option>'
     +'</select><button type="button" class="button secondary" id="pyramid-demo-reset">'
