@@ -1,5 +1,5 @@
 import { supabase, mediaUrl } from '../lib/supabase';
-import { replaceMediaImage, removeMediaImage } from '../lib/media-upload';
+import { replaceMediaImage, removeMediaImage, assertImageFile } from '../lib/media-upload';
 import { escapeHtml, setStatus } from '../lib/ui';
 import { canChallenge, canQualifyAgainst, defaultMasterSeason, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
 
@@ -64,6 +64,58 @@ async function signIn(email:string,password:string) {
   const {error}=await supabase.auth.signInWithPassword({email,password});
   if(error)throw error;
 }
+
+type PublicStanding={
+ ladder_id:string;ladder_title:string;season_label:string;starts_on:string;ends_on:string;
+ seeded:boolean;position:number|null;display_name:string|null;
+};
+let publicStandings:PublicStanding[]=[];
+let chosenPublicLadder='';
+function renderGuestStandings(){
+ const picker=el<HTMLSelectElement>('pyramid-public-select');
+ const groups=[...new Map(publicStandings.map(x=>[x.ladder_id,x])).values()];
+ if(picker){
+   picker.innerHTML=groups.map(x=>'<option value="'+escapeHtml(x.ladder_id)+'">'
+     +escapeHtml(x.ladder_title+' · '+x.season_label)+'</option>').join('');
+   if(!groups.some(x=>x.ladder_id===chosenPublicLadder))chosenPublicLadder=groups[0]?.ladder_id||'';
+   picker.value=chosenPublicLadder;
+   picker.disabled=groups.length<2;
+ }
+ const ladder=groups.find(x=>x.ladder_id===chosenPublicLadder);
+ text('pyramid-public-dates',ladder?formatDate(ladder.starts_on)+' bis '+formatDate(ladder.ends_on):'');
+ if(!ladder){
+   html('pyramid-public-board','<p class="muted">Momentan ist keine öffentliche Rangliste eingerichtet.</p>');
+   text('pyramid-public-message','');return;
+ }
+ const entries=publicStandings.filter(x=>x.ladder_id===chosenPublicLadder
+   &&typeof x.position==='number'&&typeof x.display_name==='string'
+   &&x.display_name.trim().length>0);
+ if(!entries.length){
+   html('pyramid-public-board','<p class="muted">Noch keine freigegebenen Mitglieder in dieser Rangliste.</p>');
+ }else{
+   html('pyramid-public-board',pyramidRows(entries).map((row,index)=>
+     '<div class="pyramid-board-row" role="list" aria-label="Pyramidenreihe '+(index+1)+'">'
+     +row.map(x=>x
+       ?'<div class="pyramid-entry pyramid-entry-public" role="listitem">'
+        +'<span class="pyramid-entry-rank">#'+x.position+'</span>'
+        +'<span class="pyramid-entry-name">'+escapeHtml(x.display_name||'')+'</span></div>'
+       :'<div class="pyramid-entry is-empty" aria-hidden="true"></div>').join('')
+     +'</div>').join(''));
+ }
+ text('pyramid-public-message',ladder.seeded?'':'Die Startaufstellung wurde noch nicht endgültig freigegeben.');
+}
+async function loadGuestStandings(){
+ hidden('pyramid-public-panel',!!state.user);
+ if(state.user)return;
+ const {data,error}=await supabase.rpc('pyramid_public_standings');
+ if(error){
+   html('pyramid-public-board','<p class="muted">Die Rangliste konnte nicht geladen werden. Bitte Seite erneut öffnen.</p>');
+   console.warn('Public pyramid read unavailable:',error.code);return;
+ }
+ publicStandings=(data||[]) as PublicStanding[];
+ renderGuestStandings();
+}
+
 function renderBoard() {
   const ladder=currentLadder();
   const me=myEntry();
@@ -267,7 +319,8 @@ async function load() {
     state.user=response.data.user;
     hidden('pyramid-auth',!!state.user);
     hidden('pyramid-app',!state.user);
-    if(!state.user)return;
+    hidden('pyramid-public-panel',!!state.user);
+    if(!state.user){await loadGuestStandings();return;}
     const profile=await supabase.from('profiles').select('id,display_name,global_role,global_permissions,avatar_path').eq('id',state.user.id).maybeSingle();
     if(profile.error)throw profile.error;
     state.profile=profile.data;
@@ -296,6 +349,10 @@ function openResult(id:string) {
   dialog.showModal();
 }
 function wireEvents(){
+  el<HTMLSelectElement>('pyramid-public-select')?.addEventListener('change',event=>{
+    chosenPublicLadder=(event.target as HTMLSelectElement).value;
+    renderGuestStandings();
+  });
   el<HTMLFormElement>('pyramid-login-form')?.addEventListener('submit',async(event)=>{
     event.preventDefault();
     const email=el<HTMLInputElement>('pyramid-email')?.value.trim()||'';
@@ -833,6 +890,7 @@ function renderDemo(){
   if(!root)return;
   root.dataset.demoMode='true';
   hidden('pyramid-auth',true);
+  hidden('pyramid-public-panel',true);
   hidden('pyramid-app',false);
   const banner=document.createElement('section');
   banner.className='card pyramid-demo-bar';
