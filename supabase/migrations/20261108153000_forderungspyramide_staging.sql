@@ -191,10 +191,9 @@ begin
 end;
 $$;
 
--- Finalize the initial LK-based/administratively ordered list once.
--- New later entrants stay provisional; the entire ranking is never reset.
+-- Finalize the LK-based initial ranking exactly once; late entrants remain provisional.
 create function public.pyramid_finalize_seed(p_ladder uuid)
- returns void language plpgsql security definer set search_path = '' as $
+ returns void language plpgsql security definer set search_path = '' as $$
 declare l public.pyramid_ladders%rowtype;
 begin
  if not private.is_super_admin() then raise exception 'Keine Berechtigung' using errcode='42501'; end if;
@@ -210,7 +209,7 @@ begin
  update public.pyramid_entries set provisional=false where ladder_id=p_ladder;
  update public.pyramid_ladders set seeded_at=now() where id=p_ladder;
 end;
-$;
+$$;
 
 create function public.pyramid_challenge(p_defender uuid)
  returns uuid language plpgsql security definer set search_path = '' as $$
@@ -280,13 +279,33 @@ begin
 end;
 $$;
 
--- Only finished tennis scores are accepted; score is always from the winner's perspective.
 create function private.pyramid_valid_winning_score(p_score text) returns boolean
- language plpgsql immutable set search_path = '' as $
+ language plpgsql immutable set search_path = '' as $$
 declare v_set text; v_parts text[]; v_a integer; v_b integer;
         v_count integer:=0; v_wins_a integer:=0; v_wins_b integer:=0;
 begin
- if p_score is null or p_score !~ '^[0-9]{1,2}:[0-9]{1,2}(, ?[0-9]{1,2}:[0-9]{1,2}){1,2}p_challenge uuid,p_score text,p_winner uuid default null)
+ if p_score is null or p_score !~ '^[0-9]{1,2}:[0-9]{1,2}(, ?[0-9]{1,2}:[0-9]{1,2}){1,2}$' then
+   return false;
+ end if;
+ for v_set in select regexp_split_to_table(p_score, ',\s*') loop
+   v_count:=v_count+1;
+   v_parts:=string_to_array(v_set,':');
+   v_a:=v_parts[1]::integer;
+   v_b:=v_parts[2]::integer;
+   if v_count<=2 then
+     if not ((greatest(v_a,v_b)=6 and least(v_a,v_b)<=4)
+       or (greatest(v_a,v_b)=7 and least(v_a,v_b) in (5,6))) then return false; end if;
+   elsif greatest(v_a,v_b)<10 or abs(v_a-v_b)<2 then return false;
+   end if;
+   if v_a>v_b then v_wins_a:=v_wins_a+1; else v_wins_b:=v_wins_b+1; end if;
+ end loop;
+ return (v_count=2 and v_wins_a=2 and v_wins_b=0)
+    or (v_count=3 and v_wins_a=2 and v_wins_b=1);
+end;
+$$;
+revoke all on function private.pyramid_valid_winning_score(text) from public,anon,authenticated;
+
+create function public.pyramid_report_result(p_challenge uuid,p_score text,p_winner uuid default null)
  returns void language plpgsql security definer set search_path = '' as $$
 declare c public.pyramid_challenges%rowtype; own_entry uuid; w uuid;
 begin
@@ -341,82 +360,6 @@ revoke all on function public.pyramid_request_join(uuid,text),
  from public,anon;
 grant execute on function public.pyramid_request_join(uuid,text),
  public.pyramid_approve_join(uuid), public.pyramid_move_entry(uuid,integer),
- public.pyramid_challenge(uuid), public.pyramid_respond(uuid,boolean),
- public.pyramid_report_result(uuid,text,uuid) to authenticated;
- then
-   return false;
- end if;
- for v_set in select regexp_split_to_table(p_score, ',\s*') loop
-   v_count:=v_count+1;
-   v_parts:=string_to_array(v_set,':');
-   v_a:=v_parts[1]::integer;
-   v_b:=v_parts[2]::integer;
-   if v_count<=2 then
-     if not ((greatest(v_a,v_b)=6 and least(v_a,v_b)<=4)
-       or (greatest(v_a,v_b)=7 and least(v_a,v_b) in (5,6))) then return false; end if;
-   elsif greatest(v_a,v_b)<10 or abs(v_a-v_b)<2 then return false;
-   end if;
-   if v_a>v_b then v_wins_a:=v_wins_a+1; else v_wins_b:=v_wins_b+1; end if;
- end loop;
- return (v_count=2 and v_wins_a=2 and v_wins_b=0)
-    or (v_count=3 and v_wins_a=2 and v_wins_b=1);
-end;
-$;
-revoke all on function private.pyramid_valid_winning_score(text) from public,anon,authenticated;
-
-create function public.pyramid_report_result(p_challenge uuid,p_score text,p_winner uuid default null)
- returns void language plpgsql security definer set search_path = '' as $$
-declare c public.pyramid_challenges%rowtype; own_entry uuid; w uuid;
-begin
- select * into strict c from public.pyramid_challenges where id=p_challenge;
- perform 1 from public.pyramid_ladders where id=c.ladder_id for update;
- select * into strict c from public.pyramid_challenges where id=p_challenge for update;
- select id into own_entry from public.pyramid_entries where ladder_id=c.ladder_id and user_id=auth.uid();
- w:=coalesce(p_winner,own_entry);
- if c.status<>'accepted' then raise exception 'Das Forderungsspiel ist nicht offen'; end if;
- if not private.is_super_admin() and (w is distinct from own_entry
-     or own_entry not in (c.challenger_id,c.defender_id)) then
-   raise exception 'Nur der Sieger darf sein Ergebnis melden' using errcode='42501';
- end if;
- if w not in (c.challenger_id,c.defender_id) then raise exception 'Ungültiger Sieger'; end if;
- if p_score is null or char_length(p_score)>80
-   or p_score !~ '^[0-9]{1,2}:[0-9]{1,2}(, ?[0-9]{1,2}:[0-9]{1,2}){1,2}$' then
-   raise exception 'Ergebnisformat: 6:4, 6:3 oder 6:4, 4:6, 10:8';
- end if;
- perform private.pyramid_finish(c.id,w,'completed',p_score);
-end;
-$$;
-
--- pg_cron is already installed in the dedicated TSV project.
-create function public.pyramid_settle_expired()
- returns integer language plpgsql security definer set search_path = '' as $$
-declare l record; c record; n integer:=0;
-begin
- for l in select distinct ladder_id from public.pyramid_challenges
-    where status='pending' and accept_deadline<=now() loop
-   perform 1 from public.pyramid_ladders where id=l.ladder_id for update;
-   for c in select id,challenger_id from public.pyramid_challenges
-     where ladder_id=l.ladder_id and status='pending' and accept_deadline<=now()
-     order by created_at,id for update loop
-     -- Missing the 10-day acceptance window counts as a defender loss.
-     perform private.pyramid_finish(c.id,c.challenger_id,'forfeit',null);
-     n:=n+1;
-   end loop;
- end loop;
- return n;
-end;
-$$;
-revoke all on function public.pyramid_settle_expired() from public,anon,authenticated;
-grant execute on function public.pyramid_settle_expired() to postgres,service_role;
-select cron.schedule('tsv-pyramid-acceptance-expiry','15 * * * *','select public.pyramid_settle_expired()');
-
--- RPC entry points must not remain callable by anon/PUBLIC.
-revoke all on function public.pyramid_request_join(uuid,text),
- public.pyramid_approve_join(uuid), public.pyramid_move_entry(uuid,integer),
- public.pyramid_challenge(uuid), public.pyramid_respond(uuid,boolean),
- public.pyramid_report_result(uuid,text,uuid)
- from public,anon;
-grant execute on function public.pyramid_request_join(uuid,text),
- public.pyramid_approve_join(uuid), public.pyramid_move_entry(uuid,integer),
+ public.pyramid_finalize_seed(uuid),
  public.pyramid_challenge(uuid), public.pyramid_respond(uuid,boolean),
  public.pyramid_report_result(uuid,text,uuid) to authenticated;
