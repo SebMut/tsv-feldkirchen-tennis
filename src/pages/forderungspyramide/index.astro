@@ -36,6 +36,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         <div class="pyramid-section-head"><div><p class="eyebrow">Rangliste</p><h2 id="pyramid-ladder-heading">Pyramide</h2>
           <p id="pyramid-ladder-dates" class="muted"></p></div><span id="pyramid-own-rank" class="pyramid-own-rank"></span></div>
         <div id="pyramid-board" class="pyramid-board" aria-live="polite"></div>
+        <div id="pyramid-qualifier" aria-live="polite"></div>
         <p class="muted pyramid-board-help">Eine Reihe links oder in der Reihe darüber rechts fordern. Für die Plätze 1–3 gilt die Sonderregel. Neue Teilnehmer können sich in die Rangliste einfordern.</p>
       </section>
       <section id="pyramid-join-panel" class="card hidden">
@@ -66,7 +67,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         <h3>Startplätze sortieren</h3>
         <div id="pyramid-admin-entries" class="pyramid-admin-entries"></div>
         <button class="button secondary" id="pyramid-finalize-seed" type="button">Startaufstellung verbindlich abschließen</button>
-        <p class="muted">Erst nach der anfänglichen LK-/Rangsortierung abschließen. Danach sind neue Teilnehmer weiterhin vorläufig.</p>
+        <p class="muted">LK-Startsortierung und Qualifikationsspiele werden im vollständigen <a href="/admin/">Mein-TSV-Adminbereich</a> verwaltet. Nach der Startaufstellung müssen später aufgenommene Spieler zunächst ein Einforderungsspiel bestreiten.</p>
       </section>
     </section>
     <section class="card pyramid-rules">
@@ -74,9 +75,9 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       <div class="pyramid-rules-grid">
         <div><strong>10 Tage</strong><span>Forderung annehmen, sonst Wertung für den Herausforderer</span></div>
         <div><strong>10 Tage</strong><span>Nach der Annahme möglichst das Spiel austragen</span></div>
-        <div><strong>14 Tage</strong><span>Nach einer Niederlage keine neue Forderung aussprechen</span></div>
+        <div><strong>14 Tage</strong><span>Nur wenn der Herausforderer verliert, darf er vorübergehend niemanden erneut fordern</span></div>
       </div>
-      <p>Gespielt werden zwei Gewinnsätze mit Tie-Break; der dritte Satz wird als Champions-Tie-Break ausgetragen. Die Spielpartner organisieren Platzbuchung und Bälle selbst. Der Sieger trägt das Ergebnis ein. Fairness und Spielfreude stehen im Mittelpunkt.</p>
+      <p>Neue Teilnehmer fordern sich zunächst bis maximal zur zweituntersten Reihe ein. Nach einer Niederlage des <strong>Herausforderers</strong> gilt eine 14-tägige Forderungssperre. Gespielt werden zwei Gewinnsätze mit Tie-Break; der dritte Satz wird als Champions-Tie-Break ausgetragen. Die Spielpartner organisieren Platzbuchung und Bälle selbst. Der Sieger trägt das Ergebnis ein. Fairness und Spielfreude stehen im Mittelpunkt.</p>
       <p class="muted">Regelgrundlage: „Forderungspyramide Spvgg 05 Oberrad – Regeln“, Stand April 2025. Für diese Vereinsrangliste gelten die auf dieser Seite zusammengefassten Regeln und die jeweils angegebene Saison.</p>
     </section>
   </div>
