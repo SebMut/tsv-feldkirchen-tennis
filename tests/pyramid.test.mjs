@@ -23,12 +23,12 @@ test('reference PDF example #15 can challenge #11 to #14 but not #10',()=>{
  assert.equal(canChallenge(3,1),true);
  assert.equal(canChallenge(3,2),true);
 });
-test('late entrant can qualify only against a ranked player no lower than the penultimate row',()=>{
+test('TSV late entrant may qualify against any ranked member, never another entrant',()=>{
  const entries=Array.from({length:15},(_,i)=>({position:i+1,qualified:true}));
  entries.push({position:16,qualified:false});
- for(const eligible of [1,2,3,4,5,6,7,8,9,10])
+ for(const eligible of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
   assert.equal(canQualifyAgainst(eligible,entries),true,String(eligible));
- for(const forbidden of [11,12,13,14,15,16])
+ for(const forbidden of [16])
   assert.equal(canQualifyAgainst(forbidden,entries),false,String(forbidden));
  assert.equal(canChallenge(18,12),false,'Normal row geometry is distinct from qualification');
 });
