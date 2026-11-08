@@ -477,7 +477,7 @@ alter table private.pyramid_auto_decline_notices
 create or replace function public.claim_pyramid_notification()
  returns table(id uuid,kind text,recipient_email text,challenger_name text,
    defender_name text,ladder_title text,season_label text,challenge_status text)
- language plpgsql security definer set search_path = '' as $
+ language plpgsql security definer set search_path = '' as $$
 begin
  if (auth.jwt()->>'role') is distinct from 'service_role' then
    raise exception 'Nur der E-Mail-Service darf senden' using errcode='42501';
@@ -514,7 +514,7 @@ begin
    when cl.kind='result_reported' then ch.user_id
    else ch.user_id end;
 end;
-$;
+$$;
 revoke all on function public.claim_pyramid_notification()
  from public,anon,authenticated;
 grant execute on function public.claim_pyramid_notification() to service_role;
@@ -522,7 +522,7 @@ grant execute on function public.claim_pyramid_notification() to service_role;
 -- Do not let an active match (including a disputed result) be bypassed by
 -- neutralizing one of its players.
 create or replace function public.pyramid_set_neutralized(p_entry uuid,p_reason text)
- returns void language plpgsql security definer set search_path = '' as $
+ returns void language plpgsql security definer set search_path = '' as $$
 declare e public.pyramid_entries%rowtype;
 begin
  select * into strict e from public.pyramid_entries where id=p_entry;
@@ -546,6 +546,6 @@ begin
        neutralized_reason=p_reason,neutral_shifted_at=null,neutral_shift_count=0
    where id=e.id;
 end;
-$;
+$$;
 
 -- All sections of the uploaded master are documented in the migration above.
