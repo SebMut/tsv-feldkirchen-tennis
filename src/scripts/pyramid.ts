@@ -318,6 +318,13 @@ async function load() {
     const response=await supabase.auth.getUser();
     if(response.error&&response.error.message!=='Auth session missing!')throw response.error;
     state.user=response.data.user;
+    if(passwordSetupMode){
+      hidden('pyramid-auth',true);
+      hidden('pyramid-app',true);
+      hidden('pyramid-public-panel',true);
+      return;
+    }
+    hidden('pyramid-password-setup',true);
     hidden('pyramid-auth',!!state.user);
     hidden('pyramid-app',!state.user);
     hidden('pyramid-public-panel',!!state.user);
@@ -409,7 +416,106 @@ async function initAccessMail(){
  }
 }
 
+
+// Authenticated access links arrive directly on this page. Supabase's token
+// hash lives in the URL fragment (never the HTTP request). Remove it before
+// loading any additional resources or showing the application.
+type SetupLinkType='magiclink'|'signup'|'invite'|'recovery'|'email';
+type SetupLink={token:string;type:SetupLinkType};
+let passwordSetupMode:'link'|'manual'|null=null;
+function consumePasswordSetupLink():SetupLink|null{
+ const params=new URLSearchParams(location.hash.replace(/^#/,''));
+ const raw=params.get('pyramid_token_hash');
+ if(!raw)return null;
+ history.replaceState(history.state,'',location.pathname+location.search);
+ const type=params.get('pyramid_token_type');
+ if(!/^[a-f0-9]{64}$/i.test(raw)
+    ||!['magiclink','signup','invite','recovery','email'].includes(type||'')){
+   notice('Der Einrichtungslink ist ungültig. Bitte einen neuen Link anfordern.','error');
+   return null;
+ }
+ return {token:raw,type:type as SetupLinkType};
+}
+function showPasswordSetup(mode:'link'|'manual',verified:boolean){
+ passwordSetupMode=mode;
+ hidden('pyramid-password-setup',false);
+ hidden('pyramid-password-setup-form',!verified);
+ hidden('pyramid-password-setup-cancel',mode!=='manual');
+ hidden('pyramid-auth',true);
+ hidden('pyramid-app',true);
+ hidden('pyramid-public-panel',true);
+ text('pyramid-password-setup-title',mode==='link'?'Passwort für Mein TSV einrichten':'Passwort ändern');
+ text('pyramid-password-setup-intro',verified
+   ?'Lege ein Passwort fest. Damit kannst du dich anschließend jederzeit mit deiner E-Mail-Adresse anmelden und dich sofort für eine Pyramide bewerben.'
+   :'Dein einmaliger E-Mail-Link wird sicher geprüft …');
+ text('pyramid-password-setup-status',verified
+   ?'Verwende mindestens 10 Zeichen und wiederhole das neue Passwort.'
+   :'');
+}
+async function exchangePasswordSetupLink(link:SetupLink){
+ showPasswordSetup('link',false);
+ try{
+   const {data,error}=await supabase.auth.verifyOtp({
+     type:link.type,token_hash:link.token
+   });
+   if(error)throw error;
+   if(!data.user||!data.session)throw new Error('Keine gültige Anmeldung nach Link-Bestätigung.');
+   showPasswordSetup('link',true);
+   el<HTMLInputElement>('pyramid-new-password')?.focus();
+ }catch(e){
+   passwordSetupMode=null;
+   hidden('pyramid-password-setup',true);
+   await load();
+   notice('Einrichtungslink ungültig oder abgelaufen: '+safeError(e)
+     +'. Bitte fordere einen neuen Passwort-Link an.','error');
+ }
+}
+
 function wireEvents(){
+  el<HTMLFormElement>('pyramid-password-setup-form')?.addEventListener('submit',async(event)=>{
+    event.preventDefault();
+    const password=el<HTMLInputElement>('pyramid-new-password')?.value||'';
+    const confirmation=el<HTMLInputElement>('pyramid-confirm-password')?.value||'';
+    const button=el<HTMLButtonElement>('pyramid-password-setup-save');
+    if(password.length<10||password.length>128){
+      text('pyramid-password-setup-status','Das Passwort muss zwischen 10 und 128 Zeichen lang sein.');
+      return;
+    }
+    if(password!==confirmation){
+      text('pyramid-password-setup-status','Die Passwörter stimmen nicht überein. Bitte erneut prüfen.');
+      return;
+    }
+    if(button)button.disabled=true;
+    text('pyramid-password-setup-status','Dein Passwort wird sicher gespeichert …');
+    try{
+      const {data,error}=await supabase.auth.updateUser({password});
+      if(error)throw error;
+      if(!data.user)throw new Error('Die Passwortänderung konnte nicht bestätigt werden.');
+      el<HTMLFormElement>('pyramid-password-setup-form')?.reset();
+      passwordSetupMode=null;
+      hidden('pyramid-password-setup',true);
+      await load();
+      notice('Passwort erfolgreich eingerichtet. Du kannst dich jetzt für die gewünschte Pyramide bewerben.','success');
+      const join=el('pyramid-join-panel');
+      if(join&&!join.classList.contains('hidden'))join.scrollIntoView({behavior:'smooth',block:'center'});
+    }catch(e){
+      text('pyramid-password-setup-status','Passwort konnte nicht gespeichert werden: '+safeError(e));
+    }finally{
+      if(button)button.disabled=false;
+    }
+  });
+  el('pyramid-password-change')?.addEventListener('click',()=>{
+    if(!state.user){notice('Bitte zuerst anmelden.','error');return;}
+    showPasswordSetup('manual',true);
+    el<HTMLInputElement>('pyramid-new-password')?.focus();
+  });
+  el('pyramid-password-setup-cancel')?.addEventListener('click',()=>{
+    if(passwordSetupMode!=='manual')return;
+    passwordSetupMode=null;
+    el<HTMLFormElement>('pyramid-password-setup-form')?.reset();
+    hidden('pyramid-password-setup',true);
+    void load();
+  });
   el<HTMLSelectElement>('pyramid-public-select')?.addEventListener('change',event=>{
     chosenPublicLadder=(event.target as HTMLSelectElement).value;
     renderGuestStandings();
@@ -1014,6 +1120,7 @@ function renderDemo(){
   hidden('pyramid-auth',true);
   hidden('pyramid-public-panel',true);
   hidden('pyramid-app',false);
+  hidden('pyramid-password-change',true);
   const banner=document.createElement('section');
   banner.className='card pyramid-demo-bar';
   banner.setAttribute('aria-label','Testmodus');
@@ -1069,9 +1176,19 @@ export function initPyramid(){
     if(field&&!field.value)field.value=value;
   }
   wireEvents();
-  void load();
+  const token=consumePasswordSetupLink();
+  if(token){
+    passwordSetupMode='link';
+    void exchangePasswordSetupLink(token);
+  }else{
+    void load();
+  }
   void initAccessMail();
   supabase.auth.onAuthStateChange((event)=>{
-    if(event==='SIGNED_IN'||event==='SIGNED_OUT')queueMicrotask(()=>void load());
+    if(event==='PASSWORD_RECOVERY'){
+      queueMicrotask(()=>showPasswordSetup('link',true));
+    }else if(event==='SIGNED_IN'||event==='SIGNED_OUT'){
+      queueMicrotask(()=>void load());
+    }
   });
 }
