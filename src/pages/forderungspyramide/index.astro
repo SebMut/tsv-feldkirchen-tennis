@@ -11,7 +11,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       {isPreview && <span class="pyramid-stage">Testvorschau</span>}
     </header>
 
-    <section class="card pyramid-rules" aria-labelledby="pyramid-rules-heading">
+    <section id="pyramid-rules" class="card pyramid-rules" aria-labelledby="pyramid-rules-heading">
       <p class="eyebrow">So funktioniert's</p><h2 id="pyramid-rules-heading">Regeln der Forderungspyramide</h2>
       <ul class="pyramid-rules-list">
         <li>Mitspielen dürfen Vereinsmitglieder nach Freigabe. Neue Spieler beginnen auf dem letzten Rang.</li>
@@ -23,7 +23,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         <li>Der Sieger meldet das Ergebnis, der Gegner bestätigt es innerhalb von <strong>48 Stunden</strong>. Bei Streit entscheidet der Ranglistenwart.</li>
         <li>Nach einer Niederlage und vor einer erneuten Forderung desselben Gegners gelten <strong>7 Tage Wartezeit</strong>. Der Sieger ist <strong>48 Stunden</strong> gegen neue Forderungen geschützt.</li>
         <li>Bei Fristüberschreitung, Nichtantreten nach 15 Minuten oder schlechtem Wetter entscheidet die Ranglistenverwaltung. Eine Wetterverlängerung ist einmalig um bis zu 7 Tage möglich.</li>
-        <li>Urlaub, Krankheit oder Verletzung können bis zu <strong>28 Tage</strong> neutralisiert werden. Danach bist du automatisch wieder spielbereit; es gibt keine automatische Rangrückstufung.</li>
+        <li>Urlaub, Krankheit oder Verletzung können bis zu <strong>28 Tage</strong> neutralisiert werden. Danach wirst du ans Ende deiner aktuellen Reihe gesetzt. Stehst du dort bereits, wechselst du in die Mitte der nächsten Reihe.</li>
       </ul>
       <p class="muted pyramid-rules-foot">Saisonstandard: 1. Mai bis 30. September. Es gilt das Master-Regelwerk der Forderungspyramide, Version 1.0.</p>
     </section>
@@ -80,7 +80,14 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
 
     <p id="pyramid-status" class="notice hidden" role="status" aria-live="polite"></p>
     <section id="pyramid-app" class="hidden stack" aria-label="Interne Ranglisten">
-      <div class="pyramid-toolbar card">
+      <nav class="pyramid-member-nav" aria-label="Bereiche der Forderungspyramide">
+        <a href="#pyramid-overview">Pyramide</a>
+        <a href="#pyramid-rules">So funktioniert’s</a>
+        <a href="#pyramid-ladders">Meine Ranglisten</a>
+        <a href="#pyramid-avatar-panel">Mitgliederprofil</a>
+        <a href="#pyramid-availability-panel">Meine Verfügbarkeit</a>
+      </nav>
+      <div id="pyramid-ladders" class="pyramid-toolbar card">
         <div><p class="eyebrow">Meine Ranglisten</p><label for="pyramid-ladder-select" class="pyramid-toolbar-label">Saison und Gruppe</label>
           <select id="pyramid-ladder-select" aria-label="Rangliste auswählen"></select></div>
         <div class="pyramid-session"><span id="pyramid-user-name"></span><button id="pyramid-password-change" class="button ghost" type="button">Passwort ändern</button><button id="pyramid-sign-out" class="button ghost" type="button">Abmelden</button></div>
@@ -113,27 +120,33 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       <section id="pyramid-overview" class="card stack">
         <div class="pyramid-section-head"><div><p class="eyebrow">Rangliste</p><h2 id="pyramid-ladder-heading">Pyramide</h2>
           <p id="pyramid-ladder-dates" class="muted"></p></div><span id="pyramid-own-rank" class="pyramid-own-rank"></span></div>
+        <div class="pyramid-upcoming" aria-labelledby="pyramid-upcoming-heading">
+          <h3 id="pyramid-upcoming-heading">Nächste eingetragene Spiele</h3>
+          <div id="pyramid-upcoming-games" aria-live="polite"><p class="muted">Spieltermine werden geladen …</p></div>
+        </div>
         <div id="pyramid-board" class="pyramid-board" aria-live="polite"></div>
         <div id="pyramid-qualifier" aria-live="polite"></div>
         <p class="muted pyramid-board-help">Innerhalb der eigenen Reihe nach links oder eine Reihe höher nach rechts fordern. Ab Rang 3 aufwärts ist Rang 1 erreichbar. Neue Mitglieder werden am Ende eingereiht.</p>
       </section>
-      <section id="pyramid-availability-panel" class="card stack hidden">
-        <p class="eyebrow">Meine Verfügbarkeit</p><h2>Spielbereit oder neutralisiert?</h2>
-        <p class="muted">Du kannst deine Spieler-Kachel bei Urlaub, Krankheit oder Verletzung höchstens 28 Tage neutralisieren. „Urlaub“ und „Verletzung“ erscheinen rechts unten auf deiner Kachel. Währenddessen sind Forderungen gesperrt. Nach 28 Tagen wird der Status automatisch auf „Spielbereit“ gesetzt. Es gibt keine automatische Rückstufung; normale Rangverschiebungen durch andere Spiele bleiben möglich.</p>
-        <form id="pyramid-availability-form" class="form-grid">
-          <div class="field"><label for="pyramid-neutral-reason">Status</label>
-            <select id="pyramid-neutral-reason">
-              <option value="">Spielbereit</option>
-              <option value="vacation">Urlaub (maximal 28 Tage)</option>
-              <option value="illness">Krankheit</option>
-              <option value="injury">Verletzung</option>
-              <option value="other">Sonstige Abwesenheit</option>
-            </select>
-          </div>
-          <div class="field pyramid-form-end"><button type="submit" class="button secondary">Status speichern</button></div>
-        </form>
-        <p class="muted" id="pyramid-neutral-state" aria-live="polite"></p>
-      </section>
+      <details id="pyramid-availability-panel" class="card pyramid-availability hidden">
+        <summary><span><span class="eyebrow">Meine Verfügbarkeit</span><strong>Spielbereit oder neutralisiert?</strong></span><span aria-hidden="true">⌄</span></summary>
+        <div class="pyramid-availability-content stack">
+          <p class="muted">Du kannst deine Spieler-Kachel bei Urlaub, Krankheit, Verletzung oder sonstiger Abwesenheit höchstens 28 Tage neutralisieren. Währenddessen sind Forderungen gesperrt. Danach wirst du automatisch wieder spielbereit und ans Ende deiner aktuellen Reihe gesetzt. Stehst du dort bereits, wechselst du in die Mitte der nächsten Reihe.</p>
+          <form id="pyramid-availability-form" class="form-grid">
+            <div class="field"><label for="pyramid-neutral-reason">Status</label>
+              <select id="pyramid-neutral-reason">
+                <option value="">Spielbereit</option>
+                <option value="vacation">Urlaub (maximal 28 Tage)</option>
+                <option value="illness">Krankheit</option>
+                <option value="injury">Verletzung</option>
+                <option value="other">Sonstige Abwesenheit</option>
+              </select>
+            </div>
+            <div class="field pyramid-form-end"><button type="submit" class="button secondary">Status speichern</button></div>
+          </form>
+          <p class="muted" id="pyramid-neutral-state" aria-live="polite"></p>
+        </div>
+      </details>
       <section id="pyramid-games-panel" class="card stack">
         <div class="pyramid-section-head"><div><p class="eyebrow">Forderungsspiele</p><h2>Offene und letzte Begegnungen</h2></div></div>
         <div id="pyramid-games" class="pyramid-games" aria-live="polite"></div>
