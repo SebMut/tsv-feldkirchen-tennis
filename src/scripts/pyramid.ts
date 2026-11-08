@@ -553,7 +553,7 @@ function demoMakeChallenge(targetId:string){
   const id='demo-challenge-'+(++demoSequence);
   state.challenges.unshift({
     id,ladder_id:state.ladderId,challenger_id:me.id,defender_id:defender.id,
-    status:'pending',created_at:demoTimestamp(),accept_deadline:demoDeadline(10),
+    status:'pending',created_at:demoTimestamp(),accept_deadline:demoDeadline(14),
     play_deadline:null,winner_id:null,score:null
   });
   demoAutomaticMailLog.push('An '+defender.display_name+': Neue Forderung durch '+me.display_name+'.');
@@ -567,7 +567,7 @@ function renderDemoMails(){
   if(list)list.innerHTML=demoAutomaticMailLog.length
     ?'<h3>Simulierte E-Mail-Benachrichtigungen</h3><p class="muted">Diese Nachrichten werden in der Demo nicht verschickt.</p>'
       +demoAutomaticMailLog.map(line=>'<p>'+escapeHtml(line)+'</p>').join('')
-    :'<p class="muted">Noch keine automatisch abgelehnten Forderungen.</p>';
+    :'<p class="muted">Noch keine Benachrichtigungen.</p>';
 }
 function demoRespond(id:string,accept:boolean){
   const item=state.challenges.find((c)=>c.id===id);
@@ -577,7 +577,7 @@ function demoRespond(id:string,accept:boolean){
   }
   item.status=accept?'accepted':'declined';
   if(accept){
-    item.play_deadline=demoDeadline(10);
+    item.play_deadline=demoDeadline(14);
     const rejected=state.challenges.filter(c=>c.id!==item.id && c.status==='pending'
       && (c.defender_id===item.defender_id || c.defender_id===item.challenger_id
         || c.challenger_id===item.defender_id || c.challenger_id===item.challenger_id));
@@ -593,44 +593,70 @@ function demoRespond(id:string,accept:boolean){
     demoMessage('Forderung abgelehnt.','success');
   }
 }
+function demoFinishGame(game:Challenge,winnerId:string,score:string|null,status:'completed'|'forfeit'='completed'){
+  const winner=state.entries.find(e=>e.id===winnerId);
+  const challenger=state.entries.find(e=>e.id===game.challenger_id);
+  const defender=state.entries.find(e=>e.id===game.defender_id);
+  if(!winner||!challenger||!defender)return;
+  const loser=winner.id===challenger.id?defender:challenger;
+  if(winner.id===challenger.id&&challenger.position>defender.position){
+    const from=challenger.position,to=defender.position;
+    state.entries.forEach(e=>{
+      if(e.id!==challenger.id&&e.position>=to&&e.position<from)e.position++;
+    });
+    challenger.position=to;
+  }
+  game.status=status;game.winner_id=winner.id;game.score=score;
+  game.resolved_at=demoTimestamp();
+  winner.last_win_at=demoTimestamp();loser.last_loss_at=demoTimestamp();
+  winner.provisional=false;loser.provisional=false;
+}
+function demoConfirmResult(id:string,accept:boolean){
+  const game=state.challenges.find(c=>c.id===id);
+  if(!game||game.status!=='result_pending')return;
+  const own=myEntry();
+  if(!own||![game.challenger_id,game.defender_id].includes(own.id)
+      ||own.id===game.proposed_winner_id){
+    demoMessage('Nur der gemeldete Verlierer darf das Ergebnis bestätigen.','error');return;
+  }
+  if(accept){
+    demoFinishGame(game,game.proposed_winner_id!,game.proposed_score||null);
+    demoRefresh();
+    demoMessage('Ergebnis bestätigt. Die Rangliste wurde neu sortiert.','success');
+  }else{
+    game.status='result_disputed';game.dispute_reason='Muster-Widerspruch';
+    demoRefresh();
+    demoMessage('Widerspruch gespeichert. Bis zur Entscheidung bleiben die Plätze unverändert.','success');
+  }
+}
 function demoReportResult(event:SubmitEvent){
   event.preventDefault();
   const dialog=el<HTMLDialogElement>('pyramid-dialog');
-  const game=state.challenges.find((c)=>c.id===state.resultChallenge);
+  const game=state.challenges.find(c=>c.id===state.resultChallenge);
   const score=el<HTMLInputElement>('pyramid-result-score')?.value.trim()||'';
   if(!game||game.status!=='accepted'){
     demoMessage('Kein angenommenes Spiel ausgewählt.','error');return;
   }
   if(scoreWinner(score)!==1){
-    demoMessage('Bitte ein gültiges Ergebnis aus Sicht des Siegers angeben: 6:4, 6:3 oder 6:4, 4:6, 10:8.','error');
-    return;
+    demoMessage('Bitte gültige zwei Gewinnsätze eingeben (dritter Satz ggf. Match-Tie-Break).','error');return;
   }
   const winnerId=state.superAdmin
     ?el<HTMLSelectElement>('pyramid-result-winner')?.value
     :myEntry()?.id;
-  const winner=state.entries.find((e)=>e.id===winnerId);
-  const challenger=state.entries.find((e)=>e.id===game.challenger_id);
-  const defender=state.entries.find((e)=>e.id===game.defender_id);
-  if(!winner||!challenger||!defender
-    ||(winner.id!==challenger.id&&winner.id!==defender.id)
+  const winner=state.entries.find(e=>e.id===winnerId);
+  if(!winner||![game.challenger_id,game.defender_id].includes(winner.id)
     ||(!state.superAdmin&&winner.user_id!==state.user?.id)){
-    demoMessage('Nur Spielbeteiligte dürfen ihren eigenen Sieg melden.','error');return;
+    demoMessage('Nur der Sieger darf sein eigenes Ergebnis melden.','error');return;
   }
-  const loser=winner.id===challenger.id?defender:challenger;
-  if(winner.id===challenger.id&&challenger.position>defender.position){
-    const original=challenger.position;
-    const target=defender.position;
-    state.entries.forEach((entry)=>{
-      if(entry.id!==challenger.id&&entry.position>=target&&entry.position<original)entry.position++;
-    });
-    challenger.position=target;
-  }
-  game.status='completed';game.winner_id=winner.id;game.score=score;
-  winner.provisional=false;loser.provisional=false;
-  winner.last_win_at=demoTimestamp();loser.last_loss_at=demoTimestamp();game.resolved_at=demoTimestamp();
-  dialog?.close();
-  demoRefresh();
-  demoMessage('Ergebnis gespeichert: '+winner.display_name+' gewinnt. Die Rangliste wurde neu sortiert.','success');
+  game.status='result_pending';
+  game.proposed_winner_id=winner.id;
+  game.proposed_score=score;
+  game.reported_at=demoTimestamp();
+  game.confirmation_deadline=demoDeadline(2);
+  demoAutomaticMailLog.push('An '+entryName(winner.id===game.challenger_id?game.defender_id:game.challenger_id)
+    +': Ergebnis bitte innerhalb von 48 Stunden bestätigen.');
+  dialog?.close();demoRefresh();renderDemoMails();
+  demoMessage('Ergebnis gespeichert – wartet auf Bestätigung. Die Rangliste bleibt unverändert.','success');
 }
 function demoHandleButton(event:MouseEvent){
   const button=(event.target as Element).closest<HTMLButtonElement>('button');
@@ -651,6 +677,12 @@ function demoHandleButton(event:MouseEvent){
   if(decline){demoRespond(decline,false);return;}
   const result=button.dataset.pyramidResult;
   if(result){openResult(result);return;}
+  const confirmId=button.dataset.pyramidConfirm;
+  if(confirmId){demoConfirmResult(confirmId,true);return;}
+  const disputeId=button.dataset.pyramidDispute;
+  if(disputeId){demoConfirmResult(disputeId,false);return;}
+  const noShowId=button.dataset.pyramidNoshow;
+  if(noShowId){demoMessage('Nichtantreten wurde simuliert. Die Ranglistenverwaltung muss entscheiden.');return;}
   const approval=button.dataset.pyramidApprove;
   if(approval){
     if(!state.superAdmin){demoMessage('Nur Super-Admins können freigeben.','error');return;}
@@ -661,8 +693,8 @@ function demoHandleButton(event:MouseEvent){
     state.entries.push({
       id:'demo-entry-'+(++demoSequence),
       ladder_id:state.ladderId,user_id:request.user_id,
-      display_name:request.display_name,position,provisional:true,
-      qualified:!currentLadder()?.seeded_at,last_loss_at:null
+      display_name:request.display_name,position,provisional:!currentLadder()?.seeded_at,
+      qualified:true,last_loss_at:null
     });
     demoRefresh();
     demoMessage(request.display_name+' auf Rang '+position+' freigegeben.','success');
@@ -773,12 +805,12 @@ function demoInitialize(){
     challenges:[{
       id:'demo-game-1',ladder_id:'demo-winter',challenger_id:'demo-entry-7',
       defender_id:'demo-entry-5',status:'accepted',
-      created_at:demoTimestamp(),accept_deadline:demoDeadline(10),
-      play_deadline:demoDeadline(10),winner_id:null,score:null
+      created_at:demoTimestamp(),accept_deadline:demoDeadline(14),
+      play_deadline:demoDeadline(14),winner_id:null,score:null
     },{
       id:'demo-game-2',ladder_id:'demo-winter',challenger_id:'demo-entry-14',
       defender_id:'demo-entry-13',status:'pending',
-      created_at:demoTimestamp(),accept_deadline:demoDeadline(10),
+      created_at:demoTimestamp(),accept_deadline:demoDeadline(14),
       play_deadline:null,winner_id:null,score:null
     }]
   });
