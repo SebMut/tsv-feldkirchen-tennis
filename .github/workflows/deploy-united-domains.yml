@@ -136,6 +136,12 @@ jobs:
           test -f dist/index.html
           test -f dist/admin/index.html
           test -f dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-public-board"' dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-public-select"' dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-rules-heading"' dist/forderungspyramide/index.html
+          grep -Fq 'pyramid-rules-list' dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-access-turnstile-widget"' dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-avatar-save-state"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-avatar-panel"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-avatar-file"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-neutral-reason"' dist/forderungspyramide/index.html
@@ -221,6 +227,10 @@ jobs:
             pyramid=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/forderungspyramide/?release-check=$GITHUB_SHA" || true)
             if echo "$home" | grep -Fq 'TSV Feldkirchen Tennis' && echo "$admin" | grep -Fq 'id="auth-box"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-login-form"' &&
+               echo "$pyramid" | grep -Fq 'id="pyramid-public-board"' &&
+               echo "$pyramid" | grep -Fq 'id="pyramid-rules-heading"' &&
+               echo "$pyramid" | grep -Fq 'id="pyramid-access-turnstile-widget"' &&
+               echo "$pyramid" | grep -Fq 'id="pyramid-avatar-save-state"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-avatar-panel"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-avatar-file"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-neutral-reason"' &&
