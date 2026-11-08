@@ -23,6 +23,8 @@ test('Master §2 Tannenbaum examples including rank 3 special rule',()=>{
  }
  const rows=pyramidRows(Array.from({length:15},(_,i)=>({position:i+1})));
  assert.deepEqual(rows.map(row=>row.length),[1,2,3,4,5]);
+ assert.match(master,/if c.position=5 then/);
+ assert.match(master,/elsif c.position=15 then/);
  assert.equal(scoreWinner('6:4, 4:6, 10:8'),1);
  assert.equal(scoreWinner('6:4, 4:6, 9:8'),null);
 });
