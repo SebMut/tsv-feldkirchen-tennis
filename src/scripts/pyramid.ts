@@ -429,7 +429,7 @@ function consumePasswordSetupLink():SetupLink|null{
  if(!raw)return null;
  history.replaceState(history.state,'',location.pathname+location.search);
  const type=params.get('pyramid_token_type');
- if(!/^[a-f0-9]{64}$/i.test(raw)
+ if(raw.length<8||raw.length>1024||/[\s<>\x00-\x1f\x7f]/.test(raw)
     ||!['magiclink','signup','invite','recovery','email'].includes(type||'')){
    notice('Der Einrichtungslink ist ungültig. Bitte einen neuen Link anfordern.','error');
    return null;
@@ -544,16 +544,19 @@ function wireEvents(){
         body:{action:'send',email,turnstileToken:accessTurnstileToken}
       });
       if(error){
-        const payload=typeof (error as any)?.context?.json==='function'
-          ?await (error as any).context.json().catch(()=>null):null;
-        throw new Error(payload?.error||error.message||'Versand fehlgeschlagen.');
+        const response=(error as any).context;
+        const readable=typeof response?.clone==='function' ? response.clone() : response;
+        const payload=typeof readable?.json==='function'
+          ?await readable.json().catch(()=>null):null;
+        throw new Error(payload?.error||data?.error||error.message||'Versand fehlgeschlagen.');
       }
       if(!data?.ok)throw new Error(data?.error||'Gmail hat den Zugangslink nicht angenommen.');
       notice('Gmail hat deinen Zugangslink zum Versand angenommen. Prüfe dein Postfach.','success');
       text('pyramid-access-mail-status','Zugangslink wurde an Gmail übergeben.');
     }catch(e){
-      notice('Zugangslink konnte nicht versendet werden: '+safeError(e),'error');
-      text('pyramid-access-mail-status','Der Versand wurde nicht bestätigt. Bitte noch einmal versuchen oder den Verein kontaktieren.');
+      const explanation='Passwort-Link nicht versendet: '+safeError(e);
+      notice(explanation,'error');
+      text('pyramid-access-mail-status',explanation);
     }finally{
       accessTurnstileToken='';
       try{accessTurnstile?.reset(accessTurnstileId);}catch{/* retry after expired token */}
