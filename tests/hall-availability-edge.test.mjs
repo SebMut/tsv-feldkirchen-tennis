@@ -29,7 +29,8 @@ test('Kirchheim prices are read from provider price classes and bound to availab
  assert.match(edge,/priceClass && prices\[priceClass\]/);
  assert.match(edge,/court: "Platz " \+ \(\(courtIndex % 2\) \+ 7\)/);
  assert.match(edge,/class="slot\\s\+av/);
- assert.match(edge,/berlinNoonEpoch\(dates\[0\]\)/);
+ assert.match(edge,/dates\.map\(fetchKirchheim\)/);
+ assert.match(edge,/parseKirchheim\(html, new Set\(\[date\]\)\)/);
 });
 
 test('Sporttraum and Haar use the public Eversports tennis calendar and only free priced cells',()=>{

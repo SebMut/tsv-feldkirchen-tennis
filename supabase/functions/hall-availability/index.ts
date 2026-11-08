@@ -279,6 +279,12 @@ function parseKirchheim(html: string, allowedDates: ReadonlySet<string>): Slot[]
   return slots;
 }
 
+async function fetchKirchheim(date: string) {
+  const dayEpoch = berlinNoonEpoch(date);
+  const html = await providerHtml(KIRCHHEIM_URL + "&d=" + dayEpoch);
+  return parseKirchheim(html, new Set([date]));
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "GET") return json({ error: "method_not_allowed" }, 405);
@@ -315,14 +321,12 @@ Deno.serve(async (req: Request) => {
     } else sources[venueId] = { status: "unavailable", message: "Live-Kalender beim Anbieter öffnen" };
   });
 
-  try {
-    const dayEpoch = berlinNoonEpoch(dates[0]);
-    const html = await providerHtml(KIRCHHEIM_URL + "&d=" + dayEpoch);
-    slots.push(...parseKirchheim(html, new Set(dates)));
-    sources.kirchheim = { status: "live" };
-  } catch {
-    sources.kirchheim = { status: "unavailable", message: "Anbieter derzeit nicht erreichbar" };
-  }
+  const kirchheimResults = await Promise.allSettled(dates.map(fetchKirchheim));
+  const kirchheimOk = kirchheimResults.filter((result) => result.status === "fulfilled");
+  for (const result of kirchheimOk) slots.push(...result.value);
+  sources.kirchheim = kirchheimOk.length
+    ? { status: "live", ...(kirchheimOk.length < dates.length ? { message: "Einzelne Tage nicht abrufbar" } : {}) }
+    : { status: "unavailable", message: "Anbieter derzeit nicht erreichbar" };
 
   return json({ checkedAt: new Date().toISOString(), from, to, sources, slots });
 });
