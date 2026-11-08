@@ -52,6 +52,7 @@ test('pyramid stays private with reuse of Supabase Auth and secured RPCs',()=>{
  assert.match(js,/supabase\.auth\.signInWithOtp/);
  assert.match(js,/pyramid_request_join/);
  assert.match(js,/pyramid_approve_join/);
+ assert.match(js,/pyramid_finalize_seed/);
  assert.match(js,/pyramid_challenge/);
  assert.match(js,/pyramid_respond/);
  assert.match(js,/pyramid_report_result/);
@@ -61,6 +62,7 @@ test('pyramid stays private with reuse of Supabase Auth and secured RPCs',()=>{
  assert.match(sql,/interval '14 days'/);
  assert.match(sql,/interval '10 days'/);
  assert.match(sql,/cron\.schedule/);
+ assert.match(sql,/create function public\.pyramid_finalize_seed/);
  assert.match(sql,/private\.pyramid_valid_winning_score\(p_score\)/);
  assert.match(sql,/public\.pyramid_challenge\(uuid\), public\.pyramid_respond/);
  assert.doesNotMatch(sql,/grant .* to anon/);
