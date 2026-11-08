@@ -4,7 +4,7 @@ import {createClient} from 'npm:@supabase/supabase-js@2.57.4';
 
 const env=(key:string)=>Deno.env.get(key)?.trim()||'';
 type Notice={
- id:string;kind:'auto_decline'|'challenge_created';recipient_email:string|null;challenger_name:string;
+ id:string;kind:'auto_decline'|'challenge_created'|'result_reported';recipient_email:string|null;challenger_name:string;
  defender_name:string;ladder_title:string;season_label:string;challenge_status:string;
 };
 const reply=(status:number,data:unknown)=>new Response(JSON.stringify(data),{
@@ -42,38 +42,43 @@ function gmailRaw(to:string,subject:string,plain:string,html:string) {
 }
 function buildMail(row:Notice) {
  const newChallenge=row.kind==='challenge_created';
+ const resultReported=row.kind==='result_reported';
  const accepted=row.challenge_status==='accepted';
- const title=newChallenge
-   ?(accepted?'TSV Feldkirchen Tennis · Privates Forderungsspiel eingetragen'
-      :'TSV Feldkirchen Tennis · Neue Forderung für dich')
-   :'TSV Feldkirchen Tennis · Forderung automatisch abgelehnt';
- const greeting='Hallo '+(newChallenge?row.defender_name:row.challenger_name)+',';
- const stateText=newChallenge
-   ?(accepted
-     ?'Ein privat vereinbartes Forderungsspiel gegen '+row.challenger_name+' wurde in der Rangliste eingetragen und als angenommen markiert.'
-     :'Du wurdest von '+row.challenger_name+' herausgefordert. Bitte melde dich innerhalb von zehn Tagen im geschützten Mitgliederbereich an und beantworte die Forderung.')
-   :'Deine Forderung an '+row.defender_name+' wurde automatisch abgelehnt, weil eines der beteiligten Mitglieder ein anderes Forderungsspiel angenommen hat.';
- const followup=newChallenge
-   ?(accepted
-     ?'Vereinbart euren Spieltermin möglichst innerhalb von zehn Tagen. Nach dem Match trägt der Sieger das Ergebnis ein.'
-     :'Eine Forderung ist grundsätzlich anzunehmen. Nur bei einer weiteren offenen Forderung darfst du sie gemäß den Ranglistenregeln ablehnen. Erfolgt innerhalb von zehn Tagen keine Annahme, gilt das Spiel als verloren.')
-   :'Solange das angenommene Spiel läuft, können die Beteiligten nicht erneut gefordert werden. Danach darfst du nach den geltenden Regeln wieder fordern.';
+ const title=resultReported
+   ?'TSV Feldkirchen Tennis · Ergebnis bitte bestätigen'
+   :newChallenge
+     ?(accepted?'TSV Feldkirchen Tennis · Privates Forderungsspiel eingetragen'
+       :'TSV Feldkirchen Tennis · Neue Forderung')
+     :'TSV Feldkirchen Tennis · Forderung automatisch abgelehnt';
+ const greeting='Hallo '+(newChallenge?row.defender_name:
+   resultReported?'Tennis-Mitglied':row.challenger_name)+',';
+ const stateText=resultReported
+   ?'Das Ergebnis eures Forderungsspiels wurde vom Sieger eingetragen. Bitte prüfe und bestätige es innerhalb von 48 Stunden in Mein TSV. Wenn das Ergebnis falsch ist, kannst du widersprechen; der Ranglistenwart entscheidet. Die Platzierung bleibt bis zur Bestätigung unverändert.'
+   :newChallenge
+     ?(accepted
+       ?'Ein privates Forderungsspiel gegen '+row.challenger_name+' wurde in der Rangliste eingetragen.'
+       :'Du wurdest von '+row.challenger_name+' gefordert. Bitte stimmt euren Spieltermin möglichst innerhalb von drei Tagen ab. Das Spiel ist spätestens 14 Tage nach der Forderung auszutragen.')
+     :'Deine Forderung an '+row.defender_name+' wurde automatisch abgelehnt, weil ein anderes Forderungsspiel angenommen wurde.';
+ const followup=resultReported
+   ?'Bitte melde dich im geschützten Mitgliederbereich an. Die Rangliste wird erst nach Ergebnisbestätigung oder Entscheidung des Ranglistenwarts geändert.'
+   :newChallenge
+     ?'Der Forderer reserviert den Platz und stellt die neuen Bälle. Bei Fristproblemen entscheidet der Ranglistenwart; eine automatische Niederlage erfolgt nicht.'
+     :'Sobald beide Spieler wieder frei sind, kannst du nach den gültigen Sperrfristen erneut fordern.';
  const link='https://www.tennis-tsvfeldkirchen.de/forderungspyramide/';
  const plain=[
   'TSV FELDKIRCHEN TENNIS',title,'',greeting,'',stateText,'',
   'Gruppe: '+row.ladder_title+' · '+row.season_label,'',followup,'',
-  'Geschützter Mitgliederbereich: '+link,'',
-  'Diese E-Mail wurde automatisch erstellt. Bitte antworte nicht direkt auf diese Nachricht.',
+  'Forderungspyramide: '+link,'',
+  'Diese Nachricht wurde automatisch erstellt. Bitte antworte nicht direkt auf diese E-Mail.',
   'TSV Feldkirchen Tennis'
  ].join('\n');
  const html='<!doctype html><html lang="de"><head><meta charset="UTF-8"></head><body style="margin:0;background:#f4f5f5;font-family:Arial,Helvetica,sans-serif;color:#183026">'
   +'<div style="max-width:640px;margin:25px auto;background:white;border:1px solid #dde4e1;border-radius:14px;overflow:hidden">'
   +'<header style="background:#e30613;color:#fff;padding:24px 28px"><p style="margin:0;font-size:12px;letter-spacing:2px;font-weight:bold">TSV FELDKIRCHEN TENNIS</p>'
   +'<h1 style="font-size:24px;margin:9px 0 0">'+escapeHtml(title.replace('TSV Feldkirchen Tennis · ',''))+'</h1></header>'
-  +'<main style="padding:26px 28px"><p>'+escapeHtml(greeting)+'</p>'
-  +'<p>'+escapeHtml(stateText)+'</p>'
-  +'<p style="background:#fff2f2;border-left:5px solid #e30613;padding:14px">'
-  +'<strong>'+escapeHtml(row.ladder_title)+' · '+escapeHtml(row.season_label)+'</strong></p>'
+  +'<main style="padding:26px 28px"><p>'+escapeHtml(greeting)+'</p><p>'+escapeHtml(stateText)+'</p>'
+  +'<p style="background:#fff2f2;border-left:5px solid #e30613;padding:14px"><strong>'
+  +escapeHtml(row.ladder_title)+' · '+escapeHtml(row.season_label)+'</strong></p>'
   +'<p>'+escapeHtml(followup)+'</p>'
   +'<p><a href="'+link+'" style="display:inline-block;background:#e30613;color:white;'
   +'border-radius:8px;padding:13px 20px;text-decoration:none;font-weight:bold">'
