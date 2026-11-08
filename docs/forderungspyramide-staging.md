@@ -27,6 +27,17 @@ Vorgesehenes Supabase-Projekt: `eaurnufdochjapfzqwvm` (kein anderes Projekt verw
 - Ohne `?demo=1` zeigt die Route die echte Auth-Oberfläche; die Datenbankmigration bleibt unverändert nicht ausgeführt.
 - Das getrennte Vorschau-Workflow muss Build, Unit-Tests, Audit und Chromium-Interaktionstests bestehen, ehe es die Vorschau aktualisiert.
 
+## Adminrechte und automatische Ablehnung (Entwicklungsstand 8. November 2026)
+
+- Im bestehenden **Mein TSV → Spielbetrieb → Forderungspyramide** gibt es einen eigenen Verwaltungsbereich mit Gruppen/Saisons, Teilnahmeanfragen, Rangsortierung, Startaufstellung, Forderungen und Ergebniserfassung. Er verwendet die bestehenden Supabase-Tabellen und RPCs.
+- Die Super-Admin-Benutzerverwaltung hat neben Veranstaltungen, News und Liveticker jetzt die zusätzliche globale Berechtigung **Forderungspyramide verwalten**. Sie wird über `profiles.global_permissions` gespeichert und durch `private.has_global_permission('pyramid')` serverseitig geprüft. Keine zusätzliche Rollentabelle oder getrennte Loginlösung.
+- Das Konto `sebastian.mutter@outlook.com` ist laut der read-only Prüfung der vorhandenen produktiven Profilrolle bereits Super-Admin. **Es wurden keine Nutzerrechte oder Profile live verändert.**
+- Angenommene Forderungen blockieren beide Spielpartner bis zum Abschluss. Die Serverfunktionen sperren neue Forderungen gegen bereits in einem angenommenen Spiel stehende Personen. Die Annahme lehnt alle anderen noch `pending`-Forderungen an die beteiligten Spieler **atomar in derselben Transaktion** ab.
+- Jede automatisch abgelehnte Forderung erzeugt genau einen Eintrag in `private.pyramid_auto_decline_notices`. Eine Minute-Cron über `pg_net` ruft eine neue Edge Function mit kurzlebigem Einmal-Token auf. Die Function nutzt die **bereits eingesetzten Gmail OAuth Secrets**, sendet eine CI-konforme Benachrichtigung an den jeweiligen Herausforderer und bestätigt den Versand nur bei Gmail-Erfolg. Fehlgeschlagene Zustellungen werden mit Backoff erneut probiert (maximal zehn Versuche).
+- Demo: Rolle **„Geforderte Person · Spieler 13“** wählen, „Spieler 14 fordert Spieler 13“ annehmen. Vorher lässt sich als Musterperson auf Platz 15 ebenfalls eine Forderung gegen Spieler 13 erstellen. Bei der Annahme wird diese zweite Forderung automatisch abgelehnt; im Abschnitt „Simulierte E-Mail-Benachrichtigungen“ sieht man die Nachricht. Die Demo schreibt keinerlei Daten nach Supabase und sendet keine Mails.
+
+**Vor Livebetrieb erforderlich:** Die Migrationen `20261108153000_forderungspyramide_staging.sql` und `20261108173000_pyramid_permissions_and_auto_decline.sql` dürfen erst nach ausdrücklicher Freigabe im vorgesehenen Supabase-Projekt ausgeführt werden. Die Edge Function `pyramid-auto-decline-email` muss dann separat bereitgestellt und ihr Cron-Versand/RLS im isolierten Test mit echten Rollen, ohne Versand an Unbeteiligte, geprüft werden. Der produktive Deployment-Branch wurde nicht verändert.
+
 ## Freigabe-Voraussetzungen
 
 1. Produktivdatenbank NICHT ändern, bevor eine separate Freigabe zur Aktivierung vorliegt. Die Migration `20261108153000_forderungspyramide_staging.sql` wird nur versioniert; sie wird hier nicht ausgeführt.
