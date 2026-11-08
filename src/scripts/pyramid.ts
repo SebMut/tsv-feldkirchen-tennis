@@ -369,7 +369,8 @@ function demoRespond(id:string,accept:boolean){
   if(accept){
     item.play_deadline=demoDeadline(10);
     const rejected=state.challenges.filter(c=>c.id!==item.id && c.status==='pending'
-      && (c.defender_id===item.defender_id || c.defender_id===item.challenger_id));
+      && (c.defender_id===item.defender_id || c.defender_id===item.challenger_id
+        || c.challenger_id===item.defender_id || c.challenger_id===item.challenger_id));
     for(const c of rejected){
       c.status='declined';c.decline_reason='another_match_accepted';
       demoAutomaticMailLog.push('An '+entryName(c.challenger_id)+': Forderung an '+entryName(c.defender_id)
