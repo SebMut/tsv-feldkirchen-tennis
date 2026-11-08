@@ -136,6 +136,10 @@ jobs:
           test -f dist/index.html
           test -f dist/admin/index.html
           test -f dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-avatar-panel"' dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-avatar-file"' dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-neutral-reason"' dist/forderungspyramide/index.html
+          grep -Fq 'Urlaub (bis 4 Wochen ohne Rangverschiebung)' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-auth"' dist/forderungspyramide/index.html
           grep -Fq 'noindex,nofollow' dist/forderungspyramide/index.html
           test -f dist/.htaccess
@@ -197,6 +201,7 @@ jobs:
       # Publish expanded Tennis privacy information for Supabase, registration, Gmail, Turnstile, hosting, ICS, analytics and rights, after browser QA.
       # Fix global Datenschutz footer href to local Tennis policy instead of external main club; tested in responsive browser QA.
       # User-approved hidden Forderungspyramide rollout: private login, delegated admin, modal results, guarded SQL/RLS and Gmail queue; browser QA passed.
+      # Verified TSV season rules, 28-day vacation/injury demotion and self-service portrait uploads to users/<uid>/media. Demo Chrome QA passed on desktop and mobile.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
@@ -214,6 +219,9 @@ jobs:
             pyramid=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/forderungspyramide/?release-check=$GITHUB_SHA" || true)
             if echo "$home" | grep -Fq 'TSV Feldkirchen Tennis' && echo "$admin" | grep -Fq 'id="auth-box"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-login-form"' &&
+               echo "$pyramid" | grep -Fq 'id="pyramid-avatar-panel"' &&
+               echo "$pyramid" | grep -Fq 'id="pyramid-avatar-file"' &&
+               echo "$pyramid" | grep -Fq 'id="pyramid-neutral-reason"' &&
                echo "$pyramid" | grep -Fq 'noindex,nofollow'; then
               missing=0
               while IFS= read -r asset; do
