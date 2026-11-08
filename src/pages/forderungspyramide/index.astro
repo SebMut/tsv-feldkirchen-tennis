@@ -48,6 +48,23 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         </form>
         <p id="pyramid-join-state" class="muted"></p>
       </section>
+      <section id="pyramid-availability-panel" class="card stack hidden">
+        <p class="eyebrow">Meine Verfügbarkeit</p><h2>Spielbereit oder neutralisiert?</h2>
+        <p class="muted">Bei Urlaub, Krankheit oder Verletzung kannst du deine Ranglistentafel neutralisieren. Du kannst dann weder fordern noch gefordert werden. Bei Verletzung rutschst du erstmals nach vier Wochen an das Ende deiner Reihe, danach alle weiteren vier Wochen eine Reihe tiefer, bis du wieder spielbereit bist.</p>
+        <form id="pyramid-availability-form" class="form-grid">
+          <div class="field"><label for="pyramid-neutral-reason">Status</label>
+            <select id="pyramid-neutral-reason">
+              <option value="">Spielbereit</option>
+              <option value="vacation">Urlaub</option>
+              <option value="illness">Krankheit</option>
+              <option value="injury">Verletzung</option>
+              <option value="other">Sonstige Abwesenheit</option>
+            </select>
+          </div>
+          <div class="field pyramid-form-end"><button type="submit" class="button secondary">Status speichern</button></div>
+        </form>
+        <p class="muted" id="pyramid-neutral-state" aria-live="polite"></p>
+      </section>
       <section id="pyramid-games-panel" class="card stack">
         <div class="pyramid-section-head"><div><p class="eyebrow">Forderungsspiele</p><h2>Offene und letzte Begegnungen</h2></div></div>
         <div id="pyramid-games" class="pyramid-games" aria-live="polite"></div>
@@ -81,6 +98,18 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       <p class="muted">Regelgrundlage: „Forderungspyramide Spvgg 05 Oberrad – Regeln“, Stand April 2025. Für diese Vereinsrangliste gelten die auf dieser Seite zusammengefassten Regeln und die jeweils angegebene Saison.</p>
     </section>
   </div>
+  <dialog id="pyramid-schedule-dialog" class="pyramid-dialog" aria-labelledby="pyramid-schedule-title">
+    <div class="pyramid-dialog-content">
+      <div class="pyramid-dialog-top"><h2 id="pyramid-schedule-title">Verbindlichen Spieltermin eintragen</h2>
+        <button id="pyramid-schedule-close" class="pyramid-dialog-close" aria-label="Termin-Dialog schließen" type="button">✕</button></div>
+      <p class="muted">Nach TSV-Regeln muss der Termin innerhalb von sieben Tagen nach der Forderung vereinbart und eingetragen werden. Das Match muss binnen zehn Tagen nach der Vereinbarung stattfinden.</p>
+      <form id="pyramid-schedule-form" class="form-grid">
+        <div class="field full"><label for="pyramid-schedule-date">Vereinbarter Spieltermin</label><input id="pyramid-schedule-date" type="datetime-local" required /></div>
+        <div class="field full pyramid-dialog-actions"><button class="button button--hot" type="submit">Termin speichern</button>
+          <button id="pyramid-schedule-cancel" class="button ghost" type="button">Abbrechen</button></div>
+      </form>
+    </div>
+  </dialog>
   <dialog id="pyramid-dialog" class="pyramid-dialog" aria-labelledby="pyramid-dialog-title">
     <form id="pyramid-result-form" method="dialog" class="pyramid-dialog-content">
       <div class="pyramid-dialog-top"><div><p class="eyebrow">Forderungsspiel</p><h2 id="pyramid-dialog-title">Ergebnis melden</h2></div>
