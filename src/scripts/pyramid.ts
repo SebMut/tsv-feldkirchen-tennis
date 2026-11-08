@@ -1,9 +1,9 @@
 import { supabase } from '../lib/supabase';
 import { escapeHtml, setStatus } from '../lib/ui';
-import { canChallenge, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
+import { canChallenge, canQualifyAgainst, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
 
 type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends_on:string;active:boolean;seeded_at:string|null };
-type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;last_loss_at:string|null };
+type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null };
 type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
 type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
   created_at:string;accept_deadline:string;play_deadline:string|null;winner_id:string|null;score:string|null;decline_reason?:string|null};
@@ -50,34 +50,47 @@ async function signIn(email:string,password:string) {
 function renderBoard() {
   const ladder=currentLadder();
   const me=myEntry();
+  const qualified=state.entries.filter(entry=>entry.qualified!==false);
   text('pyramid-ladder-heading',ladder ? ladder.title+' · '+ladder.season_label : 'Noch keine Rangliste');
-  text('pyramid-ladder-dates',ladder ? formatDate(ladder.starts_on)+' bis '+formatDate(ladder.ends_on) : 'Die erste Rangliste kann vom Super-Admin angelegt werden.');
-  text('pyramid-own-rank',me ? 'Mein Platz #'+me.position : '');
+  text('pyramid-ladder-dates',ladder ? formatDate(ladder.starts_on)+' bis '+formatDate(ladder.ends_on)
+    : 'Die erste Rangliste kann von der Ranglistenverwaltung angelegt werden.');
+  text('pyramid-own-rank',me ? (me.qualified===false?'Qualifikation offen':'Mein Platz #'+me.position) : '');
   hidden('pyramid-own-rank',!me);
-  if(!ladder){html('pyramid-board','<p class="muted">Noch keine Ranglisten vorhanden.</p>');return;}
-  if(!state.entries.length) {
-    html('pyramid-board', '<p class="muted">Noch keine freigegebenen Teilnehmer. Die Rangliste wird nach der ersten Freigabe sichtbar.</p>');
-    return;
+  if(!ladder){html('pyramid-board','<p class="muted">Noch keine Ranglisten vorhanden.</p>');html('pyramid-qualifier','');return;}
+  const canPlay=ladder.active && !!ladder.seeded_at
+    && dateWithinPeriod(ladder.starts_on,ladder.ends_on);
+  if(!qualified.length){
+    html('pyramid-board','<p class="muted">Noch keine eingeordneten Teilnehmer. Die Rangliste wird nach der Startaufstellung sichtbar.</p>');
+  }else{
+    const board=pyramidRows(qualified).map((row,index)=>
+      '<div class="pyramid-board-row" role="list" aria-label="Pyramidenreihe '+(index+1)+'">'+row.map(item=>{
+        if(!item)return '<div class="pyramid-entry is-empty" aria-hidden="true"></div>';
+        const mine=me?.id===item.id;
+        const engaged=state.challenges.some(c=>c.status==='accepted'
+          && (c.challenger_id===item.id||c.defender_id===item.id));
+        const isBusy=!!me&&state.challenges.some(c=>
+          ['pending','accepted'].includes(c.status)&&c.challenger_id===me.id);
+        const allowed=me?.qualified===false
+          ?canQualifyAgainst(item.position,qualified)
+          :!!me&&canChallenge(me.position,item.position);
+        const canTarget=!!me&&canPlay&&!engaged&&!isBusy&&allowed
+          &&!(me.last_loss_at&&new Date(me.last_loss_at).getTime()>Date.now()-14*86400000);
+        return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canTarget?' is-target':'')+'">'
+          +'<span class="pyramid-entry-rank">#'+item.position+'</span>'
+          +'<span class="pyramid-entry-name">'+escapeHtml(item.display_name)+'</span>'
+          +(mine?'<span class="pyramid-entry-hint">Du</span>':'')
+          +(canTarget?'<button type="button" data-pyramid-challenge="'+item.id+'">'
+            +(me?.qualified===false?'Einfordern':'Fordern')+'</button>':'')
+          +'</div>';
+      }).join('')+'</div>').join('');
+    html('pyramid-board',board);
   }
-  const canPlay=ladder.active && dateWithinPeriod(ladder.starts_on,ladder.ends_on);
-  const board=pyramidRows(state.entries).map((row,index)=>
-    '<div class="pyramid-board-row" role="list" aria-label="Pyramidenreihe '+(index+1)+'">'+row.map((item)=>{
-      if(!item)return '<div class="pyramid-entry is-empty" aria-hidden="true"></div>';
-      const mine=me?.id===item.id;
-      const engaged=state.challenges.some(c=>c.status==='accepted'
-        && (c.challenger_id===item.id||c.defender_id===item.id));
-      const canTarget=!!me && canPlay && !engaged && canChallenge(me.position,item.position,me.provisional)
-        && !state.challenges.some(c=>['pending','accepted'].includes(c.status)&&c.challenger_id===me.id)
-        && !(me.last_loss_at && new Date(me.last_loss_at).getTime()>Date.now()-14*86400000);
-      return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canTarget?' is-target':'')+'">'
-        +'<span class="pyramid-entry-rank">#'+item.position+'</span>'
-        +'<span class="pyramid-entry-name">'+escapeHtml(item.display_name)+'</span>'
-        +(item.provisional?'<span class="pyramid-entry-hint">Neueinstieg</span>':'')
-        +(mine?'<span class="pyramid-entry-hint">Du</span>':'')
-        +(canTarget?'<button type="button" data-pyramid-challenge="'+item.id+'">Fordern</button>':'')
-        +'</div>';
-    }).join('')+'</div>').join('');
-  html('pyramid-board',board);
+  html('pyramid-qualifier',me?.qualified===false
+    ?'<div class="pyramid-qualification-help"><strong>Dein Einforderungsspiel steht noch aus.</strong>'
+       +'<p>Nach Regel 6.1 spielst du zuerst gegen eine Person bis maximal zur zweituntersten Pyramidenreihe. '
+       +'Gewinnst du, steigst du an deren Platz ein; bei einer Niederlage erhältst du den letzten Rang. '
+       +'Wähle zum Fordern einen der markierten Spieler.</p></div>'
+    :(!ladder.seeded_at?'<p class="muted">Die LK-Startaufstellung muss noch durch die Ranglistenverwaltung freigegeben werden. Vorher sind keine Forderungen möglich.</p>':''));
 }
 function renderGames() {
   const visible=state.challenges.filter((item)=>state.superAdmin||isInvolved(item)).sort(
@@ -91,8 +104,12 @@ function renderGames() {
   html('pyramid-games',visible.map((c)=>{
     const myDefender=myEntry()?.id===c.defender_id;
     const canReport=c.status==='accepted'&&(state.superAdmin||isInvolved(c));
+    const hasCompeting=state.challenges.some(other=>other.id!==c.id&&['pending','accepted'].includes(other.status)
+      && myEntry()?.id===c.defender_id
+      && (other.challenger_id===c.defender_id||other.defender_id===c.defender_id));
     const actions= (c.status==='pending'&&myDefender
-      ? '<button type="button" data-pyramid-accept="'+c.id+'">Annehmen</button><button type="button" data-pyramid-decline="'+c.id+'">Ablehnen</button>' : '')
+      ? '<button type="button" data-pyramid-accept="'+c.id+'">Annehmen</button>'
+        +(hasCompeting?'<button type="button" data-pyramid-decline="'+c.id+'">Ablehnen</button>':'') : '')
       +(canReport?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis melden</button>':'');
     return '<article class="pyramid-game"><div><strong>'+escapeHtml(entryName(c.challenger_id))
       +' fordert '+escapeHtml(entryName(c.defender_id))+'</strong>'
@@ -100,7 +117,10 @@ function renderGames() {
       +(c.status==='declined' && c.decline_reason==='another_match_accepted'
         ?'<small>Automatisch abgelehnt: Ein anderes Forderungsspiel wurde angenommen.</small>':'')
       +(c.status==='pending'?'<small>Annahmefrist: '+formatTime(c.accept_deadline)+'</small>':'')
-      +(c.status==='accepted'?'<small>Wunschtermin bis: '+formatTime(c.play_deadline)+'</small>':'')
+      +(c.status==='accepted'?'<small>Empfohlener Spieltermin: '+formatTime(c.play_deadline)
+        +(c.play_deadline&&new Date(c.play_deadline).getTime()<Date.now()
+          ?' · <strong>10-Tage-Empfehlung überschritten – Spiel bitte bald austragen</strong>':'')
+        +'</small>':'')
       +(c.winner_id?'<small>Sieger: '+escapeHtml(entryName(c.winner_id))
         +(c.score?' · '+escapeHtml(c.score):'')+'</small>':'')
       +'</div><div class="pyramid-game-actions">'+actions+'</div></article>';
@@ -134,7 +154,7 @@ function renderAdmin() {
   ).join(''):'<p class="muted">Keine offenen Anfragen in dieser Gruppe.</p>');
   html('pyramid-admin-entries',state.entries.length?state.entries.map((item,i)=>
     '<div class="pyramid-admin-item"><span>#'+item.position+' · '+escapeHtml(item.display_name)
-    +(item.provisional?' (vorläufig)':'')+'</span><div>'
+    +(item.qualified===false?' (Qualifikationsspiel offen)':item.provisional?' (vorläufig)':'')+'</span><div>'
     +'<button type="button" title="Einen Platz höher" aria-label="'+escapeHtml(item.display_name)+' höher" data-pyramid-move="'+item.id+'" data-delta="-1"'+(i===0?' disabled':'')+'>↑</button>'
     +'<button type="button" title="Einen Platz tiefer" aria-label="'+escapeHtml(item.display_name)+' tiefer" data-pyramid-move="'+item.id+'" data-delta="1"'+(i===state.entries.length-1?' disabled':'')+'>↓</button>'
     +'</div></div>').join(''):'<p class="muted">Noch keine Teilnehmer.</p>');
@@ -152,7 +172,7 @@ async function loadLadder(){
   const ladder=currentLadder();
   if(!ladder){state.entries=[];state.requests=[];state.challenges=[];renderAll();return;}
   const [entries,requests,challenges]=await Promise.all([
-    supabase.from('pyramid_entries').select('id,ladder_id,user_id,display_name,position,provisional,last_loss_at')
+    supabase.from('pyramid_entries').select('id,ladder_id,user_id,display_name,position,provisional,qualified,lk_rating,last_loss_at')
       .eq('ladder_id',ladder.id).order('position'),
     supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
       .eq('ladder_id',ladder.id),
@@ -331,7 +351,9 @@ function demoRole(role:string){
 function demoMakeChallenge(targetId:string){
   const me=myEntry();
   const defender=state.entries.find((entry)=>entry.id===targetId);
-  if(!me||!defender||!canChallenge(me.position,defender.position,me.provisional)){
+  if(!me||!defender||!(me.qualified===false
+    ?canQualifyAgainst(defender.position,state.entries)
+    :canChallenge(me.position,defender.position))){
     demoMessage('Diese Forderung ist für deine Testrolle nicht erlaubt.','error');return;
   }
   if(state.challenges.some((item)=>['pending','accepted'].includes(item.status)
@@ -348,6 +370,8 @@ function demoMakeChallenge(targetId:string){
     status:'pending',created_at:demoTimestamp(),accept_deadline:demoDeadline(10),
     play_deadline:null,winner_id:null,score:null
   });
+  demoAutomaticMailLog.push('An '+defender.display_name+': Neue Forderung durch '+me.display_name+'.');
+  renderDemoMails();
   demoRefresh();
   demoMessage('Forderung gegen '+defender.display_name+' erstellt. Wechsle oben zur Rolle der geforderten Person, um sie anzunehmen.','success');
 }
@@ -417,7 +441,7 @@ function demoReportResult(event:SubmitEvent){
   }
   game.status='completed';game.winner_id=winner.id;game.score=score;
   winner.provisional=false;loser.provisional=false;
-  loser.last_loss_at=demoTimestamp();
+  if(loser.id===challenger.id)challenger.last_loss_at=demoTimestamp();
   dialog?.close();
   demoRefresh();
   demoMessage('Ergebnis gespeichert: '+winner.display_name+' gewinnt. Die Rangliste wurde neu sortiert.','success');
