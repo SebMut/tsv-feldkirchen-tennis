@@ -25,3 +25,6 @@ verify_jwt = false
 
 [functions.pyramid-auto-decline-email]
 verify_jwt = false # Authorized only by short-lived one-time pg_cron tokens
+
+[functions.pyramid-access-email]
+verify_jwt = false # Turnstile, Gmail OAuth and server-only DB rate limiting; no service keys in browser.
