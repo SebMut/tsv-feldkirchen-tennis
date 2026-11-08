@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {canChallenge,pyramidCell,pyramidRows,scoreWinner,dateWithinPeriod} from '../src/lib/pyramid-rules.mjs';
+import {canChallenge,canQualifyAgainst,pyramidCell,pyramidRows,scoreWinner,dateWithinPeriod} from '../src/lib/pyramid-rules.mjs';
 const source=(file)=>readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('pyramid rows are triangular, including non-full bottom rows',()=>{
@@ -23,10 +23,14 @@ test('reference PDF example #15 can challenge #11 to #14 but not #10',()=>{
  assert.equal(canChallenge(3,1),true);
  assert.equal(canChallenge(3,2),true);
 });
-test('provisional entrant may challenge the second-last row',()=>{
- assert.equal(canChallenge(18,12,true),true);
- assert.equal(canChallenge(18,10,true),false);
- assert.equal(canChallenge(18,19,true),false);
+test('late entrant can qualify only against a ranked player no lower than the penultimate row',()=>{
+ const entries=Array.from({length:15},(_,i)=>({position:i+1,qualified:true}));
+ entries.push({position:16,qualified:false});
+ for(const eligible of [1,2,3,4,5,6,7,8,9,10])
+  assert.equal(canQualifyAgainst(eligible,entries),true,String(eligible));
+ for(const forbidden of [11,12,13,14,15,16])
+  assert.equal(canQualifyAgainst(forbidden,entries),false,String(forbidden));
+ assert.equal(canChallenge(18,12),false,'Normal row geometry is distinct from qualification');
 });
 test('two winning sets or a third-set champion tie-break are required',()=>{
  assert.equal(scoreWinner('6:4, 6:3'),1);
