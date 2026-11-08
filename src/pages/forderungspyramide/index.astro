@@ -11,6 +11,37 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       {isPreview && <span class="pyramid-stage">Testvorschau</span>}
     </header>
 
+    <section class="card pyramid-rules" aria-labelledby="pyramid-rules-heading">
+      <p class="eyebrow">So funktioniert's</p><h2 id="pyramid-rules-heading">Regeln der Forderungspyramide</h2>
+      <ul class="pyramid-rules-list">
+        <li>Mitspielen dürfen Vereinsmitglieder nach Freigabe. Neue Spieler beginnen auf dem letzten Rang.</li>
+        <li>Fordern darfst du links in der eigenen Reihe und rechts oben in der nächsten Reihe; für Platz 3 gilt auch Platz 1. Die verbindliche Beispieltabelle regelt Sonderfälle.</li>
+        <li>Der Spieltermin sollte innerhalb von <strong>3 Tagen</strong> vereinbart werden. Das Match muss innerhalb von <strong>14 Tagen</strong> nach der Forderung stattfinden.</li>
+        <li>Gespielt werden <strong>zwei Gewinnsätze</strong>. Der dritte Satz ist ein Match-Tie-Break bis mindestens 10 Punkte mit 2 Punkten Abstand.</li>
+        <li>Der Herausforderer organisiert den Platz und stellt die Bälle.</li>
+        <li>Pro Spieler ist nur <strong>eine offene Forderung</strong> zulässig.</li>
+        <li>Der Sieger meldet das Ergebnis, der Gegner bestätigt es innerhalb von <strong>48 Stunden</strong>. Bei Streit entscheidet der Ranglistenwart.</li>
+        <li>Nach einer Niederlage und vor einer erneuten Forderung desselben Gegners gelten <strong>7 Tage Wartezeit</strong>. Der Sieger ist <strong>48 Stunden</strong> gegen neue Forderungen geschützt.</li>
+        <li>Bei Fristüberschreitung, Nichtantreten nach 15 Minuten oder schlechtem Wetter entscheidet die Ranglistenverwaltung. Eine Wetterverlängerung ist einmalig um bis zu 7 Tage möglich.</li>
+        <li>Urlaub, Krankheit oder Verletzung können bis zu <strong>28 Tage</strong> neutralisiert werden. Danach bist du automatisch wieder spielbereit; es gibt keine automatische Rangrückstufung.</li>
+      </ul>
+      <p class="muted pyramid-rules-foot">Saisonstandard: 1. Mai bis 30. September. Es gilt das Master-Regelwerk der Forderungspyramide, Version 1.0.</p>
+    </section>
+
+    <section id="pyramid-public-panel" class="card stack" aria-labelledby="pyramid-public-heading">
+      <div class="pyramid-section-head"><div><p class="eyebrow">Öffentliche Vereinsrangliste</p>
+        <h2 id="pyramid-public-heading">Aktuelle Pyramide</h2>
+        <p class="muted">Ohne Anmeldung sind nur Platzierungen und Namen sichtbar. Profilbilder, Abwesenheiten und Forderungen bleiben im geschützten Mitgliederbereich.</p>
+      </div></div>
+      <div class="field"><label for="pyramid-public-select">Gruppe und Saison</label>
+        <select id="pyramid-public-select" aria-label="Öffentliche Pyramide auswählen"></select></div>
+      <p id="pyramid-public-dates" class="muted"></p>
+      <div id="pyramid-public-board" class="pyramid-board" aria-live="polite">
+        <p class="muted">Die öffentliche Rangliste wird geladen …</p>
+      </div>
+      <p id="pyramid-public-message" class="muted"></p>
+    </section>
+
     <section id="pyramid-auth" class="card pyramid-auth" aria-labelledby="pyramid-login-title">
       <div><p class="eyebrow">Mitglieder und Teilnehmer</p><h2 id="pyramid-login-title">Anmelden</h2>
         <p class="muted">Du verwendest dein vorhandenes Mein-TSV-Konto. Ein neues Konto erhält zunächst keine Ranglistenrechte – die Teilnahme muss freigegeben werden.</p></div>
@@ -19,10 +50,15 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         <div class="field"><label for="pyramid-password">Passwort</label><input id="pyramid-password" type="password" autocomplete="current-password" required /></div>
         <div class="field full pyramid-auth-actions">
           <button class="button button--hot" type="submit">Anmelden</button>
-          <button class="button ghost" type="button" id="pyramid-magic-link">Zugangslink per E-Mail</button>
+          <button class="button ghost" type="button" id="pyramid-magic-link" disabled>Zugangslink per E-Mail</button>
         </div>
       </form>
-      <p class="muted">Noch kein Zugang oder Passwort vergessen? Gib deine E-Mail oben ein und fordere einen einmaligen Zugangslink an. Einladungen und Freigaben verwaltet der Verein.</p>
+      <div id="pyramid-access-turnstile-wrap" class="hidden">
+        <div id="pyramid-access-turnstile-widget" aria-label="Cloudflare-Menschprüfung"></div>
+        <p id="pyramid-access-turnstile-status" class="muted" role="status">Menschprüfung wird geladen …</p>
+      </div>
+      <p id="pyramid-access-mail-status" class="muted" role="status" aria-live="polite">Der sichere E-Mail-Versand wird geprüft …</p>
+      <p class="muted">Noch kein Zugang oder Passwort vergessen? Gib deine E-Mail-Adresse ein, schließe die Menschprüfung ab und fordere einen einmaligen Zugangslink an. Einladungen und Freigaben verwaltet der Verein.</p>
     </section>
 
     <p id="pyramid-status" class="notice hidden" role="status" aria-live="polite"></p>
@@ -34,7 +70,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       </div>
       <section id="pyramid-avatar-panel" class="card stack hidden">
         <div><p class="eyebrow">Mitgliederprofil</p><h2>Mein Profilbild</h2>
-          <p class="muted">Dein Foto erscheint oben links auf deiner Spieler-Kachel in der Forderungspyramide. Es ist für angemeldete, berechtigte Ranglistenmitglieder sichtbar. Erlaubt sind JPG, PNG, WebP und AVIF bis 8 MB.</p>
+          <p class="muted">Dein Foto erscheint oben links auf deiner Spieler-Kachel in der Forderungspyramide. Es ist für angemeldete, berechtigte Ranglistenmitglieder sichtbar. Beim Auswählen wird dein Bild sofort angezeigt und automatisch gespeichert. Erlaubt sind JPG, PNG, WebP und AVIF bis 8 MB.</p>
         </div>
         <div class="pyramid-avatar-editor">
           <div id="pyramid-avatar-preview" aria-live="polite"></div>
@@ -42,7 +78,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
             <form id="pyramid-avatar-form" class="form-grid">
               <div class="field full"><label for="pyramid-avatar-file">Profilbild auswählen</label>
                 <input id="pyramid-avatar-file" type="file" accept="image/jpeg,image/png,image/webp,image/avif" required /></div>
-              <div class="field full"><button type="submit" class="button button--hot">Profilbild speichern</button></div>
+              <div class="field full"><p id="pyramid-avatar-save-state" class="muted" role="status" aria-live="polite">Nach der Bildauswahl wird es sofort angezeigt und automatisch gespeichert.</p></div>
             </form>
             <button id="pyramid-avatar-remove" type="button" class="button ghost">Profilbild entfernen</button>
           </div>
@@ -53,7 +89,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
           <p id="pyramid-ladder-dates" class="muted"></p></div><span id="pyramid-own-rank" class="pyramid-own-rank"></span></div>
         <div id="pyramid-board" class="pyramid-board" aria-live="polite"></div>
         <div id="pyramid-qualifier" aria-live="polite"></div>
-        <p class="muted pyramid-board-help">Innerhalb der eigenen Reihe nach links oder eine Reihe höher nach rechts fordern. Ab Rang 3 aufwärts ist Rang 1 erreichbar. Einsteiger dürfen jeden platzierten Spieler herausfordern.</p>
+        <p class="muted pyramid-board-help">Innerhalb der eigenen Reihe nach links oder eine Reihe höher nach rechts fordern. Ab Rang 3 aufwärts ist Rang 1 erreichbar. Neue Mitglieder werden am Ende eingereiht.</p>
       </section>
       <section id="pyramid-join-panel" class="card hidden">
         <p class="eyebrow">Teilnahme</p><h2>Mitspielen</h2>
@@ -102,16 +138,6 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         <button class="button secondary" id="pyramid-finalize-seed" type="button">Startaufstellung verbindlich abschließen</button>
         <p class="muted">Die LK-Startsortierung wird im <a href="/admin/">Mein-TSV-Adminbereich</a> verwaltet. Später freigegebene Mitglieder werden automatisch auf dem letzten Rang aufgenommen.</p>
       </section>
-    </section>
-    <section class="card pyramid-rules">
-      <p class="eyebrow">Fair spielen</p><h2>Die Regeln auf einen Blick</h2>
-      <div class="pyramid-rules-grid">
-        <div><strong>14 Tage</strong><span>Spiel ab der Forderung austragen; Termin möglichst binnen 3 Tagen abstimmen</span></div>
-        <div><strong>7 Tage</strong><span>Nach einer Niederlage warten und denselben Gegner nicht sofort erneut fordern</span></div>
-        <div><strong>48 Stunden</strong><span>Siegerschutz und Ergebnisbestätigung durch den Gegner</span></div>
-      </div>
-      <p>Neue Mitglieder werden nach Freigabe am Ende der Pyramide aufgenommen. Der Verlierer darf frühestens nach sieben Tagen erneut fordern. Derselbe Gegner darf ebenfalls erst nach sieben Tagen erneut gefordert werden. Gespielt werden zwei Gewinnsätze mit Tie-Break; der dritte Satz wird als Champions-Tie-Break ausgetragen. Die Spielpartner organisieren den Platz. Der Herausforderer stellt neue Bälle; die Ballmarke können beide gemeinsam festlegen. Der Sieger meldet das Ergebnis, der Gegner bestätigt es innerhalb von 48 Stunden. Erst nach Bestätigung beziehungsweise Entscheidung des Ranglistenwarts wird die Rangliste angepasst. Bei längerem Urlaub, Krankheit oder Verletzung kann die Kachel bis zu 28 Tage neutralisiert werden. Neue Spieler melden sich bei der Ranglistenverwaltung. Fairness und Spielfreude stehen im Mittelpunkt.</p>
-      <p class="muted">Verbindliche Grundlage: hochgeladenes Master-Regelwerk „Forderungspyramide für einen Tennisclub“, Version 1.0. Standardsaison: 1. Mai bis 30. September. Bestehende Gruppen werden im Adminbereich verwaltet.</p>
     </section>
   </div>
   <dialog id="pyramid-schedule-dialog" class="pyramid-dialog" aria-labelledby="pyramid-schedule-title">
