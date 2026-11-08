@@ -885,6 +885,8 @@ import '../../styles/pyramid.css';
                 <a class="button ghost" href="/forderungspyramide/">Spieleransicht öffnen</a>
               </div>
               <div id="pyramid-admin-notice" class="notice hidden" role="status" aria-live="polite"></div>
+              <div class="actions"><button id="pyramid-admin-archive" class="button secondary" type="button">Gewählte Saison archivieren</button>
+                <button id="pyramid-admin-reactivate" class="button secondary" type="button">Gewählte Saison wieder aktivieren</button></div>
             </div>
             <div class="card stack">
               <h3>Neue Rangliste anlegen</h3>
@@ -893,7 +895,7 @@ import '../../styles/pyramid.css';
                 <div class="field"><label for="pyramid-admin-season">Saison</label><input id="pyramid-admin-season" required minlength="3" maxlength="70" placeholder="z. B. Sommer 2027" /></div>
                 <div class="field"><label for="pyramid-admin-from">Beginn</label><input id="pyramid-admin-from" type="date" required /></div>
                 <div class="field"><label for="pyramid-admin-until">Ende</label><input id="pyramid-admin-until" type="date" required /></div>
-                <p class="muted field full">Regel-Zeiträume als Orientierung: Sommer 1. April–31. Oktober; Winter 1. November–31. März. Eigene TSV-Termine bleiben möglich.</p>
+                <p class="muted field full">Master-Regelwerk v1.0: Saisonstandard vom 1. Mai bis 30. September. Andere Gruppen und Saisonzeiträume bleiben einzeln verwaltbar.</p>
                 <div class="field full"><button type="submit" class="button">Rangliste anlegen</button></div>
               </form>
             </div>
@@ -906,7 +908,7 @@ import '../../styles/pyramid.css';
               <p class="muted">Vor dem ersten Spiel die LK-Werte (Stand zum Saisonstart) eingeben und nach LK sortieren. Kleinere LK bedeutet besserer Rang; Spieler ohne LK stehen am Ende. Das vorhandene Kadersystem enthält derzeit keine LK-Werte, deshalb werden diese hier manuell gepflegt.</p>
               <button type="button" class="button secondary" id="pyramid-admin-sort-lk">Nach LK sortieren</button>
               <div id="pyramid-admin-order"><p class="muted">Rangliste auswählen.</p></div>
-              <div id="pyramid-admin-qualifiers" class="stack" aria-live="polite"></div>
+              <p class="muted">Neue Mitglieder werden direkt am Ende der Rangliste aufgenommen; kein Qualifikationsspiel.</p><div id="pyramid-admin-qualifiers" class="stack" aria-live="polite"></div>
               <button type="button" class="button secondary" id="pyramid-admin-finalize">Startaufstellung abschließen</button>
             </div>
             <div class="card stack">
@@ -921,17 +923,17 @@ import '../../styles/pyramid.css';
             </div>
             <div class="card stack">
               <h3>Forderungen und Ergebnisse</h3>
-              <p class="muted">Sobald eine Forderung angenommen ist, sind beide Spielpartner bis zum Abschluss blockiert. Weitere offene Forderungen an diese Spieler werden automatisch abgelehnt und die Herausforderer per E-Mail informiert.</p>
+              <p class="muted">Jede offene Forderung blockiert beide Spieler sofort. Nach 14 Tagen ohne Ergebnis wird sie als überfällig angezeigt, ohne automatisch Plätze zu verändern. Der Ranglistenwart entscheidet über Verlängerung, Streichung oder Wertung. Ergebnisänderungen treten erst nach Bestätigung durch den Gegner oder Entscheidung des Ranglistenwarts in Kraft.</p>
               <div id="pyramid-admin-challenges"></div>
               <form id="pyramid-admin-schedule-form" class="form-grid">
                 <div class="field"><label for="pyramid-admin-schedule-match">Angenommene Forderung</label><select id="pyramid-admin-schedule-match" required></select></div>
                 <div class="field"><label for="pyramid-admin-schedule-date">Verbindlicher Spieltermin</label><input type="datetime-local" id="pyramid-admin-schedule-date" required /></div>
                 <div class="field full"><button type="submit" class="button secondary">Spieltermin speichern</button></div>
-                <p class="muted full">Der Termin muss spätestens sieben Tage nach der Forderung festgelegt werden; das Spiel muss zehn Tage nach der Terminvereinbarung stattfinden. Bei Fristüberschreitung kann die Verwaltung einen Termin nachtragen.</p>
+                <p class="muted full">Termin möglichst innerhalb von drei Tagen vereinbaren; Spiel spätestens 14 Tage nach der Forderung. Bei schlechtem Wetter einmalig bis zu sieben Tage verlängern.</p>
               </form>
               <p class="muted">Bei begründeten Absagen prüft die Ranglistenverwaltung den triftigen Grund. Ohne anerkannten Grund oder bei bestätigtem Nichtantreten wird das Spiel für die geforderte Person als verloren gewertet.</p>
               <button type="button" id="pyramid-admin-result-open" class="button secondary" disabled>Ergebnismeldung öffnen</button>
-              <p class="muted">Für ein angenommenes Spiel „Ergebnis melden“ wählen. Die Eingabe erfolgt in einem eigenen Dialog.</p>
+              <p class="muted">Bei angenommenen Spielen kann der Sieger ein Ergebnis zur Bestätigung melden. Bei Ergebniskonflikten kann die Ranglistenverwaltung im gleichen Dialog eine verbindliche Entscheidung treffen.</p>
             </div>
           </section>
 
@@ -961,7 +963,7 @@ import '../../styles/pyramid.css';
           <div class="field"><label for="pyramid-admin-score">Sätze aus Sicht des Siegers</label><input id="pyramid-admin-score" placeholder="6:4, 6:3" maxlength="80" required /></div>
           <div class="field full"><p id="pyramid-admin-result-error" class="notice hidden" role="alert"></p></div>
           <div class="field full pyramid-dialog-actions">
-            <button type="submit" class="button" id="pyramid-admin-result-save">Ergebnis verbindlich speichern</button>
+            <button type="submit" class="button" id="pyramid-admin-result-save">Ergebnis melden / Streitfall entscheiden</button>
             <button type="button" class="button ghost" id="pyramid-admin-result-cancel">Abbrechen</button>
           </div>
         </form>
