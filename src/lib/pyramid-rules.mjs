@@ -5,7 +5,7 @@ export function pyramidCell(position) {
   const column = position - (row * (row + 1)) / 2 - 1;
   return { row, column };
 }
-export function canChallenge(challengerPosition, defenderPosition, provisional = false) {
+export function canChallenge(challengerPosition, defenderPosition) {
   if (!Number.isInteger(challengerPosition) || !Number.isInteger(defenderPosition)
     || challengerPosition <= defenderPosition || defenderPosition < 1) return false;
   const c = pyramidCell(challengerPosition);
@@ -13,8 +13,16 @@ export function canChallenge(challengerPosition, defenderPosition, provisional =
   if (!c || !d) return false;
   return challengerPosition <= 3
     || (c.row === d.row && d.column < c.column)
-    || (d.row === c.row - 1 && d.column >= c.column)
-    || (provisional && d.row === Math.max(0, c.row - 1));
+    || (d.row === c.row - 1 && d.column >= c.column);
+}
+// PDF §6.1: An unranked entrant may qualify against any ranked player
+// no lower than the penultimate existing row. Initial seed entries count.
+export function canQualifyAgainst(defenderPosition, rankedEntries) {
+  const eligible = rankedEntries.filter(entry => entry.qualified !== false);
+  const bottom = Math.max(-1,...eligible.map(entry=>pyramidCell(entry.position)?.row ?? -1));
+  const defender = eligible.find(entry=>entry.position===defenderPosition);
+  const row = pyramidCell(defenderPosition)?.row;
+  return !!defender && bottom >= 1 && row != null && row < bottom;
 }
 export function pyramidRows(entries) {
   const positions = new Map(entries.map((entry) => [entry.position, entry]));
