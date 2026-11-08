@@ -7,7 +7,7 @@ type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends
 type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null;last_win_at?:string|null;neutralized_at?:string|null;neutralized_reason?:string|null };
 type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
 type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
-  created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;refusal_reason?:string|null;winner_id:string|null;proposed_winner_id?:string|null;proposed_score?:string|null;reported_at?:string|null;confirmation_deadline?:string|null;dispute_reason?:string|null;weather_extended_at?:string|null;overdue_extended_at?:string|null;no_show_requested_at?:string|null;no_show_reporter_id?:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
+  created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;scheduled_confirmed_at?:string|null;refusal_reason?:string|null;winner_id:string|null;proposed_winner_id?:string|null;proposed_score?:string|null;reported_at?:string|null;confirmation_deadline?:string|null;dispute_reason?:string|null;weather_extended_at?:string|null;overdue_extended_at?:string|null;no_show_requested_at?:string|null;no_show_reporter_id?:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
 const state: {
   user:any;profile:any;superAdmin:boolean;ladders:Ladder[];ladderId:string;
   entries:Entry[];requests:Request[];challenges:Challenge[];resultChallenge:string;avatars:Record<string,string>;
@@ -177,16 +177,18 @@ function renderGames() {
     const expiresAt=c.play_deadline||new Date(new Date(c.created_at).getTime()+14*86400000).toISOString();
     const late=['pending','accepted'].includes(c.status)
       &&new Date(expiresAt).getTime()<Date.now();
-    const noShowAllowed=c.status==='accepted'&&open&&!!c.scheduled_for
+    const noShowAllowed=c.status==='accepted'&&open&&!!c.scheduled_for&&!!c.scheduled_confirmed_at
       &&new Date(c.scheduled_for).getTime()+15*60000<=Date.now()
       &&!c.no_show_requested_at;
     const actions=(c.status==='pending'&&me?.id===c.defender_id&&!c.refusal_reason&&!late
       ?'<button type="button" data-pyramid-accept="'+c.id+'">Annehmen</button>'
         +'<button type="button" data-pyramid-decline="'+c.id+'">Absage begründen</button>':'')
-      +(c.status==='accepted'&&!late&&!c.refusal_reason&&(state.superAdmin||open)
-        &&(!c.scheduled_for||state.superAdmin||me?.id===c.challenger_id)
+      +(c.status==='accepted'&&!late&&!c.refusal_reason&&me?.id===c.challenger_id
         ?'<button type="button" data-pyramid-schedule="'+c.id+'">'
           +(c.scheduled_for?'Spieltermin ändern':'Spieltermin eintragen')+'</button>':'')
+      +(c.status==='accepted'&&!late&&!c.refusal_reason&&me?.id===c.defender_id
+        &&!!c.scheduled_for&&!c.scheduled_confirmed_at
+        ?'<button type="button" data-pyramid-confirm-schedule="'+c.id+'">Termin akzeptieren</button>':'')
       +(c.status==='accepted'&&!late&&!c.refusal_reason&&(state.superAdmin||open)
         ?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis melden</button>':'')
       +(opponentMayConfirm?'<button type="button" data-pyramid-confirm="'+c.id+'">Ergebnis bestätigen</button>'
@@ -197,7 +199,8 @@ function renderGames() {
       +'<small>'+escapeHtml(labels[c.status]||c.status)+' · '+formatTime(c.created_at)+'</small>'
       +(c.refusal_reason?'<small>Absage zur Prüfung: '+escapeHtml(c.refusal_reason)+'</small>':'')
       +(c.status==='pending'?'<small>Spieltermin möglichst innerhalb von 3 Tagen vereinbaren.</small>':'')
-      +(c.scheduled_for?'<small>Vereinbarter Termin: '+formatTime(c.scheduled_for)+'</small>':'')
+      +(c.scheduled_for?'<small>'+(c.scheduled_confirmed_at?'Bestätigter Termin: ':'Terminvorschlag: ')
+        +formatTime(c.scheduled_for)+(c.scheduled_confirmed_at?'':' · Bestätigung ausstehend')+'</small>':'')
       +(['pending','accepted'].includes(c.status)?'<small>Spielfrist: '+formatTime(expiresAt)+'</small>':'')
       +(late?'<small class="pyramid-deadline-warning">Frist überschritten – Ranglistenwart entscheidet; keine automatische Rangänderung.</small>':'')
       +(c.no_show_requested_at?'<small>Nichtantreten gemeldet – Entscheidung des Ranglistenwarts offen.</small>':'')
@@ -217,7 +220,7 @@ function renderGames() {
 }
 function renderUpcomingGames(){
   const upcoming=state.challenges
-    .filter(c=>c.status==='accepted'&&isInvolved(c)&&!!c.scheduled_for
+    .filter(c=>c.status==='accepted'&&isInvolved(c)&&!!c.scheduled_for&&!!c.scheduled_confirmed_at
       &&new Date(c.scheduled_for).getTime()>=Date.now()-15*60000)
     .sort((a,b)=>String(a.scheduled_for).localeCompare(String(b.scheduled_for))).slice(0,1);
   hidden('pyramid-upcoming-panel',!upcoming.length);
@@ -303,7 +306,7 @@ async function loadLadder(){
       .eq('ladder_id',ladder.id).order('position'),
     supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
       .eq('ladder_id',ladder.id),
-    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,scheduled_for,scheduled_at,refusal_reason,winner_id,score,decline_reason,source,resolved_at,proposed_winner_id,proposed_score,reported_at,confirmation_deadline,dispute_reason,weather_extended_at,overdue_extended_at,no_show_requested_at,no_show_reporter_id')
+    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,scheduled_for,scheduled_at,scheduled_confirmed_at,refusal_reason,winner_id,score,decline_reason,source,resolved_at,proposed_winner_id,proposed_score,reported_at,confirmation_deadline,dispute_reason,weather_extended_at,overdue_extended_at,no_show_requested_at,no_show_reporter_id')
       .eq('ladder_id',ladder.id).order('created_at',{ascending:false}).limit(150)
   ]);
   for(const answer of [entries,requests,challenges])if(answer.error)throw answer.error;
@@ -486,6 +489,13 @@ async function exchangePasswordSetupLink(link:SetupLink){
 }
 
 function wireEvents(){
+  const mobileMenu=el('pyramid-mobile-menu-toggle');
+  mobileMenu?.addEventListener('click',()=>{
+    const nav=mobileMenu.closest('.pyramid-member-nav');
+    const open=!nav?.classList.contains('is-open');
+    nav?.classList.toggle('is-open',open);
+    mobileMenu.setAttribute('aria-expanded',String(open));
+  });
   el<HTMLFormElement>('pyramid-password-setup-form')?.addEventListener('submit',async(event)=>{
     event.preventDefault();
     const password=el<HTMLInputElement>('pyramid-new-password')?.value||'';
@@ -619,7 +629,7 @@ function wireEvents(){
     }catch(e){notice(safeError(e),'error');}
   });
   el('pyramid-app')?.addEventListener('click',(event)=>{
-    const target=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-challenge],[data-pyramid-accept],[data-pyramid-decline],[data-pyramid-schedule],[data-pyramid-result],[data-pyramid-confirm],[data-pyramid-dispute],[data-pyramid-noshow],[data-pyramid-approve],[data-pyramid-move]');
+    const target=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-challenge],[data-pyramid-accept],[data-pyramid-decline],[data-pyramid-schedule],[data-pyramid-confirm-schedule],[data-pyramid-result],[data-pyramid-confirm],[data-pyramid-dispute],[data-pyramid-noshow],[data-pyramid-approve],[data-pyramid-move]');
     if(!target)return;
     const challenge=target.dataset.pyramidChallenge;
     if(challenge){if(confirm('Diese Person verbindlich herausfordern?'))void runAction(
@@ -643,6 +653,13 @@ function wireEvents(){
       const date=el<HTMLInputElement>('pyramid-schedule-date');
       if(date)date.value=game?.scheduled_for?new Date(game.scheduled_for).toISOString().slice(0,16):'';
       scheduleDialog?.showModal();
+      return;
+    }
+    const confirmSchedule=target.dataset.pyramidConfirmSchedule;
+    if(confirmSchedule){
+      if(confirm('Diesen Spieltermin verbindlich akzeptieren?'))void runAction(
+        ()=>rpc('pyramid_confirm_schedule',{p_challenge:confirmSchedule}),
+        'Spieltermin akzeptiert. Das Spiel ist jetzt verbindlich vereinbart.');
       return;
     }
     const result=target.dataset.pyramidResult;
