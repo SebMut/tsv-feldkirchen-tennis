@@ -1,6 +1,12 @@
 name: Deploy Hallenfinder function
 
 on:
+  push:
+    branches:
+      - feature/astro-supabase-foundation
+    paths:
+      - .github/workflows/deploy-hall-availability.yml
+      - supabase/functions/hall-availability/**
   workflow_dispatch:
 
 permissions:
