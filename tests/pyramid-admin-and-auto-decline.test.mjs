@@ -103,3 +103,19 @@ test('demo allows acceptance by selected defender and simulates auto-email witho
  assert.match(read('scripts/pyramid-demo-browser-qa.mjs'),/Automatisch abgelehnt/);
  assert.match(read('scripts/pyramid-demo-browser-qa.mjs'),/After the accepted game ends/);
 });
+
+test('the administrative result entry is a real modal with X, cancel, Escape and backdrop',()=>{
+ const page=read('src/pages/admin/index.astro');
+ const code=read('src/scripts/admin-pyramid.ts');
+ assert.match(page,/id="pyramid-admin-result-dialog" class="pyramid-dialog"/);
+ assert.match(page,/id="pyramid-admin-result-close"/);
+ assert.match(page,/id="pyramid-admin-result-cancel"/);
+ assert.match(page,/id="pyramid-admin-result-error"/);
+ assert.match(page,/id="pyramid-admin-result-open"/);
+ assert.match(code,/dialog\.showModal\(\)/);
+ assert.match(code,/dialog\?\.close\(\)/);
+ assert.match(code,/event\.target===dialog/);
+ assert.match(code,/data-pyramid-admin-report/);
+ assert.match(code,/reportError/);
+ assert.match(page,/import '\.\.\/\.\.\/styles\/pyramid\.css'/);
+});
