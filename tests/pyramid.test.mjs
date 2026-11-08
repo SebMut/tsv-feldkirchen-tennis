@@ -43,7 +43,7 @@ test('saison boundaries follow dates instead of hard-coded summer 2026',()=>{
  assert.equal(dateWithinPeriod('2027-04-01','2027-10-31',new Date(2027,3,1)),true);
  assert.equal(dateWithinPeriod('2027-04-01','2027-10-31',new Date(2027,10,1)),false);
 });
-test('pyramid stays private with reuse of Supabase Auth and secured RPCs',()=>{
+test('protected actions stay authenticated while public board reveals only ranks and names',()=>{
  const sql=source('supabase/migrations/20261108153000_forderungspyramide_staging.sql');
  const page=source('src/pages/forderungspyramide/index.astro');
  const js=source('src/scripts/pyramid.ts');
@@ -53,7 +53,27 @@ test('pyramid stays private with reuse of Supabase Auth and secured RPCs',()=>{
  assert.doesNotMatch(siteNav,/forderungspyramide/);
  assert.doesNotMatch(sitemap,/forderungspyramide/);
  assert.match(js,/supabase\.auth\.signInWithPassword/);
- assert.match(js,/supabase\.auth\.signInWithOtp/);
+ assert.match(js,/supabase\.functions\.invoke\('pyramid-access-email'/);
+ assert.match(js,/pyramid_public_standings/);
+ assert.match(js,/renderGuestStandings/);
+ const publicSql=source('supabase/migrations/20261108190000_pyramid_public_board_and_access_links.sql');
+ assert.match(publicSql,/returns table\(/);
+ assert.match(publicSql,/ladder_title text, season_label text/);
+ assert.match(publicSql,/display_name text/);
+ assert.doesNotMatch(publicSql,/avatar_path|neutralized_reason|user_id/);
+ assert.match(publicSql,/grant execute on function public\.pyramid_public_standings\(\) to anon,authenticated/);
+ assert.match(publicSql,/revoke all on function public\.pyramid_access_link_allow\(text,text\) from public,anon,authenticated/);
+ const mail=source('supabase/functions/pyramid-access-email/index.ts');
+ assert.match(mail,/auth\.admin\.generateLink/);
+ assert.match(mail,/TURNSTILE_SECRET_KEY/);
+ assert.match(mail,/GMAIL_REFRESH_TOKEN/);
+ assert.match(mail,/pyramid_access_link_allow/);
+ assert.match(page,/id="pyramid-public-board"/);
+ assert.match(page,/id="pyramid-rules-heading"/);
+ assert.match(page,/pyramid-rules-list/);
+ assert.match(page,/pyramid-avatar-save-state/);
+ assert.match(js,/URL\.createObjectURL\(file\)/);
+ assert.match(js,/avatarUpload\?\.requestSubmit\(\)/);
  assert.match(js,/pyramid_request_join/);
  assert.match(js,/pyramid_approve_join/);
  assert.match(js,/pyramid_finalize_seed/);
