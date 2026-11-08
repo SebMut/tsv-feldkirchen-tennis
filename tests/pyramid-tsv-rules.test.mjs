@@ -168,6 +168,25 @@ test('mobile member menu is compact, expandable and accessible',()=>{
  assert.match(styles,/min-height:44px/);
 });
 
+test('accepted schedules are green and score reporting uses a guided set wizard',()=>{
+ assert.match(client,/pyramid-accepted/);
+ assert.match(styles,/\.pyramid-accepted\{[^}]*background:#e7f7ed[^}]*color:#14743b/);
+ assert.match(page,/id="pyramid-result-set-entry"/);
+ assert.match(page,/id="pyramid-result-quick"/);
+ assert.match(page,/id="pyramid-result-own-games"/);
+ assert.match(client,/function renderResultWizard/);
+ assert.match(client,/function addResultSet/);
+ assert.match(styles,/\.pyramid-result-quick\{display:grid;grid-template-columns:repeat\(4/);
+});
+
+test('schedule and score errors stay sharp inside their dialogs',()=>{
+ assert.match(page,/id="pyramid-schedule-error"[^>]*role="alert"/);
+ assert.match(page,/id="pyramid-result-error"[^>]*role="alert"/);
+ assert.match(client,/modalMessage\('pyramid-schedule-error',safeError\(e\)\)/);
+ assert.match(client,/modalMessage\('pyramid-result-error',safeError\(e\)\)/);
+ assert.match(styles,/\.pyramid-modal-message\{/);
+});
+
 test('User request: Urlaub and Verletzung badges bottom-right on phone and desktop',()=>{
  assert.match(styles,/\.pyramid-entry-away\{[\s\S]*?position:absolute;right:5px;bottom:5px/);
  assert.match(styles,/@media\(max-width:720px\)\{[\s\S]*?\.pyramid-entry-away\{[^}]*right:3px/);

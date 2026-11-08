@@ -195,21 +195,34 @@ const sectionTitle = sectionTitles[activeSection];
       <p class="muted">Nur der Herausforderer trägt den abgestimmten Termin ein oder ändert ihn. Der Geforderte muss den Vorschlag anschließend ausdrücklich akzeptieren. Das Match muss spätestens 14 Tage nach der ursprünglichen Forderung gespielt werden.</p>
       <form id="pyramid-schedule-form" class="form-grid">
         <div class="field full"><label for="pyramid-schedule-date">Vereinbarter Spieltermin</label><input id="pyramid-schedule-date" type="datetime-local" required /></div>
+        <p id="pyramid-schedule-error" class="pyramid-modal-message hidden" role="alert" aria-live="assertive"></p>
         <div class="field full pyramid-dialog-actions"><button class="button button--hot" type="submit">Termin vorschlagen</button>
           <button id="pyramid-schedule-cancel" class="button ghost" type="button">Abbrechen</button></div>
       </form>
     </div>
   </dialog>
   <dialog id="pyramid-dialog" class="pyramid-dialog" aria-labelledby="pyramid-dialog-title">
-    <form id="pyramid-result-form" method="dialog" class="pyramid-dialog-content">
-      <div class="pyramid-dialog-top"><div><p class="eyebrow">Forderungsspiel</p><h2 id="pyramid-dialog-title">Ergebnis melden</h2></div>
+    <form id="pyramid-result-form" method="dialog" class="pyramid-dialog-content pyramid-result-wizard">
+      <div class="pyramid-dialog-top"><div><p class="eyebrow">Forderungsspiel · Ergebnis</p><h2 id="pyramid-dialog-title">1. Satz auswählen</h2></div>
         <button type="button" id="pyramid-dialog-close" class="pyramid-dialog-close" aria-label="Schließen">✕</button></div>
       <p id="pyramid-dialog-opponents" class="muted"></p>
-      <div class="field"><label for="pyramid-result-score">Sätze (z. B. 6:4, 4:6, 10:8)</label>
-        <input id="pyramid-result-score" required maxlength="80" placeholder="6:4, 6:3" /></div>
+      <div id="pyramid-result-sets" class="pyramid-result-sets" aria-live="polite"></div>
+      <section id="pyramid-result-set-entry" class="pyramid-result-set-entry" aria-labelledby="pyramid-result-entry-heading">
+        <div class="pyramid-result-entry-head"><strong id="pyramid-result-entry-heading">Eigenen Satzstand eingeben</strong><span id="pyramid-result-example">z. B. 6:4</span></div>
+        <p id="pyramid-result-help" class="muted">Wähle einen fertigen Satzstand oder gib einen eigenen gültigen Endstand ein.</p>
+        <div class="pyramid-result-score-inputs">
+          <label>Sieger<input id="pyramid-result-own-games" type="number" min="0" max="99" inputmode="numeric" value="6" /></label>
+          <strong aria-hidden="true">:</strong>
+          <label>Gegner<input id="pyramid-result-opponent-games" type="number" min="0" max="99" inputmode="numeric" value="0" /></label>
+        </div>
+        <button id="pyramid-result-custom-save" class="button button--hot" type="button">Satz übernehmen</button>
+      </section>
+      <div><p class="pyramid-result-quick-label">Schnellauswahl fertiger Satzstände</p><div id="pyramid-result-quick" class="pyramid-result-quick"></div></div>
+      <input id="pyramid-result-score" type="hidden" />
       <div class="field hidden" id="pyramid-winner-field"><label for="pyramid-result-winner">Sieger (Ranglistenverwaltung)</label><select id="pyramid-result-winner"></select></div>
-      <p class="muted">Als Sieger meldest du nur deinen eigenen Sieg. Der Gegner bestätigt das Ergebnis innerhalb von 48 Stunden oder widerspricht. Bis dahin bleibt die Rangfolge unverändert.</p>
-      <div class="pyramid-dialog-actions"><button class="button button--hot" type="submit">Ergebnis zur Bestätigung melden</button>
+      <p id="pyramid-result-error" class="pyramid-modal-message hidden" role="alert" aria-live="assertive"></p>
+      <p class="muted">Das Ergebnis wird dem Gegner zur Bestätigung vorgelegt. Bis dahin bleibt die Rangfolge unverändert.</p>
+      <div class="pyramid-dialog-actions"><button id="pyramid-result-undo" class="button ghost hidden" type="button">Letzten Satz ändern</button><button id="pyramid-result-submit" class="button button--hot hidden" type="submit">Ergebnis zur Bestätigung melden</button>
         <button class="button ghost" id="pyramid-dialog-cancel" type="button">Abbrechen</button></div>
     </form>
   </dialog>
