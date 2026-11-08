@@ -24,6 +24,23 @@ jobs:
       - run: npm ci
       - name: Unit regression checks
         run: npm test
+      - name: Check production access-link configuration (no emails sent)
+        run: |
+          set -euo pipefail
+          status=$(curl -fsS --connect-timeout 10 --max-time 25 \
+            -X POST 'https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/pyramid-access-email' \
+            -H 'Origin: https://www.tennis-tsvfeldkirchen.de' \
+            -H 'Content-Type: application/json' \
+            -d '{"action":"config"}')
+          echo "$status" | node -e '
+            let input="";
+            process.stdin.on("data",c=>input+=c);
+            process.stdin.on("end",()=>{
+              let x;try{x=JSON.parse(input);}catch{console.error("Invalid mail-service response");process.exit(1);}
+              if(!x.enabled||!x.siteKey){console.error("Access link mail not configured: "+(x.message||"unknown"));process.exit(1);}
+              console.log("Gmail, Turnstile and Auth access-link endpoint configured.");
+            });
+          '
       - name: Staging build
         env:
           PREVIEW_BASE: /tsv-feldkirchen-tennis/pyramid-staging
