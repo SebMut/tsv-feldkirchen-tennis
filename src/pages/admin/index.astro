@@ -893,6 +893,7 @@ import '../../styles/pyramid.css';
                 <div class="field"><label for="pyramid-admin-season">Saison</label><input id="pyramid-admin-season" required minlength="3" maxlength="70" placeholder="z. B. Sommer 2027" /></div>
                 <div class="field"><label for="pyramid-admin-from">Beginn</label><input id="pyramid-admin-from" type="date" required /></div>
                 <div class="field"><label for="pyramid-admin-until">Ende</label><input id="pyramid-admin-until" type="date" required /></div>
+                <p class="muted field full">Regel-Zeiträume als Orientierung: Sommer 1. April–31. Oktober; Winter 1. November–31. März. Eigene TSV-Termine bleiben möglich.</p>
                 <div class="field full"><button type="submit" class="button">Rangliste anlegen</button></div>
               </form>
             </div>
@@ -901,9 +902,22 @@ import '../../styles/pyramid.css';
               <div id="pyramid-admin-pending"><p class="muted">Rangliste auswählen.</p></div>
             </div>
             <div class="card stack">
-              <h3>Rangliste und Startaufstellung</h3>
+              <h3>Rangliste und LK-Startaufstellung</h3>
+              <p class="muted">Vor dem ersten Spiel die LK-Werte (Stand zum Saisonstart) eingeben und nach LK sortieren. Kleinere LK bedeutet besserer Rang; Spieler ohne LK stehen am Ende. Das vorhandene Kadersystem enthält derzeit keine LK-Werte, deshalb werden diese hier manuell gepflegt.</p>
+              <button type="button" class="button secondary" id="pyramid-admin-sort-lk">Nach LK sortieren</button>
               <div id="pyramid-admin-order"><p class="muted">Rangliste auswählen.</p></div>
+              <div id="pyramid-admin-qualifiers" class="stack" aria-live="polite"></div>
               <button type="button" class="button secondary" id="pyramid-admin-finalize">Startaufstellung abschließen</button>
+            </div>
+            <div class="card stack">
+              <h3>Privat vereinbarte Forderung erfassen</h3>
+              <p class="muted">Nach Regel 3.3 dürfen Forderungen auch persönlich ausgesprochen werden. Die Ranglistenverwaltung kann sie hier erfassen; die Datenbank prüft dieselben Berechtigungen und Pyramidenpositionen wie bei einer Online-Forderung. Die geforderte Person wird per E-Mail benachrichtigt.</p>
+              <form class="form-grid" id="pyramid-admin-private-challenge">
+                <div class="field"><label for="pyramid-admin-private-challenger">Herausforderer</label><select id="pyramid-admin-private-challenger" required></select></div>
+                <div class="field"><label for="pyramid-admin-private-defender">Herausgeforderte Person</label><select id="pyramid-admin-private-defender" required></select></div>
+                <div class="field full"><label><input type="checkbox" id="pyramid-admin-private-accepted" /> Die geforderte Person hat privat bereits ausdrücklich zugestimmt; Spiel als angenommen eintragen.</label></div>
+                <div class="field full"><button type="submit" class="button secondary">Private Forderung verbindlich eintragen</button></div>
+              </form>
             </div>
             <div class="card stack">
               <h3>Forderungen und Ergebnisse</h3>
