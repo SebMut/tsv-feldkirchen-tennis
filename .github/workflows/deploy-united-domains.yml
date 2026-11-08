@@ -55,6 +55,31 @@ jobs:
           export SSHPASS="$SFTP_PASSWORD"
           timeout 45 sshpass -e sftp -o BatchMode=no -o StrictHostKeyChecking=accept-new -o ConnectTimeout=12 -P "$PORT" -b /tmp/tsv-preflight.sftp "$SFTP_USER@$SFTP_HOST"
           echo 'Read-only SFTP preflight successful. No files changed.'
+      - name: Verify hidden live route, admin modal, no public link and built assets via HTTPS
+        run: |
+          set -euo pipefail
+          domain='https://www.tennis-tsvfeldkirchen.de'
+          curl -fsSL --connect-timeout 10 --max-time 30 "$domain/forderungspyramide/?tsv-check=$GITHUB_SHA" -o /tmp/pyramid-live.html
+          curl -fsSL --connect-timeout 10 --max-time 30 "$domain/admin/?tsv-check=$GITHUB_SHA" -o /tmp/admin-live.html
+          curl -fsSL --connect-timeout 10 --max-time 30 "$domain/?tsv-check=$GITHUB_SHA" -o /tmp/home-live.html
+          curl -fsSL --connect-timeout 10 --max-time 30 "$domain/sitemap.xml" -o /tmp/sitemap-live.xml
+          grep -Fq 'id="pyramid-login-form"' /tmp/pyramid-live.html
+          grep -Fq 'noindex,nofollow' /tmp/pyramid-live.html
+          grep -Fq 'id="pyramid-admin-result-dialog"' /tmp/admin-live.html
+          if grep -Fq 'href="/forderungspyramide/"' /tmp/home-live.html; then echo '::error::Unexpected public navigation link to pyramid'; exit 1; fi
+          if grep -Fq '/forderungspyramide/' /tmp/sitemap-live.xml; then echo '::error::Pyramid must not be indexed'; exit 1; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+          html=Path('/tmp/pyramid-live.html').read_text(encoding='utf-8')
+          assets=list(dict.fromkeys(re.findall(r'(?:src|href)="(/_astro/[^"]+\.(?:js|css))"',html)))
+          if not assets: raise SystemExit('Pyramid has no referenced JS/CSS assets')
+          for asset in assets:
+              subprocess.run(['curl','-fsSL','--connect-timeout','10','--max-time','30',
+                  '-o','/dev/null','https://www.tennis-tsvfeldkirchen.de'+asset],check=True)
+          print('Verified live hidden pyramid route, private login, admin score dialog, no public nav/sitemap and',len(assets),'assets.')
+          PY
 
   write_diagnostic:
     # One-shot user-approved test: clean up temporary file and directory.
