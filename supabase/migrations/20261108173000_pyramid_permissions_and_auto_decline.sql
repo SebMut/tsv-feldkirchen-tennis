@@ -69,8 +69,7 @@ begin
       where tm.role is distinct from excluded.role or not tm.active;
   end if;
 end;
-$function$
-
+$function$;
 
 -- Reuse the established persisted global permission helper; no shadow role system.
 create or replace function private.can_manage_pyramid() returns boolean
