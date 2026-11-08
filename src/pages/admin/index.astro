@@ -908,12 +908,8 @@ import '../../styles/admin-rsvp-export.css';
               <h3>Forderungen und Ergebnisse</h3>
               <p class="muted">Sobald eine Forderung angenommen ist, sind beide Spielpartner bis zum Abschluss blockiert. Weitere offene Forderungen an diese Spieler werden automatisch abgelehnt und die Herausforderer per E-Mail informiert.</p>
               <div id="pyramid-admin-challenges"></div>
-              <form class="form-grid" id="pyramid-admin-result">
-                <div class="field full"><label for="pyramid-admin-match">Angenommene Forderung</label><select id="pyramid-admin-match" required></select></div>
-                <div class="field"><label for="pyramid-admin-winner">Sieger</label><select id="pyramid-admin-winner" required></select></div>
-                <div class="field"><label for="pyramid-admin-score">Sätze aus Sicht des Siegers</label><input id="pyramid-admin-score" placeholder="6:4, 6:3" maxlength="80" required /></div>
-                <div class="field full"><button type="submit" class="button">Ergebnis eintragen</button></div>
-              </form>
+              <button type="button" id="pyramid-admin-result-open" class="button secondary" disabled>Ergebnismeldung öffnen</button>
+              <p class="muted">Für ein angenommenes Spiel „Ergebnis melden“ wählen. Die Eingabe erfolgt in einem eigenen Dialog.</p>
             </div>
           </section>
 
@@ -930,6 +926,25 @@ import '../../styles/admin-rsvp-export.css';
         </div>
       </div>
     </section>
+    <dialog id="pyramid-admin-result-dialog" class="pyramid-dialog" aria-labelledby="pyramid-admin-result-title" aria-describedby="pyramid-admin-result-help">
+      <div class="pyramid-dialog-content">
+        <div class="pyramid-dialog-top">
+          <div><p class="eyebrow">Forderungspyramide · Ergebnismeldung</p><h2 id="pyramid-admin-result-title">Ergebnis eintragen</h2></div>
+          <button type="button" id="pyramid-admin-result-close" class="pyramid-dialog-close" aria-label="Ergebnismeldung schließen">✕</button>
+        </div>
+        <p class="muted" id="pyramid-admin-result-help">Trage das Ergebnis aus Sicht des ausgewählten Siegers ein. Gespielt werden zwei Gewinnsätze, der Entscheidungssatz ist ein Champions-Tie-Break.</p>
+        <form class="form-grid" id="pyramid-admin-result">
+          <div class="field full"><label for="pyramid-admin-match">Angenommene Forderung</label><select id="pyramid-admin-match" required></select></div>
+          <div class="field"><label for="pyramid-admin-winner">Sieger</label><select id="pyramid-admin-winner" required></select></div>
+          <div class="field"><label for="pyramid-admin-score">Sätze aus Sicht des Siegers</label><input id="pyramid-admin-score" placeholder="6:4, 6:3" maxlength="80" required /></div>
+          <div class="field full"><p id="pyramid-admin-result-error" class="notice hidden" role="alert"></p></div>
+          <div class="field full pyramid-dialog-actions">
+            <button type="submit" class="button" id="pyramid-admin-result-save">Ergebnis verbindlich speichern</button>
+            <button type="button" class="button ghost" id="pyramid-admin-result-cancel">Abbrechen</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
     <dialog id="encounter-set-dialog" class="encounter-set-dialog" aria-labelledby="encounter-set-dialog-title" aria-describedby="encounter-set-dialog-subtitle">
       <div class="encounter-set-dialog__header">
         <div>
