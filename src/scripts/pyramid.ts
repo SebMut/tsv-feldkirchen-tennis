@@ -1,7 +1,7 @@
 import { supabase, mediaUrl } from '../lib/supabase';
 import { replaceMediaImage, removeMediaImage } from '../lib/media-upload';
 import { escapeHtml, setStatus } from '../lib/ui';
-import { canChallenge, canQualifyAgainst, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
+import { canChallenge, canQualifyAgainst, defaultMasterSeason, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
 
 type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends_on:string;active:boolean;seeded_at:string|null };
 type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null;last_win_at?:string|null;neutralized_at?:string|null;neutralized_reason?:string|null };
@@ -879,6 +879,15 @@ function renderDemo(){
 }
 export function initPyramid(){
   if(demoMode) {renderDemo();return;}
+  const summer=defaultMasterSeason();
+  for(const [id,value] of [
+    ['pyramid-new-season',summer.label],
+    ['pyramid-new-start',summer.startsOn],
+    ['pyramid-new-end',summer.endsOn]
+  ]){
+    const field=el<HTMLInputElement>(id);
+    if(field&&!field.value)field.value=value;
+  }
   wireEvents();
   void load();
   supabase.auth.onAuthStateChange((event)=>{
