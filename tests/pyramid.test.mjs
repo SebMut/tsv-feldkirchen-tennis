@@ -56,6 +56,14 @@ test('pyramid stays private with reuse of Supabase Auth and secured RPCs',()=>{
  assert.match(js,/pyramid_challenge/);
  assert.match(js,/pyramid_respond/);
  assert.match(js,/pyramid_report_result/);
+ assert.match(js,/function demoMakeChallenge\(/);
+ assert.match(js,/function demoRespond\(/);
+ assert.match(js,/function demoReportResult\(/);
+ assert.match(js,/function demoInitialize\(/);
+ assert.match(js,/location\.search\)\.get\('demo'\)/);
+ assert.match(js,/data-demo-mode/);
+ assert.ok(source('scripts/pyramid-demo-browser-qa.mjs').includes("await checkDevice('mobile'"));
+
  assert.match(sql,/enable row level security/g);
  assert.match(sql,/private\.is_super_admin\(\)/);
  assert.match(sql,/time zone 'Europe\/Berlin'\)::date not between l\.starts_on and l\.ends_on/);
