@@ -4,7 +4,7 @@ type EventName = 'page_view' | 'ticker_view' | 'nav_click' | 'action_click' | 'c
 const staticPaths = new Set([
   '/', '/spieltag/', '/spieltag/live-ticker/', '/live/', '/aktuelles/', '/termine/',
   '/mannschaften/', '/sponsoren/', '/training/', '/mitglied-werden/', '/kontakt/',
-  '/ueber-uns/', '/funktionaere/', '/spiel/', '/veranstaltung/', '/impressum/', '/datenschutz/',
+  '/ueber-uns/', '/funktionaere/', '/hallenplaetze/', '/spiel/', '/veranstaltung/', '/impressum/', '/datenschutz/',
 ]);
 let started = false;
 let hits = 0;
@@ -94,6 +94,11 @@ export function initSiteAnalytics() {
     if (elem.matches('[data-calendar-save]')) { track('calendar_click',pagePath,'ics_download'); return; }
     if (elem.matches('#calendar-modal-details')) { track('calendar_click',pagePath,'tag_details'); return; }
     if (elem.matches('[data-news-more]')) { track('content_click',pagePath,'weitere_beitraege'); return; }
+    const hallVenue = elem.dataset.hallVenue;
+    if (pagePath === '/hallenplaetze/' && hallVenue && /^(aschheim|ismaning|sporttraum|haar|kirchheim)$/.test(hallVenue)) {
+      track('action_click',pagePath,'halle:'+hallVenue);
+      return;
+    }
     if (elem instanceof HTMLAnchorElement) {
       if (elem.getAttribute('href')?.startsWith('#')) {
         if (pagePath === '/live/' && elem.closest('.scorecenter-tabs')) {

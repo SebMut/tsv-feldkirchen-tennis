@@ -3,9 +3,9 @@ import { escapeHtml } from '../lib/ui';
 
 type CountRow = { name?: string; path?: string; target?: string; event?: string; views: number; day?: string; hour?: number; opponent?: string; starts_at?: string; id?: string; title?: string; kind?: string };
 type Result = {
-  summary: { page_views: number; previous_page_views: number; ticker_views: number; ticker_detail_views: number; tv_views: number; interactions: number };
+  summary: { page_views: number; previous_page_views: number; hall_finder_views: number; ticker_views: number; ticker_detail_views: number; tv_views: number; interactions: number };
   daily: CountRow[]; pages: CountRow[]; actions: CountRow[]; devices: CountRow[]; sources: CountRow[];
-  hours: CountRow[]; ticker_matches: CountRow[]; ticker_channels: CountRow[]; started_at: string | null;
+  hours: CountRow[]; ticker_matches: CountRow[]; ticker_channels: CountRow[]; hall_venues: CountRow[]; started_at: string | null;
 };
 const n = (value: unknown) => Number(value || 0);
 const fmt = (value: unknown) => new Intl.NumberFormat('de-DE').format(n(value));
@@ -14,7 +14,7 @@ const label: Record<string,string> = {
   '/live/': 'Liveticker · Begegnung', '/aktuelles/': 'Aktuelles', '/termine/': 'Kalender',
   '/mannschaften/': 'Mannschaften', '/sponsoren/': 'Sponsoren', '/training/': 'Training',
   '/mitglied-werden/': 'Mitglied werden', '/kontakt/': 'Kontakt', '/ueber-uns/': 'Über uns',
-  '/funktionaere/': 'Funktionäre', '/spiel/': 'Spiel', '/veranstaltung/': 'Veranstaltung',
+  '/funktionaere/': 'Funktionäre', '/hallenplaetze/': 'Hallenfinder', '/spiel/': 'Spiel', '/veranstaltung/': 'Veranstaltung',
   '/datenschutz/': 'Datenschutz', '/impressum/': 'Impressum',
   mobile: 'Smartphone', tablet: 'Tablet', desktop: 'Desktop',
   direct: 'Direkter Aufruf', internal: 'Interner Link', search: 'Suchmaschine',
@@ -26,6 +26,8 @@ const label: Record<string,string> = {
   tag_details: 'Kalendertag: Details', anmeldung_oeffnen: 'Anmeldung geöffnet',
   weitere_beitraege: 'Weitere Beiträge', ticker_reiter: 'Liveticker-Reiter',
   tv_vollbild: 'TV: Vollbild', tv_ansicht: 'TV: Ansicht wechseln', tag_oeffnen: 'Kalendertag öffnen',
+  aschheim: 'TC Aschheim', ismaning: 'TC Ismaning', sporttraum: 'Sporttraum',
+  haar: 'Racket-Park TSV Haar', kirchheim: 'TC Kirchheim',
 };
 const named = (value: unknown) => label[String(value)] || (String(value).startsWith('/mannschaften/') ? 'Mannschaft · ' + String(value).split('/')[2] : String(value || 'Unbekannt').replace(/_/g,' '));
 const el = (id: string) => document.getElementById(id);
@@ -74,6 +76,7 @@ function render(data: Result, days: number) {
   const change = prior ? ((n(s.page_views) - prior)/prior*100) : null;
   el('analytics-metrics')!.innerHTML =
     metric('Seitenaufrufe',s.page_views, change === null ? 'Kein Vergleichszeitraum' : `${change >= 0 ? '+' : ''}${change.toFixed(1).replace('.',',')} % zum Vorzeitraum`) +
+    metric('Hallenfinder',s.hall_finder_views,'Aufrufe der Hallenplatzsuche') +
     metric('Liveticker-Anzeigen',s.ticker_views,'Übersicht + Einzelspiel + TV') +
     metric('Einzelne Begegnungen',s.ticker_detail_views,'Geöffnete Spiel-Liveticker') +
     metric('TV-Liveticker',s.tv_views,'Aufrufe der TV-Ansicht') +
@@ -89,6 +92,7 @@ function render(data: Result, days: number) {
     data.actions.map(r => ({...r,target:`${named(r.event)}: ${named(r.target || 'allgemein')}`})),
     'target',n(s.interactions)
   );
+  el('analytics-hall-venues')!.innerHTML = rankings(data.hall_venues || [],'target');
   el('analytics-content')!.innerHTML = contentRows.length
     ? `<ol class="analytics-match-list">${contentRows.map(r=>`<li><div><strong>${escapeHtml(String(r.title || 'Inhalt'))}</strong><small>${escapeHtml(String(r.kind || 'Beitrag'))}</small></div><strong>${fmt(r.views)} Aufrufe</strong></li>`).join('')}</ol>`
     : '<p class="muted">Noch keine Beitragsdetails geöffnet.</p>';
@@ -131,6 +135,7 @@ function downloadCsv() {
   if (!cached) return;
   const sets: Array<[string,CountRow[],string]> = [
     ['Inhalte',contentRows,'title'],
+    ['Hallenfinder · Hallen',cached.hall_venues || [],'target'],
     ['Seiten',cached.pages,'path'],['Liveticker',cached.ticker_channels,'path'],
     ['Begegnungen',cached.ticker_matches,'opponent'],['Aktionen',cached.actions,'target'],
     ['Geräte',cached.devices,'name'],['Quellen',cached.sources,'name'],['Tage',cached.daily,'day'],
