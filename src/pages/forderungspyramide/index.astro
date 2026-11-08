@@ -66,12 +66,12 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       </section>
       <section id="pyramid-availability-panel" class="card stack hidden">
         <p class="eyebrow">Meine Verfügbarkeit</p><h2>Spielbereit oder neutralisiert?</h2>
-        <p class="muted">Bei Urlaub, Krankheit oder Verletzung kannst du deine Spieler-Kachel neutralisieren. Der Status „Urlaub“ wird unten links angezeigt. Solange du neutralisiert bist, kannst du weder fordern noch gefordert werden. Bei Urlaub und Verletzung bleibt dein Rang vier Wochen unverändert; danach fällst du zunächst ans Ende deiner Reihe und anschließend alle vier Wochen eine Reihe tiefer, bis du dich wieder als spielbereit meldest.</p>
+        <p class="muted">Du kannst deine Spieler-Kachel bei Urlaub, Krankheit oder Verletzung höchstens 28 Tage neutralisieren. „Urlaub“ und „Verletzung“ erscheinen rechts unten auf deiner Kachel. Währenddessen sind Forderungen gesperrt. Nach 28 Tagen wird der Status automatisch auf „Spielbereit“ gesetzt. Es gibt keine automatische Rückstufung; normale Rangverschiebungen durch andere Spiele bleiben möglich.</p>
         <form id="pyramid-availability-form" class="form-grid">
           <div class="field"><label for="pyramid-neutral-reason">Status</label>
             <select id="pyramid-neutral-reason">
               <option value="">Spielbereit</option>
-              <option value="vacation">Urlaub (bis 4 Wochen ohne Rangverschiebung)</option>
+              <option value="vacation">Urlaub (maximal 28 Tage)</option>
               <option value="illness">Krankheit</option>
               <option value="injury">Verletzung</option>
               <option value="other">Sonstige Abwesenheit</option>
@@ -100,25 +100,25 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
         <h3>Startplätze sortieren</h3>
         <div id="pyramid-admin-entries" class="pyramid-admin-entries"></div>
         <button class="button secondary" id="pyramid-finalize-seed" type="button">Startaufstellung verbindlich abschließen</button>
-        <p class="muted">LK-Startsortierung und Qualifikationsspiele werden im vollständigen <a href="/admin/">Mein-TSV-Adminbereich</a> verwaltet. Nach der Startaufstellung müssen später aufgenommene Spieler zunächst ein Einforderungsspiel bestreiten.</p>
+        <p class="muted">Die LK-Startsortierung wird im <a href="/admin/">Mein-TSV-Adminbereich</a> verwaltet. Später freigegebene Mitglieder werden automatisch auf dem letzten Rang aufgenommen.</p>
       </section>
     </section>
     <section class="card pyramid-rules">
       <p class="eyebrow">Fair spielen</p><h2>Die Regeln auf einen Blick</h2>
       <div class="pyramid-rules-grid">
-        <div><strong>7 Tage</strong><span>Spieltermin verbindlich vereinbaren und eintragen</span></div>
-        <div><strong>10 Tage</strong><span>Spiel nach Terminvereinbarung austragen</span></div>
-        <div><strong>3 Tage</strong><span>Siegerschutz und Wartefrist des Verlierers</span></div>
+        <div><strong>14 Tage</strong><span>Spiel ab der Forderung austragen; Termin möglichst binnen 3 Tagen abstimmen</span></div>
+        <div><strong>7 Tage</strong><span>Nach einer Niederlage warten und denselben Gegner nicht sofort erneut fordern</span></div>
+        <div><strong>48 Stunden</strong><span>Siegerschutz und Ergebnisbestätigung durch den Gegner</span></div>
       </div>
-      <p>Neue Teilnehmer können sich jederzeit einfordern und dabei jeden platzierten Gegner wählen. Der Verlierer darf nach drei Tagen erneut fordern. Derselbe Gegner darf erst nach zwei Wochen erneut gefordert werden. Gespielt werden zwei Gewinnsätze mit Tie-Break; der dritte Satz wird als Champions-Tie-Break ausgetragen. Die Spielpartner organisieren den Platz. Der Herausforderer stellt neue Bälle; die Ballmarke können beide gemeinsam festlegen. Der Sieger trägt das Ergebnis ein. Bei längerem Urlaub oder Verletzung kann die eigene Kachel neutralisiert werden (vier Wochen ohne Rangverschiebung). Neue Spieler melden sich bei der Ranglistenverwaltung beziehungsweise Sebastian Mutter. Fairness und Spielfreude stehen im Mittelpunkt.</p>
-      <p class="muted">Es gelten die Forderungspyramiden-Regeln des TSV Feldkirchen Tennis. Saison und Gruppe werden von der Ranglistenverwaltung festgelegt; auch während der Saison ist ein Einstieg möglich.</p>
+      <p>Neue Mitglieder werden nach Freigabe am Ende der Pyramide aufgenommen. Der Verlierer darf frühestens nach sieben Tagen erneut fordern. Derselbe Gegner darf ebenfalls erst nach sieben Tagen erneut gefordert werden. Gespielt werden zwei Gewinnsätze mit Tie-Break; der dritte Satz wird als Champions-Tie-Break ausgetragen. Die Spielpartner organisieren den Platz. Der Herausforderer stellt neue Bälle; die Ballmarke können beide gemeinsam festlegen. Der Sieger meldet das Ergebnis, der Gegner bestätigt es innerhalb von 48 Stunden. Erst nach Bestätigung beziehungsweise Entscheidung des Ranglistenwarts wird die Rangliste angepasst. Bei längerem Urlaub, Krankheit oder Verletzung kann die Kachel bis zu 28 Tage neutralisiert werden. Neue Spieler melden sich bei der Ranglistenverwaltung. Fairness und Spielfreude stehen im Mittelpunkt.</p>
+      <p class="muted">Verbindliche Grundlage: hochgeladenes Master-Regelwerk „Forderungspyramide für einen Tennisclub“, Version 1.0. Standardsaison: 1. Mai bis 30. September. Bestehende Gruppen werden im Adminbereich verwaltet.</p>
     </section>
   </div>
   <dialog id="pyramid-schedule-dialog" class="pyramid-dialog" aria-labelledby="pyramid-schedule-title">
     <div class="pyramid-dialog-content">
       <div class="pyramid-dialog-top"><h2 id="pyramid-schedule-title">Verbindlichen Spieltermin eintragen</h2>
         <button id="pyramid-schedule-close" class="pyramid-dialog-close" aria-label="Termin-Dialog schließen" type="button">✕</button></div>
-      <p class="muted">Nach TSV-Regeln muss der Termin innerhalb von sieben Tagen nach der Forderung vereinbart und eingetragen werden. Das Match muss binnen zehn Tagen nach der Vereinbarung stattfinden.</p>
+      <p class="muted">Stimmt den Termin möglichst innerhalb von drei Tagen nach der Forderung ab und tragt ihn hier ein. Das Match muss spätestens 14 Tage nach der ursprünglichen Forderung gespielt werden. Bei schlechtem Wetter darf der Ranglistenwart einmalig um bis zu sieben Tage verlängern.</p>
       <form id="pyramid-schedule-form" class="form-grid">
         <div class="field full"><label for="pyramid-schedule-date">Vereinbarter Spieltermin</label><input id="pyramid-schedule-date" type="datetime-local" required /></div>
         <div class="field full pyramid-dialog-actions"><button class="button button--hot" type="submit">Termin speichern</button>
@@ -134,8 +134,8 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
       <div class="field"><label for="pyramid-result-score">Sätze (z. B. 6:4, 4:6, 10:8)</label>
         <input id="pyramid-result-score" required maxlength="80" placeholder="6:4, 6:3" /></div>
       <div class="field hidden" id="pyramid-winner-field"><label for="pyramid-result-winner">Sieger (Ranglistenverwaltung)</label><select id="pyramid-result-winner"></select></div>
-      <p class="muted">Als Teilnehmer meldest du nur deinen eigenen Sieg. Für falsche Ergebnisse wende dich an die Ranglistenverwaltung.</p>
-      <div class="pyramid-dialog-actions"><button class="button button--hot" type="submit">Ergebnis speichern</button>
+      <p class="muted">Als Sieger meldest du nur deinen eigenen Sieg. Der Gegner bestätigt das Ergebnis innerhalb von 48 Stunden oder widerspricht. Bis dahin bleibt die Rangfolge unverändert.</p>
+      <div class="pyramid-dialog-actions"><button class="button button--hot" type="submit">Ergebnis zur Bestätigung melden</button>
         <button class="button ghost" id="pyramid-dialog-cancel" type="button">Abbrechen</button></div>
     </form>
   </dialog>
