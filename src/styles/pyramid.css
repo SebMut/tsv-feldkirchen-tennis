@@ -98,7 +98,7 @@
 @media(max-width:680px){.pyramid-admin-lk{width:100%;justify-content:flex-start}.pyramid-admin-item{flex-wrap:wrap}}
 
 
-/* Portrait in upper-left corner, availability label in lower-left corner. */
+/* Portrait top-left; vacation/injury availability badge bottom-right. */
 .pyramid-entry{min-height:94px}
 .pyramid-entry-rank{display:block;padding-left:23px}
 .pyramid-entry-avatar{
@@ -109,7 +109,7 @@
 }
 .pyramid-entry.is-neutralized{padding-bottom:27px;border-color:#d4b473}
 .pyramid-entry-away{
-  position:absolute;left:5px;bottom:5px;
+  position:absolute;right:5px;bottom:5px;
   font-size:.64rem;font-weight:850;line-height:1.2;
   border-radius:999px;padding:3px 7px;
   background:#fff0c8;color:#694500;border:1px solid #ddba66;
@@ -129,7 +129,7 @@
   .pyramid-entry{min-height:72px}
   .pyramid-entry-rank{padding-left:14px}
   .pyramid-entry-avatar{width:24px;height:24px;inset:3px auto auto 3px;border-width:1px}
-  .pyramid-entry-away{font-size:.49rem;bottom:3px;left:3px;padding:2px 3px;max-width:calc(100% - 6px)}
+  .pyramid-entry-away{font-size:.49rem;bottom:3px;right:3px;padding:2px 3px;max-width:calc(100% - 6px)}
   .pyramid-entry.is-neutralized{padding-bottom:22px}
 }
 @media(max-width:375px){
