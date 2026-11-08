@@ -66,7 +66,7 @@ test('acceptance atomically declines other pending challenges to both players',(
  assert.match(baseSql,/status='accepted'/);
  assert.match(baseSql,/Diese Person hat bereits ein angesetztes Spiel/);
  assert.match(member,/c\.status==='accepted'/);
- assert.match(member,/Engaged/i);
+ assert.match(member,/function canSendChallenge/);
 });
 
 test('rejected challengers receive idempotent retryable CI email from existing Gmail sender',()=>{
