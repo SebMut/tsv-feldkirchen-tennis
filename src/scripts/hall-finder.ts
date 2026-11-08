@@ -5,6 +5,7 @@ type LiveSlot={venueId:string;date:string;start:string;end:string;court?:string;
 type LiveResponse={checkedAt:string;sources:Record<string,{status:string;message?:string}>;slots:LiveSlot[]};
 const venues:Venue[]=[
  {id:'aschheim',short:'Aschheim',name:'TC Aschheim',distance:'ca. 7 km',bookingUrl:'https://tcaschheim.ebusy.de/'},
+ {id:'ismaning',short:'Ismaning',name:'TC Ismaning',distance:'ca. 10 km',bookingUrl:'https://tc-ismaning.ebusy.de/court-module/921'},
  {id:'sporttraum',short:'Sporttraum',name:'SPORTTRAUM',distance:'ca. 5 km',bookingUrl:'https://www.sporttraum.de/buchen/'},
  {id:'haar',short:'Haar',name:'Racket-Park TSV Haar',distance:'ca. 8 km',bookingUrl:'https://www.eversports.de/sb/racket-park-tsv-haar'},
  {id:'kirchheim',short:'Kirchheim',name:'TC Kirchheim',distance:'ca. 6 km',bookingUrl:'https://tckirchheim.tennisplatz.info/reservierung?c=2015'}
@@ -23,7 +24,7 @@ function byTime(a:LiveSlot,b:LiveSlot){
  return slotHour(a.start)-slotHour(b.start)||slotHour(a.end)-slotHour(b.end)||(a.court||'').localeCompare(b.court||'','de');
 }
 function slotText(slot:LiveSlot){
- const detail=slot.venueId==='aschheim'
+ const detail=slot.venueId==='aschheim'||slot.venueId==='ismaning'
   ? (slot.availableCourts||1)+' '+(slot.availableCourts===1?'Platz':'Plätze')+' frei'
   : [slot.court,slot.price].filter(Boolean).join(' · ');
  return '<a class="hall-slot-live" href="'+esc(slot.bookingUrl)+'" target="_blank" rel="noopener noreferrer"><strong>'+esc(slot.start)+'–'+esc(slot.end)+'</strong><span>'+esc(detail)+'</span></a>';

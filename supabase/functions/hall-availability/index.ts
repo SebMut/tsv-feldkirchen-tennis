@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 type Slot = {
-  venueId: "aschheim" | "sporttraum" | "haar" | "kirchheim";
+  venueId: "aschheim" | "ismaning" | "sporttraum" | "haar" | "kirchheim";
   date: string;
   start: string;
   end: string;
@@ -18,6 +18,7 @@ type Slot = {
 };
 
 const ASCHHEIM_URL = "https://tcaschheim.ebusy.de/court-module/372";
+const ISMANING_URL = "https://tc-ismaning.ebusy.de/court-module/921";
 const KIRCHHEIM_URL = "https://tckirchheim.tennisplatz.info/reservierung?c=2015";
 const EVERSPORTS_ORIGIN = "https://www.eversports.de";
 const TENNIS = { id: "433", slug: "tennis", name: "Tennis", uuid: "b38729e9-69de-11e8-bdc6-02bd505aa7b2" };
@@ -68,7 +69,7 @@ async function providerHtml(url: string) {
   return response.text();
 }
 
-function aschheimDate(date: string) {
+function ebusyDate(date: string) {
   const [year, month, day] = date.split("-");
   return month + "/" + day + "/" + year;
 }
@@ -80,7 +81,7 @@ function minutes(value: string) {
   return hour * 60 + minute;
 }
 
-function parseAschheim(html: string, expectedDate: string, reservations: AschheimReservation[]): Slot[] {
+function parseEbusy(html: string, expectedDate: string, reservations: AschheimReservation[], venueId: "aschheim" | "ismaning", moduleUrl: string): Slot[] {
   const grouped = new Map<string, Slot>();
   for (const match of html.matchAll(/(<td\s+class="slot[^"]*"[\s\S]*?>)([\s\S]*?)<\/td>/gi)) {
     if (!/slot-label\s+bookable/i.test(match[2]) || !/>\s*Buchen\s*</i.test(match[2])) continue;
@@ -100,20 +101,20 @@ function parseAschheim(html: string, expectedDate: string, reservations: Aschhei
     const existing = grouped.get(key);
     if (existing) existing.availableCourts = (existing.availableCourts || 1) + 1;
     else grouped.set(key, {
-      venueId: "aschheim",
+      venueId,
       date: expectedDate,
       start,
       end,
       availableCourts: 1,
-      bookingUrl: ASCHHEIM_URL + "?selectedDate=" + encodeURIComponent(aschheimDate(expectedDate)),
+      bookingUrl: moduleUrl + "?selectedDate=" + encodeURIComponent(ebusyDate(expectedDate)),
     });
   }
   return [...grouped.values()];
 }
 
-async function fetchAschheim(date: string) {
-  const selectedDate = aschheimDate(date);
-  const url = ASCHHEIM_URL + "?selectedDate=" + encodeURIComponent(selectedDate);
+async function fetchEbusy(moduleUrl: string, venueId: "aschheim" | "ismaning", date: string) {
+  const selectedDate = ebusyDate(date);
+  const url = moduleUrl + "?selectedDate=" + encodeURIComponent(selectedDate);
   const [html, occupancyResponse] = await Promise.all([
     providerHtml(url),
     fetch(url, {
@@ -126,10 +127,13 @@ async function fetchAschheim(date: string) {
       signal: AbortSignal.timeout(12_000),
     }),
   ]);
-  if (!occupancyResponse.ok) throw new Error("aschheim_occupancy_" + occupancyResponse.status);
+  if (!occupancyResponse.ok) throw new Error(venueId + "_occupancy_" + occupancyResponse.status);
   const occupancy = await occupancyResponse.json();
-  return parseAschheim(html, date, Array.isArray(occupancy?.reservations) ? occupancy.reservations : []);
+  return parseEbusy(html, date, Array.isArray(occupancy?.reservations) ? occupancy.reservations : [], venueId, moduleUrl);
 }
+
+const fetchAschheim = (date: string) => fetchEbusy(ASCHHEIM_URL, "aschheim", date);
+const fetchIsmaning = (date: string) => fetchEbusy(ISMANING_URL, "ismaning", date);
 
 function setCookies(response: Response) {
   const values = (response.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie?.()
@@ -308,6 +312,13 @@ Deno.serve(async (req: Request) => {
   for (const result of aschheimOk) slots.push(...result.value);
   sources.aschheim = aschheimOk.length
     ? { status: "live", ...(aschheimOk.length < dates.length ? { message: "Einzelne Tage nicht abrufbar" } : {}) }
+    : { status: "unavailable", message: "Anbieter derzeit nicht erreichbar" };
+
+  const ismaningResults = await Promise.allSettled(dates.map(fetchIsmaning));
+  const ismaningOk = ismaningResults.filter((result) => result.status === "fulfilled");
+  for (const result of ismaningOk) slots.push(...result.value);
+  sources.ismaning = ismaningOk.length
+    ? { status: "live", ...(ismaningOk.length < dates.length ? { message: "Einzelne Tage nicht abrufbar" } : {}) }
     : { status: "unavailable", message: "Anbieter derzeit nicht erreichbar" };
 
   const eversportsResults = await Promise.allSettled([

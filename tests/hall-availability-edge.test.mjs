@@ -23,6 +23,12 @@ test('Aschheim uses only explicitly bookable slots and never invents prices',()=
  assert.doesNotMatch(edge,/venueId: "aschheim"[\s\S]{0,300}price:/);
 });
 
+test('Ismaning uses the same verified eBusy bookable-slot and occupancy rules',()=>{
+ assert.match(edge,/tc-ismaning\.ebusy\.de\/court-module\/921/);
+ assert.match(edge,/fetchEbusy\(ISMANING_URL, "ismaning", date\)/);
+ assert.match(edge,/dates\.map\(fetchIsmaning\)/);
+});
+
 test('Kirchheim prices are read from provider price classes and bound to available slots',()=>{
  assert.match(edge,/class="price\\s\+price/);
  assert.match(edge,/class="slot\\s\+av/);
