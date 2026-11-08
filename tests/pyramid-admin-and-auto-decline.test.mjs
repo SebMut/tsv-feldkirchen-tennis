@@ -59,6 +59,7 @@ test('acceptance atomically declines other pending challenges to both players',(
  assert.match(sql,/status='accepted'/);
  assert.match(sql,/where ladder_id=c\.ladder_id and id<>c\.id and status='pending'/);
  assert.match(sql,/defender_id in \(c\.challenger_id,c\.defender_id\)/);
+ assert.match(sql,/or challenger_id in \(c\.challenger_id,c\.defender_id\)/);
  assert.match(sql,/decline_reason='another_match_accepted'/);
  assert.match(sql,/insert into private\.pyramid_auto_decline_notices\(challenge_id\)/);
  assert.match(sql,/select id from rejected on conflict\(challenge_id\) do nothing/);
