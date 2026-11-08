@@ -82,3 +82,17 @@
  .pyramid-demo-controls select,.pyramid-demo-controls button{width:100%;max-width:none;flex-basis:auto}
  #pyramid-status:not(.hidden){top:68px}
 }
+
+
+/* Newly admitted players start in a qualification stage outside the ranked pyramid. */
+.pyramid-qualification-help{
+  padding:14px 16px;
+  border-radius:12px;
+  border:1px solid #d6c6aa;
+  background:color-mix(in srgb,var(--surface,#fff) 80%,#e7c68d 20%);
+}
+.pyramid-qualification-help p{margin:8px 0 0;line-height:1.5}
+.pyramid-admin-lk{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pyramid-admin-lk input{width:90px;max-width:100%;padding:7px 9px;border:1px solid #b8c3c0;border-radius:8px;background:white}
+.pyramid-admin-qualifier{border:1px solid #e4b77a;border-radius:10px;padding:10px 12px}
+@media(max-width:680px){.pyramid-admin-lk{width:100%;justify-content:flex-start}.pyramid-admin-item{flex-wrap:wrap}}
