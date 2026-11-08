@@ -56,6 +56,35 @@ jobs:
           timeout 45 sshpass -e sftp -o BatchMode=no -o StrictHostKeyChecking=accept-new -o ConnectTimeout=12 -P "$PORT" -b /tmp/tsv-preflight.sftp "$SFTP_USER@$SFTP_HOST"
           echo 'Read-only SFTP preflight successful. No files changed.'
 
+  write_diagnostic:
+    # One-shot user-approved test: clean up temporary file and directory.
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[hosting-write-test]') && vars.TSV_GO_LIVE_APPROVED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 6
+    steps:
+      - name: Install SFTP client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      - name: Check creation permissions without touching existing files
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_REMOTE_PATH: ${{ secrets.SFTP_REMOTE_PATH }}
+        run: |
+          set -eu
+          test -n "$SFTP_HOST" && test -n "$SFTP_USER" && test -n "$SFTP_PASSWORD" && test -n "$SFTP_REMOTE_PATH"
+          PORT="${SFTP_PORT:-22}"
+          printf 'TSV write permission diagnostic, no personal content\n' > /tmp/tsv-sftp-write-test.txt
+          TEST_FILE=".tsv-sftp-write-test-$GITHUB_RUN_ID"
+          TEST_DIR=".tsv-sftp-mkdir-test-$GITHUB_RUN_ID"
+          printf 'cd %s\n-df -hi .\nput /tmp/tsv-sftp-write-test.txt %s\nls -l %s\nrm %s\nmkdir %s\nrmdir %s\nbye\n' \
+            "$SFTP_REMOTE_PATH" "$TEST_FILE" "$TEST_FILE" "$TEST_FILE" "$TEST_DIR" "$TEST_DIR" > /tmp/tsv-write-test.sftp
+          export SSHPASS="$SFTP_PASSWORD"
+          timeout 45 sshpass -e sftp -o BatchMode=no -o StrictHostKeyChecking=accept-new -o ConnectTimeout=12 -P "$PORT" -b /tmp/tsv-write-test.sftp "$SFTP_USER@$SFTP_HOST"
+          echo 'SFTP successfully created and removed a temporary file and directory.'
+
   deploy:
     # Beides ist notwendig: manuelles Freigabewort UND explizit gesetzte Repository-Variable.
     # Ein leerer/fehlender Wert lässt diesen Job immer ausfallen (keine SFTP-Verbindung).
