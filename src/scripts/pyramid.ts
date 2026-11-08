@@ -290,7 +290,61 @@ function wireEvents(){
     }catch(e){notice(safeError(e),'error');}
   });
 }
+// Read-only sample mode: restricted to explicitly preview-built sites, no Supabase calls.
+// Names are fictitious placeholders; this is not a second data store or live ranking.
+const demoMode=import.meta.env.PUBLIC_PREVIEW_MODE==='true'
+  && new URLSearchParams(location.search).get('demo')==='1';
+function renderDemo() {
+  state.user={id:'pyramid-demo-user'};
+  state.profile={display_name:'Musterperson'};
+  state.superAdmin=true; // Show the administration layout; it is noninteractive.
+  state.ladders=[{
+    id:'pyramid-demo-ladder',title:'Damen und Herren – Mustergruppe',
+    season_label:'Wintersaison 2026/2027',starts_on:'2026-11-01',
+    ends_on:'2027-03-31',active:true,seeded_at:'2026-11-01T00:00:00Z'
+  }];
+  state.ladderId='pyramid-demo-ladder';
+  state.entries=Array.from({length:15},(_,index)=>({
+    id:'demo-entry-'+(index+1),ladder_id:state.ladderId,
+    user_id:index===14?'pyramid-demo-user':'demo-user-'+(index+1),
+    display_name:index===14?'Musterperson':'Spieler '+(index+1),
+    position:index+1,provisional:false,last_loss_at:null
+  }));
+  state.requests=[{
+    id:'pyramid-demo-request',ladder_id:state.ladderId,user_id:'demo-requester',
+    display_name:'Neue Musterperson',status:'pending'
+  }];
+  state.challenges=[{
+    id:'pyramid-demo-challenge',ladder_id:state.ladderId,
+    challenger_id:'demo-entry-7',defender_id:'demo-entry-5',
+    status:'accepted',created_at:'2026-11-05T11:00:00Z',
+    accept_deadline:'2026-11-15T11:00:00Z',play_deadline:'2026-11-18T11:00:00Z',
+    winner_id:null,score:null
+  }];
+  text('pyramid-user-name','Demo · Musterperson');
+  hidden('pyramid-auth',true);
+  hidden('pyramid-app',false);
+  renderAll();
+  const root=el('pyramid-root');
+  if(root){
+    const banner=document.createElement('div');
+    banner.className='notice';
+    banner.setAttribute('role','status');
+    banner.innerHTML='<strong>Interaktive Darstellung – Testdaten</strong> '
+      +'Diese Vorschau enthält ausschließlich erfundene Musterteilnehmer. '
+      +'Zum <a href="?">echten Login-Entwurf</a> wechseln. '
+      +'Forderungen, Ergebnisse und Freigaben können hier nicht gespeichert werden.';
+    root.insertBefore(banner,el('pyramid-app'));
+  }
+  el('pyramid-app')?.addEventListener('click',(event)=>{
+    if((event.target as HTMLElement).closest('button'))notice('Demonstration: Keine Daten werden verändert.','info');
+  });
+  el('pyramid-app')?.addEventListener('submit',(event)=>{
+    event.preventDefault();notice('Demonstration: Speichern ist deaktiviert.','info');
+  });
+}
 export function initPyramid(){
+  if(demoMode) {renderDemo();return;}
   wireEvents();
   void load();
   supabase.auth.onAuthStateChange((event)=>{
