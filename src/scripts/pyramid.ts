@@ -6,7 +6,7 @@ type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends
 type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null;last_win_at?:string|null;neutralized_at?:string|null;neutralized_reason?:string|null };
 type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
 type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
-  created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;refusal_reason?:string|null;winner_id:string|null;score:string|null;decline_reason?:string|null;source?:string};
+  created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;refusal_reason?:string|null;winner_id:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
 const state: {
   user:any;profile:any;superAdmin:boolean;ladders:Ladder[];ladderId:string;
   entries:Entry[];requests:Request[];challenges:Challenge[];resultChallenge:string;
@@ -36,13 +36,13 @@ const entryName = (id:string) => state.entries.find((item)=>item.id===id)?.displ
 const isInvolved = (c:Challenge) => !!myEntry() && (c.challenger_id===myEntry()?.id || c.defender_id===myEntry()?.id);
 const waitingDays=(date:string|null|undefined,days:number)=>!!date && new Date(date).getTime()>Date.now()-days*86400000;
 function canSendChallenge(me:Entry,target:Entry){
-  if(!target.qualified||me.id===target.id||target.neutralized_at||me.neutralized_at)return false;
+  if(target.qualified===false||me.id===target.id||target.neutralized_at||me.neutralized_at)return false;
   if(waitingDays(me.last_loss_at,3)||waitingDays(target.last_win_at,3))return false;
   if(state.challenges.some(game=>['pending','accepted'].includes(game.status)
     &&[me.id,target.id].some(id=>game.challenger_id===id||game.defender_id===id)))return false;
   if(state.challenges.some(game=>game.challenger_id===me.id&&game.defender_id===target.id
     &&['completed','forfeit'].includes(game.status)
-    &&waitingDays(game.created_at,14)))return false;
+    &&waitingDays(game.resolved_at,14)))return false;
   return me.qualified===false?canQualifyAgainst(target.position,state.entries):
     canChallenge(me.position,target.position);
 }
@@ -195,7 +195,7 @@ async function loadLadder(){
       .eq('ladder_id',ladder.id).order('position'),
     supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
       .eq('ladder_id',ladder.id),
-    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,scheduled_for,scheduled_at,refusal_reason,winner_id,score,decline_reason,source')
+    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,scheduled_for,scheduled_at,refusal_reason,winner_id,score,decline_reason,source,resolved_at')
       .eq('ladder_id',ladder.id).order('created_at',{ascending:false}).limit(150)
   ]);
   for(const answer of [entries,requests,challenges])if(answer.error)throw answer.error;
@@ -500,7 +500,7 @@ function demoReportResult(event:SubmitEvent){
   }
   game.status='completed';game.winner_id=winner.id;game.score=score;
   winner.provisional=false;loser.provisional=false;
-  if(loser.id===challenger.id)challenger.last_loss_at=demoTimestamp();
+  winner.last_win_at=demoTimestamp();loser.last_loss_at=demoTimestamp();game.resolved_at=demoTimestamp();
   dialog?.close();
   demoRefresh();
   demoMessage('Ergebnis gespeichert: '+winner.display_name+' gewinnt. Die Rangliste wurde neu sortiert.','success');
