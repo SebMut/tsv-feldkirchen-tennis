@@ -1,0 +1,66 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {canChallenge,pyramidCell,pyramidRows,scoreWinner,dateWithinPeriod} from '../src/lib/pyramid-rules.mjs';
+const source=(file)=>readFileSync(new URL('../'+file,import.meta.url),'utf8');
+
+test('pyramid rows are triangular, including non-full bottom rows',()=>{
+ assert.deepEqual([1,2,3,4,6,7,10,11,15,16,21].map(p=>pyramidCell(p)?.row),
+  [0,1,1,2,2,3,3,4,4,5,5]);
+ const rows=pyramidRows(Array.from({length:18},(_,i)=>({position:i+1})));
+ assert.equal(rows.length,6);
+ assert.deepEqual(rows.map(row=>row.length),[1,2,3,4,5,6]);
+ assert.equal(rows.at(-1)?.at(2)?.position,18);
+ assert.equal(rows.at(-1)?.at(5),null);
+});
+test('reference PDF example #18 can challenge #16,17 and #13,14,15 but not #12',()=>{
+ for(const defender of [13,14,15,16,17])assert.equal(canChallenge(18,defender),true,String(defender));
+ for(const defender of [1,2,10,11,12,18,19])assert.equal(canChallenge(18,defender),false,String(defender));
+});
+test('reference PDF example #15 can challenge #11 to #14 but not #10',()=>{
+ for(const defender of [11,12,13,14])assert.equal(canChallenge(15,defender),true);
+ assert.equal(canChallenge(15,10),false);
+ assert.equal(canChallenge(3,1),true);
+ assert.equal(canChallenge(3,2),true);
+});
+test('provisional entrant may challenge the second-last row',()=>{
+ assert.equal(canChallenge(18,12,true),true);
+ assert.equal(canChallenge(18,10,true),false);
+ assert.equal(canChallenge(18,19,true),false);
+});
+test('two winning sets or a third-set champion tie-break are required',()=>{
+ assert.equal(scoreWinner('6:4, 6:3'),1);
+ assert.equal(scoreWinner('4:6, 6:3, 10:8'),1);
+ assert.equal(scoreWinner('6:7, 6:4, 8:10'),2);
+ for(const bad of ['6:6, 6:4','6:4','6:4, 4:6','6:4, 4:6, 9:8','6:4, 6:4, 10:8','abc'])
+   assert.equal(scoreWinner(bad),null,bad);
+});
+test('saison boundaries follow dates instead of hard-coded summer 2026',()=>{
+ assert.equal(dateWithinPeriod('2027-04-01','2027-10-31',new Date(2027,3,1)),true);
+ assert.equal(dateWithinPeriod('2027-04-01','2027-10-31',new Date(2027,10,1)),false);
+});
+test('pyramid stays private with reuse of Supabase Auth and secured RPCs',()=>{
+ const sql=source('supabase/migrations/20261108150000_forderungspyramide_staging.sql');
+ const page=source('src/pages/forderungspyramide/index.astro');
+ const js=source('src/scripts/pyramid.ts');
+ const siteNav=source('src/components/SiteHeader.astro');
+ const sitemap=source('src/pages/sitemap.xml.ts');
+ assert.match(page,/noindex=\{true\}/);
+ assert.doesNotMatch(siteNav,/forderungspyramide/);
+ assert.doesNotMatch(sitemap,/forderungspyramide/);
+ assert.match(js,/supabase\.auth\.signInWithPassword/);
+ assert.match(js,/supabase\.auth\.signInWithOtp/);
+ assert.match(js,/pyramid_request_join/);
+ assert.match(js,/pyramid_approve_join/);
+ assert.match(js,/pyramid_challenge/);
+ assert.match(js,/pyramid_respond/);
+ assert.match(js,/pyramid_report_result/);
+ assert.match(sql,/enable row level security/g);
+ assert.match(sql,/private\.is_super_admin\(\)/);
+ assert.match(sql,/current_date not between l\.starts_on and l\.ends_on/);
+ assert.match(sql,/interval '14 days'/);
+ assert.match(sql,/interval '10 days'/);
+ assert.match(sql,/cron\.schedule/);
+ assert.match(sql,/revoke all on function public\.pyramid_challenge/);
+ assert.doesNotMatch(sql,/grant .* to anon/);
+});
