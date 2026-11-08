@@ -22,3 +22,6 @@ verify_jwt = false # Public visitor endpoint; Turnstile and one-time email token
 
 [functions.ticker-timeout-email]
 verify_jwt = false
+
+[functions.pyramid-auto-decline-email]
+verify_jwt = false # Authorized only by short-lived one-time pg_cron tokens

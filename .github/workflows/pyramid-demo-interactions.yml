@@ -1,0 +1,44 @@
+name: Verify Pyramid Demo Interactions
+
+on:
+  push:
+    branches:
+      - feature/forderungspyramide-staging
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  click-test:
+    name: Interactive test on desktop and mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Unit regression checks
+        run: npm test
+      - name: Staging build
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis/pyramid-staging
+          PUBLIC_PREVIEW_MODE: 'true'
+        run: npm run build
+      - name: Audit generated site
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis/pyramid-staging
+          PUBLIC_PREVIEW_MODE: 'true'
+        run: npm run audit:site
+      - name: Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.65.0
+          npx playwright install --with-deps chromium
+      - name: Test every demo interaction
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis/pyramid-staging
+          PUBLIC_PREVIEW_MODE: 'true'
+        run: node scripts/pyramid-demo-browser-qa.mjs

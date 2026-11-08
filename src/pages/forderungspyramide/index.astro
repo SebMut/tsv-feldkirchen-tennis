@@ -1,0 +1,100 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import '../../styles/pyramid.css';
+const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === 'true';
+---
+<MainLayout title="Forderungspyramide | TSV Feldkirchen Tennis" description="Geschützter vereinsinterner Bereich für Forderungsspiele." noindex={true}>
+  <div class="container pyramid-page stack" id="pyramid-root">
+    <header class="pyramid-heading">
+      <div><p class="eyebrow">TSV Feldkirchen Tennis · {isPreview ? 'Testvorschau' : 'Ranglisten'}</p><h1>Forderungspyramide</h1>
+        <p>Fordere andere Vereinsmitglieder heraus, vereinbare ein Einzel und kämpfe dich in der vereinsinternen Rangliste nach oben.</p></div>
+      {isPreview && <span class="pyramid-stage">Testvorschau</span>}
+    </header>
+
+    <section id="pyramid-auth" class="card pyramid-auth" aria-labelledby="pyramid-login-title">
+      <div><p class="eyebrow">Mitglieder und Teilnehmer</p><h2 id="pyramid-login-title">Anmelden</h2>
+        <p class="muted">Du verwendest dein vorhandenes Mein-TSV-Konto. Ein neues Konto erhält zunächst keine Ranglistenrechte – die Teilnahme muss freigegeben werden.</p></div>
+      <form id="pyramid-login-form" class="form-grid">
+        <div class="field"><label for="pyramid-email">E-Mail</label><input id="pyramid-email" type="email" required autocomplete="email" /></div>
+        <div class="field"><label for="pyramid-password">Passwort</label><input id="pyramid-password" type="password" autocomplete="current-password" required /></div>
+        <div class="field full pyramid-auth-actions">
+          <button class="button button--hot" type="submit">Anmelden</button>
+          <button class="button ghost" type="button" id="pyramid-magic-link">Zugangslink per E-Mail</button>
+        </div>
+      </form>
+      <p class="muted">Noch kein Zugang oder Passwort vergessen? Gib deine E-Mail oben ein und fordere einen einmaligen Zugangslink an. Einladungen und Freigaben verwaltet der Verein.</p>
+    </section>
+
+    <p id="pyramid-status" class="notice hidden" role="status" aria-live="polite"></p>
+    <section id="pyramid-app" class="hidden stack" aria-label="Interne Ranglisten">
+      <div class="pyramid-toolbar card">
+        <div><p class="eyebrow">Meine Ranglisten</p><label for="pyramid-ladder-select" class="pyramid-toolbar-label">Saison und Gruppe</label>
+          <select id="pyramid-ladder-select" aria-label="Rangliste auswählen"></select></div>
+        <div class="pyramid-session"><span id="pyramid-user-name"></span><button id="pyramid-sign-out" class="button ghost" type="button">Abmelden</button></div>
+      </div>
+      <section id="pyramid-overview" class="card stack">
+        <div class="pyramid-section-head"><div><p class="eyebrow">Rangliste</p><h2 id="pyramid-ladder-heading">Pyramide</h2>
+          <p id="pyramid-ladder-dates" class="muted"></p></div><span id="pyramid-own-rank" class="pyramid-own-rank"></span></div>
+        <div id="pyramid-board" class="pyramid-board" aria-live="polite"></div>
+        <p class="muted pyramid-board-help">Eine Reihe links oder in der Reihe darüber rechts fordern. Für die Plätze 1–3 gilt die Sonderregel. Neue Teilnehmer können sich in die Rangliste einfordern.</p>
+      </section>
+      <section id="pyramid-join-panel" class="card hidden">
+        <p class="eyebrow">Teilnahme</p><h2>Mitspielen</h2>
+        <p>Ein Mitgliedskonto allein berechtigt noch nicht zur Teilnahme. Deine Anfrage wird von der Ranglistenverwaltung geprüft.</p>
+        <form id="pyramid-join-form" class="form-grid">
+          <div class="field"><label for="pyramid-display-name">Name für die Rangliste</label><input id="pyramid-display-name" maxlength="80" minlength="2" required autocomplete="name" /></div>
+          <div class="field pyramid-form-end"><button class="button button--hot" type="submit">Teilnahme anfragen</button></div>
+        </form>
+        <p id="pyramid-join-state" class="muted"></p>
+      </section>
+      <section id="pyramid-games-panel" class="card stack">
+        <div class="pyramid-section-head"><div><p class="eyebrow">Forderungsspiele</p><h2>Offene und letzte Begegnungen</h2></div></div>
+        <div id="pyramid-games" class="pyramid-games" aria-live="polite"></div>
+      </section>
+      <section id="pyramid-admin-panel" class="card stack hidden">
+        <div><p class="eyebrow">Nur Ranglistenverwaltung</p><h2>Ranglistenverwaltung</h2>
+          <p class="muted">Saisons und Gruppen werden separat verwaltet. Bereits vorhandene Mannschaftskader bleiben unverändert.</p></div>
+        <form id="pyramid-create-form" class="pyramid-create-form">
+          <div class="field"><label for="pyramid-new-name">Rangliste</label><input id="pyramid-new-name" placeholder="z. B. Damen" minlength="3" required /></div>
+          <div class="field"><label for="pyramid-new-season">Saison</label><input id="pyramid-new-season" placeholder="z. B. Sommer 2027" minlength="3" required /></div>
+          <div class="field"><label for="pyramid-new-start">Start</label><input id="pyramid-new-start" type="date" required /></div>
+          <div class="field"><label for="pyramid-new-end">Ende</label><input id="pyramid-new-end" type="date" required /></div>
+          <button class="button button--hot" type="submit">Rangliste anlegen</button>
+        </form>
+        <h3>Offene Teilnahmeanfragen</h3>
+        <div id="pyramid-admin-requests"></div>
+        <h3>Startplätze sortieren</h3>
+        <div id="pyramid-admin-entries" class="pyramid-admin-entries"></div>
+        <button class="button secondary" id="pyramid-finalize-seed" type="button">Startaufstellung verbindlich abschließen</button>
+        <p class="muted">Erst nach der anfänglichen LK-/Rangsortierung abschließen. Danach sind neue Teilnehmer weiterhin vorläufig.</p>
+      </section>
+    </section>
+    <section class="card pyramid-rules">
+      <p class="eyebrow">Fair spielen</p><h2>Die Regeln auf einen Blick</h2>
+      <div class="pyramid-rules-grid">
+        <div><strong>10 Tage</strong><span>Forderung annehmen, sonst Wertung für den Herausforderer</span></div>
+        <div><strong>10 Tage</strong><span>Nach der Annahme möglichst das Spiel austragen</span></div>
+        <div><strong>14 Tage</strong><span>Nach einer Niederlage keine neue Forderung aussprechen</span></div>
+      </div>
+      <p>Gespielt werden zwei Gewinnsätze mit Tie-Break; der dritte Satz wird als Champions-Tie-Break ausgetragen. Die Spielpartner organisieren Platzbuchung und Bälle selbst. Der Sieger trägt das Ergebnis ein. Fairness und Spielfreude stehen im Mittelpunkt.</p>
+      <p class="muted">Regelgrundlage: „Forderungspyramide Spvgg 05 Oberrad – Regeln“, Stand April 2025. Für diese Vereinsrangliste gelten die auf dieser Seite zusammengefassten Regeln und die jeweils angegebene Saison.</p>
+    </section>
+  </div>
+  <dialog id="pyramid-dialog" class="pyramid-dialog" aria-labelledby="pyramid-dialog-title">
+    <form id="pyramid-result-form" method="dialog" class="pyramid-dialog-content">
+      <div class="pyramid-dialog-top"><div><p class="eyebrow">Forderungsspiel</p><h2 id="pyramid-dialog-title">Ergebnis melden</h2></div>
+        <button type="button" id="pyramid-dialog-close" class="pyramid-dialog-close" aria-label="Schließen">✕</button></div>
+      <p id="pyramid-dialog-opponents" class="muted"></p>
+      <div class="field"><label for="pyramid-result-score">Sätze (z. B. 6:4, 4:6, 10:8)</label>
+        <input id="pyramid-result-score" required maxlength="80" placeholder="6:4, 6:3" /></div>
+      <div class="field hidden" id="pyramid-winner-field"><label for="pyramid-result-winner">Sieger (Ranglistenverwaltung)</label><select id="pyramid-result-winner"></select></div>
+      <p class="muted">Als Teilnehmer meldest du nur deinen eigenen Sieg. Für falsche Ergebnisse wende dich an die Ranglistenverwaltung.</p>
+      <div class="pyramid-dialog-actions"><button class="button button--hot" type="submit">Ergebnis speichern</button>
+        <button class="button ghost" id="pyramid-dialog-cancel" type="button">Abbrechen</button></div>
+    </form>
+  </dialog>
+</MainLayout>
+<script>
+  import { initPyramid } from '../../scripts/pyramid';
+  initPyramid();
+</script>

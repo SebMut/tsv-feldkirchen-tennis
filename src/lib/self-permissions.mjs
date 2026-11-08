@@ -1,5 +1,5 @@
 /** Explanatory view model only. Real authorization remains enforced by Supabase/RLS. */
-/** @typedef {{ key: 'news' | 'events' | 'ticker', name: string, detail: string }} GlobalGrant */
+/** @typedef {{ key: 'news' | 'events' | 'ticker' | 'pyramid', name: string, detail: string }} GlobalGrant */
 /**
  * @param {{
  *   userId: string,
@@ -17,6 +17,7 @@ export function describeSelfPermissions({ userId, profile, teams = [], membershi
     if (granted.has('news')) globals.push({ key: 'news', name: 'News', detail: 'Beiträge erstellen und bearbeiten' });
     if (granted.has('events')) globals.push({ key: 'events', name: 'Veranstaltungen', detail: 'Termine und Anmeldungen verwalten' });
     if (granted.has('ticker')) globals.push({ key: 'ticker', name: 'Liveticker', detail: 'Ticker aller Mannschaften bearbeiten' });
+    if (granted.has('pyramid')) globals.push({ key: 'pyramid', name: 'Forderungspyramide', detail: 'Ranglisten und Teilnahmen verwalten' });
   }
   const teamNames = new Map(teams.filter(team => team?.id).map(team => [team.id, team.name || 'Mannschaft']));
   const teamRights = superAdmin ? [] : memberships

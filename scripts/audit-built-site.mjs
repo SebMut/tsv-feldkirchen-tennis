@@ -29,7 +29,7 @@ walk(dist);
 for (const file of htmlFiles) {
   const html = readFileSync(file, 'utf8');
   const name = relative(dist, file).split(sep).join('/');
-  const protectedPage = name === 'admin/index.html' || name === 'verwaltung/ergebnisse/index.html' || name === 'impressum/index.html' || name === 'datenschutz/index.html';
+  const protectedPage = name === 'admin/index.html' || name === 'forderungspyramide/index.html' || name === 'verwaltung/ergebnisse/index.html' || name === 'impressum/index.html' || name === 'datenschutz/index.html';
   if (!/<html\s+lang="de"/.test(html)) errors.push(name + ': lang=de fehlt');
   if (!/<meta\s+name="description"/.test(html)) errors.push(name + ': Beschreibung fehlt');
   if (!/<link\s+rel="canonical"/.test(html)) errors.push(name + ': Canonical fehlt');

@@ -2,6 +2,7 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 import '../../styles/admin-analytics.css';
 import '../../styles/admin-rsvp-export.css';
+import '../../styles/pyramid.css';
 ---
 <MainLayout title="Mein TSV | TSV Feldkirchen Tennis" description="Geschützter Bereich für Mannschaften und SuperAdmins." noindex={true}>
   <script is:inline>
@@ -88,7 +89,8 @@ import '../../styles/admin-rsvp-export.css';
             <summary class="admin-nav__label">Spielbetrieb</summary>
             <div class="admin-nav__items">
             <button type="button" data-panel="matches" data-ticker-only><span aria-hidden="true" class="admin-nav__symbol">◉</span> Spiele &amp; Liveticker</button>
-            <button type="button" data-panel="teams" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">▤</span> Mannschaften</button>
+            <button type="button" data-panel="pyramid" data-pyramid-only><span aria-hidden="true" class="admin-nav__symbol">♟</span> Forderungspyramide</button>
+             <button type="button" data-panel="teams" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">▤</span> Mannschaften</button>
             <button type="button" data-panel="players" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">♙</span> Kader</button>
             <button type="button" data-panel="btv-import" data-super-only><span aria-hidden="true" class="admin-nav__symbol">↻</span> BTV-Spielplan</button>
             <button type="button" data-panel="manual-results" data-super-only class="hidden"><span aria-hidden="true" class="admin-nav__symbol">✓</span> Ergebnisse nachtragen</button>
@@ -872,6 +874,46 @@ import '../../styles/admin-rsvp-export.css';
             <div class="card"><h2>Benutzer</h2><div id="users-list" class="table-wrap"></div></div>
           </section>
 
+<section id="panel-pyramid" class="admin-panel hidden" aria-labelledby="admin-pyramid-heading">
+            <div class="card stack">
+              <p class="eyebrow">Spielbetrieb · gesonderte Berechtigung</p>
+              <h2 id="admin-pyramid-heading">Forderungspyramide verwalten</h2>
+              <p class="muted">Ranglisten und Saisonzeiträume verwalten, Teilnehmer freigeben, Startplätze sortieren und Forderungsspiele verfolgen. Für die Bearbeitung wird die globale Berechtigung „Forderungspyramide verwalten“ benötigt.</p>
+              <div class="actions">
+                <div class="field"><label for="pyramid-admin-ladder">Saison / Rangliste</label><select id="pyramid-admin-ladder"></select></div>
+                <button id="pyramid-admin-refresh" type="button" class="button secondary">Aktualisieren</button>
+                <a class="button ghost" href="/forderungspyramide/">Spieleransicht öffnen</a>
+              </div>
+              <div id="pyramid-admin-notice" class="notice hidden" role="status" aria-live="polite"></div>
+            </div>
+            <div class="card stack">
+              <h3>Neue Rangliste anlegen</h3>
+              <form class="form-grid" id="pyramid-admin-create">
+                <div class="field"><label for="pyramid-admin-title">Rangliste</label><input id="pyramid-admin-title" required minlength="3" maxlength="100" placeholder="z. B. Damen" /></div>
+                <div class="field"><label for="pyramid-admin-season">Saison</label><input id="pyramid-admin-season" required minlength="3" maxlength="70" placeholder="z. B. Sommer 2027" /></div>
+                <div class="field"><label for="pyramid-admin-from">Beginn</label><input id="pyramid-admin-from" type="date" required /></div>
+                <div class="field"><label for="pyramid-admin-until">Ende</label><input id="pyramid-admin-until" type="date" required /></div>
+                <div class="field full"><button type="submit" class="button">Rangliste anlegen</button></div>
+              </form>
+            </div>
+            <div class="card stack">
+              <h3>Teilnahmeanfragen</h3>
+              <div id="pyramid-admin-pending"><p class="muted">Rangliste auswählen.</p></div>
+            </div>
+            <div class="card stack">
+              <h3>Rangliste und Startaufstellung</h3>
+              <div id="pyramid-admin-order"><p class="muted">Rangliste auswählen.</p></div>
+              <button type="button" class="button secondary" id="pyramid-admin-finalize">Startaufstellung abschließen</button>
+            </div>
+            <div class="card stack">
+              <h3>Forderungen und Ergebnisse</h3>
+              <p class="muted">Sobald eine Forderung angenommen ist, sind beide Spielpartner bis zum Abschluss blockiert. Weitere offene Forderungen an diese Spieler werden automatisch abgelehnt und die Herausforderer per E-Mail informiert.</p>
+              <div id="pyramid-admin-challenges"></div>
+              <button type="button" id="pyramid-admin-result-open" class="button secondary" disabled>Ergebnismeldung öffnen</button>
+              <p class="muted">Für ein angenommenes Spiel „Ergebnis melden“ wählen. Die Eingabe erfolgt in einem eigenen Dialog.</p>
+            </div>
+          </section>
+
           <section id="panel-account" class="admin-panel">
             <div data-self-permissions-summary aria-live="polite" aria-label="Meine gespeicherten Berechtigungen"></div>
             <div class="card">
@@ -885,6 +927,25 @@ import '../../styles/admin-rsvp-export.css';
         </div>
       </div>
     </section>
+    <dialog id="pyramid-admin-result-dialog" class="pyramid-dialog" aria-labelledby="pyramid-admin-result-title" aria-describedby="pyramid-admin-result-help">
+      <div class="pyramid-dialog-content">
+        <div class="pyramid-dialog-top">
+          <div><p class="eyebrow">Forderungspyramide · Ergebnismeldung</p><h2 id="pyramid-admin-result-title">Ergebnis eintragen</h2></div>
+          <button type="button" id="pyramid-admin-result-close" class="pyramid-dialog-close" aria-label="Ergebnismeldung schließen">✕</button>
+        </div>
+        <p class="muted" id="pyramid-admin-result-help">Trage das Ergebnis aus Sicht des ausgewählten Siegers ein. Gespielt werden zwei Gewinnsätze, der Entscheidungssatz ist ein Champions-Tie-Break.</p>
+        <form class="form-grid" id="pyramid-admin-result">
+          <div class="field full"><label for="pyramid-admin-match">Angenommene Forderung</label><select id="pyramid-admin-match" required></select></div>
+          <div class="field"><label for="pyramid-admin-winner">Sieger</label><select id="pyramid-admin-winner" required></select></div>
+          <div class="field"><label for="pyramid-admin-score">Sätze aus Sicht des Siegers</label><input id="pyramid-admin-score" placeholder="6:4, 6:3" maxlength="80" required /></div>
+          <div class="field full"><p id="pyramid-admin-result-error" class="notice hidden" role="alert"></p></div>
+          <div class="field full pyramid-dialog-actions">
+            <button type="submit" class="button" id="pyramid-admin-result-save">Ergebnis verbindlich speichern</button>
+            <button type="button" class="button ghost" id="pyramid-admin-result-cancel">Abbrechen</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
     <dialog id="encounter-set-dialog" class="encounter-set-dialog" aria-labelledby="encounter-set-dialog-title" aria-describedby="encounter-set-dialog-subtitle">
       <div class="encounter-set-dialog__header">
         <div>

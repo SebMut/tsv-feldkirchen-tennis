@@ -12,7 +12,7 @@ const base=(process.env.PREVIEW_BASE||'/').replace(/^\/|\/$/g,'');
 const host='http://127.0.0.1:4321';
 const url=route=>host+(base?'/'+base:'')+route;
 const report={started:new Date().toISOString(),base:base||'/',checks:[],passed:0,failed:0,skipped:0};
-const routes=['/','/aktuelles/','/mannschaften/','/mannschaften/herren/','/spieltag/','/spieltag/live-ticker/','/spiel/','/termine/','/live/','/veranstaltung/','/veranstaltung/bestaetigen/','/training/','/mitglied-werden/','/ueber-uns/','/funktionaere/','/sponsoren/','/kontakt/','/impressum/','/datenschutz/','/admin/'];
+const routes=['/','/aktuelles/','/mannschaften/','/mannschaften/herren/','/spieltag/','/spieltag/live-ticker/','/spiel/','/termine/','/live/','/veranstaltung/','/veranstaltung/bestaetigen/','/training/','/mitglied-werden/','/ueber-uns/','/funktionaere/','/sponsoren/','/kontakt/','/impressum/','/datenschutz/','/admin/','/forderungspyramide/'];
 let server,browser;
 let previewLogs='';
 function outcome(name,status,reason=''){
@@ -80,6 +80,11 @@ async function deviceQA(device){
       assert.ok(await page.locator('main').count(),'missing main landmark');
       assert.match(await page.title(),/TSV Feldkirchen Tennis/);
       await noOverflow(page,route);
+      if(route==='/forderungspyramide/'){
+        assert.equal(await page.locator('head meta[name="robots"][content="noindex,nofollow"]').count(),1);
+        assert.ok(await page.locator('#pyramid-login-form').isVisible(),'private member login missing');
+        assert.ok(await page.locator('#pyramid-app').isHidden(),'rankings visible before login');
+      }
       assert.deepEqual(errors,[],'browser JavaScript exceptions');
       await page.screenshot({path:path.join(out,device.name+'-'+(route.replaceAll('/','-')||'home')+'.png'),fullPage:true,timeout:9000});
     },page);

@@ -1,0 +1,622 @@
+import { supabase } from '../lib/supabase';
+import { escapeHtml, setStatus } from '../lib/ui';
+import { canChallenge, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
+
+type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends_on:string;active:boolean;seeded_at:string|null };
+type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;last_loss_at:string|null };
+type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
+type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
+  created_at:string;accept_deadline:string;play_deadline:string|null;winner_id:string|null;score:string|null;decline_reason?:string|null};
+const state: {
+  user:any;profile:any;superAdmin:boolean;ladders:Ladder[];ladderId:string;
+  entries:Entry[];requests:Request[];challenges:Challenge[];resultChallenge:string;
+}={user:null,profile:null,superAdmin:false,ladders:[],ladderId:'',entries:[],requests:[],challenges:[],resultChallenge:''};
+
+const el = <T extends HTMLElement>(id:string) => document.getElementById(id) as T | null;
+const html = (id:string, value:string) => { const target=el(id); if(target)target.innerHTML=value; };
+const text = (id:string, value:string) => {const target=el(id);if(target)target.textContent=value;};
+const hidden = (id:string, isHidden:boolean) => el(id)?.classList.toggle('hidden',isHidden);
+const notice = (message:string,tone:'success'|'error'|'info'='info') => {
+  const target=el('pyramid-status');if(!target)return;
+  target.classList.remove('hidden');setStatus(target,message,tone);
+};
+const safeError = (e:unknown) => {
+  const raw=String((e as any)?.message || 'Unbekannter Fehler');
+  if (/relation.*does not exist|schema cache|could not find.*function/i.test(raw))
+    return 'Die Forderungspyramide ist in dieser Umgebung noch nicht freigeschaltet (Datenbank-Migration fehlt).';
+  return raw;
+};
+const formatDate = (value:string|null|undefined) => value
+  ? new Intl.DateTimeFormat('de-DE',{dateStyle:'medium',timeZone:'Europe/Berlin'}).format(new Date(value)) : '–';
+const formatTime = (value:string|null|undefined) => value
+  ? new Intl.DateTimeFormat('de-DE',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Berlin'}).format(new Date(value)) : '–';
+const myEntry = () => state.entries.find((item)=>item.user_id===state.user?.id);
+const currentLadder = () => state.ladders.find((item)=>item.id===state.ladderId);
+const entryName = (id:string) => state.entries.find((item)=>item.id===id)?.display_name || 'Teilnehmer';
+const isInvolved = (c:Challenge) => !!myEntry() && (c.challenger_id===myEntry()?.id || c.defender_id===myEntry()?.id);
+
+async function runAction(action:()=>Promise<unknown>,success:string){
+  try{await action();notice(success,'success');await loadLadder();}
+  catch(error){notice(safeError(error),'error');}
+}
+async function rpc(name:string,args:Record<string,unknown>){
+  const {error}=await supabase.rpc(name,args);
+  if(error)throw error;
+}
+async function signIn(email:string,password:string) {
+  const {error}=await supabase.auth.signInWithPassword({email,password});
+  if(error)throw error;
+}
+function renderBoard() {
+  const ladder=currentLadder();
+  const me=myEntry();
+  text('pyramid-ladder-heading',ladder ? ladder.title+' · '+ladder.season_label : 'Noch keine Rangliste');
+  text('pyramid-ladder-dates',ladder ? formatDate(ladder.starts_on)+' bis '+formatDate(ladder.ends_on) : 'Die erste Rangliste kann vom Super-Admin angelegt werden.');
+  text('pyramid-own-rank',me ? 'Mein Platz #'+me.position : '');
+  hidden('pyramid-own-rank',!me);
+  if(!ladder){html('pyramid-board','<p class="muted">Noch keine Ranglisten vorhanden.</p>');return;}
+  if(!state.entries.length) {
+    html('pyramid-board', '<p class="muted">Noch keine freigegebenen Teilnehmer. Die Rangliste wird nach der ersten Freigabe sichtbar.</p>');
+    return;
+  }
+  const canPlay=ladder.active && dateWithinPeriod(ladder.starts_on,ladder.ends_on);
+  const board=pyramidRows(state.entries).map((row,index)=>
+    '<div class="pyramid-board-row" role="list" aria-label="Pyramidenreihe '+(index+1)+'">'+row.map((item)=>{
+      if(!item)return '<div class="pyramid-entry is-empty" aria-hidden="true"></div>';
+      const mine=me?.id===item.id;
+      const engaged=state.challenges.some(c=>c.status==='accepted'
+        && (c.challenger_id===item.id||c.defender_id===item.id));
+      const canTarget=!!me && canPlay && !engaged && canChallenge(me.position,item.position,me.provisional)
+        && !state.challenges.some(c=>['pending','accepted'].includes(c.status)&&c.challenger_id===me.id)
+        && !(me.last_loss_at && new Date(me.last_loss_at).getTime()>Date.now()-14*86400000);
+      return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canTarget?' is-target':'')+'">'
+        +'<span class="pyramid-entry-rank">#'+item.position+'</span>'
+        +'<span class="pyramid-entry-name">'+escapeHtml(item.display_name)+'</span>'
+        +(item.provisional?'<span class="pyramid-entry-hint">Neueinstieg</span>':'')
+        +(mine?'<span class="pyramid-entry-hint">Du</span>':'')
+        +(canTarget?'<button type="button" data-pyramid-challenge="'+item.id+'">Fordern</button>':'')
+        +'</div>';
+    }).join('')+'</div>').join('');
+  html('pyramid-board',board);
+}
+function renderGames() {
+  const visible=state.challenges.filter((item)=>state.superAdmin||isInvolved(item)).sort(
+    (a,b)=>b.created_at.localeCompare(a.created_at)
+  ).slice(0,40);
+  if(!myEntry()&&!state.superAdmin){hidden('pyramid-games-panel',true);return;}
+  hidden('pyramid-games-panel',false);
+  if(!visible.length){html('pyramid-games','<p class="muted">Noch keine Forderungsspiele eingetragen.</p>');return;}
+  const labels:Record<string,string>={pending:'Annahme ausstehend',accepted:'Spiel vereinbaren',completed:'Beendet',
+    forfeit:'Annahmefrist verpasst',declined:'Abgelehnt',cancelled:'Abgebrochen'};
+  html('pyramid-games',visible.map((c)=>{
+    const myDefender=myEntry()?.id===c.defender_id;
+    const canReport=c.status==='accepted'&&(state.superAdmin||isInvolved(c));
+    const actions= (c.status==='pending'&&myDefender
+      ? '<button type="button" data-pyramid-accept="'+c.id+'">Annehmen</button><button type="button" data-pyramid-decline="'+c.id+'">Ablehnen</button>' : '')
+      +(canReport?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis melden</button>':'');
+    return '<article class="pyramid-game"><div><strong>'+escapeHtml(entryName(c.challenger_id))
+      +' fordert '+escapeHtml(entryName(c.defender_id))+'</strong>'
+      +'<small>'+escapeHtml(labels[c.status]||c.status)+' · '+formatTime(c.created_at)+'</small>'
+      +(c.status==='declined' && c.decline_reason==='another_match_accepted'
+        ?'<small>Automatisch abgelehnt: Ein anderes Forderungsspiel wurde angenommen.</small>':'')
+      +(c.status==='pending'?'<small>Annahmefrist: '+formatTime(c.accept_deadline)+'</small>':'')
+      +(c.status==='accepted'?'<small>Wunschtermin bis: '+formatTime(c.play_deadline)+'</small>':'')
+      +(c.winner_id?'<small>Sieger: '+escapeHtml(entryName(c.winner_id))
+        +(c.score?' · '+escapeHtml(c.score):'')+'</small>':'')
+      +'</div><div class="pyramid-game-actions">'+actions+'</div></article>';
+  }).join(''));
+}
+function renderJoin() {
+  const ladder=currentLadder();
+  const me=myEntry();
+  const request=state.requests.find((r)=>r.user_id===state.user?.id && r.ladder_id===state.ladderId);
+  hidden('pyramid-join-panel',!ladder||!!me);
+  hidden('pyramid-join-form',request?.status==='pending'||request?.status==='approved');
+  const message=request?.status==='pending'?'Deine Teilnahme wurde angefragt und wartet auf Freigabe.'
+    :request?.status==='rejected'?'Die letzte Anfrage wurde abgelehnt. Du kannst eine neue Anfrage stellen.'
+    :request?.status==='approved'?'Deine Teilnahme ist freigegeben. Bitte lade die Ansicht neu.':'';
+  text('pyramid-join-state',message);
+  if(!el<HTMLInputElement>('pyramid-display-name')?.value){
+    const input=el<HTMLInputElement>('pyramid-display-name');
+    if(input)input.value=state.profile?.display_name||'';
+  }
+}
+function renderAdmin() {
+  hidden('pyramid-admin-panel',!state.superAdmin);
+  if(!state.superAdmin)return;
+  const finalized=!!currentLadder()?.seeded_at;
+  const seedButton=el<HTMLButtonElement>('pyramid-finalize-seed');
+  if(seedButton){seedButton.disabled=finalized||state.entries.length<2;seedButton.textContent=finalized?'Startaufstellung bereits festgelegt':'Startaufstellung verbindlich abschließen';}
+  const pending=state.requests.filter((r)=>r.status==='pending');
+  html('pyramid-admin-requests',pending.length ? pending.map((r)=>
+    '<div class="pyramid-admin-item"><span>'+escapeHtml(r.display_name)+'</span>'
+    +'<button type="button" class="button secondary" data-pyramid-approve="'+r.id+'">Freigeben</button></div>'
+  ).join(''):'<p class="muted">Keine offenen Anfragen in dieser Gruppe.</p>');
+  html('pyramid-admin-entries',state.entries.length?state.entries.map((item,i)=>
+    '<div class="pyramid-admin-item"><span>#'+item.position+' · '+escapeHtml(item.display_name)
+    +(item.provisional?' (vorläufig)':'')+'</span><div>'
+    +'<button type="button" title="Einen Platz höher" aria-label="'+escapeHtml(item.display_name)+' höher" data-pyramid-move="'+item.id+'" data-delta="-1"'+(i===0?' disabled':'')+'>↑</button>'
+    +'<button type="button" title="Einen Platz tiefer" aria-label="'+escapeHtml(item.display_name)+' tiefer" data-pyramid-move="'+item.id+'" data-delta="1"'+(i===state.entries.length-1?' disabled':'')+'>↓</button>'
+    +'</div></div>').join(''):'<p class="muted">Noch keine Teilnehmer.</p>');
+}
+function renderAll(){
+  const selector=el<HTMLSelectElement>('pyramid-ladder-select');
+  if(selector){
+    selector.innerHTML=state.ladders.map((l)=>'<option value="'+l.id+'">'
+      +escapeHtml(l.title+' · '+l.season_label)+(l.active?'':' (archiviert)')+'</option>').join('');
+    selector.value=state.ladderId;
+  }
+  renderBoard();renderGames();renderJoin();renderAdmin();
+}
+async function loadLadder(){
+  const ladder=currentLadder();
+  if(!ladder){state.entries=[];state.requests=[];state.challenges=[];renderAll();return;}
+  const [entries,requests,challenges]=await Promise.all([
+    supabase.from('pyramid_entries').select('id,ladder_id,user_id,display_name,position,provisional,last_loss_at')
+      .eq('ladder_id',ladder.id).order('position'),
+    supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
+      .eq('ladder_id',ladder.id),
+    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,winner_id,score,decline_reason')
+      .eq('ladder_id',ladder.id).order('created_at',{ascending:false}).limit(150)
+  ]);
+  for(const answer of [entries,requests,challenges])if(answer.error)throw answer.error;
+  state.entries=(entries.data||[]) as Entry[];
+  state.requests=(requests.data||[]) as Request[];
+  state.challenges=(challenges.data||[]) as Challenge[];
+  renderAll();
+}
+async function load() {
+  try {
+    const response=await supabase.auth.getUser();
+    if(response.error&&response.error.message!=='Auth session missing!')throw response.error;
+    state.user=response.data.user;
+    hidden('pyramid-auth',!!state.user);
+    hidden('pyramid-app',!state.user);
+    if(!state.user)return;
+    const profile=await supabase.from('profiles').select('id,display_name,global_role,global_permissions').eq('id',state.user.id).maybeSingle();
+    if(profile.error)throw profile.error;
+    state.profile=profile.data;
+    state.superAdmin=profile.data?.global_role==='super_admin'||(profile.data?.global_permissions||[]).includes('pyramid');
+    text('pyramid-user-name',profile.data?.display_name||state.user.email||'Mein TSV');
+    const {data,error}=await supabase.from('pyramid_ladders')
+      .select('id,title,season_label,starts_on,ends_on,active,seeded_at').order('starts_on',{ascending:false}).order('title');
+    if(error)throw error;
+    state.ladders=(data||[]) as Ladder[];
+    if(!state.ladders.some((item)=>item.id===state.ladderId))state.ladderId=state.ladders[0]?.id||'';
+    await loadLadder();
+  }catch(error){notice(safeError(error),'error');}
+}
+function openResult(id:string) {
+  const item=state.challenges.find((c)=>c.id===id);
+  const dialog=el<HTMLDialogElement>('pyramid-dialog');
+  if(!item||!dialog)return;
+  state.resultChallenge=id;
+  text('pyramid-dialog-opponents',entryName(item.challenger_id)+' gegen '+entryName(item.defender_id));
+  const winner=el<HTMLSelectElement>('pyramid-result-winner');
+  if(winner)winner.innerHTML=[item.challenger_id,item.defender_id].map((id)=>
+    '<option value="'+id+'">'+escapeHtml(entryName(id))+'</option>').join('');
+  hidden('pyramid-winner-field',!state.superAdmin);
+  if(!state.superAdmin && !isInvolved(item)){notice('Nur Spielbeteiligte dürfen Ergebnisse melden.','error');return;}
+  el<HTMLInputElement>('pyramid-result-score')!.value='';
+  dialog.showModal();
+}
+function wireEvents(){
+  el<HTMLFormElement>('pyramid-login-form')?.addEventListener('submit',async(event)=>{
+    event.preventDefault();
+    const email=el<HTMLInputElement>('pyramid-email')?.value.trim()||'';
+    const password=el<HTMLInputElement>('pyramid-password')?.value||'';
+    try{await signIn(email,password);await load();notice('Du bist angemeldet.','success');}
+    catch(e){notice(safeError(e),'error');}
+  });
+  el('pyramid-magic-link')?.addEventListener('click',async()=>{
+    const email=el<HTMLInputElement>('pyramid-email')?.value.trim()||'';
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){notice('Bitte zuerst deine E-Mail-Adresse eingeben.','error');return;}
+    try{
+      const {error}=await supabase.auth.signInWithOtp({
+        email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:true}
+      });
+      if(error)throw error;
+      notice('Falls die Adresse einen Zugang erhalten darf, wurde ein Anmeldelink angefordert.','success');
+    }catch(e){notice(safeError(e),'error');}
+  });
+  el('pyramid-finalize-seed')?.addEventListener('click',()=>{
+    if(!state.superAdmin||!state.ladderId)return;
+    if(confirm('Startaufstellung abschließen? Spätere Neueintritte bleiben vorläufig.')) {
+      void (async () => {
+        try {
+          await rpc('pyramid_finalize_seed',{p_ladder:state.ladderId});
+          notice('Startaufstellung abgeschlossen.','success');
+          await load(); // Refresh the ladder's seeded_at flag, not just its entries.
+        } catch(e) { notice(safeError(e),'error'); }
+      })();
+    }
+  });
+  el('pyramid-sign-out')?.addEventListener('click',async()=>{
+    const {error}=await supabase.auth.signOut();
+    if(error){notice(safeError(error),'error');return;}
+    state.user=null;state.profile=null;state.superAdmin=false;state.ladders=[];state.entries=[];
+    hidden('pyramid-auth',false);hidden('pyramid-app',true);notice('Du bist abgemeldet.','success');
+  });
+  el<HTMLSelectElement>('pyramid-ladder-select')?.addEventListener('change',async(event)=>{
+    state.ladderId=(event.target as HTMLSelectElement).value;
+    try{await loadLadder();}catch(e){notice(safeError(e),'error');}
+  });
+  el<HTMLFormElement>('pyramid-join-form')?.addEventListener('submit',(event)=>{
+    event.preventDefault();
+    const name=el<HTMLInputElement>('pyramid-display-name')?.value.trim()||'';
+    void runAction(()=>rpc('pyramid_request_join',{p_ladder:state.ladderId,p_name:name}),'Anfrage gespeichert.');
+  });
+  el<HTMLFormElement>('pyramid-create-form')?.addEventListener('submit',async(event)=>{
+    event.preventDefault();
+    if(!state.superAdmin)return;
+    const title=el<HTMLInputElement>('pyramid-new-name')?.value.trim();
+    const season_label=el<HTMLInputElement>('pyramid-new-season')?.value.trim();
+    const starts_on=el<HTMLInputElement>('pyramid-new-start')?.value;
+    const ends_on=el<HTMLInputElement>('pyramid-new-end')?.value;
+    if(!starts_on||!ends_on||ends_on<starts_on){notice('Bitte gültige Saisontermine angeben.','error');return;}
+    try{
+      const {error}=await supabase.from('pyramid_ladders').insert({title,season_label,starts_on,ends_on});
+      if(error)throw error;
+      notice('Rangliste angelegt.','success');await load();
+    }catch(e){notice(safeError(e),'error');}
+  });
+  el('pyramid-app')?.addEventListener('click',(event)=>{
+    const target=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-challenge],[data-pyramid-accept],[data-pyramid-decline],[data-pyramid-result],[data-pyramid-approve],[data-pyramid-move]');
+    if(!target)return;
+    const challenge=target.dataset.pyramidChallenge;
+    if(challenge){if(confirm('Diese Person verbindlich herausfordern?'))void runAction(
+      ()=>rpc('pyramid_challenge',{p_defender:challenge}),'Forderung eingetragen.');return;}
+    const accept=target.dataset.pyramidAccept;
+    if(accept){void runAction(()=>rpc('pyramid_respond',{p_challenge:accept,p_accept:true}),'Forderung angenommen.');return;}
+    const decline=target.dataset.pyramidDecline;
+    if(decline){if(confirm('Forderung nach den Ausnahmeregeln ablehnen?'))void runAction(
+      ()=>rpc('pyramid_respond',{p_challenge:decline,p_accept:false}),'Forderung abgelehnt.');return;}
+    const result=target.dataset.pyramidResult;
+    if(result){openResult(result);return;}
+    const approve=target.dataset.pyramidApprove;
+    if(approve){void runAction(()=>rpc('pyramid_approve_join',{p_request:approve}),'Teilnahme freigegeben.');return;}
+    const move=target.dataset.pyramidMove;
+    if(move)void runAction(()=>rpc('pyramid_move_entry',{p_entry:move,p_delta:Number(target.dataset.delta)}),
+      'Reihenfolge geändert.');
+  });
+  const dialog=el<HTMLDialogElement>('pyramid-dialog');
+  el('pyramid-dialog-close')?.addEventListener('click',()=>dialog?.close());
+  el('pyramid-dialog-cancel')?.addEventListener('click',()=>dialog?.close());
+  dialog?.addEventListener('click',(event)=>{if(event.target===dialog)dialog.close();});
+  el<HTMLFormElement>('pyramid-result-form')?.addEventListener('submit',async(event)=>{
+    event.preventDefault();
+    const value=el<HTMLInputElement>('pyramid-result-score')?.value.trim()||'';
+    if(scoreWinner(value)!==1){notice('Das Ergebnis muss aus Sicht des Siegers angegeben werden (zwei Gewinnsätze, ggf. Champions-Tie-Break).','error');return;}
+    const winner=state.superAdmin?el<HTMLSelectElement>('pyramid-result-winner')?.value:undefined;
+    try{
+      await rpc('pyramid_report_result',{p_challenge:state.resultChallenge,p_score:value,
+        ...(winner?{p_winner:winner}:{})});
+      dialog?.close();notice('Ergebnis und Rangliste aktualisiert.','success');await loadLadder();
+    }catch(e){notice(safeError(e),'error');}
+  });
+}
+// This browser-only staging simulation never sends demo actions or players to Supabase.
+// Nothing is persisted in storage. Every reload starts with fresh fictitious data.
+const demoMode=import.meta.env.PUBLIC_PREVIEW_MODE==='true'
+  && new URLSearchParams(location.search).get('demo')==='1';
+type DemoRecords={entries:Entry[];requests:Request[];challenges:Challenge[]};
+const demoRecords=new Map<string,DemoRecords>();
+let demoSequence=0;
+const demoTimestamp=()=>new Date().toISOString();
+const demoDeadline=(days:number)=>new Date(Date.now()+days*86400000).toISOString();
+function demoMessage(message:string,tone:'success'|'error'|'info'='info'){
+  notice('TESTMODUS · '+message,tone);
+}
+function demoSwitchLadder(id:string){
+  const data=demoRecords.get(id);
+  if(!data)return;
+  state.ladderId=id;
+  state.entries=data.entries;
+  state.requests=data.requests;
+  state.challenges=data.challenges;
+  demoRefresh();
+}
+function demoRefresh(){
+  state.entries.sort((a,b)=>a.position-b.position);
+  renderAll();
+}
+function demoRole(role:string){
+  state.superAdmin=role==='admin';
+  state.user={id:role==='admin'?'demo-user-15':role};
+  state.profile={display_name:role==='admin'?'Muster-Admin'
+    :role==='demo-user-13'?'Spieler 13':role==='demo-user-15'?'Musterperson':'Gastkonto'};
+  text('pyramid-user-name','Demo · '+state.profile.display_name);
+  demoRefresh();
+}
+function demoMakeChallenge(targetId:string){
+  const me=myEntry();
+  const defender=state.entries.find((entry)=>entry.id===targetId);
+  if(!me||!defender||!canChallenge(me.position,defender.position,me.provisional)){
+    demoMessage('Diese Forderung ist für deine Testrolle nicht erlaubt.','error');return;
+  }
+  if(state.challenges.some((item)=>['pending','accepted'].includes(item.status)
+    && item.challenger_id===me.id)){
+    demoMessage('Du hast bereits eine offene Forderung. Beende sie zuerst.','error');return;
+  }
+  if(state.challenges.some(item=>item.status==='accepted'
+    && (item.challenger_id===defender.id||item.defender_id===defender.id))){
+    demoMessage('Dieser Spieler ist bis zum Abschluss seines angenommenen Spiels gesperrt.','error');return;
+  }
+  const id='demo-challenge-'+(++demoSequence);
+  state.challenges.unshift({
+    id,ladder_id:state.ladderId,challenger_id:me.id,defender_id:defender.id,
+    status:'pending',created_at:demoTimestamp(),accept_deadline:demoDeadline(10),
+    play_deadline:null,winner_id:null,score:null
+  });
+  demoRefresh();
+  demoMessage('Forderung gegen '+defender.display_name+' erstellt. Wechsle oben zur Rolle der geforderten Person, um sie anzunehmen.','success');
+}
+const demoAutomaticMailLog:string[]=[];
+function renderDemoMails(){
+  const list=el('pyramid-demo-mails');
+  if(list)list.innerHTML=demoAutomaticMailLog.length
+    ?'<h3>Simulierte E-Mail-Benachrichtigungen</h3><p class="muted">Diese Nachrichten werden in der Demo nicht verschickt.</p>'
+      +demoAutomaticMailLog.map(line=>'<p>'+escapeHtml(line)+'</p>').join('')
+    :'<p class="muted">Noch keine automatisch abgelehnten Forderungen.</p>';
+}
+function demoRespond(id:string,accept:boolean){
+  const item=state.challenges.find((c)=>c.id===id);
+  if(!item||item.status!=='pending')return;
+  if(myEntry()?.id!==item.defender_id){
+    demoMessage('Nur die geforderte Person kann antworten.','error');return;
+  }
+  item.status=accept?'accepted':'declined';
+  if(accept){
+    item.play_deadline=demoDeadline(10);
+    const rejected=state.challenges.filter(c=>c.id!==item.id && c.status==='pending'
+      && (c.defender_id===item.defender_id || c.defender_id===item.challenger_id
+        || c.challenger_id===item.defender_id || c.challenger_id===item.challenger_id));
+    for(const c of rejected){
+      c.status='declined';c.decline_reason='another_match_accepted';
+      demoAutomaticMailLog.push('An '+entryName(c.challenger_id)+': Forderung an '+entryName(c.defender_id)
+        +' automatisch abgelehnt, weil ein anderes Spiel angenommen wurde.');
+    }
+    demoRefresh();renderDemoMails();
+    demoMessage('Forderung angenommen. '+rejected.length+' weitere Forderung(en) automatisch abgelehnt. E-Mail-Benachrichtigung im Testprotokoll simuliert.','success');
+  }else{
+    item.decline_reason='player_declined';demoRefresh();
+    demoMessage('Forderung abgelehnt.','success');
+  }
+}
+function demoReportResult(event:SubmitEvent){
+  event.preventDefault();
+  const dialog=el<HTMLDialogElement>('pyramid-dialog');
+  const game=state.challenges.find((c)=>c.id===state.resultChallenge);
+  const score=el<HTMLInputElement>('pyramid-result-score')?.value.trim()||'';
+  if(!game||game.status!=='accepted'){
+    demoMessage('Kein angenommenes Spiel ausgewählt.','error');return;
+  }
+  if(scoreWinner(score)!==1){
+    demoMessage('Bitte ein gültiges Ergebnis aus Sicht des Siegers angeben: 6:4, 6:3 oder 6:4, 4:6, 10:8.','error');
+    return;
+  }
+  const winnerId=state.superAdmin
+    ?el<HTMLSelectElement>('pyramid-result-winner')?.value
+    :myEntry()?.id;
+  const winner=state.entries.find((e)=>e.id===winnerId);
+  const challenger=state.entries.find((e)=>e.id===game.challenger_id);
+  const defender=state.entries.find((e)=>e.id===game.defender_id);
+  if(!winner||!challenger||!defender
+    ||(winner.id!==challenger.id&&winner.id!==defender.id)
+    ||(!state.superAdmin&&winner.user_id!==state.user?.id)){
+    demoMessage('Nur Spielbeteiligte dürfen ihren eigenen Sieg melden.','error');return;
+  }
+  const loser=winner.id===challenger.id?defender:challenger;
+  if(winner.id===challenger.id&&challenger.position>defender.position){
+    const original=challenger.position;
+    const target=defender.position;
+    state.entries.forEach((entry)=>{
+      if(entry.id!==challenger.id&&entry.position>=target&&entry.position<original)entry.position++;
+    });
+    challenger.position=target;
+  }
+  game.status='completed';game.winner_id=winner.id;game.score=score;
+  winner.provisional=false;loser.provisional=false;
+  loser.last_loss_at=demoTimestamp();
+  dialog?.close();
+  demoRefresh();
+  demoMessage('Ergebnis gespeichert: '+winner.display_name+' gewinnt. Die Rangliste wurde neu sortiert.','success');
+}
+function demoHandleButton(event:MouseEvent){
+  const button=(event.target as Element).closest<HTMLButtonElement>('button');
+  if(!button)return;
+  if(button.disabled)return;
+  if(button.id==='pyramid-demo-reset'){
+    demoInitialize();
+    demoMessage('Demo mit frischen Testdaten zurückgesetzt.','success');return;
+  }
+  if(button.id==='pyramid-sign-out'){
+    location.href=location.pathname;return;
+  }
+  const challenger=button.dataset.pyramidChallenge;
+  if(challenger){demoMakeChallenge(challenger);return;}
+  const accept=button.dataset.pyramidAccept;
+  if(accept){demoRespond(accept,true);return;}
+  const decline=button.dataset.pyramidDecline;
+  if(decline){demoRespond(decline,false);return;}
+  const result=button.dataset.pyramidResult;
+  if(result){openResult(result);return;}
+  const approval=button.dataset.pyramidApprove;
+  if(approval){
+    if(!state.superAdmin){demoMessage('Nur Super-Admins können freigeben.','error');return;}
+    const request=state.requests.find((r)=>r.id===approval&&r.status==='pending');
+    if(!request)return;
+    request.status='approved';
+    const position=Math.max(0,...state.entries.map((e)=>e.position))+1;
+    state.entries.push({
+      id:'demo-entry-'+(++demoSequence),
+      ladder_id:state.ladderId,user_id:request.user_id,
+      display_name:request.display_name,position,provisional:true,last_loss_at:null
+    });
+    demoRefresh();
+    demoMessage(request.display_name+' auf Rang '+position+' freigegeben.','success');
+    return;
+  }
+  const moved=button.dataset.pyramidMove;
+  if(moved){
+    if(!state.superAdmin)return;
+    const first=state.entries.find((e)=>e.id===moved);
+    const delta=Number(button.dataset.delta);
+    const second=state.entries.find((e)=>e.position===((first?.position??0)+delta));
+    if(!first||!second)return;
+    const prior=first.position;first.position=second.position;second.position=prior;
+    demoRefresh();
+    demoMessage('Die beiden Musterteilnehmer haben ihre Startplätze getauscht.','success');
+    return;
+  }
+  if(button.id==='pyramid-finalize-seed'){
+    const ladder=currentLadder();
+    if(!state.superAdmin||!ladder||ladder.seeded_at)return;
+    ladder.seeded_at=demoTimestamp();
+    state.entries.forEach((e)=>{e.provisional=false;});
+    demoRefresh();demoMessage('Startaufstellung abgeschlossen.','success');
+  }
+}
+function demoHandleForm(event:SubmitEvent){
+  const target=event.target as HTMLFormElement;
+  if(target.id==='pyramid-join-form'){
+    event.preventDefault();
+    if(!currentLadder())return;
+    if(myEntry()){demoMessage('Du bist schon Teilnehmer dieser Gruppe.','error');return;}
+    const name=el<HTMLInputElement>('pyramid-display-name')?.value.trim()||'';
+    if(name.length<2){demoMessage('Bitte einen gültigen Namen eingeben.','error');return;}
+    const existing=state.requests.find((r)=>r.user_id===state.user?.id);
+    if(existing&&existing.status==='pending'){
+      demoMessage('Eine Teilnahmeanfrage ist schon offen.','error');return;
+    }
+    if(existing){existing.status='pending';existing.display_name=name;}
+    else state.requests.push({
+      id:'demo-request-'+(++demoSequence),ladder_id:state.ladderId,
+      user_id:state.user.id,display_name:name,status:'pending'
+    });
+    demoRefresh();demoMessage('Teilnahmeanfrage eingegangen. Zur Freigabe auf Muster-Admin wechseln.','success');
+  }else if(target.id==='pyramid-create-form'){
+    event.preventDefault();
+    if(!state.superAdmin){demoMessage('Nur Super-Admins dürfen neue Gruppen anlegen.','error');return;}
+    const title=el<HTMLInputElement>('pyramid-new-name')?.value.trim()||'';
+    const season_label=el<HTMLInputElement>('pyramid-new-season')?.value.trim()||'';
+    const starts_on=el<HTMLInputElement>('pyramid-new-start')?.value||'';
+    const ends_on=el<HTMLInputElement>('pyramid-new-end')?.value||'';
+    if(title.length<3||season_label.length<3||!starts_on||!ends_on||ends_on<starts_on){
+      demoMessage('Bitte gültigen Namen, Saison und Zeitraum angeben.','error');return;
+    }
+    const id='demo-ladder-'+(++demoSequence);
+    state.ladders.push({id,title,season_label,starts_on,ends_on,active:true,seeded_at:null});
+    demoRecords.set(id,{entries:[],requests:[],challenges:[]});
+    demoSwitchLadder(id);
+    target.reset();
+    demoMessage('Neue Test-Rangliste angelegt. Wechsle zur Teilnehmerrolle, um die Teilnahme zu beantragen.','success');
+  }
+}
+function demoInitialize(){
+  demoSequence=30;
+  demoRecords.clear();
+  demoAutomaticMailLog.length=0;
+  renderDemoMails();
+  state.ladders=[{
+    id:'demo-winter',title:'Herren · Mustergruppe',
+    season_label:'Winter 2026/2027',starts_on:'2026-11-01',
+    ends_on:'2027-03-31',active:true,seeded_at:null
+  },{
+    id:'demo-summer',title:'Damen · Mustergruppe',
+    season_label:'Sommer 2027',starts_on:'2027-04-01',
+    ends_on:'2027-10-31',active:true,seeded_at:null
+  }];
+  demoRecords.set('demo-winter',{
+    entries:Array.from({length:15},(_,index)=>({
+      id:'demo-entry-'+(index+1),ladder_id:'demo-winter',
+      user_id:'demo-user-'+(index+1),
+      display_name:index===14?'Musterperson':'Spieler '+(index+1),
+      position:index+1,provisional:false,last_loss_at:null
+    })),
+    requests:[{
+      id:'demo-request-1',ladder_id:'demo-winter',
+      user_id:'demo-requester',display_name:'Neue Musterperson',status:'pending'
+    }],
+    challenges:[{
+      id:'demo-game-1',ladder_id:'demo-winter',challenger_id:'demo-entry-7',
+      defender_id:'demo-entry-5',status:'accepted',
+      created_at:demoTimestamp(),accept_deadline:demoDeadline(10),
+      play_deadline:demoDeadline(10),winner_id:null,score:null
+    },{
+      id:'demo-game-2',ladder_id:'demo-winter',challenger_id:'demo-entry-14',
+      defender_id:'demo-entry-13',status:'pending',
+      created_at:demoTimestamp(),accept_deadline:demoDeadline(10),
+      play_deadline:null,winner_id:null,score:null
+    }]
+  });
+  demoRecords.set('demo-summer',{
+    entries:Array.from({length:6},(_,index)=>({
+      id:'demo-damen-entry-'+(index+1),ladder_id:'demo-summer',
+      user_id:'demo-damen-user-'+(index+1),
+      display_name:'Spielerin '+(index+1),position:index+1,
+      provisional:false,last_loss_at:null
+    })),
+    requests:[],challenges:[]
+  });
+  demoSwitchLadder('demo-winter');
+  const picker=el<HTMLSelectElement>('pyramid-demo-role');
+  if(picker)picker.value='admin';
+  demoRole('admin');
+}
+function renderDemo(){
+  const root=el('pyramid-root');
+  if(!root)return;
+  root.dataset.demoMode='true';
+  hidden('pyramid-auth',true);
+  hidden('pyramid-app',false);
+  const banner=document.createElement('section');
+  banner.className='card pyramid-demo-bar';
+  banner.setAttribute('aria-label','Testmodus');
+  banner.innerHTML='<p class="eyebrow">Nur Testdaten · keine echte Anmeldung</p>'
+    +'<h2>Interaktive Vorschau</h2>'
+    +'<p>Du kannst alle Aktionen ausprobieren. Änderungen bleiben ausschließlich im Browser '
+    +'und werden beim Neuladen zurückgesetzt.</p>'
+    +'<p><strong>Forderung annehmen:</strong> Wähle unten „Geforderte Person · Spieler 13“. '
+    +'Öffne „Forderungsspiele“ und klicke bei „Spieler 14 fordert Spieler 13“ auf „Annehmen“. '
+    +'Andere noch offene Forderungen werden automatisch abgelehnt und erscheinen im simulierten E-Mail-Protokoll.</p>'
+    +'<div class="pyramid-demo-controls">'
+    +'<label for="pyramid-demo-role">Testrolle auswählen</label>'
+    +'<select id="pyramid-demo-role">'
+    +'<option value="admin">Muster-Admin (mit Teilnehmerplatz 15)</option>'
+    +'<option value="demo-user-15">Mitglied · Musterperson (Platz 15)</option>'
+    +'<option value="demo-user-13">Geforderte Person · Spieler 13</option>'
+    +'<option value="demo-guest">Mitglied ohne Ranglistenplatz</option>'
+    +'</select><button type="button" class="button secondary" id="pyramid-demo-reset">'
+    +'Demo zurücksetzen</button></div>';
+  root.insertBefore(banner,el('pyramid-app'));
+  const mailBox=document.createElement('section');
+  mailBox.id='pyramid-demo-mails';
+  mailBox.className='card';
+  mailBox.setAttribute('aria-label','Simulierte E-Mail-Benachrichtigungen');
+  root.insertBefore(mailBox,el('pyramid-app'));
+  el('pyramid-app')?.addEventListener('click',demoHandleButton);
+  banner.addEventListener('click',demoHandleButton);
+  el('pyramid-app')?.addEventListener('submit',demoHandleForm);
+  el<HTMLSelectElement>('pyramid-ladder-select')?.addEventListener('change',(event)=>{
+    demoSwitchLadder((event.target as HTMLSelectElement).value);
+  });
+  el<HTMLSelectElement>('pyramid-demo-role')?.addEventListener('change',(event)=>{
+    demoRole((event.target as HTMLSelectElement).value);
+    demoMessage('Ansicht auf die ausgewählte Testrolle umgestellt.','success');
+  });
+  el<HTMLFormElement>('pyramid-result-form')?.addEventListener('submit',demoReportResult);
+  const dialog=el<HTMLDialogElement>('pyramid-dialog');
+  el('pyramid-dialog-close')?.addEventListener('click',()=>dialog?.close());
+  el('pyramid-dialog-cancel')?.addEventListener('click',()=>dialog?.close());
+  dialog?.addEventListener('click',(event)=>{if(event.target===dialog)dialog.close();});
+  demoInitialize();
+}
+export function initPyramid(){
+  if(demoMode) {renderDemo();return;}
+  wireEvents();
+  void load();
+  supabase.auth.onAuthStateChange((event)=>{
+    if(event==='SIGNED_IN'||event==='SIGNED_OUT')queueMicrotask(()=>void load());
+  });
+}

@@ -1,0 +1,63 @@
+name: Preview Forderungspyramide (isoliert)
+
+on:
+  push:
+    branches:
+      - feature/forderungspyramide-staging
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tsv-forderungspyramide-staging-pages
+  cancel-in-progress: true
+
+jobs:
+  staging-preview:
+    name: Build, audit and publish staging preview only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Check regression tests
+        run: npm test
+      - name: Build isolated public preview
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis/pyramid-staging
+          PUBLIC_PREVIEW_MODE: 'true'
+        run: npm run build
+      - name: Audit preview links and noindex
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis/pyramid-staging
+          PUBLIC_PREVIEW_MODE: 'true'
+        run: |
+          npm run audit:site
+          grep -Fq '<meta name="robots" content="noindex,nofollow"' dist/forderungspyramide/index.html
+      - name: Install Chromium for staging interaction tests
+        run: |
+          npm install --no-save --package-lock=false playwright@1.65.0
+          npx playwright install --with-deps chromium
+      - name: Verify demo buttons on desktop, mobile and small mobile
+        env:
+          PREVIEW_BASE: /tsv-feldkirchen-tennis/pyramid-staging
+          PUBLIC_PREVIEW_MODE: 'true'
+        run: node scripts/pyramid-demo-browser-qa.mjs
+      - name: Restrict indexing
+        run: |
+          printf 'User-agent: *\nDisallow: /\n' > dist/robots.txt
+          touch dist/.nojekyll
+      - name: Deploy only to separate GitHub Pages staging subfolder
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./dist
+          destination_dir: pyramid-staging
+          keep_files: true
+          # This workflow MUST NOT touch the productive United Domains site.
+          force_orphan: false
