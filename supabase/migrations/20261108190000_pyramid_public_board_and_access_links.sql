@@ -5,7 +5,7 @@
 create or replace function public.pyramid_public_standings()
 returns table(
  ladder_id uuid, ladder_title text, season_label text, starts_on date,
- ends_on date, seeded boolean, position integer, display_name text
+ ends_on date, seeded boolean, "position" integer, display_name text
 ) language sql stable security definer set search_path='' as $$
  select l.id,l.title,l.season_label,l.starts_on,l.ends_on,
         (l.seeded_at is not null),e.position,e.display_name
