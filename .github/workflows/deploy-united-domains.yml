@@ -139,7 +139,9 @@ jobs:
           grep -Fq 'id="pyramid-avatar-panel"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-avatar-file"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-neutral-reason"' dist/forderungspyramide/index.html
-          grep -Fq 'Urlaub (bis 4 Wochen ohne Rangverschiebung)' dist/forderungspyramide/index.html
+          grep -Fq 'Urlaub (maximal 28 Tage)' dist/forderungspyramide/index.html
+          grep -Fq 'Ergebnis zur Bestätigung melden' dist/forderungspyramide/index.html
+          grep -Fq '1. Mai bis 30. September' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-auth"' dist/forderungspyramide/index.html
           grep -Fq 'noindex,nofollow' dist/forderungspyramide/index.html
           test -f dist/.htaccess
@@ -201,7 +203,7 @@ jobs:
       # Publish expanded Tennis privacy information for Supabase, registration, Gmail, Turnstile, hosting, ICS, analytics and rights, after browser QA.
       # Fix global Datenschutz footer href to local Tennis policy instead of external main club; tested in responsive browser QA.
       # User-approved hidden Forderungspyramide rollout: private login, delegated admin, modal results, guarded SQL/RLS and Gmail queue; browser QA passed.
-      # Verified TSV season rules, 28-day vacation/injury demotion and self-service portrait uploads to users/<uid>/media. Demo Chrome QA passed on desktop and mobile.
+      # Master v1.0: 14-day play / 3-day desired scheduling / 48h confirmed results / 7-day cooldowns / 28-day automatic un-neutralization; bottom-right Urlaub/Verletzung badges; desktop/mobile/small mobile QA green.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
@@ -222,6 +224,8 @@ jobs:
                echo "$pyramid" | grep -Fq 'id="pyramid-avatar-panel"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-avatar-file"' &&
                echo "$pyramid" | grep -Fq 'id="pyramid-neutral-reason"' &&
+               echo "$pyramid" | grep -Fq 'Urlaub (maximal 28 Tage)' &&
+               echo "$pyramid" | grep -Fq 'Ergebnis zur Bestätigung melden' &&
                echo "$pyramid" | grep -Fq 'noindex,nofollow'; then
               missing=0
               while IFS= read -r asset; do
