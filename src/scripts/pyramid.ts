@@ -216,9 +216,15 @@ function wireEvents(){
   });
   el('pyramid-finalize-seed')?.addEventListener('click',()=>{
     if(!state.superAdmin||!state.ladderId)return;
-    if(confirm('Startaufstellung abschließen? Spätere Neueintritte bleiben vorläufig.'))
-      void runAction(()=>rpc('pyramid_finalize_seed',{p_ladder:state.ladderId}),
-        'Startaufstellung abgeschlossen.');
+    if(confirm('Startaufstellung abschließen? Spätere Neueintritte bleiben vorläufig.')) {
+      void (async () => {
+        try {
+          await rpc('pyramid_finalize_seed',{p_ladder:state.ladderId});
+          notice('Startaufstellung abgeschlossen.','success');
+          await load(); // Refresh the ladder's seeded_at flag, not just its entries.
+        } catch(e) { notice(safeError(e),'error'); }
+      })();
+    }
   });
   el('pyramid-sign-out')?.addEventListener('click',async()=>{
     const {error}=await supabase.auth.signOut();
