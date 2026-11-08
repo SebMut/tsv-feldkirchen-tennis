@@ -11,7 +11,7 @@ const cors = {
 const PRODUCTION_ADMIN_URL = "https://www.tennis-tsvfeldkirchen.de/admin/";
 const allowedRoles = new Set(["user", "super_admin"]);
 const allowedTeamRoles = new Set(["manager", "editor", "ticker"]);
-const allowedGlobalPermissions = new Set(["events", "news", "ticker"]);
+const allowedGlobalPermissions = new Set(["events", "news", "ticker", "pyramid"]);
 function readGlobalPermissions(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
   if (!value.every((permission) => typeof permission === "string" && allowedGlobalPermissions.has(permission))) return null;
