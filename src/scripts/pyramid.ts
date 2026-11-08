@@ -1,4 +1,5 @@
-import { supabase } from '../lib/supabase';
+import { supabase, mediaUrl } from '../lib/supabase';
+import { replaceMediaImage, removeMediaImage } from '../lib/media-upload';
 import { escapeHtml, setStatus } from '../lib/ui';
 import { canChallenge, canQualifyAgainst, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
 
@@ -9,8 +10,8 @@ type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:st
   created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;refusal_reason?:string|null;winner_id:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
 const state: {
   user:any;profile:any;superAdmin:boolean;ladders:Ladder[];ladderId:string;
-  entries:Entry[];requests:Request[];challenges:Challenge[];resultChallenge:string;
-}={user:null,profile:null,superAdmin:false,ladders:[],ladderId:'',entries:[],requests:[],challenges:[],resultChallenge:''};
+  entries:Entry[];requests:Request[];challenges:Challenge[];resultChallenge:string;avatars:Record<string,string>;
+}={user:null,profile:null,superAdmin:false,ladders:[],ladderId:'',entries:[],requests:[],challenges:[],resultChallenge:'',avatars:{}};
 
 const el = <T extends HTMLElement>(id:string) => document.getElementById(id) as T | null;
 const html = (id:string, value:string) => { const target=el(id); if(target)target.innerHTML=value; };
@@ -82,11 +83,17 @@ function renderBoard() {
         if(!item)return '<div class="pyramid-entry is-empty" aria-hidden="true"></div>';
         const mine=me?.id===item.id;
         const canTarget=!!me&&canPlay&&canSendChallenge(me,item);
-        return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canTarget?' is-target':'')+'">'
+        const portrait=state.avatars[item.user_id];
+        return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canTarget?' is-target':'')
+          +(item.neutralized_at?' is-neutralized':'')+'">'
+          +(portrait?'<img class="pyramid-entry-avatar" src="'+escapeHtml(mediaUrl(portrait))
+             +'" alt="Profilbild von '+escapeHtml(item.display_name)+'" loading="lazy" decoding="async" />':'')
           +'<span class="pyramid-entry-rank">#'+item.position+'</span>'
           +'<span class="pyramid-entry-name">'+escapeHtml(item.display_name)+'</span>'
           +(mine?'<span class="pyramid-entry-hint">Du</span>':'')
-          +(item.neutralized_at?'<span class="pyramid-entry-hint">Neutralisiert: '+escapeHtml(friendlyReason(item.neutralized_reason))+'</span>':'')
+          +(item.neutralized_at?'<span class="pyramid-entry-away" aria-label="Aktueller Status: '
+            +escapeHtml(friendlyReason(item.neutralized_reason))+'">'
+            +escapeHtml(friendlyReason(item.neutralized_reason))+'</span>':'')
           +(item.last_win_at&&waitingDays(item.last_win_at,3)?'<span class="pyramid-entry-hint">Siegerschutz (3 Tage)</span>':'')
           +(canTarget?'<button type="button" data-pyramid-challenge="'+item.id+'">'
             +(me?.qualified===false?'Einfordern':'Fordern')+'</button>':'')
@@ -168,6 +175,22 @@ function renderAdmin() {
     +'<button type="button" title="Einen Platz tiefer" aria-label="'+escapeHtml(item.display_name)+' tiefer" data-pyramid-move="'+item.id+'" data-delta="1"'+(i===state.entries.length-1?' disabled':'')+'>↓</button>'
     +'</div></div>').join(''):'<p class="muted">Noch keine Teilnehmer.</p>');
 }
+function renderMemberPortrait(){
+  hidden('pyramid-avatar-panel',!state.user);
+  const preview=el('pyramid-avatar-preview');
+  const current=state.profile?.avatar_path;
+  const owner=state.user?.id;
+  const valid=typeof current==='string'&&owner
+    && current.startsWith('users/'+owner+'/')&&current.endsWith('.webp');
+  if(preview){
+    preview.innerHTML=valid
+      ?'<img class="pyramid-member-avatar-preview" src="'+escapeHtml(mediaUrl(current))
+        +'" alt="Dein aktuelles Profilbild" loading="lazy" decoding="async" />'
+      :'<span class="pyramid-avatar-placeholder" aria-hidden="true">🎾</span>';
+  }
+  const remove=el<HTMLButtonElement>('pyramid-avatar-remove');
+  if(remove)remove.disabled=!valid;
+}
 function renderOwnAvailability(){
   const me=myEntry();
   hidden('pyramid-availability-panel',!me);
@@ -175,7 +198,7 @@ function renderOwnAvailability(){
   if(field&&me)field.value=me.neutralized_reason||'';
   text('pyramid-neutral-state',me?.neutralized_at
     ?'Neutralisiert seit '+formatDate(me.neutralized_at)+': '+friendlyReason(me.neutralized_reason)
-       +(me.neutralized_reason==='injury'?' · Rangverschiebung nach jeweils 4 Wochen':'')
+       +(['injury','vacation'].includes(me.neutralized_reason||'')?' · Nach 4 Wochen beginnt die Rangverschiebung':'')
     :'Du bist spielbereit und kannst unter Beachtung der Forderungsregeln gefordert werden.');
 }
 function renderAll(){
@@ -185,7 +208,7 @@ function renderAll(){
       +escapeHtml(l.title+' · '+l.season_label)+(l.active?'':' (archiviert)')+'</option>').join('');
     selector.value=state.ladderId;
   }
-  renderBoard();renderGames();renderJoin();renderAdmin();renderOwnAvailability();
+  renderBoard();renderGames();renderJoin();renderAdmin();renderOwnAvailability();renderMemberPortrait();
 }
 async function loadLadder(){
   const ladder=currentLadder();
@@ -202,6 +225,21 @@ async function loadLadder(){
   state.entries=(entries.data||[]) as Entry[];
   state.requests=(requests.data||[]) as Request[];
   state.challenges=(challenges.data||[]) as Challenge[];
+  state.avatars={};
+  // Only a member of this ladder (or a designated manager) can read its
+  // participant portraits. This avoids widening generic profiles RLS.
+  if(state.superAdmin||state.entries.some(e=>e.user_id===state.user?.id)){
+    const {data:portraits,error:portraitError}=await supabase.rpc('pyramid_member_avatars',{p_ladder:ladder.id});
+    if(portraitError){
+      console.warn('Pyramid portrait list unavailable:',portraitError.message);
+    }else{
+      state.avatars=Object.fromEntries((portraits||[]).filter(
+        (r:{user_id:string;avatar_path:string})=>typeof r.avatar_path==='string'
+          &&r.avatar_path.startsWith('users/'+r.user_id+'/')
+          &&r.avatar_path.endsWith('.webp')
+      ).map((r:{user_id:string;avatar_path:string})=>[r.user_id,r.avatar_path]));
+    }
+  }
   renderAll();
 }
 async function load() {
@@ -212,7 +250,7 @@ async function load() {
     hidden('pyramid-auth',!!state.user);
     hidden('pyramid-app',!state.user);
     if(!state.user)return;
-    const profile=await supabase.from('profiles').select('id,display_name,global_role,global_permissions').eq('id',state.user.id).maybeSingle();
+    const profile=await supabase.from('profiles').select('id,display_name,global_role,global_permissions,avatar_path').eq('id',state.user.id).maybeSingle();
     if(profile.error)throw profile.error;
     state.profile=profile.data;
     state.superAdmin=profile.data?.global_role==='super_admin'||(profile.data?.global_permissions||[]).includes('pyramid');
@@ -333,6 +371,54 @@ function wireEvents(){
     const move=target.dataset.pyramidMove;
     if(move)void runAction(()=>rpc('pyramid_move_entry',{p_entry:move,p_delta:Number(target.dataset.delta)}),
       'Reihenfolge geändert.');
+  });
+  const avatarUpload=el<HTMLFormElement>('pyramid-avatar-form');
+  avatarUpload?.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const input=el<HTMLInputElement>('pyramid-avatar-file');
+    const file=input?.files?.[0];
+    const uid=state.user?.id;
+    if(!uid||!file){notice('Bitte zuerst ein Profilbild auswählen.','error');return;}
+    const submit=avatarUpload.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if(submit?.disabled)return;
+    if(submit)submit.disabled=true;
+    try{
+      const path=await replaceMediaImage({
+        directory:'users/'+uid,file,basename:'avatar',maxDimension:512,quality:0.78,
+        oldPath:state.profile?.avatar_path||null,
+        persistPath:async newPath=>{
+          const {error}=await supabase.rpc('pyramid_set_my_avatar',{p_path:newPath});
+          return {error};
+        }
+      });
+      state.profile={...state.profile,avatar_path:path};
+      state.avatars[uid]=path;
+      if(input)input.value='';
+      renderMemberPortrait();renderBoard();
+      notice('Dein Profilbild wurde gespeichert.','success');
+    }catch(e){notice('Profilbild konnte nicht gespeichert werden: '+safeError(e),'error');}
+    finally{if(submit)submit.disabled=false;}
+  });
+  el('pyramid-avatar-remove')?.addEventListener('click',async()=>{
+    const uid=state.user?.id;
+    const path=state.profile?.avatar_path;
+    if(!uid||!path||!confirm('Eigenes Profilbild wirklich entfernen?'))return;
+    const removeButton=el<HTMLButtonElement>('pyramid-avatar-remove');
+    if(removeButton)removeButton.disabled=true;
+    try{
+      await removeMediaImage({
+        path,directory:'users/'+uid,
+        clearReference:async()=>{
+          const {error}=await supabase.rpc('pyramid_set_my_avatar',{p_path:null});
+          return {error};
+        }
+      });
+      state.profile={...state.profile,avatar_path:null};
+      delete state.avatars[uid];
+      renderMemberPortrait();renderBoard();
+      notice('Profilbild entfernt.','success');
+    }catch(e){notice('Profilbild konnte nicht entfernt werden: '+safeError(e),'error');}
+    finally{if(removeButton)removeButton.disabled=false;}
   });
   el<HTMLFormElement>('pyramid-availability-form')?.addEventListener('submit',event=>{
     event.preventDefault();
