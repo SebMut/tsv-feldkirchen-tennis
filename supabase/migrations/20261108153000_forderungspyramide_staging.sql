@@ -7,6 +7,7 @@ create table public.pyramid_ladders (
  starts_on date not null,
  ends_on date not null,
  active boolean not null default true,
+ seeded_at timestamptz,
  created_at timestamptz not null default now(),
  constraint pyramid_ladders_date_order check (ends_on >= starts_on)
 );
@@ -190,6 +191,27 @@ begin
 end;
 $$;
 
+-- Finalize the initial LK-based/administratively ordered list once.
+-- New later entrants stay provisional; the entire ranking is never reset.
+create function public.pyramid_finalize_seed(p_ladder uuid)
+ returns void language plpgsql security definer set search_path = '' as $
+declare l public.pyramid_ladders%rowtype;
+begin
+ if not private.is_super_admin() then raise exception 'Keine Berechtigung' using errcode='42501'; end if;
+ select * into strict l from public.pyramid_ladders where id=p_ladder for update;
+ if l.seeded_at is not null then raise exception 'Startaufstellung ist bereits abgeschlossen'; end if;
+ if (select count(*) from public.pyramid_entries where ladder_id=p_ladder)<2 then
+   raise exception 'Für eine Startaufstellung werden mindestens zwei Teilnehmer benötigt';
+ end if;
+ if exists(select 1 from public.pyramid_challenges
+  where ladder_id=p_ladder and status in ('pending','accepted')) then
+   raise exception 'Bei offenen Forderungen kann nicht abgeschlossen werden';
+ end if;
+ update public.pyramid_entries set provisional=false where ladder_id=p_ladder;
+ update public.pyramid_ladders set seeded_at=now() where id=p_ladder;
+end;
+$;
+
 create function public.pyramid_challenge(p_defender uuid)
  returns uuid language plpgsql security definer set search_path = '' as $$
 declare d public.pyramid_entries%rowtype; c public.pyramid_entries%rowtype;
@@ -313,6 +335,7 @@ select cron.schedule('tsv-pyramid-acceptance-expiry','15 * * * *','select public
 -- RPC entry points must not remain callable by anon/PUBLIC.
 revoke all on function public.pyramid_request_join(uuid,text),
  public.pyramid_approve_join(uuid), public.pyramid_move_entry(uuid,integer),
+ public.pyramid_finalize_seed(uuid),
  public.pyramid_challenge(uuid), public.pyramid_respond(uuid,boolean),
  public.pyramid_report_result(uuid,text,uuid)
  from public,anon;
