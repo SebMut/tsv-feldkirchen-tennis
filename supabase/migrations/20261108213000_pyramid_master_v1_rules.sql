@@ -199,6 +199,8 @@ begin
      reported_at=now(),confirmation_deadline=now()+interval '48 hours',
      disputed_at=null,dispute_reason=null
    where id=c.id;
+ insert into private.pyramid_auto_decline_notices(challenge_id,kind)
+ values(c.id,'result_reported') on conflict(challenge_id,kind) do nothing;
 end;
 $$;
 
@@ -462,5 +464,88 @@ revoke all on function private.pyramid_process_injury_neutrality()
 select cron.unschedule('tsv-pyramid-neutral-injury');
 select cron.schedule('tsv-pyramid-neutral-expiry','15 * * * *',
  'select private.pyramid_process_injury_neutrality();');
+
+
+-- The same secured Gmail outbox also notifies the opponent when a result
+-- awaits confirmation; the queue is never directly writable by members.
+alter table private.pyramid_auto_decline_notices
+ drop constraint if exists pyramid_auto_decline_notices_kind_check;
+alter table private.pyramid_auto_decline_notices
+ add constraint pyramid_auto_decline_notices_kind_check
+ check (kind in ('auto_decline','challenge_created','result_reported'));
+
+create or replace function public.claim_pyramid_notification()
+ returns table(id uuid,kind text,recipient_email text,challenger_name text,
+   defender_name text,ladder_title text,season_label text,challenge_status text)
+ language plpgsql security definer set search_path = '' as $
+begin
+ if (auth.jwt()->>'role') is distinct from 'service_role' then
+   raise exception 'Nur der E-Mail-Service darf senden' using errcode='42501';
+ end if;
+ return query with due as (
+  select n.id from private.pyramid_auto_decline_notices n
+  where n.sent_at is null and n.attempts<10 and n.next_attempt_at<=now()
+   and (n.claimed_until is null or n.claimed_until<now())
+  order by case when n.kind='result_reported' then 0
+    when n.kind='auto_decline' then 1 else 2 end,n.created_at
+  limit 1 for update skip locked
+ ), claimed as (
+  update private.pyramid_auto_decline_notices n
+    set claimed_until=now()+interval '3 minutes',attempts=n.attempts+1
+  from due where n.id=due.id returning n.id,n.challenge_id,n.kind
+ )
+ select cl.id,cl.kind::text,
+  coalesce(nullif(btrim(u.email),''),nullif(btrim(p.email),''))::text,
+  ch.display_name::text,df.display_name::text,l.title::text,l.season_label::text,
+  c.status::text
+ from claimed cl
+ join public.pyramid_challenges c on c.id=cl.challenge_id
+ join public.pyramid_entries ch on ch.id=c.challenger_id
+ join public.pyramid_entries df on df.id=c.defender_id
+ join public.pyramid_ladders l on l.id=c.ladder_id
+ left join auth.users u on u.id=case
+   when cl.kind='challenge_created' then df.user_id
+   when cl.kind='result_reported' and c.proposed_winner_id=c.challenger_id then df.user_id
+   when cl.kind='result_reported' then ch.user_id
+   else ch.user_id end
+ left join public.profiles p on p.id=case
+   when cl.kind='challenge_created' then df.user_id
+   when cl.kind='result_reported' and c.proposed_winner_id=c.challenger_id then df.user_id
+   when cl.kind='result_reported' then ch.user_id
+   else ch.user_id end;
+end;
+$;
+revoke all on function public.claim_pyramid_notification()
+ from public,anon,authenticated;
+grant execute on function public.claim_pyramid_notification() to service_role;
+
+-- Do not let an active match (including a disputed result) be bypassed by
+-- neutralizing one of its players.
+create or replace function public.pyramid_set_neutralized(p_entry uuid,p_reason text)
+ returns void language plpgsql security definer set search_path = '' as $
+declare e public.pyramid_entries%rowtype;
+begin
+ select * into strict e from public.pyramid_entries where id=p_entry;
+ perform 1 from public.pyramid_ladders where id=e.ladder_id for update;
+ select * into strict e from public.pyramid_entries where id=p_entry for update;
+ if not private.can_manage_pyramid() and e.user_id is distinct from auth.uid() then
+   raise exception 'Nur der Teilnehmer oder die Verwaltung darf neutralisieren' using errcode='42501';
+ end if;
+ if p_reason is not null and p_reason not in ('injury','illness','vacation','other') then
+   raise exception 'Ungültiger Abwesenheitsgrund';
+ end if;
+ if p_reason is not null and exists(select 1 from public.pyramid_challenges
+   where status in ('pending','accepted','result_pending','result_disputed')
+     and (challenger_id=e.id or defender_id=e.id)) then
+   raise exception 'Bitte das laufende Forderungsspiel zuerst abschließen oder durch den Ranglistenwart aufheben';
+ end if;
+ update public.pyramid_entries
+   set neutralized_at=case when p_reason is null then null
+     when e.neutralized_at is null then now()
+     else e.neutralized_at end,
+       neutralized_reason=p_reason,neutral_shifted_at=null,neutral_shift_count=0
+   where id=e.id;
+end;
+$;
 
 -- All sections of the uploaded master are documented in the migration above.
