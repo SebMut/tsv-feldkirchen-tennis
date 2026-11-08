@@ -1,8 +1,8 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 ---
-<MainLayout title="Funktionäre | TSV Feldkirchen Tennis">
-  <div class="container stack"><p class="eyebrow">Verein</p><h1>Funktionäre</h1><div id="officials-grid" class="team-grid"><p class="muted">Funktionäre werden geladen …</p></div></div>
+<MainLayout title="Funktionäre und Ansprechpartner | TSV Feldkirchen Tennis" description="Vorstand, Sportwarte, Jugendleitung und weitere Ansprechpartner der Tennisabteilung des TSV Feldkirchen.">
+  <div class="container stack"><header class="page-head"><div><p class="eyebrow">Verein</p><h1>Funktionäre und Ansprechpartner</h1><p class="muted">Die Tennisabteilung wird ehrenamtlich organisiert. Hier findest du die zuständigen Ansprechpartner für Abteilungsleitung, Sportbetrieb, Jugend, Finanzen und Vereinsleben.</p></div></header><div id="officials-grid" class="team-grid"><p class="muted">Die aktuellen Ansprechpartner werden geladen …</p></div></div>
 </MainLayout>
 <script>
   import { loadOfficials } from '../../scripts/public';

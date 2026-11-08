@@ -14,6 +14,7 @@ test('United Domains prioritizes Astro HTML and retains WordPress link redirects
 
 test('production SFTP deployment remains explicitly gated and builds the root domain with /admin/', () => {
   const wf = read('.github/workflows/deploy-united-domains.yml');
+  const normalizedWf = wf.replace(/\r\n/g, '\n');
   assert.ok(wf.includes('workflow_dispatch:'));
   assert.ok(wf.includes('refs/heads/feature/astro-supabase-foundation'));
   assert.ok(wf.includes("inputs.final_approval == 'TSV-FELDKIRCHEN-GO-LIVE'"));
@@ -25,8 +26,8 @@ test('production SFTP deployment remains explicitly gated and builds the root do
   assert.ok(wf.includes('test -f dist/admin/index.html'));
   assert.ok(wf.includes("grep -Fq 'noindex,nofollow' dist/admin/index.html"));
   // Push-triggered diagnostics and releases still require explicit markers.
-  assert.ok(wf.includes('on:\n  push:'));
-  assert.ok(wf.includes('paths:\n      - .github/workflows/deploy-united-domains.yml'));
+  assert.ok(normalizedWf.includes('on:\n  push:'));
+  assert.ok(normalizedWf.includes('paths:\n      - .github/workflows/deploy-united-domains.yml'));
   assert.ok(wf.includes("[hosting-preflight]"));
   assert.ok(wf.includes("[hosting-deploy-approved]"));
   assert.ok(wf.includes("vars.TSV_GO_LIVE_APPROVED == 'true'"));
