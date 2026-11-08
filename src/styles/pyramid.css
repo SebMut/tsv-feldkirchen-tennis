@@ -65,3 +65,20 @@
  .pyramid-rules-grid,.pyramid-create-form{grid-template-columns:1fr}
 }
 @media(max-width:375px){.pyramid-entry{flex-basis:70px}.pyramid-entry-name{font-size:.62rem}}
+
+/* Staging interaction feedback and role switcher are prominent on all screens. */
+.pyramid-demo-bar{display:grid;gap:12px;border-color:#e3061366}
+.pyramid-demo-bar h2{margin:0}
+.pyramid-demo-bar p{margin:0}
+.pyramid-demo-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.pyramid-demo-controls label{font-weight:850}
+.pyramid-demo-controls select{flex:1 1 250px;max-width:420px;min-width:0;min-height:44px;border:1px solid #cbd8d0;border-radius:10px;padding:9px 12px;color:#16231c;background:#fff}
+#pyramid-status:not(.hidden){position:sticky;top:82px;z-index:30;box-shadow:0 6px 24px #0003;border-left:5px solid #e30613}
+.pyramid-demo-bar button:focus-visible,.pyramid-demo-bar select:focus-visible,
+.pyramid-page button:focus-visible{outline:3px solid #ff9b65;outline-offset:3px}
+.pyramid-admin-item button:disabled{cursor:not-allowed;opacity:.4}
+@media(max-width:680px){
+ .pyramid-demo-controls{align-items:stretch;flex-direction:column}
+ .pyramid-demo-controls select,.pyramid-demo-controls button{width:100%;max-width:none;flex-basis:auto}
+ #pyramid-status:not(.hidden){top:68px}
+}
