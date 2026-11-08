@@ -57,3 +57,9 @@ export function scoreWinner(score) {
   if (sets.length === 3 && second === 2 && first === 1) return 2;
   return null;
 }
+
+// Master v1.0 season proposal; stored ladder dates remain individually editable.
+export function defaultMasterSeason(today = new Date()) {
+  const y = today.getFullYear() + (today.getMonth() >= 9 ? 1 : 0);
+  return { label: 'Sommer ' + y, startsOn: y + '-05-01', endsOn: y + '-09-30' };
+}
