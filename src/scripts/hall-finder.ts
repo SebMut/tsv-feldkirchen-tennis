@@ -65,7 +65,7 @@ export function initHallFinder(){
   history.replaceState({},'',location.pathname+'?'+new URLSearchParams({von:from.value,bis:to.value,start:start.value,ende:end.value}));
   try{
    const api=new URL(SUPABASE_URL+'/functions/v1/hall-availability');api.searchParams.set('from',from.value);api.searchParams.set('to',to.value);api.searchParams.set('_',String(Date.now()));
-   const response=await fetch(api,{cache:'no-store',headers:{Accept:'application/json','Cache-Control':'no-cache'}});if(!response.ok)throw new Error('HTTP '+response.status);const live=await response.json() as LiveResponse;if(currentRequest!==requestId)return;
+   const response=await fetch(api,{cache:'no-store',headers:{Accept:'application/json'}});if(!response.ok)throw new Error('HTTP '+response.status);const live=await response.json() as LiveResponse;if(currentRequest!==requestId)return;
    target.innerHTML=dates.map(d=>liveCard(d,first,last,live)).join('');
    const checked=new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit'}).format(new Date(live.checkedAt));status.textContent='Live geprüft um '+checked+' Uhr · Preise nur bei eindeutiger Anbieterangabe';status.className='hall-live-status is-success';
   }catch{if(currentRequest!==requestId)return;status.textContent='Die Live-Abfrage ist gerade nicht erreichbar. Bitte direkt beim Anbieter prüfen.';status.className='hall-live-status is-error';target.innerHTML=dates.map(d=>fallbackCard(d,first,last)).join('')}
