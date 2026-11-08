@@ -37,7 +37,7 @@ async function checkDevice(name,viewport,isMobile){
     assert.match(await page.locator('#pyramid-demo-mails').innerText(),/Spieler 12/);
     assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-11"]').count(),0,
       'Player with a pending match cannot issue another challenge.');
-    // The defender accepts, then the admin enters a final result.
+    // The defender accepts, then the winner reports the score; no ranks change before confirmation.
     await page.locator('#pyramid-demo-role').selectOption('demo-user-12');
     await page.locator('button[data-pyramid-accept="demo-challenge-31"]').click();
     assert.match(await page.locator('#pyramid-status').innerText(),/Forderung angenommen/);
@@ -51,10 +51,15 @@ async function checkDevice(name,viewport,isMobile){
     await page.locator('#pyramid-result-score').fill('6:4, 6:3');
     await page.locator('#pyramid-result-form button[type="submit"]').click();
     assert.equal(await page.locator('#pyramid-dialog').isHidden(),true);
-    assert.match(await page.locator('#pyramid-status').innerText(),/Rangliste wurde neu sortiert/);
+    assert.match(await page.locator('#pyramid-status').innerText(),/wartet auf Bestätigung/);
     const ownTile=page.locator('#pyramid-board .pyramid-entry').filter({hasText:'Musterperson'});
-    assert.match(await ownTile.innerText(),/#12/);
-    // Vacation is a prominent bottom-left badge and locks challenge buttons;
+    assert.match(await ownTile.innerText(),/#15/,'Master: rank must NOT change on result submission');
+    await page.locator('#pyramid-demo-role').selectOption('demo-user-12');
+    assert.equal(await page.locator('button[data-pyramid-confirm="demo-challenge-31"]').count(),1);
+    await page.locator('button[data-pyramid-confirm="demo-challenge-31"]').click();
+    assert.match(await page.locator('#pyramid-status').innerText(),/Rangliste wurde neu sortiert/);
+    assert.match(await ownTile.innerText(),/#12/,'Master: ranks change only after opponent confirms');
+    // Holiday and injury badges appear BOTTOM-RIGHT, including on small phones;
     // clearing it re-enables the normal club challenge rules.
     await page.locator('#pyramid-demo-role').selectOption('demo-user-15');
     assert.equal(await page.locator('#pyramid-avatar-panel').isVisible(),true);
@@ -63,12 +68,27 @@ async function checkDevice(name,viewport,isMobile){
     await page.locator('#pyramid-neutral-reason').selectOption('vacation');
     await page.locator('#pyramid-availability-form button[type="submit"]').click();
     assert.equal(await ownTile.locator('.pyramid-entry-away').innerText(),'Urlaub');
+    const geometry=await ownTile.evaluate(tile=>{
+      const pill=tile.querySelector('.pyramid-entry-away');
+      const badge=pill.getBoundingClientRect(),card=tile.getBoundingClientRect();
+      return {left:badge.left-card.left,right:card.right-badge.right,
+        top:badge.top-card.top,bottom:card.bottom-badge.bottom};
+    });
+    assert.ok(geometry.right<=8 && geometry.bottom<=8 && geometry.right>=-2,
+      'Vacation badge must be pinned at bottom-right: '+JSON.stringify(geometry));
     assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-11"]').count(),0);
+    await page.locator('#pyramid-neutral-reason').selectOption('injury');
+    await page.locator('#pyramid-availability-form button[type="submit"]').click();
+    assert.equal(await ownTile.locator('.pyramid-entry-away').innerText(),'Verletzung');
+    const injuryGeom=await ownTile.locator('.pyramid-entry-away').boundingBox();
+    const cardGeom=await ownTile.boundingBox();
+    assert.ok(injuryGeom&&cardGeom&&cardGeom.x+cardGeom.width-injuryGeom.x-injuryGeom.width<=8,
+      'Injury badge must be pinned at bottom-right');
     await page.locator('#pyramid-neutral-reason').selectOption('');
     await page.locator('#pyramid-availability-form button[type="submit"]').click();
     assert.equal(await ownTile.locator('.pyramid-entry-away').count(),0);
     assert.equal(await page.locator('button[data-pyramid-challenge="demo-entry-11"]').count(),1);
-    // Join requests after initial seeding are NOT ranked until entry game.
+    // Master §3: new members are ranked at the bottom upon admin approval.
     await page.locator('#pyramid-demo-role').selectOption('demo-guest');
     await page.locator('#pyramid-display-name').fill('Test-Mitglied');
     await page.locator('#pyramid-join-form button[type="submit"]').click();
@@ -76,8 +96,8 @@ async function checkDevice(name,viewport,isMobile){
     await page.locator('#pyramid-demo-role').selectOption('admin');
     const row=page.locator('#pyramid-admin-requests .pyramid-admin-item').filter({hasText:'Test-Mitglied'});
     await row.locator('button[data-pyramid-approve]').click();
-    assert.equal(await page.locator('.pyramid-entry:not(.is-empty)').count(),15);
-    assert.match(await page.locator('#pyramid-admin-entries').innerText(),/Qualifikationsspiel offen/);
+    assert.equal(await page.locator('.pyramid-entry:not(.is-empty)').count(),16);
+    assert.match(await page.locator('#pyramid-admin-entries').innerText(),/#16 · Test-Mitglied/);
     // Season switching, new list creation and reset work in the mock.
     await page.locator('#pyramid-ladder-select').selectOption('demo-summer');
     assert.equal(await page.locator('.pyramid-entry:not(.is-empty)').count(),6);
@@ -112,7 +132,7 @@ async function checkDevice(name,viewport,isMobile){
       name+' admin modal is horizontally clipped: '+JSON.stringify(bounds));
     await page.keyboard.press('Escape');
     assert.equal(await adminDialog.isHidden(),true,'Escape did not close admin result dialog');
-    console.log('PASS '+name+': interactive buttons, challenge, acceptance, score, ranking, approvals, group creation, reset, privacy, responsive');
+    console.log('PASS '+name+': master result confirmation, ranking, bottom-right neutral badges, membership, privacy and responsive');
   }finally{await context.close();}
 }
 try{
