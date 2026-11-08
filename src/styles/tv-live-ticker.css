@@ -13,7 +13,6 @@ body.tv-ticker{margin:0;background:#041119;color:#f6f9fa;font-family:Inter,syste
 @keyframes tv-live-glow{50%{opacity:.35;box-shadow:0 0 0 8px rgb(237 32 74 / .12)}}
 .tv-ticker__header h1{margin:0;color:#fff;font-size:clamp(1.65rem,2.25vw,2.8rem);font-weight:900;letter-spacing:-.035em;line-height:1.1}
 .tv-ticker__description{margin:9px 0 0;color:#a6b7be;font-size:clamp(.79rem,1vw,1rem)}
-.tv-ticker__seo-intro{max-width:900px;margin:7px 0 0;color:#8fa4ac;font-size:clamp(.68rem,.75vw,.82rem);line-height:1.45}
 .tv-ticker__identity{display:flex;align-items:center;gap:13px;text-align:right;flex:none}
 .tv-ticker__identity img{display:block;width:clamp(44px,4vw,72px);height:clamp(44px,4vw,72px);object-fit:contain}
 .tv-ticker__identity>div{display:grid;gap:5px}
@@ -91,9 +90,11 @@ body.tv-ticker{margin:0;background:#041119;color:#f6f9fa;font-family:Inter,syste
 .tv-ticker__empty h2{margin:0;color:#fff;font-size:clamp(1.3rem,2.5vw,2.3rem)}
 .tv-ticker__empty p{margin:0;color:#afc0c6;line-height:1.5}
 .tv-ticker__footer{display:flex;justify-content:space-between;gap:16px;padding:14px 4px 22px;color:#839eaa;font-size:clamp(.68rem,.77vw,.93rem)}
+.tv-ticker__about{padding:10px 4px 0;border-top:1px solid #18313a;color:#839eaa;font-size:clamp(.65rem,.7vw,.78rem);line-height:1.45}
+.tv-ticker__about p{max-width:980px;margin:0}
 @media(max-width:1350px){.tv-ticker__grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tv-ticker__set{min-width:38px}.tv-ticker__match-head h2{font-size:1.12rem}.tv-ticker__players>div{font-size:.94rem}}
 @media(max-width:850px){.tv-ticker__recap{display:none}.tv-ticker__grid{grid-template-columns:minmax(0,1fr);max-width:700px;margin-inline:auto}.tv-ticker__match-head h2{font-size:1.12rem}.tv-ticker__score-names strong{font-size:1rem}.tv-ticker__players>div{font-size:.89rem}.tv-ticker__tools>span{display:none}}
-@media(max-width:560px){.tv-ticker__header{align-items:flex-start;min-height:0;padding:17px 13px}.tv-ticker__header h1{font-size:1.55rem}.tv-ticker__description{display:none}.tv-ticker__seo-intro{margin-top:5px;font-size:.65rem;line-height:1.35}.tv-ticker__identity{gap:5px}.tv-ticker__identity img{width:37px;height:37px}.tv-ticker__identity strong{font-size:.75rem}.tv-ticker__identity span{font-size:.67rem}.tv-ticker__utility{flex-wrap:wrap;padding:9px 13px}.tv-ticker__tools{width:100%;justify-content:flex-end}.tv-ticker__footer{flex-direction:column;gap:4px}.tv-ticker__score{grid-template-columns:minmax(0,1fr) 62px}.tv-ticker__match-head{min-height:90px}.tv-ticker__set{min-width:29px}.tv-ticker__players>div{padding:8px;font-size:.78rem}.tv-ticker__score-names>div{padding:8px}.tv-ticker__game-top{padding:8px}.tv-ticker__match-head h2{font-size:1rem}}
+@media(max-width:560px){.tv-ticker__header{min-height:0;padding:17px 13px}.tv-ticker__header h1{font-size:1.55rem}.tv-ticker__description{display:none}.tv-ticker__identity{gap:5px}.tv-ticker__identity img{width:37px;height:37px}.tv-ticker__identity strong{font-size:.75rem}.tv-ticker__identity span{font-size:.67rem}.tv-ticker__utility{flex-wrap:wrap;padding:9px 13px}.tv-ticker__tools{width:100%;justify-content:flex-end}.tv-ticker__footer{flex-direction:column;gap:4px}.tv-ticker__score{grid-template-columns:minmax(0,1fr) 62px}.tv-ticker__match-head{min-height:90px}.tv-ticker__set{min-width:29px}.tv-ticker__players>div{padding:8px;font-size:.78rem}.tv-ticker__score-names>div{padding:8px}.tv-ticker__game-top{padding:8px}.tv-ticker__match-head h2{font-size:1rem}}
 @media(max-width:370px){.tv-ticker__set{min-width:25px}.tv-ticker__identity img{display:none}}
 @media(prefers-reduced-motion:reduce){.tv-ticker__live-dot,.tv-ticker__running>span,.tv-ticker__game.is-celebrating{animation:none}}
 
