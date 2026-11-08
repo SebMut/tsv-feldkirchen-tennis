@@ -11,6 +11,10 @@ export function canChallenge(challengerPosition, defenderPosition) {
   const c = pyramidCell(challengerPosition);
   const d = pyramidCell(defenderPosition);
   if (!c || !d) return false;
+  // Uploaded master v1.0 calls its examples binding. Two examples differ
+  // from the written generic formula, so the concrete table has priority.
+  if (challengerPosition === 5) return [2, 3, 4].includes(defenderPosition);
+  if (challengerPosition === 15) return defenderPosition >= 11 && defenderPosition <= 14;
   return challengerPosition <= 3
     || (c.row === d.row && d.column < c.column)
     || (d.row === c.row - 1 && d.column >= c.column);
