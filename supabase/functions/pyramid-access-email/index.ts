@@ -2,6 +2,7 @@
 // protected by the existing Cloudflare Turnstile and an atomic DB rate limiter.
 // No tokens, recipient addresses or IP addresses in the logs or database.
 import { createClient } from 'npm:@supabase/supabase-js@2.75.0';
+import { makePasswordSetupLink } from './setup-link.mjs';
 
 const env=(key:string)=>Deno.env.get(key)?.trim()||'';
 const LIVE_URL='https://www.tennis-tsvfeldkirchen.de/forderungspyramide/';
@@ -49,6 +50,14 @@ async function hash(v:string){
  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));
  return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('');
 }
+
+async function refundFailedEmailRequest(client:ReturnType<typeof createClient>,emailHash:string){
+ // A provider/configuration error must not burn the per-email cooldown.
+ // The separate per-IP hourly cap remains consumed to resist abuse.
+ const {error}=await client.rpc('pyramid_access_link_refund',{p_email_hash:emailHash});
+ if(error)console.error('pyramid-access-mail: email retry refund failed',error.code);
+}
+
 async function send(to:string,link:string){
  const subject='TSV Feldkirchen Tennis · Passwort einrichten';
  const plain=[
@@ -129,39 +138,32 @@ Deno.serve(async req=>{
   p_email_hash:emailHash,p_ip_hash:ipHash
  });
  if(limitError){console.error('pyramid-access-mail: rate limiter failed',limitError.code);return reply(503,{error:'Zugangslink momentan nicht verfügbar.'},origin);}
- if(allowed!==true)return reply(429,{error:'Bitte vor dem nächsten Zugangslink etwas warten.'},origin);
+ if(allowed!==true)return reply(429,{error:'Bitte drei Minuten zwischen zwei Link-Anforderungen warten. Wenn der Versand zuvor fehlgeschlagen ist, wird die Sperre nach der Fehlerbehebung zurückgesetzt.'},origin);
  const {data:generated,error:generateError}=await client.auth.admin.generateLink({
   type:'magiclink',email,options:{redirectTo:LIVE_URL}
  });
  if(generateError||!generated?.properties?.action_link){
   console.error('pyramid-access-mail: auth link failed',generateError?.status||generateError?.code);
+  await refundFailedEmailRequest(client,emailHash);
   return reply(503,{error:'Der Zugangslink konnte nicht erstellt werden. Bitte die Ranglistenverwaltung kontaktieren.'},origin);
  }
  // Use the one-time token hash supplied by GoTrue, but deliver the link to
  // our own first-party page (not the Supabase verification URL). Tokens are
  // carried in a fragment: they never reach hosting access logs or referers.
  // The browser exchanges this token through verifyOtp, then sets a password.
- const action=generated.properties.action_link;
- const hashed=generated.properties.hashed_token;
- const verification=generated.properties.verification_type;
- try{
-  const authLink=new URL(action);
-  const domain=new URL(env('SUPABASE_URL'));
-  if(authLink.origin!==domain.origin||!authLink.pathname.endsWith('/auth/v1/verify'))
-   throw new Error('Unexpected link destination');
-  if(typeof hashed!=='string'||!/^[a-f0-9]{64}$/i.test(hashed))
-   throw new Error('Unexpected token');
-  if(!['magiclink','signup','invite','recovery','email'].includes(verification))
-   throw new Error('Unexpected verification type');
- }catch{
-  console.error('pyramid-access-mail: invalid generated authentication link');
-  return reply(503,{error:'Zugangslink konnte nicht sicher erstellt werden.'},origin);
+ const generatedLink=makePasswordSetupLink(generated.properties,LIVE_URL);
+ if(!generatedLink.ok){
+  // The log contains only a non-sensitive reason code, never recipient,
+  // token, action URL, IP address or any other private detail.
+  console.error('pyramid-access-mail: invalid generated link:',generatedLink.reason);
+  await refundFailedEmailRequest(client,emailHash);
+  return reply(503,{error:'Der Login-Link konnte nicht erstellt werden. Bitte erneut versuchen.'},origin);
  }
- const fragment=new URLSearchParams({
-  pyramid_token_hash:hashed,pyramid_token_type:verification
- });
- const link=LIVE_URL+'#'+fragment.toString();
+ const link=generatedLink.url;
  const accepted=await send(email,link);
- if(!accepted)return reply(503,{error:'Gmail konnte den Zugangslink nicht versenden. Bitte die Ranglistenverwaltung informieren.'},origin);
+ if(!accepted){
+  await refundFailedEmailRequest(client,emailHash);
+  return reply(503,{error:'Gmail hat den Passwort-Link nicht angenommen. Bitte erneut versuchen oder die Ranglistenverwaltung informieren.'},origin);
+ }
  return reply(200,{ok:true,message:'Dein Link zur Passworteinrichtung wurde an Gmail zur Zustellung übergeben. Prüfe bitte dein Postfach.'},origin);
 });
