@@ -176,6 +176,9 @@ function renderWinner(){
  if(!field)return;
  field.innerHTML=game?[game.challenger_id,game.defender_id].map(id=>
   '<option value="'+id+'">'+escapeHtml(label(id))+'</option>').join(''):'';
+ if(game?.proposed_winner_id)field.value=game.proposed_winner_id;
+ const score=$<HTMLInputElement>('pyramid-admin-score');
+ if(score)score.value=game?.proposed_score||'';
 }
 async function callRpc(functionName:string,args:Record<string,unknown>){
  const {error}=await supabase.rpc(functionName,args);
@@ -243,6 +246,50 @@ export function initPyramidAdmin(canManage:boolean){
    const target=(event.target as Element).closest<HTMLButtonElement>('button');
    if(!target)return;
    if(target.dataset.pyramidAdminReport){openModal(target.dataset.pyramidAdminReport);return;}
+   if(target.dataset.pyramidAdminEditResult){openModal(target.dataset.pyramidAdminEditResult);return;}
+   if(target.dataset.pyramidAdminApproveResult||target.dataset.pyramidAdminRejectResult){
+     const approve=!!target.dataset.pyramidAdminApproveResult;
+     const id=target.dataset.pyramidAdminApproveResult||target.dataset.pyramidAdminRejectResult;
+     if(confirm(approve?'Ergebnis bestätigen und Rangliste aktualisieren?'
+       :'Ergebnismeldung zurückweisen und zur erneuten Meldung öffnen?'))
+       void act(()=>callRpc('pyramid_decide_result',{p_challenge:id,p_approve:approve}),
+         approve?'Ergebnis bestätigt, Rangliste aktualisiert.':'Ergebnis zurückgewiesen.');
+     return;
+   }
+   if(target.dataset.pyramidAdminApproveNoshow||target.dataset.pyramidAdminRejectNoshow){
+     const approve=!!target.dataset.pyramidAdminApproveNoshow;
+     const id=target.dataset.pyramidAdminApproveNoshow||target.dataset.pyramidAdminRejectNoshow;
+     if(confirm(approve?'Nichtantreten nach 15 Minuten bestätigen und kampflos werten?'
+       :'Nichtantreten-Meldung zurückweisen?'))
+       void act(()=>callRpc('pyramid_decide_no_show',{p_challenge:id,p_approve:approve}),
+         approve?'Nichtantreten gewertet.':'Nichtantreten abgelehnt.');
+     return;
+   }
+   if(target.dataset.pyramidAdminWeather){
+     const raw=prompt('Wetterverlängerung einmalig um wie viele Tage (1 bis 7)?','7');
+     if(raw===null)return;
+     const days=Number(raw);
+     if(!Number.isInteger(days)||days<1||days>7){msg('Bitte eine Zahl von 1 bis 7 angeben.','error');return;}
+     if(confirm('Wetterverlängerung um '+days+' Tag(e) verbindlich eintragen?'))
+       void act(()=>callRpc('pyramid_extend_weather',{
+         p_challenge:target.dataset.pyramidAdminWeather,p_days:days
+       }),'Wetterverlängerung eingetragen.');
+     return;
+   }
+   const overdueId=target.dataset.pyramidAdminExtend||target.dataset.pyramidAdminCancel||
+     target.dataset.pyramidAdminForfeit;
+   if(overdueId){
+     const action=target.dataset.pyramidAdminExtend?'extend':
+       target.dataset.pyramidAdminCancel?'cancel':'forfeit';
+     const winner=target.dataset.winner||null;
+     if(confirm(action==='extend'?'Spielfrist um 7 Tage verlängern?':
+       action==='cancel'?'Forderung ohne Wertung schließen?':
+       'Überfällige Forderung kampflos für '+label(winner||'')+' werten?'))
+       void act(()=>callRpc('pyramid_resolve_overdue',{
+         p_challenge:overdueId,p_action:action,p_winner:winner
+       }),'Fristentscheidung gespeichert.');
+     return;
+   }
    if(target.dataset.pyramidAdminValidRefusal){
      if(confirm('Triftigen Absagegrund anerkennen und Forderung ohne Wertung streichen?'))
        void act(()=>callRpc('pyramid_resolve_refusal',{p_challenge:target.dataset.pyramidAdminValidRefusal,p_valid:true}),
@@ -255,11 +302,7 @@ export function initPyramidAdmin(canManage:boolean){
          'Nicht begründete Absage als Niederlage gewertet.');
      return;
    }
-   if(target.dataset.pyramidAdminNoshow){
-     if(confirm('Bestätigst du, dass der geforderte Spieler am vereinbarten Termin nicht angetreten ist?'))
-       void act(()=>callRpc('pyramid_record_no_show',{p_challenge:target.dataset.pyramidAdminNoshow}),
-         'Nichtantreten als Niederlage gewertet.');
-   }
+
  });
  $<HTMLFormElement>('pyramid-admin-schedule-form')?.addEventListener('submit',event=>{
    event.preventDefault();
@@ -272,6 +315,20 @@ export function initPyramidAdmin(canManage:boolean){
    }),'Verbindlicher Spieltermin eingetragen.');
  });
  $('pyramid-admin-refresh')?.addEventListener('click',()=>void act(async()=>{},'Aktualisiert.',true));
+ $('pyramid-admin-archive')?.addEventListener('click',()=>{
+   if(!ladderId||!confirm('Diese Saison archivieren? Die Rangfolge bleibt erhalten, neue Forderungen sind gesperrt.'))return;
+   void act(async()=>{
+     const {error}=await supabase.from('pyramid_ladders').update({active:false}).eq('id',ladderId);
+     if(error)throw error;
+   },'Saison archiviert.',true);
+ });
+ $('pyramid-admin-reactivate')?.addEventListener('click',()=>{
+   if(!ladderId||!confirm('Saison wieder aktivieren? Forderungen sind nur innerhalb des Saisonzeitraums möglich.'))return;
+   void act(async()=>{
+     const {error}=await supabase.from('pyramid_ladders').update({active:true}).eq('id',ladderId);
+     if(error)throw error;
+   },'Saison aktiviert.',true);
+ });
  $<HTMLSelectElement>('pyramid-admin-ladder')?.addEventListener('change',event=>{
   ladderId=(event.target as HTMLSelectElement).value;
   void act(async()=>{},'Rangliste gewechselt.');
@@ -361,12 +418,20 @@ export function initPyramidAdmin(canManage:boolean){
    if(button)button.disabled=true;
    void (async()=>{
      try{
-       await callRpc('pyramid_report_result',{p_challenge:id,p_score:score,p_winner:winner});
+       const match=challenges.find(ch=>ch.id===id);
+       if(!match)throw new Error('Forderung nicht gefunden');
+       if(['result_pending','result_disputed'].includes(match.status)){
+         await callRpc('pyramid_decide_result',{
+           p_challenge:id,p_approve:true,p_winner:winner,p_score:score
+         });
+       }else{
+         await callRpc('pyramid_report_result',{p_challenge:id,p_score:score,p_winner:winner});
+       }
        dialog?.close();
        const input=$<HTMLInputElement>('pyramid-admin-score');
        if(input)input.value='';
        await loadSelected();
-       msg('Ergebnis und Rangliste erfolgreich gespeichert.','success');
+       msg('Ergebnis gemeldet beziehungsweise Streitfall verbindlich entschieden. Ohne Bestätigung bleibt die Rangfolge unverändert.','success');
      }catch(error){
        reportError('Ergebnis konnte nicht gespeichert werden: '+String((error as Error)?.message||error));
      }finally{if(button)button.disabled=false;}
