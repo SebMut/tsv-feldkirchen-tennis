@@ -136,6 +136,7 @@ Deno.serve(async (req: Request) => {
     const news = superAdmin || permissions.has("news");
     const events = superAdmin || permissions.has("events");
     const globalTicker = superAdmin || permissions.has("ticker");
+    const pyramid = superAdmin || permissions.has("pyramid");
     const teams = (teamResult.data ?? []).map(team => {
       const role = assigned.get(team.id) ?? null;
       const edit = superAdmin || role === "manager" || role === "editor";
@@ -144,7 +145,7 @@ Deno.serve(async (req: Request) => {
     });
     return Response.json({ ok: true, user_id: userId, checked_at: new Date().toISOString(),
       source: "supabase_persisted_roles", super_admin: superAdmin,
-      globals: { news, events, ticker: globalTicker },
+      globals: { news, events, ticker: globalTicker, pyramid },
       teams }, { headers: cors });
   }
 
