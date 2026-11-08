@@ -184,7 +184,9 @@ function renderGames() {
       ?'<button type="button" data-pyramid-accept="'+c.id+'">Annehmen</button>'
         +'<button type="button" data-pyramid-decline="'+c.id+'">Absage begründen</button>':'')
       +(c.status==='accepted'&&!late&&!c.refusal_reason&&(state.superAdmin||open)
-        ?'<button type="button" data-pyramid-schedule="'+c.id+'">Spieltermin eintragen</button>':'')
+        &&(!c.scheduled_for||state.superAdmin||me?.id===c.challenger_id)
+        ?'<button type="button" data-pyramid-schedule="'+c.id+'">'
+          +(c.scheduled_for?'Spieltermin ändern':'Spieltermin eintragen')+'</button>':'')
       +(c.status==='accepted'&&!late&&!c.refusal_reason&&(state.superAdmin||open)
         ?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis melden</button>':'')
       +(opponentMayConfirm?'<button type="button" data-pyramid-confirm="'+c.id+'">Ergebnis bestätigen</button>'
@@ -212,6 +214,17 @@ function renderGames() {
         +(c.score?' · '+escapeHtml(c.score):'')+'</small>':'')
       +'</div><div class="pyramid-game-actions">'+actions+'</div></article>';
   }).join(''));
+}
+function renderUpcomingGames(){
+  const upcoming=state.challenges
+    .filter(c=>c.status==='accepted'&&!!c.scheduled_for
+      &&new Date(c.scheduled_for).getTime()>=Date.now()-15*60000)
+    .sort((a,b)=>String(a.scheduled_for).localeCompare(String(b.scheduled_for))).slice(0,4);
+  html('pyramid-upcoming-games',upcoming.length?upcoming.map(c=>
+    '<article class="pyramid-upcoming-game"><time datetime="'+escapeHtml(c.scheduled_for||'')+'">'
+      +escapeHtml(formatTime(c.scheduled_for))+'</time><strong>'+escapeHtml(entryName(c.challenger_id))
+      +' gegen '+escapeHtml(entryName(c.defender_id))+'</strong></article>'
+  ).join(''):'<p class="muted">Aktuell ist noch kein kommendes Forderungsspiel terminiert.</p>');
 }
 function renderJoin() {
   const ladder=currentLadder();
@@ -269,7 +282,7 @@ function renderOwnAvailability(){
   if(field&&me)field.value=me.neutralized_reason||'';
   text('pyramid-neutral-state',me&&neutralNow(me)
     ?'Neutralisiert seit '+formatDate(me.neutralized_at)+': '+friendlyReason(me.neutralized_reason)
-       +' · maximal 28 Tage, danach automatisch wieder spielbereit (keine automatische Rückstufung)'
+       +' · maximal 28 Tage, danach ans Reihenende oder – wenn du dort bereits stehst – in die Mitte der nächsten Reihe'
     :'Du bist spielbereit und kannst unter Beachtung der Forderungsregeln gefordert werden.');
 }
 function renderAll(){
@@ -279,7 +292,7 @@ function renderAll(){
       +escapeHtml(l.title+' · '+l.season_label)+(l.active?'':' (archiviert)')+'</option>').join('');
     selector.value=state.ladderId;
   }
-  renderBoard();renderGames();renderJoin();renderAdmin();renderOwnAvailability();renderMemberPortrait();
+  renderBoard();renderUpcomingGames();renderGames();renderJoin();renderAdmin();renderOwnAvailability();renderMemberPortrait();
 }
 async function loadLadder(){
   const ladder=currentLadder();

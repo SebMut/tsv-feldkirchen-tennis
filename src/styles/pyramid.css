@@ -1,9 +1,9 @@
 .pyramid-page{max-width:1200px;padding-bottom:25px}
-.pyramid-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:22px}
+.pyramid-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:22px;order:-2}
 .pyramid-heading h1{font-size:clamp(2rem,4vw,3.5rem);margin:0 0 12px}
 .pyramid-heading p:last-child{max-width:680px;margin:0;color:var(--muted)}
 .pyramid-stage{white-space:nowrap;background:#fff2dc;color:#714200;padding:8px 13px;border:1px solid #e6be75;border-radius:10px;font-size:.8rem;font-weight:850}
-.pyramid-auth{display:grid;gap:18px;max-width:720px}
+.pyramid-auth{display:grid;gap:18px;max-width:720px;order:-1}
 .pyramid-auth-actions{display:flex;gap:12px;flex-wrap:wrap}
 .pyramid-toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
 .pyramid-toolbar select{width:min(420px,100%);min-height:45px;border:1px solid #d5ded7;border-radius:10px;background:#fff;color:#14201d;padding:0 13px}
@@ -16,14 +16,32 @@
 .pyramid-board{display:grid;gap:9px;overflow-x:auto;padding:12px 0 18px;max-width:100%;scrollbar-color:#e30613 transparent}
 .pyramid-board-row{display:flex;gap:9px;justify-content:center;width:max-content;min-width:100%}
 .pyramid-entry{flex:0 0 135px;min-width:0;display:grid;gap:5px;position:relative;background:#fff;color:#14201d;border:2px solid #dce2df;padding:12px 8px;border-radius:12px;text-align:center}
-.pyramid-entry.is-self{border-color:#e30613;box-shadow:0 0 0 2px #e3061326}
-.pyramid-entry.is-target{border-color:#278b66}
+.pyramid-entry.is-self{border-color:#61a875;background:#eef9f0;box-shadow:0 0 0 2px #61a8752e}
+.pyramid-entry.is-target{border-color:#e30613;animation:pyramid-target-pulse 1.45s ease-in-out infinite}
+@keyframes pyramid-target-pulse{0%,100%{box-shadow:0 0 0 1px #e3061333}50%{box-shadow:0 0 0 5px #e3061350}}
 .pyramid-entry.is-empty{background:transparent;border-style:dashed;opacity:.3}
 .pyramid-entry-rank{font-size:.78rem;color:#56645d;font-weight:750}
 .pyramid-entry-name{font-weight:850;font-size:.92rem;line-height:1.25;overflow-wrap:anywhere}
 .pyramid-entry-hint{font-size:.67rem;color:#6b7c72}
 .pyramid-entry button{border:0;border-radius:7px;background:#e30613;color:white;font-size:.77rem;font-weight:850;min-height:30px}
 .pyramid-board-help{font-size:.86rem;margin:0}
+.pyramid-member-nav{position:sticky;top:72px;z-index:24;display:flex;gap:7px;overflow-x:auto;padding:9px;border:1px solid #dfe5e1;border-radius:13px;background:#fff;box-shadow:0 8px 24px #14201d12;scrollbar-width:thin}
+.pyramid-member-nav a{flex:0 0 auto;padding:9px 13px;border-radius:9px;color:#27342f;text-decoration:none;font-size:.82rem;font-weight:850;white-space:nowrap}
+.pyramid-member-nav a:hover,.pyramid-member-nav a:focus-visible{background:#fff0f1;color:#b50917;outline:2px solid #e30613;outline-offset:-2px}
+.pyramid-upcoming{display:grid;gap:9px;padding:13px 14px;border:1px solid #e5d8d9;border-radius:12px;background:#fff9f9}
+.pyramid-upcoming h3{margin:0;color:#7f0912;font-size:1rem}
+#pyramid-upcoming-games{display:grid;gap:7px}
+.pyramid-upcoming-game{display:grid;grid-template-columns:minmax(155px,.55fr) 1fr;gap:12px;padding:9px 10px;border-radius:9px;background:#fff;border:1px solid #eadfe0}
+.pyramid-upcoming-game time{color:#a20b17;font-weight:850}
+.pyramid-upcoming-game strong{color:#24312c}
+.pyramid-availability{padding:0;overflow:hidden}
+.pyramid-availability>summary{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:19px 21px;cursor:pointer;list-style:none}
+.pyramid-availability>summary::-webkit-details-marker{display:none}
+.pyramid-availability>summary strong{display:block;font-size:1.15rem}
+.pyramid-availability>summary .eyebrow{display:block;margin-bottom:4px}
+.pyramid-availability>summary>span:last-child{font-size:1.35rem;transition:transform .2s ease}
+.pyramid-availability[open]>summary>span:last-child{transform:rotate(180deg)}
+.pyramid-availability-content{padding:0 21px 21px;border-top:1px solid #e3e8e5}
 .pyramid-games{display:grid;gap:11px}
 .pyramid-game{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:14px;border:1px solid #ffffff27;border-radius:12px}
 .pyramid-game strong{display:block;font-size:.95rem}
@@ -62,6 +80,9 @@
  .pyramid-entry-name{font-size:.67rem}
  .pyramid-entry-hint{font-size:.56rem}
  .pyramid-entry button{font-size:.59rem;min-height:25px;padding:2px}
+ .pyramid-member-nav{top:62px;margin-inline:-4px;padding:7px}
+ .pyramid-member-nav a{padding:8px 10px;font-size:.75rem}
+ .pyramid-upcoming-game{grid-template-columns:1fr;gap:3px}
  .pyramid-rules-grid,.pyramid-create-form{grid-template-columns:1fr}
 }
 @media(max-width:375px){.pyramid-entry{flex-basis:70px}.pyramid-entry-name{font-size:.62rem}}
@@ -212,4 +233,8 @@
   .pyramid-password-setup{max-width:100%}
   .pyramid-password-setup .pyramid-auth-actions{flex-direction:column;align-items:stretch}
   .pyramid-password-setup .pyramid-auth-actions .button{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  .pyramid-entry.is-target{animation:none;box-shadow:0 0 0 3px #e3061340}
+  .pyramid-availability>summary>span:last-child{transition:none}
 }

@@ -10,6 +10,7 @@ const page=read('src/pages/forderungspyramide/index.astro');
 const adminPage=read('src/pages/admin/index.astro');
 const styles=read('src/styles/pyramid.css');
 const mail=read('supabase/functions/pyramid-auto-decline-email/index.ts');
+const memberNavigation=read('supabase/migrations/20261108205922_pyramid_member_navigation_and_neutrality.sql');
 
 test('Master §2 Tannenbaum examples including rank 3 special rule',()=>{
  const examples=[
@@ -105,14 +106,32 @@ test('Master §5 weather extension once only and at most seven days',()=>{
  assert.match(admin,/pyramid_extend_weather/);
 });
 
-test('Master §5 neutralization expires after 28 days with NO automatic rank demotion',()=>{
- assert.match(master,/neutralized_at<=now\(\)-interval '28 days'/);
- assert.match(master,/neutralized_at=null,neutralized_reason=null/);
- const fragment=master.slice(master.indexOf('create or replace function private.pyramid_process_injury_neutrality()'));
- assert.doesNotMatch(fragment,/set position=/);
- assert.match(master,/tsv-pyramid-neutral-expiry/);
- assert.match(page,/maximal 28 Tage/);
+test('28-day neutralization returns at row end or next-row middle',()=>{
+ assert.match(memberNavigation,/neutralized_at<=now\(\)-interval '28 days'/);
+ assert.match(memberNavigation,/row_end:=row_number\*\(row_number\+1\)\/2/);
+ assert.match(memberNavigation,/target:=row_end/);
+ assert.match(memberNavigation,/target:=row_end\+1\+floor\(row_number\/2\.0\)/);
+ assert.match(memberNavigation,/set position=position-1/);
+ assert.match(memberNavigation,/neutralized_at=null,neutralized_reason=null/);
+ assert.match(page,/Ende deiner aktuellen Reihe/);
+ assert.match(page,/Mitte der nächsten Reihe/);
  assert.match(client,/neutralNow\(item\)/);
+});
+
+test('member view has top navigation, upcoming games and requested highlights',()=>{
+ for(const label of ['Pyramide','So funktioniert’s','Meine Ranglisten','Mitgliederprofil','Meine Verfügbarkeit'])
+   assert.ok(page.includes(label));
+ assert.match(page,/id="pyramid-upcoming-games"/);
+ assert.match(page,/<details id="pyramid-availability-panel"/);
+ assert.match(client,/function renderUpcomingGames/);
+ assert.match(styles,/\.pyramid-entry\.is-self\{[^}]*background:#eef9f0/);
+ assert.match(styles,/\.pyramid-entry\.is-target\{[^}]*border-color:#e30613[^}]*animation:pyramid-target-pulse/);
+});
+
+test('challenged player cannot change an existing scheduled date',()=>{
+ assert.match(memberNavigation,/c\.scheduled_for is not null/);
+ assert.match(memberNavigation,/own=c\.defender_id/);
+ assert.match(client,/!c\.scheduled_for\|\|state\.superAdmin\|\|me\?\.id===c\.challenger_id/);
 });
 
 test('User request: Urlaub and Verletzung badges bottom-right on phone and desktop',()=>{
