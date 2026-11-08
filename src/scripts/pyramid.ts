@@ -348,6 +348,66 @@ function openResult(id:string) {
   el<HTMLInputElement>('pyramid-result-score')!.value='';
   dialog.showModal();
 }
+
+type TurnstileWidget={
+ render:(target:HTMLElement,config:Record<string,unknown>)=>string|number;
+ reset:(id?:string|number)=>void;
+};
+let accessTurnstile:TurnstileWidget|undefined;
+let accessTurnstileId:string|number|undefined;
+let accessTurnstileToken='';
+let accessMailConfigured=false;
+async function initAccessMail(){
+ const button=el<HTMLButtonElement>('pyramid-magic-link');
+ const wrap=el('pyramid-access-turnstile-wrap');
+ const widget=el('pyramid-access-turnstile-widget');
+ if(!button||!wrap||!widget)return;
+ button.disabled=true;
+ try{
+   const {data,error}=await supabase.functions.invoke('pyramid-access-email',{body:{action:'config'}});
+   if(error||!data?.enabled||typeof data.siteKey!=='string'){
+     text('pyramid-access-mail-status',data?.message
+       ||'Der Vereins-E-Mail-Versand ist momentan nicht eingerichtet. Anmeldung mit Passwort ist weiterhin möglich.');
+     return;
+   }
+   wrap.classList.remove('hidden');
+   const cf=window as Window&{turnstile?:TurnstileWidget};
+   if(!cf.turnstile){
+     await new Promise<void>((resolve,reject)=>{
+       const script=document.createElement('script');
+       script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+       script.async=true;
+       script.onload=()=>resolve();
+       script.onerror=()=>reject(new Error('Cloudflare-Menschprüfung konnte nicht geladen werden.'));
+       document.head.append(script);
+     });
+   }
+   accessTurnstile=cf.turnstile;
+   if(!accessTurnstile)throw new Error('Menschprüfung nicht verfügbar.');
+   accessTurnstileId=accessTurnstile.render(widget,{
+     sitekey:data.siteKey,theme:'light',size:'flexible',
+     callback:(token:string)=>{
+       accessTurnstileToken=token;
+       text('pyramid-access-turnstile-status','Menschprüfung erfolgreich.');
+     },
+     'expired-callback':()=>{
+       accessTurnstileToken='';
+       text('pyramid-access-turnstile-status','Menschprüfung abgelaufen. Bitte erneut bestätigen.');
+     },
+     'error-callback':()=>{
+       accessTurnstileToken='';
+       text('pyramid-access-turnstile-status','Menschprüfung fehlgeschlagen. Bitte Seite neu laden.');
+       return true;
+     }
+   });
+   accessMailConfigured=true;
+   button.disabled=false;
+   text('pyramid-access-mail-status','Nach erfolgreicher Menschprüfung kannst du einen Zugangslink anfordern.');
+ }catch(e){
+   text('pyramid-access-mail-status','Der sichere E-Mail-Versand konnte nicht geladen werden: '+safeError(e));
+ }
+}
+
 function wireEvents(){
   el<HTMLSelectElement>('pyramid-public-select')?.addEventListener('change',event=>{
     chosenPublicLadder=(event.target as HTMLSelectElement).value;
@@ -362,14 +422,36 @@ function wireEvents(){
   });
   el('pyramid-magic-link')?.addEventListener('click',async()=>{
     const email=el<HTMLInputElement>('pyramid-email')?.value.trim()||'';
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){notice('Bitte zuerst deine E-Mail-Adresse eingeben.','error');return;}
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+      notice('Bitte zuerst deine E-Mail-Adresse eingeben.','error');return;
+    }
+    if(!accessTurnstileToken){
+      notice('Bitte die Cloudflare-Menschprüfung abschließen.','error');return;
+    }
+    const button=el<HTMLButtonElement>('pyramid-magic-link');
+    if(button?.disabled)return;
+    if(button)button.disabled=true;
+    text('pyramid-access-mail-status','Zugangslink wird sicher über die Vereins-E-Mail versendet …');
     try{
-      const {error}=await supabase.auth.signInWithOtp({
-        email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:true}
+      const {data,error}=await supabase.functions.invoke('pyramid-access-email',{
+        body:{action:'send',email,turnstileToken:accessTurnstileToken}
       });
-      if(error)throw error;
-      notice('Falls die Adresse einen Zugang erhalten darf, wurde ein Anmeldelink angefordert.','success');
-    }catch(e){notice(safeError(e),'error');}
+      if(error){
+        const payload=typeof (error as any)?.context?.json==='function'
+          ?await (error as any).context.json().catch(()=>null):null;
+        throw new Error(payload?.error||error.message||'Versand fehlgeschlagen.');
+      }
+      if(!data?.ok)throw new Error(data?.error||'Gmail hat den Zugangslink nicht angenommen.');
+      notice('Gmail hat deinen Zugangslink zum Versand angenommen. Prüfe dein Postfach.','success');
+      text('pyramid-access-mail-status','Zugangslink wurde an Gmail übergeben.');
+    }catch(e){
+      notice('Zugangslink konnte nicht versendet werden: '+safeError(e),'error');
+      text('pyramid-access-mail-status','Der Versand wurde nicht bestätigt. Bitte noch einmal versuchen oder den Verein kontaktieren.');
+    }finally{
+      accessTurnstileToken='';
+      try{accessTurnstile?.reset(accessTurnstileId);}catch{/* retry after expired token */}
+      if(button)button.disabled=!accessMailConfigured;
+    }
   });
   el('pyramid-finalize-seed')?.addEventListener('click',()=>{
     if(!state.superAdmin||!state.ladderId)return;
@@ -948,6 +1030,7 @@ export function initPyramid(){
   }
   wireEvents();
   void load();
+  void initAccessMail();
   supabase.auth.onAuthStateChange((event)=>{
     if(event==='SIGNED_IN'||event==='SIGNED_OUT')queueMicrotask(()=>void load());
   });
