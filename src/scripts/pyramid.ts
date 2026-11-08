@@ -3,10 +3,10 @@ import { escapeHtml, setStatus } from '../lib/ui';
 import { canChallenge, canQualifyAgainst, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
 
 type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends_on:string;active:boolean;seeded_at:string|null };
-type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null };
+type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null;last_win_at?:string|null;neutralized_at?:string|null;neutralized_reason?:string|null };
 type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
 type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
-  created_at:string;accept_deadline:string;play_deadline:string|null;winner_id:string|null;score:string|null;decline_reason?:string|null};
+  created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;refusal_reason?:string|null;winner_id:string|null;score:string|null;decline_reason?:string|null;source?:string};
 const state: {
   user:any;profile:any;superAdmin:boolean;ladders:Ladder[];ladderId:string;
   entries:Entry[];requests:Request[];challenges:Challenge[];resultChallenge:string;
@@ -34,6 +34,21 @@ const myEntry = () => state.entries.find((item)=>item.user_id===state.user?.id);
 const currentLadder = () => state.ladders.find((item)=>item.id===state.ladderId);
 const entryName = (id:string) => state.entries.find((item)=>item.id===id)?.display_name || 'Teilnehmer';
 const isInvolved = (c:Challenge) => !!myEntry() && (c.challenger_id===myEntry()?.id || c.defender_id===myEntry()?.id);
+const waitingDays=(date:string|null|undefined,days:number)=>!!date && new Date(date).getTime()>Date.now()-days*86400000;
+function canSendChallenge(me:Entry,target:Entry){
+  if(!target.qualified||me.id===target.id||target.neutralized_at||me.neutralized_at)return false;
+  if(waitingDays(me.last_loss_at,3)||waitingDays(target.last_win_at,3))return false;
+  if(state.challenges.some(game=>['pending','accepted'].includes(game.status)
+    &&[me.id,target.id].some(id=>game.challenger_id===id||game.defender_id===id)))return false;
+  if(state.challenges.some(game=>game.challenger_id===me.id&&game.defender_id===target.id
+    &&['completed','forfeit'].includes(game.status)
+    &&waitingDays(game.created_at,14)))return false;
+  return me.qualified===false?canQualifyAgainst(target.position,state.entries):
+    canChallenge(me.position,target.position);
+}
+const friendlyReason=(reason:string|null|undefined)=>({
+  injury:'Verletzung',illness:'Krankheit',vacation:'Urlaub',other:'Sonstiges'
+} as Record<string,string>)[reason||'']||'Spielbereit';
 
 async function runAction(action:()=>Promise<unknown>,success:string){
   try{await action();notice(success,'success');await loadLadder();}
@@ -66,19 +81,13 @@ function renderBoard() {
       '<div class="pyramid-board-row" role="list" aria-label="Pyramidenreihe '+(index+1)+'">'+row.map(item=>{
         if(!item)return '<div class="pyramid-entry is-empty" aria-hidden="true"></div>';
         const mine=me?.id===item.id;
-        const engaged=state.challenges.some(c=>c.status==='accepted'
-          && (c.challenger_id===item.id||c.defender_id===item.id));
-        const isBusy=!!me&&state.challenges.some(c=>
-          ['pending','accepted'].includes(c.status)&&c.challenger_id===me.id);
-        const allowed=me?.qualified===false
-          ?canQualifyAgainst(item.position,qualified)
-          :!!me&&canChallenge(me.position,item.position);
-        const canTarget=!!me&&canPlay&&!engaged&&!isBusy&&allowed
-          &&!(me.last_loss_at&&new Date(me.last_loss_at).getTime()>Date.now()-14*86400000);
+        const canTarget=!!me&&canPlay&&canSendChallenge(me,item);
         return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canTarget?' is-target':'')+'">'
           +'<span class="pyramid-entry-rank">#'+item.position+'</span>'
           +'<span class="pyramid-entry-name">'+escapeHtml(item.display_name)+'</span>'
           +(mine?'<span class="pyramid-entry-hint">Du</span>':'')
+          +(item.neutralized_at?'<span class="pyramid-entry-hint">Neutralisiert: '+escapeHtml(friendlyReason(item.neutralized_reason))+'</span>':'')
+          +(item.last_win_at&&waitingDays(item.last_win_at,3)?'<span class="pyramid-entry-hint">Siegerschutz (3 Tage)</span>':'')
           +(canTarget?'<button type="button" data-pyramid-challenge="'+item.id+'">'
             +(me?.qualified===false?'Einfordern':'Fordern')+'</button>':'')
           +'</div>';
@@ -87,7 +96,7 @@ function renderBoard() {
   }
   html('pyramid-qualifier',me?.qualified===false
     ?'<div class="pyramid-qualification-help"><strong>Dein Einforderungsspiel steht noch aus.</strong>'
-       +'<p>Nach Regel 6.1 spielst du zuerst gegen eine Person bis maximal zur zweituntersten Pyramidenreihe. '
+       +'<p>Nach den TSV-Regeln kannst du jeden bereits platzierten Spieler herausfordern. '
        +'Gewinnst du, steigst du an deren Platz ein; bei einer Niederlage erhältst du den letzten Rang. '
        +'Wähle zum Fordern einen der markierten Spieler.</p></div>'
     :(!ladder.seeded_at?'<p class="muted">Die LK-Startaufstellung muss noch durch die Ranglistenverwaltung freigegeben werden. Vorher sind keine Forderungen möglich.</p>':''));
@@ -104,23 +113,23 @@ function renderGames() {
   html('pyramid-games',visible.map((c)=>{
     const myDefender=myEntry()?.id===c.defender_id;
     const canReport=c.status==='accepted'&&(state.superAdmin||isInvolved(c));
-    const hasCompeting=state.challenges.some(other=>other.id!==c.id&&['pending','accepted'].includes(other.status)
-      && myEntry()?.id===c.defender_id
-      && (other.challenger_id===c.defender_id||other.defender_id===c.defender_id));
-    const actions= (c.status==='pending'&&myDefender
+    const actions= (c.status==='pending'&&myDefender&&!c.refusal_reason
       ? '<button type="button" data-pyramid-accept="'+c.id+'">Annehmen</button>'
-        +(hasCompeting?'<button type="button" data-pyramid-decline="'+c.id+'">Ablehnen</button>':'') : '')
-      +(canReport?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis melden</button>':'');
+        +'<button type="button" data-pyramid-decline="'+c.id+'">Absage begründen</button>' : '')
+      +(c.status==='accepted'&&!c.refusal_reason&&(state.superAdmin||isInvolved(c))
+        ?'<button type="button" data-pyramid-schedule="'+c.id+'">Spieltermin eintragen</button>':'')
+      +(canReport&&!c.refusal_reason?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis melden</button>':'');
     return '<article class="pyramid-game"><div><strong>'+escapeHtml(entryName(c.challenger_id))
       +' fordert '+escapeHtml(entryName(c.defender_id))+'</strong>'
       +'<small>'+escapeHtml(labels[c.status]||c.status)+' · '+formatTime(c.created_at)+'</small>'
       +(c.status==='declined' && c.decline_reason==='another_match_accepted'
         ?'<small>Automatisch abgelehnt: Ein anderes Forderungsspiel wurde angenommen.</small>':'')
-      +(c.status==='pending'?'<small>Annahmefrist: '+formatTime(c.accept_deadline)+'</small>':'')
-      +(c.status==='accepted'?'<small>Empfohlener Spieltermin: '+formatTime(c.play_deadline)
-        +(c.play_deadline&&new Date(c.play_deadline).getTime()<Date.now()
-          ?' · <strong>10-Tage-Empfehlung überschritten – Spiel bitte bald austragen</strong>':'')
-        +'</small>':'')
+      +(c.refusal_reason?'<small>Absage zur Prüfung eingereicht: '+escapeHtml(c.refusal_reason)+'</small>':'')
+      +(c.status==='pending'?'<small>Terminvereinbarung bis: '+formatTime(new Date(new Date(c.created_at).getTime()+7*86400000).toISOString())+'</small>':'')
+      +(c.scheduled_for?'<small>Vereinbarter Spieltermin: '+formatTime(c.scheduled_for)+'</small>':'')
+      +(c.status==='accepted'&&!c.scheduled_for?'<small>Spieltermin bitte innerhalb von 7 Tagen nach Forderung festlegen.</small>':'')
+      +(c.status==='accepted'&&c.play_deadline&&new Date(c.play_deadline).getTime()<Date.now()
+        ?'<small class="muted">10-Tage-Frist nach Terminvereinbarung überschritten – Verwaltung kontaktieren.</small>':'')
       +(c.winner_id?'<small>Sieger: '+escapeHtml(entryName(c.winner_id))
         +(c.score?' · '+escapeHtml(c.score):'')+'</small>':'')
       +'</div><div class="pyramid-game-actions">'+actions+'</div></article>';
@@ -159,6 +168,16 @@ function renderAdmin() {
     +'<button type="button" title="Einen Platz tiefer" aria-label="'+escapeHtml(item.display_name)+' tiefer" data-pyramid-move="'+item.id+'" data-delta="1"'+(i===state.entries.length-1?' disabled':'')+'>↓</button>'
     +'</div></div>').join(''):'<p class="muted">Noch keine Teilnehmer.</p>');
 }
+function renderOwnAvailability(){
+  const me=myEntry();
+  hidden('pyramid-availability-panel',!me);
+  const field=el<HTMLSelectElement>('pyramid-neutral-reason');
+  if(field&&me)field.value=me.neutralized_reason||'';
+  text('pyramid-neutral-state',me?.neutralized_at
+    ?'Neutralisiert seit '+formatDate(me.neutralized_at)+': '+friendlyReason(me.neutralized_reason)
+       +(me.neutralized_reason==='injury'?' · Rangverschiebung nach jeweils 4 Wochen':'')
+    :'Du bist spielbereit und kannst unter Beachtung der Forderungsregeln gefordert werden.');
+}
 function renderAll(){
   const selector=el<HTMLSelectElement>('pyramid-ladder-select');
   if(selector){
@@ -166,17 +185,17 @@ function renderAll(){
       +escapeHtml(l.title+' · '+l.season_label)+(l.active?'':' (archiviert)')+'</option>').join('');
     selector.value=state.ladderId;
   }
-  renderBoard();renderGames();renderJoin();renderAdmin();
+  renderBoard();renderGames();renderJoin();renderAdmin();renderOwnAvailability();
 }
 async function loadLadder(){
   const ladder=currentLadder();
   if(!ladder){state.entries=[];state.requests=[];state.challenges=[];renderAll();return;}
   const [entries,requests,challenges]=await Promise.all([
-    supabase.from('pyramid_entries').select('id,ladder_id,user_id,display_name,position,provisional,qualified,lk_rating,last_loss_at')
+    supabase.from('pyramid_entries').select('id,ladder_id,user_id,display_name,position,provisional,qualified,lk_rating,last_loss_at,last_win_at,neutralized_at,neutralized_reason')
       .eq('ladder_id',ladder.id).order('position'),
     supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
       .eq('ladder_id',ladder.id),
-    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,winner_id,score,decline_reason')
+    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,scheduled_for,scheduled_at,refusal_reason,winner_id,score,decline_reason,source')
       .eq('ladder_id',ladder.id).order('created_at',{ascending:false}).limit(150)
   ]);
   for(const answer of [entries,requests,challenges])if(answer.error)throw answer.error;
@@ -281,7 +300,7 @@ function wireEvents(){
     }catch(e){notice(safeError(e),'error');}
   });
   el('pyramid-app')?.addEventListener('click',(event)=>{
-    const target=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-challenge],[data-pyramid-accept],[data-pyramid-decline],[data-pyramid-result],[data-pyramid-approve],[data-pyramid-move]');
+    const target=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-challenge],[data-pyramid-accept],[data-pyramid-decline],[data-pyramid-schedule],[data-pyramid-result],[data-pyramid-approve],[data-pyramid-move]');
     if(!target)return;
     const challenge=target.dataset.pyramidChallenge;
     if(challenge){if(confirm('Diese Person verbindlich herausfordern?'))void runAction(
@@ -289,8 +308,24 @@ function wireEvents(){
     const accept=target.dataset.pyramidAccept;
     if(accept){void runAction(()=>rpc('pyramid_respond',{p_challenge:accept,p_accept:true}),'Forderung angenommen.');return;}
     const decline=target.dataset.pyramidDecline;
-    if(decline){if(confirm('Forderung nach den Ausnahmeregeln ablehnen?'))void runAction(
-      ()=>rpc('pyramid_respond',{p_challenge:decline,p_accept:false}),'Forderung abgelehnt.');return;}
+    if(decline){
+      const reason=prompt('Bitte den triftigen Grund für deine Absage angeben (mind. 10 Zeichen). Die Verwaltung entscheidet über Wertung oder Streichung.');
+      if(reason!==null){
+        if(reason.trim().length<10){notice('Bitte die Absage ausführlicher begründen.','error');return;}
+        void runAction(()=>rpc('pyramid_submit_refusal',{p_challenge:decline,p_reason:reason.trim()}),
+          'Absage eingereicht. Die Ranglistenverwaltung prüft sie.');
+      }
+      return;
+    }
+    const schedule=target.dataset.pyramidSchedule;
+    if(schedule){
+      state.resultChallenge=schedule;
+      const game=state.challenges.find(c=>c.id===schedule);
+      const date=el<HTMLInputElement>('pyramid-schedule-date');
+      if(date)date.value=game?.scheduled_for?new Date(game.scheduled_for).toISOString().slice(0,16):'';
+      scheduleDialog?.showModal();
+      return;
+    }
     const result=target.dataset.pyramidResult;
     if(result){openResult(result);return;}
     const approve=target.dataset.pyramidApprove;
@@ -298,6 +333,30 @@ function wireEvents(){
     const move=target.dataset.pyramidMove;
     if(move)void runAction(()=>rpc('pyramid_move_entry',{p_entry:move,p_delta:Number(target.dataset.delta)}),
       'Reihenfolge geändert.');
+  });
+  el<HTMLFormElement>('pyramid-availability-form')?.addEventListener('submit',event=>{
+    event.preventDefault();
+    const me=myEntry();
+    if(!me)return;
+    const reason=el<HTMLSelectElement>('pyramid-neutral-reason')?.value||null;
+    void runAction(()=>rpc('pyramid_set_neutralized',{p_entry:me.id,p_reason:reason}),
+      reason?'Dein Status wurde neutralisiert.':'Dein Status wurde auf spielbereit gesetzt.');
+  });
+  const scheduleDialog=el<HTMLDialogElement>('pyramid-schedule-dialog');
+  el('pyramid-schedule-close')?.addEventListener('click',()=>scheduleDialog?.close());
+  el('pyramid-schedule-cancel')?.addEventListener('click',()=>scheduleDialog?.close());
+  scheduleDialog?.addEventListener('click',event=>{if(event.target===scheduleDialog)scheduleDialog.close();});
+  el<HTMLFormElement>('pyramid-schedule-form')?.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const input=el<HTMLInputElement>('pyramid-schedule-date');
+    const date=input?.value?new Date(input.value):null;
+    if(!date||Number.isNaN(date.getTime())){notice('Bitte einen gültigen Spieltermin auswählen.','error');return;}
+    try{
+      await rpc('pyramid_schedule_match',{p_challenge:state.resultChallenge,p_date:date.toISOString()});
+      scheduleDialog?.close();
+      notice('Spieltermin eingetragen. Bitte innerhalb von 10 Tagen nach der Vereinbarung spielen.','success');
+      await loadLadder();
+    }catch(e){notice(safeError(e),'error');}
   });
   const dialog=el<HTMLDialogElement>('pyramid-dialog');
   el('pyramid-dialog-close')?.addEventListener('click',()=>dialog?.close());
