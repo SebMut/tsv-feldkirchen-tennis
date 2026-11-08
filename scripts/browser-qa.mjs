@@ -542,6 +542,14 @@ async function deviceQA(device){
       return;
     }
     await platzabbau.waitFor({state:'visible',timeout:14000});
+    // The event summary is loaded asynchronously from Supabase. The card can
+    // mount before its preview text arrives on a slower mobile browser.
+    // Wait for the same required content; still fail if it never appears.
+    await page.waitForFunction(()=>{
+      const cards=[...document.querySelectorAll('#event-news-list .content-card--event')];
+      const card=cards.find(el=>el.textContent?.includes('Platzabbau'));
+      return !!card?.querySelector('.content-card__description')?.textContent?.trim();
+    },undefined,{timeout:10000});
     const shortText = await platzabbau.locator('.content-card__description').innerText();
     assert.ok(shortText.trim().length>0,'Published event must have an overview');
     const fullText = (await platzabbau.locator('.content-card__full-text').textContent()) || '';
