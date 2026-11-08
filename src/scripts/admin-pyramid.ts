@@ -1,6 +1,6 @@
 import {supabase} from '../lib/supabase';
 import {escapeHtml,setStatus} from '../lib/ui';
-import {scoreWinner,canChallenge,canQualifyAgainst} from '../lib/pyramid-rules.mjs';
+import {scoreWinner,canChallenge,canQualifyAgainst,defaultMasterSeason} from '../lib/pyramid-rules.mjs';
 
 type Ladder={id:string;title:string;season_label:string;starts_on:string;ends_on:string;seeded_at:string|null;active:boolean};
 type Entry={id:string;display_name:string;position:number;qualified:boolean;lk_rating:number|null;neutralized_at?:string|null;neutralized_reason?:string|null};
@@ -219,6 +219,15 @@ export function initPyramidAdmin(canManage:boolean){
  if(!panel||!canManage||initialized)return;
  initialized=true;
  panel.classList.remove('hidden');
+ const summer=defaultMasterSeason();
+ for(const [id,value] of [
+   ['pyramid-admin-season',summer.label],
+   ['pyramid-admin-from',summer.startsOn],
+   ['pyramid-admin-until',summer.endsOn]
+ ]){
+   const input=$<HTMLInputElement>(id);
+   if(input&&!input.value)input.value=value;
+ }
  const dialog=$<HTMLDialogElement>('pyramid-admin-result-dialog');
  const resultForm=$<HTMLFormElement>('pyramid-admin-result');
  const modalError=$('pyramid-admin-result-error');
