@@ -198,3 +198,18 @@
  #pyramid-public-select{font-size:1rem}
  .pyramid-avatar-editor{gap:12px}
 }
+
+
+/* Password setup following a verified one-time email link. */
+.pyramid-password-setup{max-width:720px;gap:15px}
+.pyramid-password-setup .form-grid{max-width:620px;gap:12px}
+.pyramid-password-setup input[type="password"]{min-height:46px;width:100%}
+.pyramid-password-setup .pyramid-auth-actions{align-items:center;gap:12px}
+#pyramid-join-panel:not(.hidden){border:2px solid #d1e8d7;background:#fbfffc}
+#pyramid-join-panel h2{margin-top:0}
+#pyramid-join-panel .field input{min-height:44px}
+@media(max-width:720px){
+  .pyramid-password-setup{max-width:100%}
+  .pyramid-password-setup .pyramid-auth-actions{flex-direction:column;align-items:stretch}
+  .pyramid-password-setup .pyramid-auth-actions .button{width:100%}
+}
