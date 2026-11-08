@@ -14,8 +14,8 @@
 .pyramid-section-head h2{margin:0 0 6px}
 .pyramid-own-rank{color:#fff;font-weight:950;background:#b40b1b;border-radius:10px;padding:10px 16px}
 .pyramid-board{display:grid;gap:9px;overflow-x:auto;padding:12px 0 18px;max-width:100%;scrollbar-color:#e30613 transparent}
-.pyramid-board-row{display:flex;gap:9px;justify-content:center;min-width:0;width:100%}
-.pyramid-entry{flex:0 1 160px;min-width:0;display:grid;gap:5px;position:relative;background:#fff;color:#14201d;border:2px solid #dce2df;padding:12px 8px;border-radius:12px;text-align:center}
+.pyramid-board-row{display:flex;gap:9px;justify-content:center;width:max-content;min-width:100%}
+.pyramid-entry{flex:0 0 135px;min-width:0;display:grid;gap:5px;position:relative;background:#fff;color:#14201d;border:2px solid #dce2df;padding:12px 8px;border-radius:12px;text-align:center}
 .pyramid-entry.is-self{border-color:#e30613;box-shadow:0 0 0 2px #e3061326}
 .pyramid-entry.is-target{border-color:#278b66}
 .pyramid-entry.is-empty{background:transparent;border-style:dashed;opacity:.3}
@@ -57,11 +57,11 @@
  .pyramid-toolbar select{width:100%}
  .pyramid-board{gap:6px}
  .pyramid-board-row{gap:4px}
- .pyramid-entry{padding:7px 3px;border-radius:7px;flex-basis:70px;border-width:1px}
+ .pyramid-entry{padding:7px 3px;border-radius:7px;flex-basis:78px;border-width:1px}
  .pyramid-entry-rank{font-size:.62rem}
  .pyramid-entry-name{font-size:.67rem}
  .pyramid-entry-hint{font-size:.56rem}
  .pyramid-entry button{font-size:.59rem;min-height:25px;padding:2px}
  .pyramid-rules-grid,.pyramid-create-form{grid-template-columns:1fr}
 }
-@media(max-width:375px){.pyramid-entry{flex-basis:60px}.pyramid-entry-name{font-size:.62rem}}
+@media(max-width:375px){.pyramid-entry{flex-basis:70px}.pyramid-entry-name{font-size:.62rem}}
