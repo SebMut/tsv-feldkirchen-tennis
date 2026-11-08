@@ -10,6 +10,7 @@ import { initRsvpExportAdmin } from './rsvp-export-admin';
 import { initEditorialComposer } from './editorial-composer';
 import { initSystemMonitor } from './system-monitor';
 import { initSiteAnalyticsAdmin } from './site-analytics-admin';
+import { initPyramidAdmin } from './admin-pyramid';
 import { escapeHtml, formatDateTime, setStatus, slugify } from '../lib/ui';
 import { describeSelfPermissions } from '../lib/self-permissions.mjs';
 import { summarizeSetResult, validateSetScore, adjustSetScore } from '../lib/tennis-score.mjs';
@@ -71,7 +72,7 @@ function renderMyPermissions() {
   });
 }
 
-function hasGlobalPermission(permission: 'events' | 'news' | 'ticker') {
+function hasGlobalPermission(permission: 'events' | 'news' | 'ticker' | 'pyramid') {
   return state.isSuper || (Array.isArray(state.profile?.global_permissions) && state.profile.global_permissions.includes(permission));
 }
 function ownMemberships() {
@@ -325,6 +326,7 @@ const panelDescriptions: Record<string, string> = {
   'official-rubbers': 'Verifizierte Einzel- und Doppelberichte ansehen.',
   news: 'News, Spielberichte und Veranstaltungen an einem Ort verwalten.',
   'rsvp-export': 'Anmeldungen je Veranstaltung prüfen und PDF-Teilnehmerlisten direkt herunterladen.',
+  pyramid: 'Ranglisten, Teilnahmeanfragen und Forderungsspiele verwalten.',
   galleries: 'Fotos und Bilder für deine Mannschaft verwalten.',
   content: 'Seiten, Sponsoren und Vereinsinformationen pflegen.',
   facility: 'Den aktuellen Anlagenstatus ändern.',
@@ -394,6 +396,7 @@ function showPanel(name: string) {
   if (name === 'manual-results' && !state.isSuper) return;
   if (name === 'official-rubbers' && !state.isSuper) return;
   if (name === 'analytics' && !state.isSuper) return;
+  if (name === 'pyramid' && !hasGlobalPermission('pyramid')) return;
   const activeButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.admin-nav button[data-panel]'))
     .find((button) => button.dataset.panel === name && !button.classList.contains('hidden'));
   const target = document.getElementById(`panel-${name}`);
@@ -2795,10 +2798,12 @@ async function startApp(user: any) {
   const canTickAny = hasGlobalPermission('ticker') || ownMemberships().some((m) => ['manager', 'editor', 'ticker'].includes(m.role));
   const canNews = hasGlobalPermission('news');
   const canEvents = hasGlobalPermission('events');
+  const canPyramid = hasGlobalPermission('pyramid');
   document.querySelectorAll<HTMLElement>('[data-editor-only]').forEach((el) => el.classList.toggle('hidden', !canEditAny));
   document.querySelectorAll<HTMLElement>('[data-ticker-only]').forEach((el) => el.classList.toggle('hidden', !canTickAny));
   document.querySelectorAll<HTMLElement>('[data-news-only]').forEach((el) => el.classList.toggle('hidden', !canNews));
   document.querySelectorAll<HTMLElement>('[data-events-only]').forEach((el) => el.classList.toggle('hidden', !canEvents));
+  document.querySelectorAll<HTMLElement>('[data-pyramid-only]').forEach((el) => el.classList.toggle('hidden', !canPyramid));
   document.querySelectorAll<HTMLElement>('[data-editorial-only]').forEach((el) => el.classList.toggle('hidden', !(canNews || canEvents)));
   bindEditorialTabs(canNews, canEvents);
   $('#match-create-card')?.classList.toggle('hidden', !canEditAny);
@@ -2806,7 +2811,7 @@ async function startApp(user: any) {
   $('#auth-box')?.classList.add('hidden');
   $('#admin-app')?.classList.remove('hidden');
   const line = $('#admin-userline');
-  if (line) line.textContent = `${state.profile?.display_name || user.email} · ${state.isSuper ? 'SuperAdmin' : canEditAny ? 'Mannschafts-Editor' : canTickAny ? 'Liveticker' : (canNews || canEvents) ? 'Vereinsredaktion' : 'Standard-Nutzer'}`;
+  if (line) line.textContent = `${state.profile?.display_name || user.email} · ${state.isSuper ? 'SuperAdmin' : canEditAny ? 'Mannschafts-Editor' : canTickAny ? 'Liveticker' : (canNews || canEvents) ? 'Vereinsredaktion' : canPyramid ? 'Ranglistenverwaltung' : 'Standard-Nutzer'}`;
   $('[data-super-only]')?.classList.toggle('hidden', !state.isSuper);
   document.querySelectorAll<HTMLElement>('[data-super-only]').forEach((el) => el.classList.toggle('hidden', !state.isSuper));
 
@@ -2818,6 +2823,7 @@ async function startApp(user: any) {
   bindTvTimingControls(state); // Ready immediately, even while other admin data loads.
   initSystemMonitor(state.isSuper);
   initSiteAnalyticsAdmin(state.isSuper);
+  initPyramidAdmin(canPyramid);
   if (canNews || canEvents) {
     initEditorialComposer({ canNews, canEvents, user: state.user });
     window.addEventListener('tsv:editorial-content-changed', () => {
