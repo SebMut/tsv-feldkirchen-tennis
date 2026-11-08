@@ -86,7 +86,7 @@ test('rejected challengers receive idempotent retryable CI email from existing G
  assert.match(mail,/TSV FELDKIRCHEN TENNIS/);
  assert.match(mail,/dispatch_token/);
  assert.match(mail,/consume_pyramid_cron_token/);
- assert.match(mail,/claim_pyramid_auto_decline_notice/);
+ assert.match(mail,/claim_pyramid_notification/);
  assert.match(mail,/complete_pyramid_auto_decline_notice/);
  assert.match(config,/\[functions\.pyramid-auto-decline-email\][\s\S]*verify_jwt = false/);
  assert.doesNotMatch(mail,/SUPABASE_SERVICE_ROLE_KEY\s*=\s*['"][^'"]+/);
