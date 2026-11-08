@@ -21,6 +21,10 @@ const notice = (message:string,tone:'success'|'error'|'info'='info') => {
   const target=el('pyramid-status');if(!target)return;
   target.classList.remove('hidden');setStatus(target,message,tone);
 };
+const modalMessage=(id:string,message='')=>{
+  const target=el(id);if(!target)return;
+  target.textContent=message;target.classList.toggle('hidden',!message);
+};
 const safeError = (e:unknown) => {
   const raw=String((e as any)?.message || 'Unbekannter Fehler');
   if (/relation.*does not exist|schema cache|could not find.*function/i.test(raw))
@@ -199,6 +203,7 @@ function renderGames() {
       +'<small>'+escapeHtml(labels[c.status]||c.status)+' · '+formatTime(c.created_at)+'</small>'
       +(c.refusal_reason?'<small>Absage zur Prüfung: '+escapeHtml(c.refusal_reason)+'</small>':'')
       +(c.status==='pending'?'<small>Spieltermin möglichst innerhalb von 3 Tagen vereinbaren.</small>':'')
+      +(c.scheduled_confirmed_at?'<span class="pyramid-accepted">✓ Akzeptiert</span>':'')
       +(c.scheduled_for?'<small>'+(c.scheduled_confirmed_at?'Bestätigter Termin: ':'Terminvorschlag: ')
         +formatTime(c.scheduled_for)+(c.scheduled_confirmed_at?'':' · Bestätigung ausstehend')+'</small>':'')
       +(['pending','accepted'].includes(c.status)?'<small>Spielfrist: '+formatTime(expiresAt)+'</small>':'')
@@ -227,7 +232,7 @@ function renderUpcomingGames(){
   html('pyramid-upcoming-games',upcoming.length?upcoming.map(c=>
     '<article class="pyramid-upcoming-game"><time datetime="'+escapeHtml(c.scheduled_for||'')+'">'
       +escapeHtml(formatTime(c.scheduled_for))+'</time><strong>'+escapeHtml(entryName(c.challenger_id))
-      +' gegen '+escapeHtml(entryName(c.defender_id))+'</strong></article>'
+      +' gegen '+escapeHtml(entryName(c.defender_id))+'</strong><span class="pyramid-accepted">✓ Akzeptiert</span></article>'
   ).join(''):'');
 }
 function renderJoin() {
@@ -359,6 +364,42 @@ async function load() {
     await loadLadder();
   }catch(error){notice(safeError(error),'error');}
 }
+const resultSets:string[]=[];
+const normalSetScores=['6:0','0:6','6:1','1:6','6:2','2:6','6:3','3:6','6:4','4:6','7:5','5:7','7:6','6:7'];
+const tieBreakScores=['10:0','0:10','10:5','5:10','10:7','7:10','10:8','8:10'];
+function setIsValid(score:string,tieBreak:boolean){
+  const parts=score.split(':').map(Number);if(parts.length!==2||parts.some(x=>!Number.isInteger(x)||x<0))return false;
+  const hi=Math.max(...parts),lo=Math.min(...parts);
+  return tieBreak?hi>=10&&hi-lo>=2:(hi===6&&lo<=4)||(hi===7&&(lo===5||lo===6));
+}
+function renderResultWizard(){
+  const value=resultSets.join(', ');
+  const winner=scoreWinner(value);
+  const tieBreak=resultSets.length===2&&winner===null;
+  const finished=winner!==null;
+  const score=el<HTMLInputElement>('pyramid-result-score');if(score)score.value=value;
+  text('pyramid-dialog-title',finished?'Ergebnis prüfen':(resultSets.length+1)+'. Satz auswählen');
+  html('pyramid-result-sets',resultSets.map((set,index)=>'<span><small>Satz '+(index+1)+'</small><strong>'+escapeHtml(set)+'</strong></span>').join(''));
+  hidden('pyramid-result-undo',resultSets.length===0);
+  hidden('pyramid-result-set-entry',finished);
+  const quick=el('pyramid-result-quick');
+  if(quick)quick.innerHTML=(tieBreak?tieBreakScores:normalSetScores).map(set=>
+    '<button type="button" data-pyramid-result-score="'+set+'">'+set+'</button>').join('');
+  if(quick)quick.parentElement?.classList.toggle('hidden',finished);
+  text('pyramid-result-example',tieBreak?'z. B. 10:8':'z. B. 6:4');
+  text('pyramid-result-help',tieBreak?'Der dritte Satz wird als Match-Tie-Break bis mindestens 10 mit zwei Punkten Abstand erfasst.':'Wähle einen fertigen Satzstand oder gib einen eigenen gültigen Endstand ein.');
+  const own=el<HTMLInputElement>('pyramid-result-own-games');const opponent=el<HTMLInputElement>('pyramid-result-opponent-games');
+  if(own)own.value=tieBreak?'10':'6';if(opponent)opponent.value=tieBreak?'8':'0';
+  hidden('pyramid-result-submit',winner!==1);
+  modalMessage('pyramid-result-error',winner===2?'Das Ergebnis muss aus Sicht des Siegers eingegeben werden. Bitte den letzten Satz ändern.':'');
+}
+function addResultSet(score:string){
+  const tieBreak=resultSets.length===2;
+  if(!setIsValid(score,tieBreak)){
+    modalMessage('pyramid-result-error',tieBreak?'Ungültiger Match-Tie-Break: mindestens 10 Punkte und zwei Punkte Abstand.':'Ungültiger Satzstand. Erlaubt sind 6:0 bis 6:4, 7:5 oder 7:6 – jeweils auch umgekehrt.');return;
+  }
+  modalMessage('pyramid-result-error');resultSets.push(score);renderResultWizard();
+}
 function openResult(id:string) {
   const item=state.challenges.find((c)=>c.id===id);
   const dialog=el<HTMLDialogElement>('pyramid-dialog');
@@ -370,7 +411,7 @@ function openResult(id:string) {
     '<option value="'+id+'">'+escapeHtml(entryName(id))+'</option>').join('');
   hidden('pyramid-winner-field',!state.superAdmin);
   if(!state.superAdmin && !isInvolved(item)){notice('Nur Spielbeteiligte dürfen Ergebnisse melden.','error');return;}
-  el<HTMLInputElement>('pyramid-result-score')!.value='';
+  resultSets.splice(0);modalMessage('pyramid-result-error');renderResultWizard();
   dialog.showModal();
 }
 
@@ -649,6 +690,7 @@ function wireEvents(){
     const schedule=target.dataset.pyramidSchedule;
     if(schedule){
       state.resultChallenge=schedule;
+      modalMessage('pyramid-schedule-error');
       const game=state.challenges.find(c=>c.id===schedule);
       const date=el<HTMLInputElement>('pyramid-schedule-date');
       if(date)date.value=game?.scheduled_for?new Date(game.scheduled_for).toISOString().slice(0,16):'';
@@ -798,28 +840,41 @@ function wireEvents(){
     event.preventDefault();
     const input=el<HTMLInputElement>('pyramid-schedule-date');
     const date=input?.value?new Date(input.value):null;
-    if(!date||Number.isNaN(date.getTime())){notice('Bitte einen gültigen Spieltermin auswählen.','error');return;}
+    modalMessage('pyramid-schedule-error');
+    if(!date||Number.isNaN(date.getTime())){modalMessage('pyramid-schedule-error','Bitte einen gültigen Spieltermin auswählen.');return;}
     try{
       await rpc('pyramid_schedule_match',{p_challenge:state.resultChallenge,p_date:date.toISOString()});
       scheduleDialog?.close();
       notice('Spieltermin eingetragen. Das Spiel muss innerhalb von 14 Tagen nach der ursprünglichen Forderung stattfinden.','success');
       await loadLadder();
-    }catch(e){notice(safeError(e),'error');}
+    }catch(e){modalMessage('pyramid-schedule-error',safeError(e));}
   });
   const dialog=el<HTMLDialogElement>('pyramid-dialog');
   el('pyramid-dialog-close')?.addEventListener('click',()=>dialog?.close());
   el('pyramid-dialog-cancel')?.addEventListener('click',()=>dialog?.close());
   dialog?.addEventListener('click',(event)=>{if(event.target===dialog)dialog.close();});
+  el('pyramid-result-quick')?.addEventListener('click',event=>{
+    const button=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-result-score]');
+    if(button?.dataset.pyramidResultScore)addResultSet(button.dataset.pyramidResultScore);
+  });
+  el('pyramid-result-custom-save')?.addEventListener('click',()=>{
+    const own=el<HTMLInputElement>('pyramid-result-own-games')?.value||'';
+    const opponent=el<HTMLInputElement>('pyramid-result-opponent-games')?.value||'';
+    addResultSet(own+':'+opponent);
+  });
+  el('pyramid-result-undo')?.addEventListener('click',()=>{
+    resultSets.pop();modalMessage('pyramid-result-error');renderResultWizard();
+  });
   el<HTMLFormElement>('pyramid-result-form')?.addEventListener('submit',async(event)=>{
     event.preventDefault();
     const value=el<HTMLInputElement>('pyramid-result-score')?.value.trim()||'';
-    if(scoreWinner(value)!==1){notice('Das Ergebnis muss aus Sicht des Siegers angegeben werden (zwei Gewinnsätze, ggf. Champions-Tie-Break).','error');return;}
+    if(scoreWinner(value)!==1){modalMessage('pyramid-result-error','Bitte zuerst ein vollständiges Siegergebnis aus zwei Gewinnsätzen erfassen.');return;}
     const winner=state.superAdmin?el<HTMLSelectElement>('pyramid-result-winner')?.value:undefined;
     try{
       await rpc('pyramid_report_result',{p_challenge:state.resultChallenge,p_score:value,
         ...(winner?{p_winner:winner}:{})});
       dialog?.close();notice('Ergebnis gemeldet. Die Rangliste ändert sich erst nach Bestätigung des Gegners (innerhalb von 48 Stunden) oder Entscheidung des Ranglistenwarts.','success');await loadLadder();
-    }catch(e){notice(safeError(e),'error');}
+    }catch(e){modalMessage('pyramid-result-error',safeError(e));}
   });
 }
 // This browser-only staging simulation never sends demo actions or players to Supabase.
@@ -1199,6 +1254,16 @@ function renderDemo(){
     demoMessage('Ansicht auf die ausgewählte Testrolle umgestellt.','success');
   });
   el<HTMLFormElement>('pyramid-result-form')?.addEventListener('submit',demoReportResult);
+  el('pyramid-result-quick')?.addEventListener('click',event=>{
+    const button=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-result-score]');
+    if(button?.dataset.pyramidResultScore)addResultSet(button.dataset.pyramidResultScore);
+  });
+  el('pyramid-result-custom-save')?.addEventListener('click',()=>{
+    const own=el<HTMLInputElement>('pyramid-result-own-games')?.value||'';
+    const opponent=el<HTMLInputElement>('pyramid-result-opponent-games')?.value||'';
+    addResultSet(own+':'+opponent);
+  });
+  el('pyramid-result-undo')?.addEventListener('click',()=>{resultSets.pop();renderResultWizard();});
   const dialog=el<HTMLDialogElement>('pyramid-dialog');
   el('pyramid-dialog-close')?.addEventListener('click',()=>dialog?.close());
   el('pyramid-dialog-cancel')?.addEventListener('click',()=>dialog?.close());
