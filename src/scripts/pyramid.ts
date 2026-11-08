@@ -496,9 +496,7 @@ function demoRole(role:string){
 function demoMakeChallenge(targetId:string){
   const me=myEntry();
   const defender=state.entries.find((entry)=>entry.id===targetId);
-  if(!me||!defender||!(me.qualified===false
-    ?canQualifyAgainst(defender.position,state.entries)
-    :canChallenge(me.position,defender.position))){
+  if(!me||!defender||!canSendChallenge(me,defender)){
     demoMessage('Diese Forderung ist für deine Testrolle nicht erlaubt.','error');return;
   }
   if(state.challenges.some((item)=>['pending','accepted'].includes(item.status)
@@ -648,6 +646,26 @@ function demoHandleButton(event:MouseEvent){
 }
 function demoHandleForm(event:SubmitEvent){
   const target=event.target as HTMLFormElement;
+  if(target.id==='pyramid-availability-form'){
+    event.preventDefault();
+    const me=myEntry();
+    const reason=el<HTMLSelectElement>('pyramid-neutral-reason')?.value||null;
+    if(!me){demoMessage('Wähle zunächst einen Teilnehmer aus.','error');return;}
+    if(state.challenges.some(c=>['pending','accepted'].includes(c.status)
+       &&(c.challenger_id===me.id||c.defender_id===me.id))&&reason){
+      demoMessage('Bitte zuerst dein eingetragenes Forderungsspiel abschließen.','error');return;
+    }
+    me.neutralized_at=reason?demoTimestamp():null;
+    me.neutralized_reason=reason;
+    demoRefresh();
+    demoMessage(reason?'Status '+friendlyReason(reason)+' gesetzt. Die Spieler-Kachel ist jetzt gekennzeichnet.':'Status wieder spielbereit.','success');
+    return;
+  }
+  if(target.id==='pyramid-avatar-form'){
+    event.preventDefault();
+    demoMessage('Profilbild-Uploads sind in der unverbindlichen Demo deaktiviert. Melde dich auf der echten Mitgliederseite an, um ein eigenes Bild zu speichern.');
+    return;
+  }
   if(target.id==='pyramid-join-form'){
     event.preventDefault();
     if(!currentLadder())return;
@@ -685,16 +703,17 @@ function demoHandleForm(event:SubmitEvent){
 function demoInitialize(){
   demoSequence=30;
   demoRecords.clear();
+  state.avatars={};
   demoAutomaticMailLog.length=0;
   renderDemoMails();
   state.ladders=[{
     id:'demo-winter',title:'Herren · Mustergruppe',
     season_label:'Winter 2026/2027',starts_on:'2026-11-01',
-    ends_on:'2027-03-31',active:true,seeded_at:null
+    ends_on:'2027-03-31',active:true,seeded_at:demoTimestamp()
   },{
     id:'demo-summer',title:'Damen · Mustergruppe',
     season_label:'Sommer 2027',starts_on:'2027-04-01',
-    ends_on:'2027-10-31',active:true,seeded_at:null
+    ends_on:'2027-10-31',active:true,seeded_at:demoTimestamp()
   }];
   demoRecords.set('demo-winter',{
     entries:Array.from({length:15},(_,index)=>({
@@ -748,7 +767,7 @@ function renderDemo(){
     +'und werden beim Neuladen zurückgesetzt.</p>'
     +'<p><strong>Forderung annehmen:</strong> Wähle unten „Geforderte Person · Spieler 13“. '
     +'Öffne „Forderungsspiele“ und klicke bei „Spieler 14 fordert Spieler 13“ auf „Annehmen“. '
-    +'Andere noch offene Forderungen werden automatisch abgelehnt und erscheinen im simulierten E-Mail-Protokoll.</p>'
+    +'Die TSV-Regeln erlauben pro Spieler nur eine offene Forderung. Ein Test-Urlaub lässt sich im Abschnitt „Meine Verfügbarkeit“ aktivieren.</p>'
     +'<div class="pyramid-demo-controls">'
     +'<label for="pyramid-demo-role">Testrolle auswählen</label>'
     +'<select id="pyramid-demo-role">'
