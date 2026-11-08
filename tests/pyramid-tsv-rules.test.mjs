@@ -89,6 +89,32 @@ test('TSV neutralization is self-service, role protected, and adjusts injury ran
  assert.match(admin,/pyramid_set_neutralized/);
 });
 
+test('TSV holidays use the injury 28-day demotion, never before four weeks',()=>{
+ const vacation=read('supabase/migrations/20261108203000_pyramid_vacation_and_member_avatars.sql');
+ assert.match(vacation,/neutralized_reason in \('injury','vacation'\)/);
+ assert.match(vacation,/neutralized_at\+\(\(e.neutral_shift_count\+1\)\*interval '28 days'\)/);
+ assert.match(vacation,/create or replace function private\.pyramid_process_injury_neutrality\(\)/);
+ assert.match(page,/Urlaub \(bis 4 Wochen ohne Rangverschiebung\)/);
+ assert.match(client,/pyramid-entry-away/);
+ assert.match(client,/friendlyReason\(item.neutralized_reason\)/);
+});
+test('Portraits use existing profiles, private RLS-scoped avatar list and central upload',()=>{
+ const portrait=read('supabase/migrations/20261108203000_pyramid_vacation_and_member_avatars.sql');
+ assert.match(portrait,/create or replace function private\.can_write_media_path/);
+ assert.match(portrait,/parts\[2\]=auth.uid\(\)::text/);
+ assert.match(portrait,/create or replace function public\.pyramid_set_my_avatar/);
+ assert.match(portrait,/create or replace function public\.pyramid_member_avatars/);
+ assert.match(portrait,/private\.can_view_pyramid\(p_ladder\)/);
+ assert.match(portrait,/update public\.profiles set avatar_path=p_path/);
+ assert.match(client,/replaceMediaImage/);
+ assert.match(client,/removeMediaImage/);
+ assert.match(client,/pyramid_member_avatars/);
+ assert.match(client,/mediaUrl\(portrait\)/);
+ assert.match(page,/id="pyramid-avatar-file"/);
+ assert.match(page,/id="pyramid-avatar-panel"/);
+ assert.match(read('src/styles/pyramid.css'),/pyramid-entry-avatar/);
+ assert.match(read('src/styles/pyramid.css'),/pyramid-entry-away/);
+});
 test('Existing email worker serves challenge and rejection messages in club CI',()=>{
  assert.match(foundation,/values\(new_id,'challenge_created'\)/);
  assert.match(foundation,/claim_pyramid_notification/);
