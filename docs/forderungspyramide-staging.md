@@ -19,7 +19,7 @@ Vorgesehenes Supabase-Projekt: \`eaurnufdochjapfzqwvm\` (kein anderes Projekt ve
 
 ## Freigabe-Voraussetzungen
 
-1. Produktivdatenbank NICHT ändern, bevor eine separate Freigabe zur Aktivierung vorliegt. Die Migration \`20261108150000_forderungspyramide_staging.sql\` wird nur versioniert; sie wird hier nicht ausgeführt.
+1. Produktivdatenbank NICHT ändern, bevor eine separate Freigabe zur Aktivierung vorliegt. Die Migration \`20261108153000_forderungspyramide_staging.sql\` wird nur versioniert; sie wird hier nicht ausgeführt.
 2. Vor Livebetrieb das tatsächliche Teilnehmer-/Mitgliedschaftsverfahren mit dem Verein klären, insbesondere Datenschutz / Veröffentlichung von Namen. Die vorhandenen \`players\` sind nicht zwingend eine vollständige Mitgliederliste. Anmeldung gibt keine automatische Teilnahmeberechtigung.
 3. E-Mail-Redirect für \`https://www.tennis-tsvfeldkirchen.de/forderungspyramide/\` in den Supabase Auth Redirect-URLs zulassen; Preview-URL bei Bedarf separat. Ohne diese Freigabe kann der Zugangslink an die Standard-Site-Adresse umleiten.
 4. Initiale Saisons/Gruppen (z. B. Sommer/Winter 2027) und Rangplätze erst durch Super-Admin anlegen. Es werden **keine erfundenen Teilnehmer importiert**.
