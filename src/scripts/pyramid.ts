@@ -4,7 +4,7 @@ import { escapeHtml, setStatus } from '../lib/ui';
 import { canChallenge, canQualifyAgainst, defaultMasterSeason, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
 
 type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends_on:string;active:boolean;seeded_at:string|null };
-type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null;last_win_at?:string|null;neutralized_at?:string|null;neutralized_reason?:string|null };
+type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null;last_win_at?:string|null;neutralized_at?:string|null;neutralized_reason?:string|null;withdrawn_at?:string|null };
 type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
 type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
   created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;scheduled_confirmed_at?:string|null;refusal_reason?:string|null;winner_id:string|null;proposed_winner_id?:string|null;proposed_score?:string|null;result_reporter_id?:string|null;reported_at?:string|null;confirmation_deadline?:string|null;dispute_reason?:string|null;weather_extended_at?:string|null;overdue_extended_at?:string|null;no_show_requested_at?:string|null;no_show_reporter_id?:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
@@ -35,7 +35,9 @@ const formatDate = (value:string|null|undefined) => value
   ? new Intl.DateTimeFormat('de-DE',{dateStyle:'medium',timeZone:'Europe/Berlin'}).format(new Date(value)) : '–';
 const formatTime = (value:string|null|undefined) => value
   ? new Intl.DateTimeFormat('de-DE',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Berlin'}).format(new Date(value)) : '–';
-const myEntry = () => state.entries.find((item)=>item.user_id===state.user?.id);
+const activeEntries = () => state.entries.filter((item)=>!item.withdrawn_at&&typeof item.position==='number');
+const myEntry = () => activeEntries().find((item)=>item.user_id===state.user?.id);
+const formerEntry = () => state.entries.find((item)=>item.user_id===state.user?.id&&!!item.withdrawn_at);
 const currentLadder = () => state.ladders.find((item)=>item.id===state.ladderId);
 const entryName = (id:string) => state.entries.find((item)=>item.id===id)?.display_name || 'Teilnehmer';
 const isInvolved = (c:Challenge) => !!myEntry() && (c.challenger_id===myEntry()?.id || c.defender_id===myEntry()?.id);
@@ -124,7 +126,7 @@ async function loadGuestStandings(){
 function renderBoard() {
   const ladder=currentLadder();
   const me=myEntry();
-  const qualified=state.entries;
+  const qualified=activeEntries();
   text('pyramid-ladder-heading',ladder ? ladder.title+' · '+ladder.season_label : 'Noch keine Rangliste');
   text('pyramid-ladder-dates',ladder ? formatDate(ladder.starts_on)+' bis '+formatDate(ladder.ends_on)
     : 'Die erste Rangliste kann von der Ranglistenverwaltung angelegt werden.');
@@ -249,10 +251,12 @@ function renderUpcomingGames(){
 function renderJoin() {
   const ladder=currentLadder();
   const me=myEntry();
+  const former=formerEntry();
   const request=state.requests.find((r)=>r.user_id===state.user?.id && r.ladder_id===state.ladderId);
   hidden('pyramid-join-panel',!ladder||!!me);
-  hidden('pyramid-join-form',request?.status==='pending'||request?.status==='approved');
-  const message=request?.status==='pending'?'Deine Teilnahme wurde angefragt und wartet auf Freigabe.'
+  hidden('pyramid-join-form',!!former||request?.status==='pending'||request?.status==='approved');
+  const message=former?'Du hast dein Forderungspyramidenkonto für diese Rangliste gelöscht.'
+    :request?.status==='pending'?'Deine Teilnahme wurde angefragt und wartet auf Freigabe.'
     :request?.status==='rejected'?'Die letzte Anfrage wurde abgelehnt. Du kannst eine neue Anfrage stellen.'
     :request?.status==='approved'?'Deine Teilnahme ist freigegeben. Bitte lade die Ansicht neu.':'';
   text('pyramid-join-state',message);
@@ -266,17 +270,18 @@ function renderAdmin() {
   if(!state.superAdmin)return;
   const finalized=!!currentLadder()?.seeded_at;
   const seedButton=el<HTMLButtonElement>('pyramid-finalize-seed');
-  if(seedButton){seedButton.disabled=finalized||state.entries.length<2;seedButton.textContent=finalized?'Startaufstellung bereits festgelegt':'Startaufstellung verbindlich abschließen';}
+  const entries=activeEntries();
+  if(seedButton){seedButton.disabled=finalized||entries.length<2;seedButton.textContent=finalized?'Startaufstellung bereits festgelegt':'Startaufstellung verbindlich abschließen';}
   const pending=state.requests.filter((r)=>r.status==='pending');
   html('pyramid-admin-requests',pending.length ? pending.map((r)=>
     '<div class="pyramid-admin-item"><span>'+escapeHtml(r.display_name)+'</span>'
     +'<button type="button" class="button secondary" data-pyramid-approve="'+r.id+'">Freigeben</button></div>'
   ).join(''):'<p class="muted">Keine offenen Anfragen in dieser Gruppe.</p>');
-  html('pyramid-admin-entries',state.entries.length?state.entries.map((item,i)=>
+  html('pyramid-admin-entries',entries.length?entries.map((item,i)=>
     '<div class="pyramid-admin-item"><span>#'+item.position+' · '+escapeHtml(item.display_name)
     +(item.qualified===false?' (Qualifikationsspiel offen)':item.provisional?' (vorläufig)':'')+'</span><div>'
     +'<button type="button" title="Einen Platz höher" aria-label="'+escapeHtml(item.display_name)+' höher" data-pyramid-move="'+item.id+'" data-delta="-1"'+(i===0?' disabled':'')+'>↑</button>'
-    +'<button type="button" title="Einen Platz tiefer" aria-label="'+escapeHtml(item.display_name)+' tiefer" data-pyramid-move="'+item.id+'" data-delta="1"'+(i===state.entries.length-1?' disabled':'')+'>↓</button>'
+    +'<button type="button" title="Einen Platz tiefer" aria-label="'+escapeHtml(item.display_name)+' tiefer" data-pyramid-move="'+item.id+'" data-delta="1"'+(i===entries.length-1?' disabled':'')+'>↓</button>'
     +'</div></div>').join(''):'<p class="muted">Noch keine Teilnehmer.</p>');
 }
 function renderMemberPortrait(){
@@ -295,6 +300,9 @@ function renderMemberPortrait(){
   const remove=el<HTMLButtonElement>('pyramid-avatar-remove');
   if(remove)remove.disabled=!valid;
 }
+function renderAccountDeletion(){
+  hidden('pyramid-account-delete-panel',!myEntry());
+}
 function renderOwnAvailability(){
   const me=myEntry();
   hidden('pyramid-availability-panel',!me);
@@ -312,13 +320,13 @@ function renderAll(){
       +escapeHtml(l.title+' · '+l.season_label)+(l.active?'':' (archiviert)')+'</option>').join('');
     selector.value=state.ladderId;
   }
-  renderBoard();renderUpcomingGames();renderGames();renderJoin();renderAdmin();renderOwnAvailability();renderMemberPortrait();
+  renderBoard();renderUpcomingGames();renderGames();renderJoin();renderAdmin();renderOwnAvailability();renderMemberPortrait();renderAccountDeletion();
 }
 async function loadLadder(){
   const ladder=currentLadder();
   if(!ladder){state.entries=[];state.requests=[];state.challenges=[];renderAll();return;}
   const [entries,requests,challenges]=await Promise.all([
-    supabase.from('pyramid_entries').select('id,ladder_id,user_id,display_name,position,provisional,qualified,lk_rating,last_loss_at,last_win_at,neutralized_at,neutralized_reason')
+    supabase.from('pyramid_entries').select('id,ladder_id,user_id,display_name,position,provisional,qualified,lk_rating,last_loss_at,last_win_at,neutralized_at,neutralized_reason,withdrawn_at')
       .eq('ladder_id',ladder.id).order('position'),
     supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
       .eq('ladder_id',ladder.id),
@@ -332,7 +340,7 @@ async function loadLadder(){
   state.avatars={};
   // Only a member of this ladder (or a designated manager) can read its
   // participant portraits. This avoids widening generic profiles RLS.
-  if(state.superAdmin||state.entries.some(e=>e.user_id===state.user?.id)){
+  if(state.superAdmin||activeEntries().some(e=>e.user_id===state.user?.id)){
     const {data:portraits,error:portraitError}=await supabase.rpc('pyramid_member_avatars',{p_ladder:ladder.id});
     if(portraitError){
       console.warn('Pyramid portrait list unavailable:',portraitError.message);
@@ -695,6 +703,27 @@ function wireEvents(){
     event.preventDefault();
     const name=el<HTMLInputElement>('pyramid-display-name')?.value.trim()||'';
     void runAction(()=>rpc('pyramid_request_join',{p_ladder:state.ladderId,p_name:name}),'Anfrage gespeichert.');
+  });
+  el('pyramid-account-delete')?.addEventListener('click',async()=>{
+    const me=myEntry(),ladder=currentLadder();
+    if(!me||!ladder)return;
+    const confirmation=prompt(
+      'Dein Platz in „'+ladder.title+'“ wird freigegeben. Abgeschlossene Ergebnisse bleiben erhalten. Tippe LÖSCHEN zum Bestätigen.'
+    );
+    if(confirmation!=='LÖSCHEN'){
+      if(confirmation!==null)notice('Kontolöschung nicht bestätigt.','info');
+      return;
+    }
+    const button=el<HTMLButtonElement>('pyramid-account-delete');
+    if(button)button.disabled=true;
+    try{
+      await rpc('pyramid_delete_my_account',{p_ladder:ladder.id});
+      await loadLadder();
+      notice('Dein Forderungspyramidenkonto wurde gelöscht. Der Ranglistenplatz ist wieder frei.','success');
+    }catch(e){
+      notice('Forderungspyramidenkonto konnte nicht gelöscht werden: '+safeError(e),'error');
+      if(button)button.disabled=false;
+    }
   });
   el<HTMLFormElement>('pyramid-create-form')?.addEventListener('submit',async(event)=>{
     event.preventDefault();

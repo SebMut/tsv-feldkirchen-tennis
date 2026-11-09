@@ -18,6 +18,7 @@ const withdrawal=read('supabase/migrations/20261109070500_pyramid_challenger_wit
 const acceptedWithdrawal=read('supabase/migrations/20261109073000_pyramid_withdraw_accepted_challenge.sql');
 const superadminManagement=read('supabase/migrations/20261109084500_pyramid_superadmin_player_and_result_management.sql');
 const securityHardening=read('supabase/migrations/20261109103000_pyramid_security_hardening.sql');
+const memberSelfDelete=read('supabase/migrations/20261109110000_pyramid_member_self_delete.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
  'src/pages/forderungspyramide/meine-ranglisten/index.astro',
@@ -99,6 +100,19 @@ test('pyramid security hardening prevents cross-player challenge reads and close
  assert.match(securityHardening,/revoke all on function public\.pyramid_record_no_show\(uuid\) from public,anon,authenticated/);
  assert.match(securityHardening,/if not found then raise exception 'Mitgliedsprofil nicht gefunden'/);
  assert.match(securityHardening,/owner_id=uid::text or owner=uid/);
+});
+
+test('members can delete their own pyramid account without erasing completed match history',()=>{
+ assert.match(memberSelfDelete,/pyramid_delete_my_account\(p_ladder uuid\)/);
+ assert.match(memberSelfDelete,/where ladder_id=p_ladder and user_id=uid and withdrawn_at is null/);
+ assert.match(memberSelfDelete,/set withdrawn_at=now\(\),position=null/);
+ assert.match(memberSelfDelete,/set position=position-1/);
+ assert.match(memberSelfDelete,/status in \('pending','accepted','result_pending','result_disputed'\)/);
+ assert.doesNotMatch(memberSelfDelete,/delete from public\.pyramid_challenges/);
+ assert.match(memberSelfDelete,/e\.withdrawn_at is null/);
+ assert.match(page,/id="pyramid-account-delete"/);
+ assert.match(client,/pyramid_delete_my_account/);
+ assert.match(client,/confirmation!=='LÖSCHEN'/);
 });
 
 test('Master §3 new players become last ranked on approval, no qualification round',()=>{

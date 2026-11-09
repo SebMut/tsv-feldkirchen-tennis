@@ -139,6 +139,13 @@ const sectionTitle = sectionTitles[activeSection];
           </div>
         </div>
       </section>
+      <section id="pyramid-account-delete-panel" class:list={["card stack hidden", { "pyramid-section-disabled": activeSection !== 'profile' }]}>
+        <div><p class="eyebrow">Forderungspyramidenkonto</p><h2>Konto aus der Pyramide löschen</h2>
+          <p>Du wirst aus der ausgewählten Forderungspyramide entfernt und dein Platz wird sofort frei. Alle nachfolgenden Mitglieder rücken einen Platz nach oben.</p>
+          <p class="muted">Abgeschlossene Ergebnisse bleiben für deine jeweiligen Gegner sichtbar und für die Rangliste relevant. Offene Forderungen werden beendet. Dein allgemeines Mein-TSV-Benutzerkonto bleibt bestehen. Dieser Schritt kann nicht selbst rückgängig gemacht werden.</p>
+        </div>
+        <div><button id="pyramid-account-delete" type="button" class="button danger">Forderungspyramidenkonto löschen</button></div>
+      </section>
       <section id="pyramid-overview" class:list={["card stack", { hidden: activeSection !== 'pyramid' }]}>
         <div class="pyramid-section-head"><div><p class="eyebrow">Rangliste</p><h2 id="pyramid-ladder-heading">Pyramide</h2>
           <p id="pyramid-ladder-dates" class="muted"></p></div><span id="pyramid-own-rank" class="pyramid-own-rank"></span></div>
