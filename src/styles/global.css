@@ -1188,6 +1188,51 @@ main.main--flush{padding:0}
 .premium-hero h1 span{color:#ff5360}
 .premium-hero .eyebrow{color:#ffb7bd}
 .premium-hero__lead{color:#f1f6f3}
+.premium-hero__features{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  width:min(760px,100%);
+  margin-top:22px;
+}
+.premium-hero-feature{
+  position:relative;
+  isolation:isolate;
+  display:grid;
+  gap:5px;
+  min-height:118px;
+  overflow:hidden;
+  padding:18px 20px;
+  border:1px solid rgba(255,255,255,.42);
+  border-radius:14px;
+  color:#fff;
+  background:#111c19;
+  box-shadow:0 13px 32px rgba(0,0,0,.2);
+  text-decoration:none;
+}
+.premium-hero-feature::before{
+  content:"";
+  position:absolute;
+  z-index:-2;
+  inset:0;
+  background-position:center;
+  background-size:cover;
+  transition:transform .24s ease;
+}
+.premium-hero-feature::after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  background:linear-gradient(100deg,rgba(9,15,13,.94),rgba(9,15,13,.64) 68%,rgba(227,6,19,.34));
+}
+.premium-hero-feature--halls::before{background-image:url('/images/news/hallenplaetze-in-der-naehe-1773x885.webp')}
+.premium-hero-feature--pyramid::before{background-image:url('/images/news/forderungspyramide-sommer-2027-1773x885.webp')}
+.premium-hero-feature span{color:#ff9ca4;font-size:.7rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.premium-hero-feature strong{color:#fff;font-size:1.08rem;line-height:1.1}
+.premium-hero-feature small{color:#f3f7f5;font-size:.78rem;line-height:1.35}
+.premium-hero-feature:hover,.premium-hero-feature:focus-visible{border-color:#fff;color:#fff;transform:translateY(-2px)}
+.premium-hero-feature:hover::before,.premium-hero-feature:focus-visible::before{transform:scale(1.035)}
 .premium-hero .button--outline{
   border-color:rgba(255,255,255,.8);
   color:#fff;
@@ -1200,7 +1245,7 @@ main.main--flush{padding:0}
   background:#fff;
 }
 @media(max-width:760px){
-  .premium-hero{min-height:570px}
+  .premium-hero{min-height:700px}
   .premium-hero__photo{
     inset:0;
     width:100%;
@@ -1216,6 +1261,9 @@ main.main--flush{padding:0}
       rgba(6,19,16,.17) 100%);
   }
   .premium-hero h1{font-size:clamp(2.2rem,8.8vw,3.15rem)}
+  .premium-hero__features{grid-template-columns:1fr;gap:8px;margin-top:15px}
+  .premium-hero-feature{min-height:78px;padding:12px 15px}
+  .premium-hero-feature small{font-size:.73rem}
 }
 
 
@@ -1321,7 +1369,7 @@ main.main--flush{padding:0}
 }
 @media(max-width:680px){
   /* Compact homepage hero, stats and information cards on phones only. */
-  .premium-hero{min-height:365px}
+  .premium-hero{min-height:610px}
   .premium-hero__inner{padding-top:32px;padding-bottom:27px}
   .premium-hero h1{font-size:clamp(2rem,8.2vw,2.6rem);line-height:.96;margin:10px 0 14px}
   .premium-hero__lead{font-size:.89rem;line-height:1.4;max-width:430px;margin:0 0 13px}
