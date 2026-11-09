@@ -17,6 +17,7 @@ const protectionRefresh=read('supabase/migrations/20261109032500_pyramid_recalcu
 const withdrawal=read('supabase/migrations/20261109070500_pyramid_challenger_withdrawal.sql');
 const acceptedWithdrawal=read('supabase/migrations/20261109073000_pyramid_withdraw_accepted_challenge.sql');
 const superadminManagement=read('supabase/migrations/20261109084500_pyramid_superadmin_player_and_result_management.sql');
+const securityHardening=read('supabase/migrations/20261109103000_pyramid_security_hardening.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
  'src/pages/forderungspyramide/meine-ranglisten/index.astro',
@@ -89,6 +90,15 @@ test('SuperAdmin alone can delete ladder players and correct completed results',
  assert.match(admin,/isSuperAdmin\?'<button class="button danger pyramid-admin-delete"/);
  assert.match(admin,/data-pyramid-admin-edit-result/);
  assert.match(admin,/pyramid_correct_completed_result/);
+});
+
+test('pyramid security hardening prevents cross-player challenge reads and closes internal RPCs',()=>{
+ assert.match(securityHardening,/own_entry\.id in \(pyramid_challenges\.challenger_id,pyramid_challenges\.defender_id\)/);
+ assert.match(securityHardening,/own_entry\.user_id=\(select auth\.uid\(\)\)/);
+ assert.match(securityHardening,/revoke all on function private\.pyramid_queue_change_notice\(\) from public,anon,authenticated/);
+ assert.match(securityHardening,/revoke all on function public\.pyramid_record_no_show\(uuid\) from public,anon,authenticated/);
+ assert.match(securityHardening,/if not found then raise exception 'Mitgliedsprofil nicht gefunden'/);
+ assert.match(securityHardening,/owner_id=uid::text or owner=uid/);
 });
 
 test('Master §3 new players become last ranked on approval, no qualification round',()=>{
