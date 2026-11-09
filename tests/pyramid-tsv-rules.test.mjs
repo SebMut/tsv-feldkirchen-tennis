@@ -161,6 +161,11 @@ test('member view has top navigation, upcoming games and requested highlights',(
  assert.match(styles,/\.pyramid-entry\.is-target\{[^}]*border-color:#e30613[^}]*animation:pyramid-target-pulse/);
 });
 
+test('member pyramid shows the LK directly below each player name',()=>{
+ assert.match(client,/pyramid-entry-name[\s\S]*pyramid-entry-lk/);
+ assert.match(styles,/\.pyramid-entry-lk/);
+});
+
 test('every member navigation item has a separate page and home shows only the next own match',()=>{
  for(const route of ['/forderungspyramide/so-funktionierts/','/forderungspyramide/meine-ranglisten/',
    '/forderungspyramide/mitgliederprofil/','/forderungspyramide/meine-verfuegbarkeit/'])

@@ -22,6 +22,7 @@
 .pyramid-entry.is-empty{background:transparent;border-style:dashed;opacity:.3}
 .pyramid-entry-rank{font-size:.78rem;color:#56645d;font-weight:750}
 .pyramid-entry-name{font-weight:850;font-size:.92rem;line-height:1.25;overflow-wrap:anywhere}
+.pyramid-entry-lk{font-size:.74rem;line-height:1.15;color:#56645d;font-weight:750}
 .pyramid-entry-hint{font-size:.67rem;color:#6b7c72}
 .pyramid-entry button{border:0;border-radius:7px;background:#e30613;color:white;font-size:.77rem;font-weight:850;min-height:30px}
 .pyramid-board-help{font-size:.86rem;margin:0}
@@ -103,6 +104,7 @@
  .pyramid-entry{padding:7px 3px;border-radius:7px;flex-basis:78px;border-width:1px}
  .pyramid-entry-rank{font-size:.62rem}
  .pyramid-entry-name{font-size:.67rem}
+ .pyramid-entry-lk{font-size:.57rem}
  .pyramid-entry-hint{font-size:.56rem}
  .pyramid-entry button{font-size:.59rem;min-height:25px;padding:2px}
  .pyramid-member-nav{top:62px;margin-inline:-4px;padding:6px;align-items:stretch;flex-direction:column;gap:0;border-radius:12px}
