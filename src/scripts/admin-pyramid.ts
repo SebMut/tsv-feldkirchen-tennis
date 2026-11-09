@@ -56,7 +56,9 @@ function render(){
    +'<button type="button" data-pyramid-admin-move="'+e.id+'" data-delta="-1"'
    +(i===0?' disabled':'')+' aria-label="'+escapeHtml(e.display_name)+' nach oben">↑</button>'
    +'<button type="button" data-pyramid-admin-move="'+e.id+'" data-delta="1"'
-   +(i===ranked.length-1?' disabled':'')+' aria-label="'+escapeHtml(e.display_name)+' nach unten">↓</button></div></div>'
+   +(i===ranked.length-1?' disabled':'')+' aria-label="'+escapeHtml(e.display_name)+' nach unten">↓</button></div>'
+   +(isSuperAdmin?'<button class="button danger pyramid-admin-delete" type="button" data-pyramid-admin-delete="'
+     +e.id+'" data-player-name="'+escapeHtml(e.display_name)+'">Spieler löschen</button>':'')+'</div>'
  ).join(''):'<p class="muted">Keine eingeordneten Spieler.</p>');
  display('pyramid-admin-qualifiers',pendingQualifiers.length
   ?'<h4>Ältere, noch nicht eingeordnete Einträge</h4><p class="muted">Im Master-Regelwerk werden neue Mitglieder unmittelbar auf den letzten Rang gesetzt. Bitte alte Einträge prüfen.</p>'
@@ -109,6 +111,8 @@ function render(){
        ?'<button class="button secondary" type="button" data-pyramid-admin-approve-result="'+ch.id+'">Ergebnis bestätigen</button>'
         +'<button class="button secondary" type="button" data-pyramid-admin-edit-result="'+ch.id+'">Ergebnis korrigieren</button>'
         +'<button class="button secondary" type="button" data-pyramid-admin-reject-result="'+ch.id+'">Meldung zurückweisen</button>':'')
+     +(isSuperAdmin&&ch.status==='completed'
+       ?'<button class="button secondary" type="button" data-pyramid-admin-edit-result="'+ch.id+'">Ergebnis ändern</button>':'')
      +(ch.no_show_requested_at&&ch.status==='accepted'
        ?'<button class="button secondary" type="button" data-pyramid-admin-approve-noshow="'+ch.id+'">Nichtantreten werten</button>'
         +'<button class="button secondary" type="button" data-pyramid-admin-reject-noshow="'+ch.id+'">Nichtantreten ablehnen</button>':'')
@@ -124,7 +128,8 @@ function render(){
           +'" data-winner="'+ch.defender_id+'">Kampflos: '+escapeHtml(label(ch.defender_id))+'</button>':'')
      +'</div></div>';
  }).join(''):'<p class="muted">Noch keine Forderungen.</p>');
- const ongoing=challenges.filter(ch=>['accepted','result_pending','result_disputed'].includes(ch.status));
+ const ongoing=challenges.filter(ch=>['accepted','result_pending','result_disputed'].includes(ch.status)
+   ||(isSuperAdmin&&ch.status==='completed'));
  const scheduleMatches=$<HTMLSelectElement>('pyramid-admin-schedule-match');
  if(scheduleMatches){
    scheduleMatches.innerHTML=ongoing.filter(ch=>ch.status==='accepted').map(ch=>'<option value="'+ch.id+'">'
@@ -407,6 +412,15 @@ export function initPyramidAdmin(canManage:boolean,superAdmin=false){
   },accepted?'Private Forderung und Annahme gespeichert.':'Private Forderung angelegt; die geforderte Person wird per E-Mail benachrichtigt.');
  });
  $('pyramid-admin-order')?.addEventListener('click',event=>{
+  const remove=(event.target as Element).closest<HTMLButtonElement>('[data-pyramid-admin-delete]');
+  if(remove){
+   if(!isSuperAdmin)return;
+   const player=remove.dataset.playerName||'Diesen Spieler';
+   if(confirm(player+' wirklich aus dieser Forderungspyramide löschen? Zugehörige Forderungen und Ergebnisse werden ebenfalls gelöscht. Das Benutzerkonto bleibt bestehen.'))
+    void act(()=>callRpc('pyramid_delete_entry',{p_entry:remove.dataset.pyramidAdminDelete}),
+      player+' wurde aus der Forderungspyramide gelöscht.');
+   return;
+  }
   const button=(event.target as Element).closest<HTMLButtonElement>('[data-pyramid-admin-move]');
   if(!button||button.disabled)return;
   void act(()=>callRpc('pyramid_move_entry',{p_entry:button.dataset.pyramidAdminMove,p_delta:Number(button.dataset.delta)}),'Rangfolge aktualisiert.');
@@ -431,7 +445,12 @@ export function initPyramidAdmin(canManage:boolean,superAdmin=false){
      try{
        const match=challenges.find(ch=>ch.id===id);
        if(!match)throw new Error('Forderung nicht gefunden');
-       if(['result_pending','result_disputed'].includes(match.status)){
+       if(match.status==='completed'){
+         if(!isSuperAdmin)throw new Error('Nur Superadmins dürfen abgeschlossene Ergebnisse ändern.');
+         await callRpc('pyramid_correct_completed_result',{
+           p_challenge:id,p_winner:winner,p_score:score
+         });
+       }else if(['result_pending','result_disputed'].includes(match.status)){
          await callRpc('pyramid_decide_result',{
            p_challenge:id,p_approve:true,p_winner:winner,p_score:score
          });
