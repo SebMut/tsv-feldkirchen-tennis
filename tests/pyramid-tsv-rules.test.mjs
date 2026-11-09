@@ -14,6 +14,7 @@ const memberNavigation=read('supabase/migrations/20261108205922_pyramid_member_n
 const scheduleConfirmation=read('supabase/migrations/20261108224000_pyramid_schedule_confirmation.sql');
 const lkAndNotifications=read('supabase/migrations/20261109013000_pyramid_lk_and_change_notifications.sql');
 const protectionRefresh=read('supabase/migrations/20261109032500_pyramid_recalculate_protection_after_cancel.sql');
+const withdrawal=read('supabase/migrations/20261109070500_pyramid_challenger_withdrawal.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
  'src/pages/forderungspyramide/meine-ranglisten/index.astro',
@@ -61,6 +62,15 @@ test('cancelled matches cannot leave stale winner or loser protection',()=>{
  assert.match(protectionRefresh,/pyramid_challenge_refresh_protection/);
  assert.match(protectionRefresh,/after insert or update of status,winner_id,resolved_at,challenger_id,defender_id or delete/);
  assert.match(protectionRefresh,/Repair already stale protection timestamps/);
+});
+
+test('only the challenger can withdraw an unanswered challenge',()=>{
+ assert.match(withdrawal,/auth\.uid\(\) is distinct from challenger_user/);
+ assert.match(withdrawal,/c\.status<>'pending'/);
+ assert.match(withdrawal,/withdrawn_by_challenger/);
+ assert.match(client,/c\.status==='pending'&&me\?\.id===c\.challenger_id/);
+ assert.match(client,/data-pyramid-withdraw/);
+ assert.match(client,/pyramid_withdraw_challenge/);
 });
 
 test('Master §3 new players become last ranked on approval, no qualification round',()=>{

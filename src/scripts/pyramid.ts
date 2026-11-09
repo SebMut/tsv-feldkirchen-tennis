@@ -189,6 +189,8 @@ function renderGames() {
     const actions=(c.status==='pending'&&me?.id===c.defender_id&&!c.refusal_reason&&!late
       ?'<button type="button" data-pyramid-accept="'+c.id+'">Annehmen</button>'
         +'<button type="button" data-pyramid-decline="'+c.id+'">Absage begründen</button>':'')
+      +(c.status==='pending'&&me?.id===c.challenger_id
+        ?'<button type="button" data-pyramid-withdraw="'+c.id+'">Forderung zurückziehen</button>':'')
       +(c.status==='accepted'&&!late&&!c.refusal_reason&&me?.id===c.challenger_id
         ?'<button type="button" data-pyramid-schedule="'+c.id+'">'
           +(c.scheduled_for?'Spieltermin ändern':'Spieltermin eintragen')+'</button>':'')
@@ -204,7 +206,8 @@ function renderGames() {
       +(noShowAllowed?'<button type="button" data-pyramid-noshow="'+c.id+'">Nichtantreten melden</button>':'');
     return '<article class="pyramid-game"><div><strong>'+escapeHtml(entryName(c.challenger_id))
       +' fordert '+escapeHtml(entryName(c.defender_id))+'</strong>'
-      +'<small>'+escapeHtml(labels[c.status]||c.status)+' · '+formatTime(c.created_at)+'</small>'
+      +'<small>'+escapeHtml(c.status==='cancelled'&&c.decline_reason==='withdrawn_by_challenger'
+        ?'Vom Herausforderer zurückgezogen':labels[c.status]||c.status)+' · '+formatTime(c.created_at)+'</small>'
       +(c.refusal_reason?'<small>Absage zur Prüfung: '+escapeHtml(c.refusal_reason)+'</small>':'')
       +(c.status==='pending'?'<small>Spieltermin möglichst innerhalb von 3 Tagen vereinbaren.</small>':'')
       +(c.scheduled_confirmed_at?'<span class="pyramid-accepted">✓ Akzeptiert</span>':'')
@@ -704,7 +707,7 @@ function wireEvents(){
     }catch(e){notice(safeError(e),'error');}
   });
   el('pyramid-app')?.addEventListener('click',(event)=>{
-    const target=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-challenge],[data-pyramid-accept],[data-pyramid-decline],[data-pyramid-schedule],[data-pyramid-confirm-schedule],[data-pyramid-result],[data-pyramid-confirm],[data-pyramid-dispute],[data-pyramid-noshow],[data-pyramid-approve],[data-pyramid-move]');
+    const target=(event.target as HTMLElement).closest<HTMLElement>('[data-pyramid-challenge],[data-pyramid-accept],[data-pyramid-decline],[data-pyramid-withdraw],[data-pyramid-schedule],[data-pyramid-confirm-schedule],[data-pyramid-result],[data-pyramid-confirm],[data-pyramid-dispute],[data-pyramid-noshow],[data-pyramid-approve],[data-pyramid-move]');
     if(!target)return;
     const challenge=target.dataset.pyramidChallenge;
     if(challenge){if(confirm('Diese Person verbindlich herausfordern?'))void runAction(
@@ -719,6 +722,12 @@ function wireEvents(){
         void runAction(()=>rpc('pyramid_submit_refusal',{p_challenge:decline,p_reason:reason.trim()}),
           'Absage eingereicht. Die Ranglistenverwaltung prüft sie.');
       }
+      return;
+    }
+    const withdraw=target.dataset.pyramidWithdraw;
+    if(withdraw){
+      if(confirm('Offene Forderung wirklich zurückziehen?'))void runAction(
+        ()=>rpc('pyramid_withdraw_challenge',{p_challenge:withdraw}),'Forderung zurückgezogen.');
       return;
     }
     const schedule=target.dataset.pyramidSchedule;
