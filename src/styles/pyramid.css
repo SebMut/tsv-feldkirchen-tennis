@@ -27,6 +27,12 @@
 .pyramid-entry button{border:0;border-radius:7px;background:#e30613;color:white;font-size:.77rem;font-weight:850;min-height:30px}
 .pyramid-board-help{font-size:.86rem;margin:0}
 .pyramid-member-nav{position:sticky;top:72px;z-index:24;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px;border:1px solid #dfe5e1;border-radius:13px;background:#fff;box-shadow:0 8px 24px #14201d12}
+.is-pyramid-admin-embed body>header,.is-pyramid-admin-embed body>footer{display:none}
+.is-pyramid-admin-embed main{padding-block:0}
+.is-pyramid-admin-embed .pyramid-page{width:100%;max-width:none;padding:18px}
+.is-pyramid-admin-embed .pyramid-page>.pyramid-heading{display:none}
+.is-pyramid-admin-embed .pyramid-member-nav{top:0}
+.is-pyramid-admin-embed .pyramid-session{display:none}
 .pyramid-member-nav-links{display:flex;gap:7px;overflow-x:auto;scrollbar-width:thin}
 .pyramid-member-nav a{flex:0 0 auto;padding:9px 13px;border-radius:9px;color:#27342f;text-decoration:none;font-size:.82rem;font-weight:850;white-space:nowrap}
 .pyramid-member-nav a:hover,.pyramid-member-nav a:focus-visible,.pyramid-member-nav a[aria-current="page"]{background:#fff0f1;color:#b50917;outline:2px solid #e30613;outline-offset:-2px}

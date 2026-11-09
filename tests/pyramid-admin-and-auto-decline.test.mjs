@@ -40,6 +40,9 @@ test('SuperAdmin can delegate a dedicated global pyramid permission like events'
 
 test('own Admin panel is shown only to pyramid permission holders',()=>{
  assert.match(adminPage,/data-panel="pyramid" data-pyramid-only/);
+ assert.match(adminPage,/data-panel="pyramid-member"/);
+ assert.match(adminPage,/id="panel-pyramid-member"/);
+ assert.match(adminPage,/forderungspyramide\/\?embed=admin/);
  assert.match(adminPage,/id="panel-pyramid"/);
  assert.match(adminPage,/id="pyramid-admin-create"/);
  assert.match(adminPage,/id="pyramid-admin-pending"/);

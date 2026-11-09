@@ -1605,6 +1605,17 @@ main.main--flush{padding:0}
 .admin-nav button.active .admin-nav__symbol{color:#c11321}
 .admin-mobile-picker{display:none}
 .admin-panel{min-width:0}
+.admin-member-pyramid-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}
+.admin-member-pyramid-intro>div{max-width:780px}
+.admin-member-pyramid-intro .button{flex:0 0 auto}
+.admin-member-pyramid-frame-card{padding:0;overflow:hidden}
+.admin-member-pyramid-frame{display:block;width:100%;min-height:1180px;border:0;background:#f7f8f6}
+@media(max-width:760px){
+  .admin-member-pyramid-intro{display:grid;gap:16px}
+  .admin-member-pyramid-intro .button{width:100%}
+  .admin-member-pyramid-frame-card{margin-inline:-4px}
+  .admin-member-pyramid-frame{min-height:1300px}
+}
 #panel-dashboard{gap:19px}
 .admin-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 #panel-dashboard .admin-summary-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}

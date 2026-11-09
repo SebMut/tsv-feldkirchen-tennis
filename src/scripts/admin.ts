@@ -326,6 +326,7 @@ const panelDescriptions: Record<string, string> = {
   'official-rubbers': 'Verifizierte Einzel- und Doppelberichte ansehen.',
   news: 'News, Spielberichte und Veranstaltungen an einem Ort verwalten.',
   'rsvp-export': 'Anmeldungen je Veranstaltung prüfen und PDF-Teilnehmerlisten direkt herunterladen.',
+  'pyramid-member': 'Dein Ranglistenplatz, deine Forderungsspiele und die aktuelle Pyramide.',
   pyramid: 'Ranglisten, Teilnahmeanfragen und Forderungsspiele verwalten.',
   galleries: 'Fotos und Bilder für deine Mannschaft verwalten.',
   content: 'Seiten, Sponsoren und Vereinsinformationen pflegen.',

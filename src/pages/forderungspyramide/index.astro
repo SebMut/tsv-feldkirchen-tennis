@@ -18,6 +18,19 @@ const sectionTitles = {
 const sectionTitle = sectionTitles[activeSection];
 ---
 <MainLayout title={`${sectionTitle} | TSV Feldkirchen Tennis`} description="Geschützter vereinsinterner Bereich für Forderungsspiele." noindex={true}>
+  <script is:inline>
+    (() => {
+      if (new URLSearchParams(location.search).get('embed') !== 'admin') return;
+      document.documentElement.classList.add('is-pyramid-admin-embed');
+      addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.pyramid-member-nav a[href]').forEach((link) => {
+          const url = new URL(link.href, location.origin);
+          url.searchParams.set('embed', 'admin');
+          link.href = url.pathname + url.search;
+        });
+      });
+    })();
+  </script>
   <div class="container pyramid-page stack" id="pyramid-root">
     <header class="pyramid-heading">
       <div><p class="eyebrow">TSV Feldkirchen Tennis · {isPreview ? 'Testvorschau' : 'Ranglisten'}</p><h1>Forderungspyramide</h1>
