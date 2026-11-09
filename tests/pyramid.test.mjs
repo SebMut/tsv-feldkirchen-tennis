@@ -36,7 +36,7 @@ test('two winning sets or a third-set champion tie-break are required',()=>{
  assert.equal(scoreWinner('6:4, 6:3'),1);
   assert.equal(scoreWinner('6:0, 6:0'),1);
  assert.equal(scoreWinner('4:6, 6:3, 10:8'),1);
-  assert.equal(scoreWinner('4:6, 6:3, 6:2'),1);
+  assert.equal(scoreWinner('4:6, 6:3, 6:2'),null);
  assert.equal(scoreWinner('6:7, 6:4, 8:10'),2);
  for(const bad of ['6:6, 6:4','6:4','6:4, 4:6','6:4, 4:6, 9:8','6:4, 6:4, 10:8','abc'])
    assert.equal(scoreWinner(bad),null,bad);

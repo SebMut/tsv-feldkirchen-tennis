@@ -375,7 +375,7 @@ function setIsValid(score:string,tieBreak:boolean){
   const parts=score.split(':').map(Number);if(parts.length!==2||parts.some(x=>!Number.isInteger(x)||x<0))return false;
   const hi=Math.max(...parts),lo=Math.min(...parts);
   const normal=(hi===6&&lo<=4)||(hi===7&&(lo===5||lo===6));
-  return tieBreak?(normal||(hi>=10&&hi-lo>=2)):normal;
+  return tieBreak?hi>=10&&hi-lo>=2:normal;
 }
 function renderResultWizard(){
   const value=resultSets.join(', ');
@@ -388,15 +388,15 @@ function renderResultWizard(){
   hidden('pyramid-result-undo',resultSets.length===0);
   hidden('pyramid-result-set-entry',finished);
   const quick=el('pyramid-result-quick');
-  if(quick)quick.innerHTML=(tieBreak?[...normalSetScores,...tieBreakScores]:normalSetScores).map(set=>
+  if(quick)quick.innerHTML=(tieBreak?tieBreakScores:normalSetScores).map(set=>
     '<button type="button" data-pyramid-result-score="'+set+'">'+set+'</button>').join('');
   if(quick)quick.parentElement?.classList.toggle('hidden',finished);
-  text('pyramid-result-example',tieBreak?'z. B. 6:3 oder 10:8':'z. B. 6:4');
+  text('pyramid-result-example',tieBreak?'z. B. 10:8':'z. B. 6:4');
   const correction=state.challenges.find(c=>c.id===state.resultChallenge);
   const correctionHint=correction?.status==='result_disputed'&&correction.dispute_reason
     ?'Widerspruch: '+correction.dispute_reason+' Bitte gib das korrigierte Ergebnis vollständig neu ein. '
     :'';
-  text('pyramid-result-help',correctionHint+(tieBreak?'Im dritten Satz kannst du einen normalen Satz oder einen Match-Tie-Break eintragen.':'Sobald der Sieger zwei Sätze gewonnen hat, erscheint der Speichern-Button.'));
+  text('pyramid-result-help',correctionHint+(tieBreak?'Der dritte Satz ist immer ein Champions-Tie-Break bis mindestens 10 Punkte mit zwei Punkten Abstand.':'Sobald der Sieger zwei Sätze gewonnen hat, erscheint der Speichern-Button.'));
   const own=el<HTMLInputElement>('pyramid-result-own-games');const opponent=el<HTMLInputElement>('pyramid-result-opponent-games');
   if(own)own.value=tieBreak?'10':'6';if(opponent)opponent.value=tieBreak?'8':'0';
   hidden('pyramid-result-submit',winner!==1);
