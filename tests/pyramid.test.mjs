@@ -55,13 +55,16 @@ test('protected actions stay authenticated while public board reveals only ranks
  const sql=source('supabase/migrations/20261108153000_forderungspyramide_staging.sql');
  const page=source('src/pages/forderungspyramide/index.astro');
  const js=source('src/scripts/pyramid.ts');
+ const registration=source('src/scripts/pyramid-registration.ts');
  const siteNav=source('src/components/SiteHeader.astro');
  const sitemap=source('src/pages/sitemap.xml.ts');
  assert.match(page,/noindex=\{true\}/);
  assert.doesNotMatch(siteNav,/forderungspyramide/);
  assert.doesNotMatch(sitemap,/forderungspyramide/);
  assert.match(js,/supabase\.auth\.signInWithPassword/);
- assert.match(js,/supabase\.functions\.invoke\('pyramid-access-email'/);
+ assert.match(registration,/supabase\.functions\.invoke\('pyramid-access-email'/);
+ assert.match(registration,/supabase\.auth\.signUp/);
+ assert.match(registration,/captchaToken/);
  assert.match(js,/pyramid_public_standings/);
  assert.match(js,/renderGuestStandings/);
  const publicSql=source('supabase/migrations/20261108190000_pyramid_public_board_and_access_links.sql');

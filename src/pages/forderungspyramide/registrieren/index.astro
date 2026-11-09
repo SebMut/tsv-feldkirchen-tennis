@@ -1,0 +1,58 @@
+---
+import MainLayout from '../../../layouts/MainLayout.astro';
+import '../../../styles/pyramid.css';
+---
+<MainLayout title="Mein TSV Konto erstellen | TSV Feldkirchen Tennis" description="Sicheres Mein-TSV-Konto für die Forderungspyramide erstellen." noindex={true}>
+  <div class="container pyramid-page stack pyramid-registration-page">
+    <header class="pyramid-heading">
+      <div>
+        <p class="eyebrow">Mein TSV · Forderungspyramide</p>
+        <h1>Konto erstellen</h1>
+        <p>Lege dein Konto direkt mit Nutzername, E-Mail-Adresse und Passwort an. Anschließend bestätigst du deine E-Mail-Adresse über den zugesandten Link.</p>
+      </div>
+    </header>
+
+    <section class="card stack pyramid-registration-card" aria-labelledby="pyramid-registration-heading">
+      <div>
+        <p class="eyebrow">Einmalige Registrierung</p>
+        <h2 id="pyramid-registration-heading">Deine Zugangsdaten</h2>
+        <p class="muted">Das Passwort wird nicht per E-Mail versendet. In der E-Mail bestätigst du ausschließlich, dass die Adresse dir gehört.</p>
+      </div>
+      <div id="pyramid-registration-status" class="notice hidden" role="status" aria-live="polite"></div>
+      <form id="pyramid-registration-form" class="form-grid">
+        <div class="field full">
+          <label for="pyramid-register-name">Nutzername</label>
+          <input id="pyramid-register-name" name="username" minlength="2" maxlength="50" autocomplete="username" required />
+          <p class="muted">Dieser Name wird später in der Forderungspyramide angezeigt.</p>
+        </div>
+        <div class="field full">
+          <label for="pyramid-register-email">E-Mail-Adresse</label>
+          <input id="pyramid-register-email" name="email" type="email" maxlength="254" autocomplete="email" required />
+        </div>
+        <div class="field">
+          <label for="pyramid-register-password">Passwort</label>
+          <input id="pyramid-register-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password" required />
+          <p class="muted">Mindestens 10 Zeichen.</p>
+        </div>
+        <div class="field">
+          <label for="pyramid-register-confirm">Passwort wiederholen</label>
+          <input id="pyramid-register-confirm" name="password-confirmation" type="password" minlength="10" maxlength="128" autocomplete="new-password" required />
+        </div>
+        <div id="pyramid-register-turnstile-wrap" class="field full hidden">
+          <label>Sicherheitsprüfung</label>
+          <div id="pyramid-register-turnstile" aria-label="Cloudflare-Menschprüfung"></div>
+          <p id="pyramid-register-turnstile-status" class="muted" role="status">Menschprüfung wird geladen …</p>
+        </div>
+        <div class="field full pyramid-auth-actions">
+          <button id="pyramid-register-submit" class="button button--hot" type="submit">Konto erstellen</button>
+          <a class="button ghost" href="/forderungspyramide/">Zurück zur Anmeldung</a>
+        </div>
+      </form>
+      <p class="muted">Nach der E-Mail-Bestätigung kannst du dich anmelden und die Teilnahme an einer Rangliste beantragen. Die Freigabe erfolgt weiterhin durch den Verein.</p>
+    </section>
+  </div>
+  <script>
+    import { initPyramidRegistration } from '../../../scripts/pyramid-registration';
+    initPyramidRegistration();
+  </script>
+</MainLayout>

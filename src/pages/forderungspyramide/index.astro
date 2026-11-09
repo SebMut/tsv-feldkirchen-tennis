@@ -60,15 +60,10 @@ const sectionTitle = sectionTitles[activeSection];
         <div class="field"><label for="pyramid-password">Passwort</label><input id="pyramid-password" type="password" autocomplete="current-password" required /></div>
         <div class="field full pyramid-auth-actions">
           <button class="button button--hot" type="submit">Anmelden</button>
-          <button class="button ghost" type="button" id="pyramid-magic-link" disabled>Passwort-Link per E-Mail</button>
+          <a class="button ghost" href="/forderungspyramide/registrieren/">Noch kein Konto? Jetzt erstellen</a>
         </div>
       </form>
-      <div id="pyramid-access-turnstile-wrap" class="hidden">
-        <div id="pyramid-access-turnstile-widget" aria-label="Cloudflare-Menschprüfung"></div>
-        <p id="pyramid-access-turnstile-status" class="muted" role="status">Menschprüfung wird geladen …</p>
-      </div>
-      <p id="pyramid-access-mail-status" class="muted" role="status" aria-live="polite">Der sichere E-Mail-Versand wird geprüft …</p>
-      <p class="muted">Noch kein Zugang oder Passwort vergessen? Gib deine E-Mail-Adresse ein, schließe die Menschprüfung ab und fordere einen einmaligen Link an. Über diesen legst du dein Passwort fest. Einladungen und Freigaben verwaltet der Verein.</p>
+      <p class="muted">Du hast noch kein Mein-TSV-Konto? Erstelle es mit Nutzername, E-Mail-Adresse und Passwort. Danach bestätigst du nur noch deine E-Mail-Adresse. Die Teilnahme an einer Rangliste wird weiterhin vom Verein freigegeben.</p>
     </section>
 
     <section id="pyramid-password-setup" class="card pyramid-password-setup stack hidden" aria-labelledby="pyramid-password-setup-title">
