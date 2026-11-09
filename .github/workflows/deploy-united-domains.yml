@@ -136,14 +136,18 @@ jobs:
           test -f dist/index.html
           test -f dist/admin/index.html
           test -f dist/forderungspyramide/index.html
+          test -f dist/forderungspyramide/registrieren/index.html
           grep -Fq 'id="pyramid-public-board"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-public-select"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-rules-heading"' dist/forderungspyramide/index.html
           grep -Fq 'pyramid-rules-list' dist/forderungspyramide/index.html
-          grep -Fq 'id="pyramid-access-turnstile-widget"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-password-setup"' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-password-setup-form"' dist/forderungspyramide/index.html
-          grep -Fq 'Passwort-Link per E-Mail' dist/forderungspyramide/index.html
+          grep -Fq 'Noch kein Konto? Jetzt erstellen' dist/forderungspyramide/index.html
+          grep -Fq 'id="pyramid-registration-form"' dist/forderungspyramide/registrieren/index.html
+          grep -Fq 'id="pyramid-register-name"' dist/forderungspyramide/registrieren/index.html
+          grep -Fq 'id="pyramid-register-email"' dist/forderungspyramide/registrieren/index.html
+          grep -Fq 'id="pyramid-register-password"' dist/forderungspyramide/registrieren/index.html
           grep -Fq 'id="pyramid-password-change"' dist/forderungspyramide/index.html
           grep -Fq 'Jetzt Teilnahme beantragen' dist/forderungspyramide/index.html
           grep -Fq 'id="pyramid-avatar-save-state"' dist/forderungspyramide/index.html
@@ -232,15 +236,19 @@ jobs:
             home=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/" || true)
             admin=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/admin/" || true)
             pyramid=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/forderungspyramide/?release-check=$GITHUB_SHA" || true)
+            registration=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/forderungspyramide/registrieren/?release-check=$GITHUB_SHA" || true)
             # Here-strings avoid SIGPIPE false negatives when grep -q finds a
             # marker early in the now larger generated admin/pyramid HTML.
             if grep -Fq 'TSV Feldkirchen Tennis' <<<"$home" && grep -Fq 'id="auth-box"' <<<"$admin" &&
                grep -Fq 'id="pyramid-login-form"' <<<"$pyramid" &&
                grep -Fq 'id="pyramid-public-board"' <<<"$pyramid" &&
                grep -Fq 'id="pyramid-rules-heading"' <<<"$pyramid" &&
-               grep -Fq 'id="pyramid-access-turnstile-widget"' <<<"$pyramid" &&
                grep -Fq 'id="pyramid-password-setup-form"' <<<"$pyramid" &&
-               grep -Fq 'Passwort-Link per E-Mail' <<<"$pyramid" &&
+               grep -Fq 'Noch kein Konto? Jetzt erstellen' <<<"$pyramid" &&
+               grep -Fq 'id="pyramid-registration-form"' <<<"$registration" &&
+               grep -Fq 'id="pyramid-register-name"' <<<"$registration" &&
+               grep -Fq 'id="pyramid-register-email"' <<<"$registration" &&
+               grep -Fq 'id="pyramid-register-password"' <<<"$registration" &&
                grep -Fq 'id="pyramid-password-change"' <<<"$pyramid" &&
                grep -Fq 'Jetzt Teilnahme beantragen' <<<"$pyramid" &&
                grep -Fq 'id="pyramid-avatar-save-state"' <<<"$pyramid" &&
