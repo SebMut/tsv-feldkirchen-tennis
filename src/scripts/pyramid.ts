@@ -7,7 +7,7 @@ type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends
 type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null;last_win_at?:string|null;neutralized_at?:string|null;neutralized_reason?:string|null };
 type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
 type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
-  created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;scheduled_confirmed_at?:string|null;refusal_reason?:string|null;winner_id:string|null;proposed_winner_id?:string|null;proposed_score?:string|null;reported_at?:string|null;confirmation_deadline?:string|null;dispute_reason?:string|null;weather_extended_at?:string|null;overdue_extended_at?:string|null;no_show_requested_at?:string|null;no_show_reporter_id?:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
+  created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;scheduled_confirmed_at?:string|null;refusal_reason?:string|null;winner_id:string|null;proposed_winner_id?:string|null;proposed_score?:string|null;result_reporter_id?:string|null;reported_at?:string|null;confirmation_deadline?:string|null;dispute_reason?:string|null;weather_extended_at?:string|null;overdue_extended_at?:string|null;no_show_requested_at?:string|null;no_show_reporter_id?:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
 const state: {
   user:any;profile:any;superAdmin:boolean;ladders:Ladder[];ladderId:string;
   entries:Entry[];requests:Request[];challenges:Challenge[];resultChallenge:string;avatars:Record<string,string>;
@@ -169,7 +169,7 @@ function renderGames() {
   hidden('pyramid-games-panel',false);
   if(!visible.length){html('pyramid-games','<p class="muted">Noch keine Forderungsspiele eingetragen.</p>');return;}
   const labels:Record<string,string>={pending:'Forderung offen',accepted:'Spiel vereinbart',
-    result_pending:'Ergebnis wartet auf Bestätigung',result_disputed:'Ergebnis strittig – Ranglistenwart prüft',
+    result_pending:'Ergebnis wartet auf Bestätigung',result_disputed:'Ergebnis widersprochen – Korrektur offen',
     completed:'Beendet',forfeit:'Kampflos gewertet',declined:'Abgelehnt',cancelled:'Abgebrochen'};
   html('pyramid-games',visible.map(c=>{
     const me=myEntry();
@@ -197,6 +197,8 @@ function renderGames() {
         ?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis melden</button>':'')
       +(opponentMayConfirm?'<button type="button" data-pyramid-confirm="'+c.id+'">Ergebnis bestätigen</button>'
         +'<button type="button" data-pyramid-dispute="'+c.id+'">Widersprechen</button>':'')
+      +(c.status==='result_disputed'&&!!me&&me.id===c.result_reporter_id
+        ?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis korrigieren</button>':'')
       +(noShowAllowed?'<button type="button" data-pyramid-noshow="'+c.id+'">Nichtantreten melden</button>':'');
     return '<article class="pyramid-game"><div><strong>'+escapeHtml(entryName(c.challenger_id))
       +' fordert '+escapeHtml(entryName(c.defender_id))+'</strong>'
@@ -217,7 +219,7 @@ function renderGames() {
         +(new Date(c.confirmation_deadline).getTime()<Date.now()
           ?' · Ranglistenwart entscheidet':'')+'</small>':'')
       +(c.status==='result_disputed'&&c.dispute_reason
-        ?'<small>Widerspruch: '+escapeHtml(c.dispute_reason)+'</small>':'')
+        ?'<small>Widerspruch: '+escapeHtml(c.dispute_reason)+'</small><small>Bitte Ergebnis korrigieren und erneut zur Bestätigung senden.</small>':'')
       +(c.winner_id?'<small>Sieger: '+escapeHtml(entryName(c.winner_id))
         +(c.score?' · '+escapeHtml(c.score):'')+'</small>':'')
       +'</div><div class="pyramid-game-actions">'+actions+'</div></article>';
@@ -311,7 +313,7 @@ async function loadLadder(){
       .eq('ladder_id',ladder.id).order('position'),
     supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
       .eq('ladder_id',ladder.id),
-    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,scheduled_for,scheduled_at,scheduled_confirmed_at,refusal_reason,winner_id,score,decline_reason,source,resolved_at,proposed_winner_id,proposed_score,reported_at,confirmation_deadline,dispute_reason,weather_extended_at,overdue_extended_at,no_show_requested_at,no_show_reporter_id')
+    supabase.from('pyramid_challenges').select('id,ladder_id,challenger_id,defender_id,status,created_at,accept_deadline,play_deadline,scheduled_for,scheduled_at,scheduled_confirmed_at,refusal_reason,winner_id,score,decline_reason,source,resolved_at,proposed_winner_id,proposed_score,result_reporter_id,reported_at,confirmation_deadline,dispute_reason,weather_extended_at,overdue_extended_at,no_show_requested_at,no_show_reporter_id')
       .eq('ladder_id',ladder.id).order('created_at',{ascending:false}).limit(150)
   ]);
   for(const answer of [entries,requests,challenges])if(answer.error)throw answer.error;
@@ -387,7 +389,11 @@ function renderResultWizard(){
     '<button type="button" data-pyramid-result-score="'+set+'">'+set+'</button>').join('');
   if(quick)quick.parentElement?.classList.toggle('hidden',finished);
   text('pyramid-result-example',tieBreak?'z. B. 10:8':'z. B. 6:4');
-  text('pyramid-result-help',tieBreak?'Der dritte Satz wird als Match-Tie-Break bis mindestens 10 mit zwei Punkten Abstand erfasst.':'Wähle einen fertigen Satzstand oder gib einen eigenen gültigen Endstand ein.');
+  const correction=state.challenges.find(c=>c.id===state.resultChallenge);
+  const correctionHint=correction?.status==='result_disputed'&&correction.dispute_reason
+    ?'Widerspruch: '+correction.dispute_reason+' Bitte gib das korrigierte Ergebnis vollständig neu ein. '
+    :'';
+  text('pyramid-result-help',correctionHint+(tieBreak?'Der dritte Satz wird als Match-Tie-Break bis mindestens 10 mit zwei Punkten Abstand erfasst.':'Wähle einen fertigen Satzstand oder gib einen eigenen gültigen Endstand ein.'));
   const own=el<HTMLInputElement>('pyramid-result-own-games');const opponent=el<HTMLInputElement>('pyramid-result-opponent-games');
   if(own)own.value=tieBreak?'10':'6';if(opponent)opponent.value=tieBreak?'8':'0';
   hidden('pyramid-result-submit',winner!==1);
