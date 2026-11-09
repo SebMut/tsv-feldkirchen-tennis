@@ -1195,9 +1195,9 @@ function demoInitialize(){
     season_label:'Winter 2026/2027',starts_on:'2026-11-01',
     ends_on:'2027-03-31',active:true,seeded_at:demoTimestamp()
   },{
-    id:'demo-summer',title:'Damen · Mustergruppe',
-    season_label:'Sommer 2027',starts_on:'2027-04-01',
-    ends_on:'2027-10-31',active:true,seeded_at:demoTimestamp()
+    id:'demo-summer',title:'Testpyramide',
+    season_label:'Sommer 2027',starts_on:'2027-05-01',
+    ends_on:'2027-09-30',active:true,seeded_at:demoTimestamp()
   }];
   demoRecords.set('demo-winter',{
     entries:Array.from({length:15},(_,index)=>({
@@ -1223,15 +1223,19 @@ function demoInitialize(){
     }]
   });
   demoRecords.set('demo-summer',{
-    entries:Array.from({length:6},(_,index)=>({
-      id:'demo-damen-entry-'+(index+1),ladder_id:'demo-summer',
-      user_id:'demo-damen-user-'+(index+1),
-      display_name:'Spielerin '+(index+1),position:index+1,
-      provisional:false,last_loss_at:null
+    entries:[
+      15.2,9.6,18.1,13.4,20.7,11.8,16.5,7.9,14.6,22.1,
+      12.7,17.3,10.5,19.2,15.8,8.8,13.9,21.4,16.9,6.7,
+      14.1,18.7,11.2,23.0,15.5,9.1,17.8,12.2,20.0,13.1
+    ].map((lk,index)=>({
+      id:'demo-test-entry-'+(index+1),ladder_id:'demo-summer',
+      user_id:'demo-user-'+(index+1),
+      display_name:'Test'+(index+1),position:index+1,lk_rating:lk,
+      provisional:false,qualified:true,last_loss_at:null
     })),
     requests:[],challenges:[]
   });
-  demoSwitchLadder('demo-winter');
+  demoSwitchLadder('demo-summer');
   const picker=el<HTMLSelectElement>('pyramid-demo-role');
   if(picker)picker.value='admin';
   demoRole('admin');
@@ -1258,7 +1262,9 @@ function renderDemo(){
     +'<h2>Interaktive Vorschau</h2>'
     +'<p>Du kannst alle Aktionen ausprobieren. Änderungen bleiben ausschließlich im Browser '
     +'und werden beim Neuladen zurückgesetzt.</p>'
-    +'<p><strong>Forderung annehmen:</strong> Wähle unten „Geforderte Person · Spieler 13“. '
+    +'<p><strong>30-Personen-Test:</strong> Die vorausgewählte Testpyramide zeigt Test1 bis Test30 '
+    +'mit gaußähnlich verteilten LK-Werten für Sommer 2027. '
+    +'<strong>Forderung annehmen:</strong> Wechsle für den Interaktionstest zur Herren-Mustergruppe und wähle unten „Geforderte Person · Spieler 13“. '
     +'Öffne „Forderungsspiele“ und klicke bei „Spieler 14 fordert Spieler 13“ auf „Annehmen“. '
     +'Die TSV-Regeln erlauben pro Spieler nur eine offene Forderung. Ein Test-Urlaub lässt sich im Abschnitt „Meine Verfügbarkeit“ aktivieren.</p>'
     +'<div class="pyramid-demo-controls">'
