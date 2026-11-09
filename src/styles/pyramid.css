@@ -255,6 +255,10 @@
 .pyramid-entry-public .pyramid-entry-name{font-size:.9rem}
 #pyramid-access-turnstile-wrap{max-width:100%;min-height:55px}
 #pyramid-access-mail-status{margin:0}
+.pyramid-registration-page{max-width:900px}
+.pyramid-registration-card{max-width:760px;width:100%;margin-inline:auto}
+.pyramid-registration-card .notice{margin:0}
+#pyramid-register-turnstile{min-height:65px;max-width:100%;overflow:hidden}
 .pyramid-avatar-editor{max-width:800px}
 #pyramid-avatar-preview{flex:0 0 auto}
 @media(max-width:720px){
