@@ -86,7 +86,6 @@ function render(){
  const current=ladders.find(l=>l.id===ladderId);
  const ranked=entries.filter(e=>e.qualified);
  const pendingQualifiers=entries.filter(e=>!e.qualified);
- const manualSeed=!current?.seeded_at;
  display('pyramid-admin-order',ranked.length?ranked.map((e,i)=>
    '<div class="pyramid-admin-item"><span><strong>#'+e.position+'</strong> · '+escapeHtml(e.display_name)
    +(e.lk_rating!=null?' · LK '+e.lk_rating.toFixed(1):' · ohne LK')
@@ -115,7 +114,7 @@ function render(){
  if(archive)archive.disabled=!current||!current.active;
  if(reactivate)reactivate.disabled=!current||current.active;
  const sort=$<HTMLButtonElement>('pyramid-admin-sort-lk');
- if(sort)sort.disabled=!manualSeed||ranked.length<2;
+ if(sort)sort.disabled=!isSuperAdmin||ranked.length<2;
  renderPrivateForm();
  const finish=$<HTMLButtonElement>('pyramid-admin-finalize');
  if(finish){
@@ -437,9 +436,9 @@ export function initPyramidAdmin(canManage:boolean,superAdmin=false){
     'LK-Wert gespeichert.');
  });
  $('pyramid-admin-sort-lk')?.addEventListener('click',()=>{
-  if(!ladderId||!confirm('Startaufstellung nach LK sortieren (unbekannte LK ans Ende)?'))return;
+  if(!ladderId||!isSuperAdmin||!confirm('Aktuelle Rangliste nach LK sortieren (kleinste LK zuerst, unbekannte LK ans Ende)? Die derzeitige Rangfolge wird dadurch ersetzt.'))return;
   void act(()=>callRpc('pyramid_sort_seed_by_lk',{p_ladder:ladderId}),
-    'Startaufstellung nach LK sortiert.');
+    'Rangliste nach LK sortiert.');
  });
  $<HTMLSelectElement>('pyramid-admin-private-challenger')?.addEventListener('change',renderPrivateForm);
  $<HTMLFormElement>('pyramid-admin-private-challenge')?.addEventListener('submit',event=>{

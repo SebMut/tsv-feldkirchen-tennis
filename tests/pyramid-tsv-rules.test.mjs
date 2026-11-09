@@ -19,6 +19,7 @@ const acceptedWithdrawal=read('supabase/migrations/20261109073000_pyramid_withdr
 const superadminManagement=read('supabase/migrations/20261109084500_pyramid_superadmin_player_and_result_management.sql');
 const securityHardening=read('supabase/migrations/20261109103000_pyramid_security_hardening.sql');
 const memberSelfDelete=read('supabase/migrations/20261109110000_pyramid_member_self_delete.sql');
+const lkSyncAndResort=read('supabase/migrations/20261109151500_pyramid_lk_sync_and_resort.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
  'src/pages/forderungspyramide/meine-ranglisten/index.astro',
@@ -216,6 +217,18 @@ test('member view has top navigation, upcoming games and requested highlights',(
 test('member pyramid shows the LK directly below each player name',()=>{
  assert.match(client,/pyramid-entry-name[\s\S]*pyramid-entry-lk/);
  assert.match(styles,/\.pyramid-entry-lk/);
+});
+
+test('Superadmin can re-sort an existing ladder by LK',()=>{
+ assert.match(admin,/sort\.disabled=!isSuperAdmin\|\|ranked\.length<2/);
+ assert.match(admin,/Aktuelle Rangliste nach LK sortieren/);
+ assert.match(lkSyncAndResort,/Nur der Superadmin darf die Rangliste nach LK sortieren/);
+ assert.match(lkSyncAndResort,/status in \('pending','accepted','result_pending','result_disputed'\)/);
+});
+
+test('approval copies a previously declared profile LK into the pyramid entry',()=>{
+ assert.match(lkSyncAndResort,/select p\.tennis_lk_rating into declared_lk/);
+ assert.match(lkSyncAndResort,/provisional,lk_rating/);
 });
 
 test('every member navigation item has a separate page and home shows only the next own match',()=>{
