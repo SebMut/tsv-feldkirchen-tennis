@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {canChallenge,canQualifyAgainst,pyramidCell,pyramidRows,scoreWinner,dateWithinPeriod} from '../src/lib/pyramid-rules.mjs';
+import {canChallenge,canQualifyAgainst,pyramidCell,pyramidRows,scoreWinner,normalizeWinnerScore,dateWithinPeriod} from '../src/lib/pyramid-rules.mjs';
 const source=(file)=>readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('pyramid rows are triangular, including non-full bottom rows',()=>{
@@ -40,6 +40,12 @@ test('two winning sets or a third-set champion tie-break are required',()=>{
  assert.equal(scoreWinner('6:7, 6:4, 8:10'),2);
  for(const bad of ['6:6, 6:4','6:4','6:4, 4:6','6:4, 4:6, 9:8','6:4, 6:4, 10:8','abc'])
    assert.equal(scoreWinner(bad),null,bad);
+});
+
+test('finished results entered from the second side are normalized to winner perspective',()=>{
+  assert.equal(normalizeWinnerScore('6:1, 5:7, 0:10'),'1:6, 7:5, 10:0');
+  assert.equal(normalizeWinnerScore('6:4, 6:3'),'6:4, 6:3');
+  assert.equal(normalizeWinnerScore('6:4, 4:6'),null);
 });
 test('saison boundaries follow dates instead of hard-coded summer 2026',()=>{
  assert.equal(dateWithinPeriod('2027-04-01','2027-10-31',new Date(2027,3,1)),true);

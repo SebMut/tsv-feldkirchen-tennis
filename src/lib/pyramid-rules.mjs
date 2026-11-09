@@ -58,6 +58,15 @@ export function scoreWinner(score) {
   return null;
 }
 
+// Results are stored from the winner's perspective. The entry dialog may be
+// filled from either side; normalize a valid finished result before saving.
+export function normalizeWinnerScore(score) {
+  const winner = scoreWinner(score);
+  if (winner === 1) return score.trim();
+  if (winner !== 2) return null;
+  return score.trim().split(/,\s*/).map(set=>set.split(':').reverse().join(':')).join(', ');
+}
+
 // Master v1.0 season proposal; stored ladder dates remain individually editable.
 export function defaultMasterSeason(today = new Date()) {
   const y = today.getFullYear() + (today.getMonth() >= 9 ? 1 : 0);
