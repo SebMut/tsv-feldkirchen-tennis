@@ -148,6 +148,8 @@ function renderBoard() {
              +'" alt="Profilbild von '+escapeHtml(item.display_name)+'" loading="lazy" decoding="async" />':'')
           +'<span class="pyramid-entry-rank">#'+item.position+'</span>'
           +'<span class="pyramid-entry-name">'+escapeHtml(item.display_name)+'</span>'
+          +(item.lk_rating!=null?'<span class="pyramid-entry-lk">LK '
+            +escapeHtml(item.lk_rating.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1}))+'</span>':'')
           +(mine?'<span class="pyramid-entry-hint">Du</span>':'')
           +(neutralNow(item)?'<span class="pyramid-entry-away" aria-label="Aktueller Status: '
             +escapeHtml(friendlyReason(item.neutralized_reason))+'">'
