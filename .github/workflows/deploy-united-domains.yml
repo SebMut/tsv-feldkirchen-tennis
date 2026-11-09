@@ -55,7 +55,7 @@ jobs:
           export SSHPASS="$SFTP_PASSWORD"
           timeout 45 sshpass -e sftp -o BatchMode=no -o StrictHostKeyChecking=accept-new -o ConnectTimeout=12 -P "$PORT" -b /tmp/tsv-preflight.sftp "$SFTP_USER@$SFTP_HOST"
           echo 'Read-only SFTP preflight successful. No files changed.'
-      - name: Verify hidden live route, admin modal, no public link and built assets via HTTPS
+      - name: Verify promoted pyramid route, admin modal and built assets via HTTPS
         run: |
           set -euo pipefail
           domain='https://www.tennis-tsvfeldkirchen.de'
@@ -66,7 +66,8 @@ jobs:
           grep -Fq 'id="pyramid-login-form"' /tmp/pyramid-live.html
           grep -Fq 'noindex,nofollow' /tmp/pyramid-live.html
           grep -Fq 'id="pyramid-admin-result-dialog"' /tmp/admin-live.html
-          if grep -Fq 'href="/forderungspyramide/"' /tmp/home-live.html; then echo '::error::Unexpected public navigation link to pyramid'; exit 1; fi
+          grep -Fq 'href="/forderungspyramide/"' /tmp/home-live.html
+          grep -Fq 'href="/hallenplaetze/"' /tmp/home-live.html
           if grep -Fq '/forderungspyramide/' /tmp/sitemap-live.xml; then echo '::error::Pyramid must not be indexed'; exit 1; fi
           python3 - <<'PY'
           from pathlib import Path
@@ -78,7 +79,7 @@ jobs:
           for asset in assets:
               subprocess.run(['curl','-fsSL','--connect-timeout','10','--max-time','30',
                   '-o','/dev/null','https://www.tennis-tsvfeldkirchen.de'+asset],check=True)
-          print('Verified live hidden pyramid route, private login, admin score dialog, no public nav/sitemap and',len(assets),'assets.')
+          print('Verified promoted pyramid route, private login, admin score dialog, home feature links and',len(assets),'assets.')
           PY
 
   write_diagnostic:
@@ -134,6 +135,11 @@ jobs:
         run: |
           npm run audit:site
           test -f dist/index.html
+          test -f dist/images/news/hallenplaetze-in-der-naehe-1773x885.webp
+          test -f dist/images/news/forderungspyramide-sommer-2027-1773x885.webp
+          grep -Fq 'class="premium-hero__features"' dist/index.html
+          grep -Fq 'href="/hallenplaetze/"' dist/index.html
+          grep -Fq 'href="/forderungspyramide/"' dist/index.html
           test -f dist/admin/index.html
           test -f dist/forderungspyramide/index.html
           test -f dist/forderungspyramide/registrieren/index.html
@@ -239,7 +245,11 @@ jobs:
             registration=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/forderungspyramide/registrieren/?release-check=$GITHUB_SHA" || true)
             # Here-strings avoid SIGPIPE false negatives when grep -q finds a
             # marker early in the now larger generated admin/pyramid HTML.
-            if grep -Fq 'TSV Feldkirchen Tennis' <<<"$home" && grep -Fq 'id="auth-box"' <<<"$admin" &&
+            if grep -Fq 'TSV Feldkirchen Tennis' <<<"$home" &&
+               grep -Fq 'class="premium-hero__features"' <<<"$home" &&
+               grep -Fq 'href="/hallenplaetze/"' <<<"$home" &&
+               grep -Fq 'href="/forderungspyramide/"' <<<"$home" &&
+               grep -Fq 'id="auth-box"' <<<"$admin" &&
                grep -Fq 'id="pyramid-login-form"' <<<"$pyramid" &&
                grep -Fq 'id="pyramid-public-board"' <<<"$pyramid" &&
                grep -Fq 'id="pyramid-rules-heading"' <<<"$pyramid" &&
