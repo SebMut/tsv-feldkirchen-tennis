@@ -10,8 +10,9 @@ type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:st
   created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;scheduled_confirmed_at?:string|null;refusal_reason?:string|null;winner_id:string|null;proposed_winner_id?:string|null;proposed_score?:string|null;result_reporter_id?:string|null;reported_at?:string|null;confirmation_deadline?:string|null;dispute_reason?:string|null;weather_extended_at?:string|null;overdue_extended_at?:string|null;no_show_requested_at?:string|null;no_show_reporter_id?:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
 const state: {
   user:any;profile:any;superAdmin:boolean;ladders:Ladder[];ladderId:string;
-  entries:Entry[];requests:Request[];challenges:Challenge[];resultChallenge:string;avatars:Record<string,string>;
-}={user:null,profile:null,superAdmin:false,ladders:[],ladderId:'',entries:[],requests:[],challenges:[],resultChallenge:'',avatars:{}};
+  entries:Entry[];requests:Request[];ownRequests:Request[];hasActiveEntry:boolean;
+  challenges:Challenge[];resultChallenge:string;avatars:Record<string,string>;
+}={user:null,profile:null,superAdmin:false,ladders:[],ladderId:'',entries:[],requests:[],ownRequests:[],hasActiveEntry:false,challenges:[],resultChallenge:'',avatars:{}};
 
 const el = <T extends HTMLElement>(id:string) => document.getElementById(id) as T | null;
 const html = (id:string, value:string) => { const target=el(id); if(target)target.innerHTML=value; };
@@ -322,6 +323,23 @@ function renderAll(){
   }
   renderBoard();renderUpcomingGames();renderGames();renderJoin();renderAdmin();renderOwnAvailability();renderMemberPortrait();renderAccountDeletion();
 }
+function showFirstJoinDialog(){
+  const dialog=el<HTMLDialogElement>('pyramid-first-join-dialog');
+  const selectable=state.ladders.filter(l=>l.active);
+  const alreadyApplied=state.ownRequests.some(r=>r.status==='pending'||r.status==='approved');
+  if(!dialog||state.superAdmin||state.hasActiveEntry||alreadyApplied||!selectable.length)return false;
+  const select=el<HTMLSelectElement>('pyramid-first-join-ladder');
+  if(select){
+    select.innerHTML=selectable.map(l=>'<option value="'+l.id+'">'
+      +escapeHtml(l.title+' · '+l.season_label)+'</option>').join('');
+    select.value=selectable.some(l=>l.id===state.ladderId)?state.ladderId:selectable[0].id;
+  }
+  const name=el<HTMLInputElement>('pyramid-first-join-name');
+  if(name&&!name.value)name.value=state.profile?.display_name||'';
+  modalMessage('pyramid-first-join-error');
+  if(!dialog.open)dialog.showModal();
+  return true;
+}
 async function loadLadder(){
   const ladder=currentLadder();
   if(!ladder){state.entries=[];state.requests=[];state.challenges=[];renderAll();return;}
@@ -380,9 +398,19 @@ async function load() {
     if(error)throw error;
     state.ladders=(data||[]) as Ladder[];
     if(!state.ladders.some((item)=>item.id===state.ladderId))state.ladderId=state.ladders[0]?.id||'';
+    const [ownRequests,ownEntries]=await Promise.all([
+      supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
+        .eq('user_id',state.user.id),
+      supabase.from('pyramid_entries').select('id').eq('user_id',state.user.id)
+        .is('withdrawn_at',null).limit(1)
+    ]);
+    if(ownRequests.error)throw ownRequests.error;
+    if(ownEntries.error)throw ownEntries.error;
+    state.ownRequests=(ownRequests.data||[]) as Request[];
+    state.hasActiveEntry=!!ownEntries.data?.length;
     await loadLadder();
     const lkDialog=el<HTMLDialogElement>('pyramid-lk-dialog');
-    if(!profile.data?.tennis_lk_declared_at&&!lkDialog?.open)lkDialog?.showModal();
+    if(!showFirstJoinDialog()&&!profile.data?.tennis_lk_declared_at&&!lkDialog?.open)lkDialog?.showModal();
   }catch(error){notice(safeError(error),'error');}
 }
 const resultSets:string[]=[];
@@ -597,6 +625,7 @@ function wireEvents(){
     const {error}=await supabase.auth.signOut();
     if(error){notice(safeError(error),'error');return;}
     state.user=null;state.profile=null;state.superAdmin=false;state.ladders=[];state.entries=[];
+    state.ownRequests=[];state.hasActiveEntry=false;
     hidden('pyramid-auth',false);hidden('pyramid-app',true);notice('Du bist abgemeldet.','success');
   });
   el<HTMLSelectElement>('pyramid-ladder-select')?.addEventListener('change',async(event)=>{
@@ -607,6 +636,30 @@ function wireEvents(){
     event.preventDefault();
     const name=el<HTMLInputElement>('pyramid-display-name')?.value.trim()||'';
     void runAction(()=>rpc('pyramid_request_join',{p_ladder:state.ladderId,p_name:name}),'Anfrage gespeichert.');
+  });
+  el<HTMLFormElement>('pyramid-first-join-form')?.addEventListener('submit',async(event)=>{
+    event.preventDefault();
+    const ladder=el<HTMLSelectElement>('pyramid-first-join-ladder')?.value||'';
+    const name=el<HTMLInputElement>('pyramid-first-join-name')?.value.trim()||'';
+    modalMessage('pyramid-first-join-error');
+    if(!state.ladders.some(l=>l.id===ladder&&l.active)){
+      modalMessage('pyramid-first-join-error','Bitte eine aktive Rangliste auswählen.');return;
+    }
+    if(name.length<2){modalMessage('pyramid-first-join-error','Bitte deinen Namen für die Rangliste eintragen.');return;}
+    const form=el<HTMLFormElement>('pyramid-first-join-form');
+    const button=form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if(button)button.disabled=true;
+    try{
+      await rpc('pyramid_request_join',{p_ladder:ladder,p_name:name});
+      state.ladderId=ladder;
+      state.ownRequests.push({id:'pending',ladder_id:ladder,user_id:state.user.id,display_name:name,status:'pending'});
+      el<HTMLDialogElement>('pyramid-first-join-dialog')?.close();
+      await loadLadder();
+      notice('Deine Teilnahmeanfrage wurde gesendet. Nach der Freigabe erhältst du eine E-Mail.','success');
+      const lkDialog=el<HTMLDialogElement>('pyramid-lk-dialog');
+      if(!state.profile?.tennis_lk_declared_at&&!lkDialog?.open)lkDialog?.showModal();
+    }catch(e){modalMessage('pyramid-first-join-error',safeError(e));}
+    finally{if(button)button.disabled=false;}
   });
   el('pyramid-account-delete')?.addEventListener('click',async()=>{
     const me=myEntry(),ladder=currentLadder();

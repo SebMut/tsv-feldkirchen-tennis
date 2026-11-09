@@ -79,8 +79,9 @@ function render(){
  display('pyramid-admin-pending',!ladders.length
   ?'<p class="muted">Lege zuerst eine Rangliste an.</p>'
   :pending.length?pending.map(r=>
-   '<div class="pyramid-admin-item"><strong>'+escapeHtml(r.display_name)+'</strong>'
-   +'<button class="button secondary" type="button" data-pyramid-admin-approve="'+r.id+'">Teilnahme freigeben</button></div>'
+   '<div class="pyramid-admin-item"><span><strong>'+escapeHtml(r.display_name)+'</strong><small>Wartet auf Genehmigung</small></span>'
+   +(isSuperAdmin?'<button class="button secondary" type="button" data-pyramid-admin-approve="'+r.id+'">Teilnahme genehmigen</button>'
+     :'<small>Genehmigung durch Superadmin erforderlich</small>')+'</div>'
   ).join(''):'<p class="muted">Keine offenen Anfragen.</p>');
  const current=ladders.find(l=>l.id===ladderId);
  const ranked=entries.filter(e=>e.qualified);
@@ -413,7 +414,9 @@ export function initPyramidAdmin(canManage:boolean,superAdmin=false){
  });
  $('pyramid-admin-pending')?.addEventListener('click',event=>{
   const id=(event.target as Element).closest<HTMLButtonElement>('[data-pyramid-admin-approve]')?.dataset.pyramidAdminApprove;
-  if(id)void act(()=>callRpc('pyramid_approve_join',{p_request:id}),'Teilnahme freigegeben.');
+  if(id&&isSuperAdmin&&confirm('Teilnahme genehmigen, Mitglied am Ende der Rangliste aufnehmen und Bestätigungs-E-Mail senden?'))
+    void act(()=>callRpc('pyramid_approve_join',{p_request:id}),
+      'Teilnahme genehmigt. Die Bestätigungs-E-Mail wurde zur Zustellung vorgemerkt.');
  });
  $('pyramid-admin-order')?.addEventListener('change',event=>{
   const neutral=(event.target as Element).closest<HTMLSelectElement>('[data-pyramid-admin-neutral]');

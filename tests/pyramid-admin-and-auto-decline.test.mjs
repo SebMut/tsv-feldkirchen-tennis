@@ -109,6 +109,20 @@ test('rejected challengers receive idempotent retryable CI email from existing G
  assert.doesNotMatch(mail,/SUPABASE_SERVICE_ROLE_KEY\s*=\s*['"][^'"]+/);
 });
 
+test('only Superadmins approve new members and approval queues a CI confirmation email',()=>{
+ const approval=read('supabase/migrations/20261109143000_pyramid_join_approval_email.sql');
+ const manager=read('src/scripts/admin-pyramid.ts');
+ const mail=read('supabase/functions/pyramid-auto-decline-email/index.ts');
+ assert.match(approval,/private\.is_super_admin\(\)/);
+ assert.match(approval,/pyramid_join_approval_notices/);
+ assert.match(approval,/claim_pyramid_join_approval_notification/);
+ assert.match(approval,/complete_pyramid_join_approval_notification/);
+ assert.match(manager,/isSuperAdmin\?'<button[^']+data-pyramid-admin-approve/);
+ assert.match(mail,/Teilnahme genehmigt/);
+ assert.match(mail,/buildJoinApprovalMail/);
+ assert.match(mail,/claim_pyramid_join_approval_notification/);
+});
+
 test('demo allows acceptance by selected defender and simulates auto-email without database writes',()=>{
  assert.match(member,/demoRole\(role:string\)/);
  assert.match(member,/myEntry\(\)\?\.id!==item\.defender_id/);

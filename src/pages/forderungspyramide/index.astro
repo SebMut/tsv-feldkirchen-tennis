@@ -226,6 +226,17 @@ const sectionTitle = sectionTitles[activeSection];
       <div class="pyramid-dialog-actions"><button class="button button--hot" type="submit">LK verbindlich speichern</button></div>
     </form>
   </dialog>
+  <dialog id="pyramid-first-join-dialog" class="pyramid-dialog pyramid-first-join-dialog" aria-labelledby="pyramid-first-join-title">
+    <form id="pyramid-first-join-form" class="pyramid-dialog-content">
+      <div class="pyramid-dialog-top"><div><p class="eyebrow">Erste Anmeldung</p><h2 id="pyramid-first-join-title">In welcher Rangliste möchtest du mitspielen?</h2></div></div>
+      <p>Wähle deine gewünschte Forderungspyramide. Der Superadmin prüft deine Anmeldung; erst nach der Freigabe wirst du in der Rangliste sichtbar.</p>
+      <div class="field full"><label for="pyramid-first-join-ladder">Rangliste</label><select id="pyramid-first-join-ladder" required></select></div>
+      <div class="field full"><label for="pyramid-first-join-name">Name in der Rangliste</label><input id="pyramid-first-join-name" minlength="2" maxlength="80" required autocomplete="name" /></div>
+      <p class="pyramid-modal-message"><strong>Deine Anfrage ist noch keine Freigabe.</strong> Nach der Genehmigung erhältst du eine E-Mail und wirst automatisch am Ende der gewählten Rangliste aufgenommen.</p>
+      <p id="pyramid-first-join-error" class="pyramid-modal-message hidden" role="alert" aria-live="assertive"></p>
+      <div class="pyramid-dialog-actions"><button class="button button--hot" type="submit">Teilnahme anfragen</button></div>
+    </form>
+  </dialog>
   <dialog id="pyramid-dialog" class="pyramid-dialog" aria-labelledby="pyramid-dialog-title">
     <form id="pyramid-result-form" method="dialog" class="pyramid-dialog-content pyramid-result-wizard">
       <div class="pyramid-dialog-top"><div><p class="eyebrow">Forderungsspiel · Ergebnis</p><h2 id="pyramid-dialog-title">1. Satz auswählen</h2></div>
