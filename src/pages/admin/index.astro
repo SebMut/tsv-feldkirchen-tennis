@@ -131,6 +131,7 @@ import '../../styles/pyramid.css';
               <div class="admin-summary-tile"><span>Verfügbare Mannschaften</span><strong id="admin-stat-teams">–</strong></div>
               <div class="admin-summary-tile"><span>Anstehende Spiele</span><strong id="admin-stat-upcoming">–</strong></div>
               <div class="admin-summary-tile"><span>Gerade live</span><strong id="admin-stat-live">–</strong></div>
+              <div class="admin-summary-tile hidden" data-pyramid-only><span>Pyramiden-Aufgaben</span><strong id="admin-stat-pyramid-tasks">–</strong></div>
             </div>
             <div id="dashboard-quickstart" class="card dashboard-quickstart">
               <p class="eyebrow">Direkt loslegen</p>
@@ -142,8 +143,22 @@ import '../../styles/pyramid.css';
                 <button class="admin-shortcut" type="button" data-admin-jump="players" data-editor-only><strong>Kader pflegen</strong><span>Spieler verwalten <span aria-hidden="true">›</span></span></button>
                 <button class="admin-shortcut" type="button" data-admin-jump="news" data-editorial-only><strong>Aktuelles &amp; Veranstaltungen</strong><span>Beiträge und Termine verwalten <span aria-hidden="true">›</span></span></button>
                 <button class="admin-shortcut" type="button" data-admin-jump="rsvp-export" data-events-only><strong>Anmeldungen &amp; PDF</strong><span>Teilnehmerzahlen prüfen und pro Fest PDF herunterladen <span aria-hidden="true">›</span></span></button>
+                <button class="admin-shortcut hidden" type="button" data-admin-jump="pyramid" data-pyramid-only><strong>Forderungspyramide</strong><span>Rangliste und offene Entscheidungen verwalten <span aria-hidden="true">›</span></span></button>
                 <button class="admin-shortcut hidden" type="button" data-admin-jump="manual-results" data-super-only><strong>Ergebnisse nachtragen</strong><span>Fehlende Ergebnisse <span aria-hidden="true">›</span></span></button>
               </div>
+            </div>
+            <div id="dashboard-pyramid-card" class="card dashboard-pyramid-card hidden" data-pyramid-only aria-live="polite">
+              <div class="dashboard-pyramid-card__head">
+                <div><p class="eyebrow">Forderungspyramide</p><h2>Ranglisten im Blick</h2><p id="dashboard-pyramid-season" class="muted">Status wird geladen …</p></div>
+                <span id="dashboard-pyramid-badge" class="dashboard-pyramid-badge">–</span>
+              </div>
+              <div class="dashboard-pyramid-stats" aria-label="Status der Forderungspyramide">
+                <div><strong id="dashboard-pyramid-members">–</strong><span>aktive Mitglieder</span></div>
+                <div><strong id="dashboard-pyramid-open">–</strong><span>laufende Spiele</span></div>
+                <div><strong id="dashboard-pyramid-requests">–</strong><span>offene Anfragen</span></div>
+              </div>
+              <p id="dashboard-pyramid-task-text" class="dashboard-pyramid-task-text muted">Aufgaben werden geprüft …</p>
+              <button class="button secondary" type="button" data-admin-jump="pyramid">Forderungspyramide verwalten</button>
             </div>
             <div id="phase8-my-next" class="card phase8-my-next" aria-live="polite"><p class="eyebrow">Mein TSV</p><h2>Mein nächster Spieltag</h2><p class="muted">Deine Mannschaft und der nächste Spieltag werden geladen …</p></div>
             <div class="card admin-team-directory">
@@ -885,6 +900,13 @@ import '../../styles/pyramid.css';
                 <a class="button ghost" href="/forderungspyramide/">Spieleransicht öffnen</a>
               </div>
               <div id="pyramid-admin-notice" class="notice hidden" role="status" aria-live="polite"></div>
+              <div class="pyramid-admin-overview" aria-label="Status der ausgewählten Rangliste">
+                <div><span>Mitglieder</span><strong id="pyramid-admin-stat-members">–</strong></div>
+                <div><span>Teilnahmeanfragen</span><strong id="pyramid-admin-stat-requests">–</strong></div>
+                <div><span>Laufende Spiele</span><strong id="pyramid-admin-stat-open">–</strong></div>
+                <div><span>Handlungsbedarf</span><strong id="pyramid-admin-stat-attention">–</strong></div>
+              </div>
+              <div id="pyramid-admin-attention" class="pyramid-admin-attention" aria-live="polite"><p class="muted">Status wird geladen …</p></div>
               <div class="actions"><button id="pyramid-admin-archive" class="button secondary" type="button">Gewählte Saison archivieren</button>
                 <button id="pyramid-admin-reactivate" class="button secondary" type="button">Gewählte Saison wieder aktivieren</button></div>
             </div>
