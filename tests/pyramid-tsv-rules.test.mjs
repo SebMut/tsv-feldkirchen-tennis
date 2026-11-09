@@ -16,6 +16,7 @@ const lkAndNotifications=read('supabase/migrations/20261109013000_pyramid_lk_and
 const protectionRefresh=read('supabase/migrations/20261109032500_pyramid_recalculate_protection_after_cancel.sql');
 const withdrawal=read('supabase/migrations/20261109070500_pyramid_challenger_withdrawal.sql');
 const acceptedWithdrawal=read('supabase/migrations/20261109073000_pyramid_withdraw_accepted_challenge.sql');
+const superadminManagement=read('supabase/migrations/20261109084500_pyramid_superadmin_player_and_result_management.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
  'src/pages/forderungspyramide/meine-ranglisten/index.astro',
@@ -75,6 +76,19 @@ test('only the challenger can withdraw a pending or accepted challenge',()=>{
  assert.match(client,/pyramid_withdraw_challenge/);
  assert.match(client,/fordert dich heraus\./);
  assert.match(client,/Du forderst/);
+});
+
+test('SuperAdmin alone can delete ladder players and correct completed results',()=>{
+ assert.match(superadminManagement,/pyramid_delete_entry/);
+ assert.match(superadminManagement,/if not private\.is_super_admin\(\)/);
+ assert.match(superadminManagement,/delete from public\.pyramid_challenges/);
+ assert.match(superadminManagement,/set position=position-1/);
+ assert.match(superadminManagement,/pyramid_correct_completed_result/);
+ assert.match(superadminManagement,/c\.status<>'completed'/);
+ assert.match(superadminManagement,/private\.pyramid_finish\(c\.id,p_winner,'completed',p_score\)/);
+ assert.match(admin,/isSuperAdmin\?'<button class="button danger pyramid-admin-delete"/);
+ assert.match(admin,/data-pyramid-admin-edit-result/);
+ assert.match(admin,/pyramid_correct_completed_result/);
 });
 
 test('Master §3 new players become last ranked on approval, no qualification round',()=>{
