@@ -20,6 +20,7 @@ const superadminManagement=read('supabase/migrations/20261109084500_pyramid_supe
 const securityHardening=read('supabase/migrations/20261109103000_pyramid_security_hardening.sql');
 const memberSelfDelete=read('supabase/migrations/20261109110000_pyramid_member_self_delete.sql');
 const lkSyncAndResort=read('supabase/migrations/20261109151500_pyramid_lk_sync_and_resort.sql');
+const superadminSortConstraintFix=read('supabase/migrations/20261109165500_pyramid_superadmin_sort_constraint_fix.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
  'src/pages/forderungspyramide/meine-ranglisten/index.astro',
@@ -224,6 +225,17 @@ test('Superadmin can re-sort an existing ladder by LK',()=>{
  assert.match(admin,/Aktuelle Rangliste nach LK sortieren/);
  assert.match(lkSyncAndResort,/Nur der Superadmin darf die Rangliste nach LK sortieren/);
  assert.match(lkSyncAndResort,/status in \('pending','accepted','result_pending','result_disputed'\)/);
+});
+
+test('Superadmin LK sorting remains available with open challenges',()=>{
+ assert.doesNotMatch(superadminSortConstraintFix,/status in \('pending'/);
+ assert.doesNotMatch(superadminSortConstraintFix,/^\s*set constraints/im);
+ assert.match(superadminSortConstraintFix,/order by lk_rating asc nulls last/);
+});
+
+test('login panel stays hidden until the session check finishes',()=>{
+ assert.match(page,/id="pyramid-auth" class="card pyramid-auth hidden"/);
+ assert.match(client,/hidden\('pyramid-auth',!!state\.user\)/);
 });
 
 test('approval copies a previously declared profile LK into the pyramid entry',()=>{
