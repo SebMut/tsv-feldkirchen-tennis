@@ -7,6 +7,7 @@ const login = read('src/pages/forderungspyramide/index.astro');
 const register = read('src/pages/forderungspyramide/registrieren/index.astro');
 const script = read('src/scripts/pyramid-registration.ts');
 const trigger = read('supabase/migrations/20260930100011_restore_auth_profile_trigger.sql');
+const member = read('src/scripts/pyramid.ts');
 
 test('login links to direct account registration instead of password-creation email', () => {
   assert.match(login, /Noch kein Konto\? Jetzt erstellen/);
@@ -31,4 +32,13 @@ test('new auth users receive a standard profile without trusting metadata for ro
   assert.match(trigger, /new\.raw_user_meta_data ->> 'display_name'/);
   assert.match(trigger, /'user'/);
   assert.doesNotMatch(trigger, /raw_user_meta_data ->> 'global_role'/);
+});
+
+test('first login requires choosing a ladder before the LK dialog continues', () => {
+  for (const id of ['pyramid-first-join-dialog', 'pyramid-first-join-form',
+    'pyramid-first-join-ladder', 'pyramid-first-join-name']) assert.match(login, new RegExp(`id="${id}"`));
+  assert.match(member, /function showFirstJoinDialog\(\)/);
+  assert.match(member, /pyramid_request_join/);
+  assert.match(member, /if\(!showFirstJoinDialog\(\)&&!profile\.data\?\.tennis_lk_declared_at/);
+  assert.match(login, /Nach der Genehmigung erhältst du eine E-Mail/);
 });

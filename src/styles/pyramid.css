@@ -258,6 +258,8 @@
 .pyramid-registration-page{max-width:900px}
 .pyramid-registration-card{max-width:760px;width:100%;margin-inline:auto}
 .pyramid-registration-card .notice{margin:0}
+.pyramid-first-join-dialog .pyramid-dialog-content{max-width:640px}
+.pyramid-first-join-dialog select,.pyramid-first-join-dialog input{width:100%}
 #pyramid-register-turnstile{min-height:65px;max-width:100%;overflow:hidden}
 .pyramid-avatar-editor{max-width:800px}
 #pyramid-avatar-preview{flex:0 0 auto}
