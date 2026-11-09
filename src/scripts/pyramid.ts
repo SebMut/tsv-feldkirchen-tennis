@@ -189,7 +189,7 @@ function renderGames() {
     const actions=(c.status==='pending'&&me?.id===c.defender_id&&!c.refusal_reason&&!late
       ?'<button type="button" data-pyramid-accept="'+c.id+'">Annehmen</button>'
         +'<button type="button" data-pyramid-decline="'+c.id+'">Absage begründen</button>':'')
-      +(c.status==='pending'&&me?.id===c.challenger_id
+      +(['pending','accepted'].includes(c.status)&&me?.id===c.challenger_id
         ?'<button type="button" data-pyramid-withdraw="'+c.id+'">Forderung zurückziehen</button>':'')
       +(c.status==='accepted'&&!late&&!c.refusal_reason&&me?.id===c.challenger_id
         ?'<button type="button" data-pyramid-schedule="'+c.id+'">'
@@ -204,8 +204,12 @@ function renderGames() {
       +(c.status==='result_disputed'&&!!me&&me.id===c.result_reporter_id
         ?'<button type="button" data-pyramid-result="'+c.id+'">Ergebnis korrigieren</button>':'')
       +(noShowAllowed?'<button type="button" data-pyramid-noshow="'+c.id+'">Nichtantreten melden</button>':'');
-    return '<article class="pyramid-game"><div><strong>'+escapeHtml(entryName(c.challenger_id))
-      +' fordert '+escapeHtml(entryName(c.defender_id))+'</strong>'
+    const gameTitle=me?.id===c.defender_id
+      ?entryName(c.challenger_id)+' fordert dich heraus.'
+      :me?.id===c.challenger_id
+        ?'Du forderst '+entryName(c.defender_id)+' heraus.'
+        :entryName(c.challenger_id)+' fordert '+entryName(c.defender_id);
+    return '<article class="pyramid-game"><div><strong>'+escapeHtml(gameTitle)+'</strong>'
       +'<small>'+escapeHtml(c.status==='cancelled'&&c.decline_reason==='withdrawn_by_challenger'
         ?'Vom Herausforderer zurückgezogen':labels[c.status]||c.status)+' · '+formatTime(c.created_at)+'</small>'
       +(c.refusal_reason?'<small>Absage zur Prüfung: '+escapeHtml(c.refusal_reason)+'</small>':'')
@@ -726,7 +730,7 @@ function wireEvents(){
     }
     const withdraw=target.dataset.pyramidWithdraw;
     if(withdraw){
-      if(confirm('Offene Forderung wirklich zurückziehen?'))void runAction(
+      if(confirm('Forderung wirklich zurückziehen? Ein bereits vereinbarter Termin wird damit abgesagt.'))void runAction(
         ()=>rpc('pyramid_withdraw_challenge',{p_challenge:withdraw}),'Forderung zurückgezogen.');
       return;
     }
