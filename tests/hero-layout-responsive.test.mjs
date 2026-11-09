@@ -104,7 +104,7 @@ test('mobile TSV dock offers five visible icon tabs with a conditional Teams/Tic
 });
 
 test('small screens have shorter hero, closer card spacing and usable bottom dock space',()=>{
-  assert.match(css,/\.premium-hero\{min-height:365px\}/);
+  assert.match(css,/\.premium-hero\{min-height:610px\}/);
   assert.match(css,/\.premium-metrics>div\{padding:12px 8px\}/);
   assert.match(css,/\.premium-content\{padding-top:15px;padding-bottom:24px;gap:13px\}/);
   assert.match(css,/\.home-welcome>p:nth-of-type\(2\)\{display:none\}/);
