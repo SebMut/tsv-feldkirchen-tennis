@@ -12,6 +12,7 @@ const styles=read('src/styles/pyramid.css');
 const mail=read('supabase/functions/pyramid-auto-decline-email/index.ts');
 const memberNavigation=read('supabase/migrations/20261108205922_pyramid_member_navigation_and_neutrality.sql');
 const scheduleConfirmation=read('supabase/migrations/20261108224000_pyramid_schedule_confirmation.sql');
+const lkAndNotifications=read('supabase/migrations/20261109013000_pyramid_lk_and_change_notifications.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
  'src/pages/forderungspyramide/meine-ranglisten/index.astro',
@@ -35,6 +36,23 @@ test('Master §2 Tannenbaum examples including rank 3 special rule',()=>{
  assert.match(master,/elsif c.position=15 then/);
  assert.equal(scoreWinner('6:4, 4:6, 10:8'),1);
  assert.equal(scoreWinner('6:4, 4:6, 9:8'),null);
+});
+
+test('LK is declared once by the member and later editable only by SuperAdmin',()=>{
+ assert.match(lkAndNotifications,/pyramid_declare_my_lk/);
+ assert.match(lkAndNotifications,/tennis_lk_declared_at is not null/);
+ assert.match(lkAndNotifications,/private\.is_super_admin\(\)/);
+ assert.match(lkAndNotifications,/update public\.pyramid_entries set lk_rating=p_lk where user_id=target_user/);
+ assert.match(page,/Bitte trage wahrheitsgemäß/);
+ assert.match(client,/pyramid_declare_my_lk/);
+});
+
+test('every match change queues CI mail for both participants',()=>{
+ assert.match(lkAndNotifications,/new\.challenger_id,event_name/);
+ assert.match(lkAndNotifications,/new\.defender_id,event_name/);
+ assert.match(lkAndNotifications,/claim_pyramid_change_notification/);
+ assert.match(mail,/buildChangeMail/);
+ assert.match(mail,/background:#e30613/);
 });
 
 test('Master §3 new players become last ranked on approval, no qualification round',()=>{

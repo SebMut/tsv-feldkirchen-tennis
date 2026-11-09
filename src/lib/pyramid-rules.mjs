@@ -49,7 +49,7 @@ export function scoreWinner(score) {
     const normal = (hi === 6 && lo <= 4) || (hi === 7 && (lo === 5 || lo === 6));
     const matchTie = hi >= 10 && hi - lo >= 2;
     if (i < 2 && !normal) return null;
-    if (i === 2 && !matchTie) return null;
+    if (i === 2 && !normal && !matchTie) return null;
     if (a > b) first++; else second++;
   }
   if (sets.length === 2 && (first === 2 || second === 2)) return first === 2 ? 1 : 2;

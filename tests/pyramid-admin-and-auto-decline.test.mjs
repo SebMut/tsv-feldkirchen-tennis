@@ -45,7 +45,7 @@ test('own Admin panel is shown only to pyramid permission holders',()=>{
  assert.match(adminPage,/id="pyramid-admin-pending"/);
  assert.match(adminPage,/id="pyramid-admin-result"/);
  assert.match(admin,/hasGlobalPermission\('pyramid'\)/);
- assert.match(admin,/initPyramidAdmin\(canPyramid\)/);
+ assert.match(admin,/initPyramidAdmin\(canPyramid, state\.isSuper\)/);
  assert.match(admin,/data-pyramid-only/);
  assert.match(admin,/if \(name === 'pyramid' && !hasGlobalPermission\('pyramid'\)\) return/);
  const manager=read('src/scripts/admin-pyramid.ts');
