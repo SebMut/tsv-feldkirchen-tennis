@@ -53,6 +53,20 @@ test('own Admin panel is shown only to pyramid permission holders',()=>{
   assert.match(manager,new RegExp(rpc));
 });
 
+test('admin dashboard surfaces pyramid status and actionable work',()=>{
+ const manager=read('src/scripts/admin-pyramid.ts');
+ const styles=read('src/styles/global.css');
+ for(const id of ['dashboard-pyramid-card','admin-stat-pyramid-tasks','pyramid-admin-stat-members',
+  'pyramid-admin-stat-requests','pyramid-admin-stat-open','pyramid-admin-stat-attention'])
+  assert.match(adminPage,new RegExp('id="'+id+'"'));
+ assert.match(adminPage,/data-admin-jump="pyramid" data-pyramid-only/);
+ assert.match(manager,/function renderOverview\(\)/);
+ assert.match(manager,/function needsAttention\(ch:Match\)/);
+ assert.match(manager,/\.is\('withdrawn_at',null\)/);
+ assert.match(styles,/\.dashboard-pyramid-card\{/);
+ assert.match(styles,/\.pyramid-admin-overview\{/);
+});
+
 test('acceptance atomically declines other pending challenges to both players',()=>{
  assert.match(sql,/for update/);
  assert.match(sql,/create or replace function public\.pyramid_respond/);

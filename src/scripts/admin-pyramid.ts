@@ -24,6 +24,50 @@ const display=(id:string,markup:string)=>{
  if(target)target.innerHTML=markup;
 };
 const label=(id:string)=>entries.find(e=>e.id===id)?.display_name||'Teilnehmer';
+const setText=(id:string,value:string|number)=>{const target=$(id);if(target)target.textContent=String(value);};
+const openStatuses=['pending','accepted','result_pending','result_disputed'];
+function needsAttention(ch:Match){
+ const deadline=ch.play_deadline||new Date(new Date(ch.created_at).getTime()+14*86400000).toISOString();
+ return ['result_pending','result_disputed'].includes(ch.status)
+  ||!!ch.refusal_reason||!!ch.no_show_requested_at
+  ||(['pending','accepted'].includes(ch.status)&&new Date(deadline).getTime()<Date.now());
+}
+function renderOverview(){
+ const current=ladders.find(l=>l.id===ladderId);
+ const pending=requests.filter(r=>r.status==='pending').length;
+ const open=challenges.filter(ch=>openStatuses.includes(ch.status)).length;
+ const attention=challenges.filter(needsAttention).length+pending;
+ setText('pyramid-admin-stat-members',entries.length);
+ setText('pyramid-admin-stat-requests',pending);
+ setText('pyramid-admin-stat-open',open);
+ setText('pyramid-admin-stat-attention',attention);
+ setText('admin-stat-pyramid-tasks',attention);
+ setText('dashboard-pyramid-members',entries.length);
+ setText('dashboard-pyramid-open',open);
+ setText('dashboard-pyramid-requests',pending);
+ setText('dashboard-pyramid-season',current
+  ?current.title+' · '+current.season_label+(current.active?'':' · archiviert')
+  :'Noch keine Rangliste eingerichtet');
+ setText('dashboard-pyramid-badge',attention?attention+' offen':'Alles aktuell');
+ const taskText=attention
+  ?[pending?pending+' Teilnahmeanfrage'+(pending===1?'':'n'):'',
+     challenges.filter(needsAttention).length?challenges.filter(needsAttention).length+' Spielentscheidung'+(challenges.filter(needsAttention).length===1?'':'en'):'']
+    .filter(Boolean).join(' und ')+' benötigen deine Aufmerksamkeit.'
+  :'Aktuell gibt es keine offenen Entscheidungen.';
+ setText('dashboard-pyramid-task-text',taskText);
+ const details:string[]=[];
+ if(pending)details.push('<strong>'+pending+' Teilnahmeanfrage'+(pending===1?'':'n')+'</strong> freigeben');
+ const disputed=challenges.filter(ch=>ch.status==='result_disputed').length;
+ if(disputed)details.push('<strong>'+disputed+' strittige'+(disputed===1?'s Ergebnis':' Ergebnisse')+'</strong> entscheiden');
+ const confirmations=challenges.filter(ch=>ch.status==='result_pending').length;
+ if(confirmations)details.push('<strong>'+confirmations+' Ergebnis'+(confirmations===1?'':'se')+'</strong> prüfen');
+ const exceptional=challenges.filter(ch=>!!ch.refusal_reason||!!ch.no_show_requested_at
+   ||(['pending','accepted'].includes(ch.status)&&needsAttention(ch))).length;
+ if(exceptional)details.push('<strong>'+exceptional+' Frist-/Sonderfall'+(exceptional===1?'':'fälle')+'</strong> bearbeiten');
+ display('pyramid-admin-attention',details.length
+  ?'<p class="eyebrow">Als Nächstes</p><ul>'+details.map(item=>'<li>'+item+'</li>').join('')+'</ul>'
+  :'<p class="pyramid-admin-all-clear"><strong>✓ Kein Handlungsbedarf</strong><span>Alle Anfragen und Forderungsspiele sind aktuell.</span></p>');
+}
 function render(){
  const select=$<HTMLSelectElement>('pyramid-admin-ladder');
  if(select){
@@ -31,6 +75,7 @@ function render(){
   select.value=ladderId;
  }
  const pending=requests.filter(r=>r.status==='pending');
+ renderOverview();
  display('pyramid-admin-pending',!ladders.length
   ?'<p class="muted">Lege zuerst eine Rangliste an.</p>'
   :pending.length?pending.map(r=>
@@ -203,7 +248,7 @@ async function loadSelected(){
  if(!ladderId){entries=[];requests=[];challenges=[];render();return;}
  const [players,joins,encounters]=await Promise.all([
   supabase.from('pyramid_entries').select('id,display_name,position,qualified,lk_rating,neutralized_at,neutralized_reason')
-   .eq('ladder_id',ladderId).order('position'),
+   .eq('ladder_id',ladderId).is('withdrawn_at',null).order('position'),
   supabase.from('pyramid_requests').select('id,display_name,status')
    .eq('ladder_id',ladderId),
   supabase.from('pyramid_challenges')
