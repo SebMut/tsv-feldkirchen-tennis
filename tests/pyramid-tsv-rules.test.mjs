@@ -248,6 +248,12 @@ test('production test entries are non-login placeholders and cannot be challenge
  assert.match(client,/me\.is_test\|\|target\.is_test/);
 });
 
+test('geometrically reachable places stay red even when the action is temporarily blocked',()=>{
+ assert.match(client,/const canHighlight=!!me&&canPlay&&me\.id!==item\.id&&canChallenge\(me\.position,item\.position\)/);
+ assert.match(client,/\(canHighlight\?' is-target':''\)/);
+ assert.match(client,/\(canTarget\?'<button type="button" data-pyramid-challenge=/);
+});
+
 test('approval copies a previously declared profile LK into the pyramid entry',()=>{
  assert.match(lkSyncAndResort,/select p\.tennis_lk_rating into declared_lk/);
  assert.match(lkSyncAndResort,/provisional,lk_rating/);

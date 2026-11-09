@@ -143,9 +143,13 @@ function renderBoard() {
       '<div class="pyramid-board-row" role="list" aria-label="Pyramidenreihe '+(index+1)+'">'+row.map(item=>{
         if(!item)return '<div class="pyramid-entry is-empty" aria-hidden="true"></div>';
         const mine=me?.id===item.id;
+        // Always visualize the geometric challenge range. Temporary blockers
+        // (open match, protection, absence) and non-login test places only
+        // suppress the action button, not the helpful red orientation.
+        const canHighlight=!!me&&canPlay&&me.id!==item.id&&canChallenge(me.position,item.position);
         const canTarget=!!me&&canPlay&&canSendChallenge(me,item);
         const portrait=item.user_id?state.avatars[item.user_id]:undefined;
-        return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canTarget?' is-target':'')
+        return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canHighlight?' is-target':'')
           +(neutralNow(item)?' is-neutralized':'')+'">'
           +(portrait?'<img class="pyramid-entry-avatar" src="'+escapeHtml(mediaUrl(portrait))
              +'" alt="Profilbild von '+escapeHtml(item.display_name)+'" loading="lazy" decoding="async" />':'')
