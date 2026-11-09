@@ -922,6 +922,11 @@ import '../../styles/pyramid.css';
                 <div><span>Handlungsbedarf</span><strong id="pyramid-admin-stat-attention">–</strong></div>
               </div>
               <div id="pyramid-admin-attention" class="pyramid-admin-attention" aria-live="polite"><p class="muted">Status wird geladen …</p></div>
+              <form class="form-grid hidden" id="pyramid-admin-dates">
+                <div class="field"><label for="pyramid-admin-edit-from">Startdatum</label><input id="pyramid-admin-edit-from" type="date" required /></div>
+                <div class="field"><label for="pyramid-admin-edit-until">Enddatum</label><input id="pyramid-admin-edit-until" type="date" required /></div>
+                <div class="field full"><button class="button" type="submit">Saisonzeitraum speichern</button></div>
+              </form>
               <div class="actions"><button id="pyramid-admin-archive" class="button secondary" type="button">Gewählte Saison archivieren</button>
                 <button id="pyramid-admin-reactivate" class="button secondary" type="button">Gewählte Saison wieder aktivieren</button></div>
             </div>

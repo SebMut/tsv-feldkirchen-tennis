@@ -34,6 +34,10 @@ function needsAttention(ch:Match){
 }
 function renderOverview(){
  const current=ladders.find(l=>l.id===ladderId);
+ const editFrom=$<HTMLInputElement>('pyramid-admin-edit-from');
+ const editUntil=$<HTMLInputElement>('pyramid-admin-edit-until');
+ if(editFrom)editFrom.value=current?.starts_on||'';
+ if(editUntil)editUntil.value=current?.ends_on||'';
  const pending=requests.filter(r=>r.status==='pending').length;
  const open=challenges.filter(ch=>openStatuses.includes(ch.status)).length;
  const attention=challenges.filter(needsAttention).length+pending;
@@ -272,6 +276,7 @@ export function initPyramidAdmin(canManage:boolean,superAdmin=false){
  isSuperAdmin=superAdmin;
  initialized=true;
  panel.classList.remove('hidden');
+ if(isSuperAdmin)$<HTMLFormElement>('pyramid-admin-dates')?.classList.remove('hidden');
  const summer=defaultMasterSeason();
  for(const [id,value] of [
    ['pyramid-admin-season',summer.label],
@@ -377,6 +382,17 @@ export function initPyramidAdmin(canManage:boolean,superAdmin=false){
    }),'Verbindlicher Spieltermin eingetragen.');
  });
  $('pyramid-admin-refresh')?.addEventListener('click',()=>void act(async()=>{},'Aktualisiert.',true));
+ $<HTMLFormElement>('pyramid-admin-dates')?.addEventListener('submit',event=>{
+   event.preventDefault();
+   if(!ladderId||!isSuperAdmin)return;
+   const from=$<HTMLInputElement>('pyramid-admin-edit-from')?.value||'';
+   const until=$<HTMLInputElement>('pyramid-admin-edit-until')?.value||'';
+   if(!from||!until||until<from){msg('Das Enddatum muss am oder nach dem Startdatum liegen.','error');return;}
+   if(!confirm('Saisonzeitraum auf '+from.split('-').reverse().join('.')+' bis '+until.split('-').reverse().join('.')+' ändern?'))return;
+   void act(()=>callRpc('pyramid_update_ladder_dates',{
+     p_ladder:ladderId,p_starts_on:from,p_ends_on:until
+   }),'Saisonzeitraum gespeichert.',true);
+ });
  $('pyramid-admin-archive')?.addEventListener('click',()=>{
    if(!ladderId||!confirm('Diese Saison archivieren? Die Rangfolge bleibt erhalten, neue Forderungen sind gesperrt.'))return;
    void act(async()=>{

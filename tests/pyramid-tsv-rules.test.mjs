@@ -22,6 +22,7 @@ const memberSelfDelete=read('supabase/migrations/20261109110000_pyramid_member_s
 const lkSyncAndResort=read('supabase/migrations/20261109151500_pyramid_lk_sync_and_resort.sql');
 const superadminSortConstraintFix=read('supabase/migrations/20261109165500_pyramid_superadmin_sort_constraint_fix.sql');
 const productionTestEntries=read('supabase/migrations/20261109171000_herren_summer_2027_test_entries.sql');
+const superadminSeasonDates=read('supabase/migrations/20261109173521_pyramid_superadmin_season_dates.sql');
 const positionConstraintLookupFix=read('supabase/migrations/20261109172504_fix_pyramid_position_constraint_lookup.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
@@ -334,6 +335,17 @@ test('Master §5 season May 1 to September 30 and admin archives existing ladder
  assert.match(page,/1. Mai bis 30. September/);
  assert.match(admin,/pyramid-admin-archive/);
  assert.match(admin,/pyramid-admin-reactivate/);
+});
+
+test('SuperAdmin can edit an existing ladder start and end date',()=>{
+ assert.match(adminPage,/id="pyramid-admin-dates"/);
+ assert.match(adminPage,/id="pyramid-admin-edit-from"/);
+ assert.match(adminPage,/id="pyramid-admin-edit-until"/);
+ assert.match(admin,/if\(isSuperAdmin\).*pyramid-admin-dates/);
+ assert.match(admin,/pyramid_update_ladder_dates/);
+ assert.match(superadminSeasonDates,/if not private\.is_super_admin\(\)/);
+ assert.match(superadminSeasonDates,/if p_ends_on < p_starts_on/);
+ assert.match(superadminSeasonDates,/revoke all on function public\.pyramid_update_ladder_dates\(uuid,date,date\) from public,anon/);
 });
 
 test('Master roles and hidden route remain protected',()=>{
