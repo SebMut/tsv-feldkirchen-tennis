@@ -89,7 +89,8 @@ import '../../styles/pyramid.css';
             <summary class="admin-nav__label">Spielbetrieb</summary>
             <div class="admin-nav__items">
             <button type="button" data-panel="matches" data-ticker-only><span aria-hidden="true" class="admin-nav__symbol">◉</span> Spiele &amp; Liveticker</button>
-            <button type="button" data-panel="pyramid" data-pyramid-only><span aria-hidden="true" class="admin-nav__symbol">♟</span> Forderungspyramide</button>
+            <button type="button" data-panel="pyramid-member"><span aria-hidden="true" class="admin-nav__symbol">♟</span> Forderungspyramide</button>
+            <button type="button" data-panel="pyramid" data-pyramid-only><span aria-hidden="true" class="admin-nav__symbol">⚙</span> Pyramide verwalten</button>
              <button type="button" data-panel="teams" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">▤</span> Mannschaften</button>
             <button type="button" data-panel="players" data-editor-only><span aria-hidden="true" class="admin-nav__symbol">♙</span> Kader</button>
             <button type="button" data-panel="btv-import" data-super-only><span aria-hidden="true" class="admin-nav__symbol">↻</span> BTV-Spielplan</button>
@@ -185,6 +186,20 @@ import '../../styles/pyramid.css';
             </div>
           </section>
 
+
+          <section id="panel-pyramid-member" class="admin-panel" aria-labelledby="admin-member-pyramid-heading">
+            <div class="card admin-member-pyramid-intro">
+              <div>
+                <p class="eyebrow">Mein TSV · Forderungspyramide</p>
+                <h2 id="admin-member-pyramid-heading">Meine Rangliste und Forderungsspiele</h2>
+                <p class="muted">Hier siehst du deinen Ranglistenplatz, deine möglichen Gegner, vereinbarte Spiele und die vollständige Forderungspyramide. Du bleibst dabei im geschützten Mein-TSV-Bereich angemeldet.</p>
+              </div>
+              <a class="button secondary" href="/forderungspyramide/" target="_blank" rel="noopener noreferrer">Großansicht öffnen <span aria-hidden="true">↗</span></a>
+            </div>
+            <div class="card admin-member-pyramid-frame-card">
+              <iframe id="admin-member-pyramid-frame" class="admin-member-pyramid-frame" title="Forderungspyramide und persönliche Ranglistenpunkte" src="/forderungspyramide/?embed=admin" loading="lazy"></iframe>
+            </div>
+          </section>
 
           <section id="panel-official-rubbers" class="admin-panel" data-super-only>
             <div class="card stack">
