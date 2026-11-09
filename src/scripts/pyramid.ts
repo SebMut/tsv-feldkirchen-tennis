@@ -369,6 +369,12 @@ async function load() {
   }catch(error){notice(safeError(error),'error');}
 }
 const resultSets:string[]=[];
+const normalizeWinnerScore=(score:string)=>{
+  const winner=scoreWinner(score);
+  if(winner===1)return score.trim();
+  if(winner!==2)return null;
+  return score.trim().split(/,\s*/).map(set=>set.split(':').reverse().join(':')).join(', ');
+};
 const normalSetScores=['6:0','0:6','6:1','1:6','6:2','2:6','6:3','3:6','6:4','4:6','7:5','5:7','7:6','6:7'];
 const tieBreakScores=['10:0','0:10','10:5','5:10','10:7','7:10','10:8','8:10'];
 function setIsValid(score:string,tieBreak:boolean){
@@ -399,8 +405,8 @@ function renderResultWizard(){
   text('pyramid-result-help',correctionHint+(tieBreak?'Der dritte Satz ist immer ein Champions-Tie-Break bis mindestens 10 Punkte mit zwei Punkten Abstand.':'Sobald der Sieger zwei Sätze gewonnen hat, erscheint der Speichern-Button.'));
   const own=el<HTMLInputElement>('pyramid-result-own-games');const opponent=el<HTMLInputElement>('pyramid-result-opponent-games');
   if(own)own.value=tieBreak?'10':'6';if(opponent)opponent.value=tieBreak?'8':'0';
-  hidden('pyramid-result-submit',winner!==1);
-  modalMessage('pyramid-result-error',winner===2?'Das Ergebnis muss aus Sicht des Siegers eingegeben werden. Bitte den letzten Satz ändern.':'');
+  hidden('pyramid-result-submit',winner===null);
+  modalMessage('pyramid-result-error');
 }
 function addResultSet(score:string){
   const tieBreak=resultSets.length===2;
@@ -894,10 +900,11 @@ function wireEvents(){
   el<HTMLFormElement>('pyramid-result-form')?.addEventListener('submit',async(event)=>{
     event.preventDefault();
     const value=el<HTMLInputElement>('pyramid-result-score')?.value.trim()||'';
-    if(scoreWinner(value)!==1){modalMessage('pyramid-result-error','Bitte zuerst ein vollständiges Siegergebnis aus zwei Gewinnsätzen erfassen.');return;}
+    const normalizedScore=normalizeWinnerScore(value);
+    if(!normalizedScore){modalMessage('pyramid-result-error','Bitte zuerst ein vollständiges Ergebnis mit zwei gewonnenen Sätzen erfassen.');return;}
     const winner=state.superAdmin?el<HTMLSelectElement>('pyramid-result-winner')?.value:undefined;
     try{
-      await rpc('pyramid_report_result',{p_challenge:state.resultChallenge,p_score:value,
+      await rpc('pyramid_report_result',{p_challenge:state.resultChallenge,p_score:normalizedScore,
         ...(winner?{p_winner:winner}:{})});
       dialog?.close();notice('Ergebnis gemeldet. Die Rangliste ändert sich erst nach Bestätigung des Gegners (innerhalb von 48 Stunden) oder Entscheidung des Ranglistenwarts.','success');await loadLadder();
     }catch(e){modalMessage('pyramid-result-error',safeError(e));}
