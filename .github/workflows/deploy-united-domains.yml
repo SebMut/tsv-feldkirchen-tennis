@@ -232,22 +232,24 @@ jobs:
             home=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/" || true)
             admin=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/admin/" || true)
             pyramid=$(curl -fsSL --connect-timeout 10 --max-time 30 "$domain/forderungspyramide/?release-check=$GITHUB_SHA" || true)
-            if echo "$home" | grep -Fq 'TSV Feldkirchen Tennis' && echo "$admin" | grep -Fq 'id="auth-box"' &&
-               echo "$pyramid" | grep -Fq 'id="pyramid-login-form"' &&
-               echo "$pyramid" | grep -Fq 'id="pyramid-public-board"' &&
-               echo "$pyramid" | grep -Fq 'id="pyramid-rules-heading"' &&
-               echo "$pyramid" | grep -Fq 'id="pyramid-access-turnstile-widget"' &&
-               echo "$pyramid" | grep -Fq 'id="pyramid-password-setup-form"' &&
-               echo "$pyramid" | grep -Fq 'Passwort-Link per E-Mail' &&
-               echo "$pyramid" | grep -Fq 'id="pyramid-password-change"' &&
-               echo "$pyramid" | grep -Fq 'Jetzt Teilnahme beantragen' &&
-               echo "$pyramid" | grep -Fq 'id="pyramid-avatar-save-state"' &&
-               echo "$pyramid" | grep -Fq 'id="pyramid-avatar-panel"' &&
-               echo "$pyramid" | grep -Fq 'id="pyramid-avatar-file"' &&
-               echo "$pyramid" | grep -Fq 'id="pyramid-neutral-reason"' &&
-               echo "$pyramid" | grep -Fq 'Urlaub (maximal 28 Tage)' &&
-               echo "$pyramid" | grep -Fq 'Ergebnis zur Bestätigung melden' &&
-               echo "$pyramid" | grep -Fq 'noindex,nofollow'; then
+            # Here-strings avoid SIGPIPE false negatives when grep -q finds a
+            # marker early in the now larger generated admin/pyramid HTML.
+            if grep -Fq 'TSV Feldkirchen Tennis' <<<"$home" && grep -Fq 'id="auth-box"' <<<"$admin" &&
+               grep -Fq 'id="pyramid-login-form"' <<<"$pyramid" &&
+               grep -Fq 'id="pyramid-public-board"' <<<"$pyramid" &&
+               grep -Fq 'id="pyramid-rules-heading"' <<<"$pyramid" &&
+               grep -Fq 'id="pyramid-access-turnstile-widget"' <<<"$pyramid" &&
+               grep -Fq 'id="pyramid-password-setup-form"' <<<"$pyramid" &&
+               grep -Fq 'Passwort-Link per E-Mail' <<<"$pyramid" &&
+               grep -Fq 'id="pyramid-password-change"' <<<"$pyramid" &&
+               grep -Fq 'Jetzt Teilnahme beantragen' <<<"$pyramid" &&
+               grep -Fq 'id="pyramid-avatar-save-state"' <<<"$pyramid" &&
+               grep -Fq 'id="pyramid-avatar-panel"' <<<"$pyramid" &&
+               grep -Fq 'id="pyramid-avatar-file"' <<<"$pyramid" &&
+               grep -Fq 'id="pyramid-neutral-reason"' <<<"$pyramid" &&
+               grep -Fq 'Urlaub (maximal 28 Tage)' <<<"$pyramid" &&
+               grep -Fq 'Ergebnis zur Bestätigung melden' <<<"$pyramid" &&
+               grep -Fq 'noindex,nofollow' <<<"$pyramid"; then
               missing=0
               while IFS= read -r asset; do
                 [ -n "$asset" ] || continue
