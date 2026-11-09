@@ -2823,7 +2823,7 @@ async function startApp(user: any) {
   bindTvTimingControls(state); // Ready immediately, even while other admin data loads.
   initSystemMonitor(state.isSuper);
   initSiteAnalyticsAdmin(state.isSuper);
-  initPyramidAdmin(canPyramid);
+  initPyramidAdmin(canPyramid, state.isSuper);
   if (canNews || canEvents) {
     initEditorialComposer({ canNews, canEvents, user: state.user });
     window.addEventListener('tsv:editorial-content-changed', () => {

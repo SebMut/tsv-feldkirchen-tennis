@@ -201,6 +201,16 @@ const sectionTitle = sectionTitles[activeSection];
       </form>
     </div>
   </dialog>
+  <dialog id="pyramid-lk-dialog" class="pyramid-dialog" aria-labelledby="pyramid-lk-title">
+    <form id="pyramid-lk-form" class="pyramid-dialog-content">
+      <div class="pyramid-dialog-top"><div><p class="eyebrow">Einmalige Angabe</p><h2 id="pyramid-lk-title">Bitte trage deine aktuelle LK ein</h2></div></div>
+      <p>Für eine faire Startaufstellung benötigen wir einmalig deine aktuelle Leistungsklasse.</p>
+      <p class="pyramid-modal-message"><strong>Bitte trage wahrheitsgemäß deine tatsächliche LK ein.</strong> Nach dem Speichern kannst du den Wert nicht selbst ändern. Eine spätere Korrektur ist nur durch den Superadmin möglich.</p>
+      <div class="field"><label for="pyramid-own-lk">Meine aktuelle LK</label><input id="pyramid-own-lk" type="number" min="1" max="25" step="0.1" inputmode="decimal" placeholder="z. B. 12,5" required /></div>
+      <p id="pyramid-lk-error" class="pyramid-modal-message hidden" role="alert" aria-live="assertive"></p>
+      <div class="pyramid-dialog-actions"><button class="button button--hot" type="submit">LK verbindlich speichern</button></div>
+    </form>
+  </dialog>
   <dialog id="pyramid-dialog" class="pyramid-dialog" aria-labelledby="pyramid-dialog-title">
     <form id="pyramid-result-form" method="dialog" class="pyramid-dialog-content pyramid-result-wizard">
       <div class="pyramid-dialog-top"><div><p class="eyebrow">Forderungsspiel · Ergebnis</p><h2 id="pyramid-dialog-title">1. Satz auswählen</h2></div>

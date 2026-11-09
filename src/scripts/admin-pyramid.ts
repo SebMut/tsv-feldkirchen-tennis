@@ -13,6 +13,7 @@ let entries:Entry[]=[];
 let requests:Join[]=[];
 let challenges:Match[]=[];
 let initialized=false;
+let isSuperAdmin=false;
 const msg=(value:string,tone:'info'|'success'|'error'='info')=>{
  const target=$('pyramid-admin-notice');
  if(!target)return;
@@ -49,7 +50,7 @@ function render(){
    +[['','Spielbereit'],['injury','Verletzung'],['illness','Krankheit'],['vacation','Urlaub'],['other','Abwesend']]
      .map(([value,label])=>'<option value="'+value+'"'+((e.neutralized_reason||'')===value?' selected':'')+'>'+label+'</option>').join('')
    +'</select>'
-   +(manualSeed?'<label>LK <input type="number" min="1" max="25" step="0.1" aria-label="LK von '
+   +(isSuperAdmin?'<label>LK <input type="number" min="1" max="25" step="0.1" aria-label="LK von '
       +escapeHtml(e.display_name)+'" data-pyramid-admin-lk="'+e.id+'" value="'
       +(e.lk_rating==null?'':e.lk_rating)+'" placeholder="z. B. 12.5" /></label>':'')
    +'<button type="button" data-pyramid-admin-move="'+e.id+'" data-delta="-1"'
@@ -214,9 +215,10 @@ const act=async(run:()=>Promise<unknown>,success:string,reloadAll=false)=>{
  try{await run();msg(success,'success');if(reloadAll)await load();else await loadSelected();}
  catch(e){msg('Änderung nicht gespeichert: '+String((e as Error).message||e),'error');}
 };
-export function initPyramidAdmin(canManage:boolean){
+export function initPyramidAdmin(canManage:boolean,superAdmin=false){
  const panel=$('panel-pyramid');
  if(!panel||!canManage||initialized)return;
+ isSuperAdmin=superAdmin;
  initialized=true;
  panel.classList.remove('hidden');
  const summer=defaultMasterSeason();

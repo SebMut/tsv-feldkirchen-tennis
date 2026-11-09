@@ -353,7 +353,7 @@ async function load() {
     hidden('pyramid-app',!state.user);
     hidden('pyramid-public-panel',!!state.user);
     if(!state.user){await loadGuestStandings();return;}
-    const profile=await supabase.from('profiles').select('id,display_name,global_role,global_permissions,avatar_path').eq('id',state.user.id).maybeSingle();
+    const profile=await supabase.from('profiles').select('id,display_name,global_role,global_permissions,avatar_path,tennis_lk_rating,tennis_lk_declared_at').eq('id',state.user.id).maybeSingle();
     if(profile.error)throw profile.error;
     state.profile=profile.data;
     state.superAdmin=profile.data?.global_role==='super_admin'||(profile.data?.global_permissions||[]).includes('pyramid');
@@ -364,6 +364,8 @@ async function load() {
     state.ladders=(data||[]) as Ladder[];
     if(!state.ladders.some((item)=>item.id===state.ladderId))state.ladderId=state.ladders[0]?.id||'';
     await loadLadder();
+    const lkDialog=el<HTMLDialogElement>('pyramid-lk-dialog');
+    if(!profile.data?.tennis_lk_declared_at&&!lkDialog?.open)lkDialog?.showModal();
   }catch(error){notice(safeError(error),'error');}
 }
 const resultSets:string[]=[];
@@ -372,7 +374,8 @@ const tieBreakScores=['10:0','0:10','10:5','5:10','10:7','7:10','10:8','8:10'];
 function setIsValid(score:string,tieBreak:boolean){
   const parts=score.split(':').map(Number);if(parts.length!==2||parts.some(x=>!Number.isInteger(x)||x<0))return false;
   const hi=Math.max(...parts),lo=Math.min(...parts);
-  return tieBreak?hi>=10&&hi-lo>=2:(hi===6&&lo<=4)||(hi===7&&(lo===5||lo===6));
+  const normal=(hi===6&&lo<=4)||(hi===7&&(lo===5||lo===6));
+  return tieBreak?(normal||(hi>=10&&hi-lo>=2)):normal;
 }
 function renderResultWizard(){
   const value=resultSets.join(', ');
@@ -385,15 +388,15 @@ function renderResultWizard(){
   hidden('pyramid-result-undo',resultSets.length===0);
   hidden('pyramid-result-set-entry',finished);
   const quick=el('pyramid-result-quick');
-  if(quick)quick.innerHTML=(tieBreak?tieBreakScores:normalSetScores).map(set=>
+  if(quick)quick.innerHTML=(tieBreak?[...normalSetScores,...tieBreakScores]:normalSetScores).map(set=>
     '<button type="button" data-pyramid-result-score="'+set+'">'+set+'</button>').join('');
   if(quick)quick.parentElement?.classList.toggle('hidden',finished);
-  text('pyramid-result-example',tieBreak?'z. B. 10:8':'z. B. 6:4');
+  text('pyramid-result-example',tieBreak?'z. B. 6:3 oder 10:8':'z. B. 6:4');
   const correction=state.challenges.find(c=>c.id===state.resultChallenge);
   const correctionHint=correction?.status==='result_disputed'&&correction.dispute_reason
     ?'Widerspruch: '+correction.dispute_reason+' Bitte gib das korrigierte Ergebnis vollständig neu ein. '
     :'';
-  text('pyramid-result-help',correctionHint+(tieBreak?'Der dritte Satz wird als Match-Tie-Break bis mindestens 10 mit zwei Punkten Abstand erfasst.':'Wähle einen fertigen Satzstand oder gib einen eigenen gültigen Endstand ein.'));
+  text('pyramid-result-help',correctionHint+(tieBreak?'Im dritten Satz kannst du einen normalen Satz oder einen Match-Tie-Break eintragen.':'Sobald der Sieger zwei Sätze gewonnen hat, erscheint der Speichern-Button.'));
   const own=el<HTMLInputElement>('pyramid-result-own-games');const opponent=el<HTMLInputElement>('pyramid-result-opponent-games');
   if(own)own.value=tieBreak?'10':'6';if(opponent)opponent.value=tieBreak?'8':'0';
   hidden('pyramid-result-submit',winner!==1);
@@ -543,6 +546,23 @@ function wireEvents(){
     nav?.classList.toggle('is-open',open);
     mobileMenu.setAttribute('aria-expanded',String(open));
   });
+  el<HTMLFormElement>('pyramid-lk-form')?.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const input=el<HTMLInputElement>('pyramid-own-lk');
+    const value=Number(String(input?.value||'').replace(',','.'));
+    modalMessage('pyramid-lk-error');
+    if(!Number.isFinite(value)||value<1||value>25){
+      modalMessage('pyramid-lk-error','Bitte eine gültige LK zwischen 1,0 und 25,0 eintragen.');return;
+    }
+    try{
+      await rpc('pyramid_declare_my_lk',{p_lk:value});
+      state.profile={...state.profile,tennis_lk_rating:value,tennis_lk_declared_at:new Date().toISOString()};
+      el<HTMLDialogElement>('pyramid-lk-dialog')?.close();
+      notice('Deine LK wurde verbindlich gespeichert. Spätere Korrekturen übernimmt der Superadmin.','success');
+      await loadLadder();
+    }catch(e){modalMessage('pyramid-lk-error',safeError(e));}
+  });
+  el<HTMLDialogElement>('pyramid-lk-dialog')?.addEventListener('cancel',event=>event.preventDefault());
   el<HTMLFormElement>('pyramid-password-setup-form')?.addEventListener('submit',async(event)=>{
     event.preventDefault();
     const password=el<HTMLInputElement>('pyramid-new-password')?.value||'';
