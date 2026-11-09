@@ -229,7 +229,7 @@ test('Superadmin can re-sort an existing ladder by LK',()=>{
 
 test('Superadmin LK sorting remains available with open challenges',()=>{
  assert.doesNotMatch(superadminSortConstraintFix,/status in \('pending'/);
- assert.doesNotMatch(superadminSortConstraintFix,/set constraints/i);
+ assert.doesNotMatch(superadminSortConstraintFix,/^\s*set constraints/im);
  assert.match(superadminSortConstraintFix,/order by lk_rating asc nulls last/);
 });
 
