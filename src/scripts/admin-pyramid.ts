@@ -3,7 +3,7 @@ import {escapeHtml,setStatus} from '../lib/ui';
 import {scoreWinner,canChallenge,canQualifyAgainst,defaultMasterSeason} from '../lib/pyramid-rules.mjs';
 
 type Ladder={id:string;title:string;season_label:string;starts_on:string;ends_on:string;seeded_at:string|null;active:boolean};
-type Entry={id:string;display_name:string;position:number;qualified:boolean;lk_rating:number|null;neutralized_at?:string|null;neutralized_reason?:string|null};
+type Entry={id:string;display_name:string;position:number;qualified:boolean;is_test?:boolean;lk_rating:number|null;neutralized_at?:string|null;neutralized_reason?:string|null};
 type Join={id:string;display_name:string;status:string};
 type Match={id:string;challenger_id:string;defender_id:string;status:string;score:string|null;created_at:string;winner_id:string|null;decline_reason?:string|null;source?:string;play_deadline?:string|null;scheduled_for?:string|null;refusal_reason?:string|null;proposed_winner_id?:string|null;proposed_score?:string|null;confirmation_deadline?:string|null;dispute_reason?:string|null;weather_extended_at?:string|null;overdue_extended_at?:string|null;no_show_requested_at?:string|null;no_show_reporter_id?:string|null};
 const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T|null;
@@ -89,6 +89,7 @@ function render(){
  display('pyramid-admin-order',ranked.length?ranked.map((e,i)=>
    '<div class="pyramid-admin-item"><span><strong>#'+e.position+'</strong> · '+escapeHtml(e.display_name)
    +(e.lk_rating!=null?' · LK '+e.lk_rating.toFixed(1):' · ohne LK')
+   +(e.is_test?' · Testplatz':'')
    +(e.neutralized_at?' · Neutralisiert ('+escapeHtml(e.neutralized_reason||'')+')':'')+'</span>'
    +'<div class="pyramid-admin-lk">'
    +'<select aria-label="Verfügbarkeit '+escapeHtml(e.display_name)+'" data-pyramid-admin-neutral="'+e.id+'">'
@@ -247,7 +248,7 @@ async function load(){
 async function loadSelected(){
  if(!ladderId){entries=[];requests=[];challenges=[];render();return;}
  const [players,joins,encounters]=await Promise.all([
-  supabase.from('pyramid_entries').select('id,display_name,position,qualified,lk_rating,neutralized_at,neutralized_reason')
+  supabase.from('pyramid_entries').select('id,display_name,position,qualified,is_test,lk_rating,neutralized_at,neutralized_reason')
    .eq('ladder_id',ladderId).is('withdrawn_at',null).order('position'),
   supabase.from('pyramid_requests').select('id,display_name,status')
    .eq('ladder_id',ladderId),

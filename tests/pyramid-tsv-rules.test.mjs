@@ -21,6 +21,7 @@ const securityHardening=read('supabase/migrations/20261109103000_pyramid_securit
 const memberSelfDelete=read('supabase/migrations/20261109110000_pyramid_member_self_delete.sql');
 const lkSyncAndResort=read('supabase/migrations/20261109151500_pyramid_lk_sync_and_resort.sql');
 const superadminSortConstraintFix=read('supabase/migrations/20261109165500_pyramid_superadmin_sort_constraint_fix.sql');
+const productionTestEntries=read('supabase/migrations/20261109171000_herren_summer_2027_test_entries.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
  'src/pages/forderungspyramide/meine-ranglisten/index.astro',
@@ -236,6 +237,15 @@ test('Superadmin LK sorting remains available with open challenges',()=>{
 test('login panel stays hidden until the session check finishes',()=>{
  assert.match(page,/id="pyramid-auth" class="card pyramid-auth hidden"/);
  assert.match(client,/hidden\('pyramid-auth',!!state\.user\)/);
+});
+
+test('production test entries are non-login placeholders and cannot be challenged',()=>{
+ assert.match(productionTestEntries,/alter column user_id drop not null/);
+ assert.match(productionTestEntries,/pyramid_entries_test_identity_check/);
+ assert.match(productionTestEntries,/Testplätze können nicht an Forderungsspielen teilnehmen/);
+ assert.match(productionTestEntries,/\(30,13\.1\)/);
+ assert.match(client,/item\.is_test\?'<span class="pyramid-entry-hint">Testplatz<\/span>'/);
+ assert.match(client,/me\.is_test\|\|target\.is_test/);
 });
 
 test('approval copies a previously declared profile LK into the pyramid entry',()=>{

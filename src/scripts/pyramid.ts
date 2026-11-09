@@ -4,7 +4,7 @@ import { escapeHtml, setStatus } from '../lib/ui';
 import { canChallenge, canQualifyAgainst, defaultMasterSeason, pyramidRows, dateWithinPeriod, scoreWinner } from '../lib/pyramid-rules.mjs';
 
 type Ladder = { id:string;title:string;season_label:string;starts_on:string;ends_on:string;active:boolean;seeded_at:string|null };
-type Entry = { id:string;ladder_id:string;user_id:string;display_name:string;position:number;provisional:boolean;qualified?:boolean;lk_rating?:number|null;last_loss_at:string|null;last_win_at?:string|null;neutralized_at?:string|null;neutralized_reason?:string|null;withdrawn_at?:string|null };
+type Entry = { id:string;ladder_id:string;user_id:string|null;display_name:string;position:number;provisional:boolean;qualified?:boolean;is_test?:boolean;lk_rating?:number|null;last_loss_at:string|null;last_win_at?:string|null;neutralized_at?:string|null;neutralized_reason?:string|null;withdrawn_at?:string|null };
 type Request = { id:string;ladder_id:string;user_id:string;display_name:string;status:string };
 type Challenge = {id:string;ladder_id:string;challenger_id:string;defender_id:string;status:string;
   created_at:string;accept_deadline:string;play_deadline:string|null;scheduled_for?:string|null;scheduled_at?:string|null;scheduled_confirmed_at?:string|null;refusal_reason?:string|null;winner_id:string|null;proposed_winner_id?:string|null;proposed_score?:string|null;result_reporter_id?:string|null;reported_at?:string|null;confirmation_deadline?:string|null;dispute_reason?:string|null;weather_extended_at?:string|null;overdue_extended_at?:string|null;no_show_requested_at?:string|null;no_show_reporter_id?:string|null;score:string|null;decline_reason?:string|null;source?:string;resolved_at?:string|null};
@@ -46,7 +46,7 @@ const waitingDays=(date:string|null|undefined,days:number)=>!!date && new Date(d
 const openStatuses=['pending','accepted','result_pending','result_disputed'];
 const neutralNow=(e:Entry)=>!!e.neutralized_at&&waitingDays(e.neutralized_at,28);
 function canSendChallenge(me:Entry,target:Entry){
-  if(me.id===target.id||neutralNow(target)||neutralNow(me))return false;
+  if(me.is_test||target.is_test||!me.user_id||!target.user_id||me.id===target.id||neutralNow(target)||neutralNow(me))return false;
   if(waitingDays(me.last_loss_at,7)||waitingDays(target.last_win_at,2))return false;
   if(state.challenges.some(game=>openStatuses.includes(game.status)
     &&[me.id,target.id].some(id=>game.challenger_id===id||game.defender_id===id)))return false;
@@ -144,7 +144,7 @@ function renderBoard() {
         if(!item)return '<div class="pyramid-entry is-empty" aria-hidden="true"></div>';
         const mine=me?.id===item.id;
         const canTarget=!!me&&canPlay&&canSendChallenge(me,item);
-        const portrait=state.avatars[item.user_id];
+        const portrait=item.user_id?state.avatars[item.user_id]:undefined;
         return '<div role="listitem" class="pyramid-entry'+(mine?' is-self':'')+(canTarget?' is-target':'')
           +(neutralNow(item)?' is-neutralized':'')+'">'
           +(portrait?'<img class="pyramid-entry-avatar" src="'+escapeHtml(mediaUrl(portrait))
@@ -153,6 +153,7 @@ function renderBoard() {
           +'<span class="pyramid-entry-name">'+escapeHtml(item.display_name)+'</span>'
           +(item.lk_rating!=null?'<span class="pyramid-entry-lk">LK '
             +escapeHtml(item.lk_rating.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1}))+'</span>':'')
+          +(item.is_test?'<span class="pyramid-entry-hint">Testplatz</span>':'')
           +(mine?'<span class="pyramid-entry-hint">Du</span>':'')
           +(neutralNow(item)?'<span class="pyramid-entry-away" aria-label="Aktueller Status: '
             +escapeHtml(friendlyReason(item.neutralized_reason))+'">'
@@ -344,7 +345,7 @@ async function loadLadder(){
   const ladder=currentLadder();
   if(!ladder){state.entries=[];state.requests=[];state.challenges=[];renderAll();return;}
   const [entries,requests,challenges]=await Promise.all([
-    supabase.from('pyramid_entries').select('id,ladder_id,user_id,display_name,position,provisional,qualified,lk_rating,last_loss_at,last_win_at,neutralized_at,neutralized_reason,withdrawn_at')
+    supabase.from('pyramid_entries').select('id,ladder_id,user_id,display_name,position,provisional,qualified,is_test,lk_rating,last_loss_at,last_win_at,neutralized_at,neutralized_reason,withdrawn_at')
       .eq('ladder_id',ladder.id).order('position'),
     supabase.from('pyramid_requests').select('id,ladder_id,user_id,display_name,status')
       .eq('ladder_id',ladder.id),
