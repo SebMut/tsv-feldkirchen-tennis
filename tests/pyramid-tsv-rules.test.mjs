@@ -22,6 +22,7 @@ const memberSelfDelete=read('supabase/migrations/20261109110000_pyramid_member_s
 const lkSyncAndResort=read('supabase/migrations/20261109151500_pyramid_lk_sync_and_resort.sql');
 const superadminSortConstraintFix=read('supabase/migrations/20261109165500_pyramid_superadmin_sort_constraint_fix.sql');
 const productionTestEntries=read('supabase/migrations/20261109171000_herren_summer_2027_test_entries.sql');
+const positionConstraintLookupFix=read('supabase/migrations/20261109172504_fix_pyramid_position_constraint_lookup.sql');
 const portalPages=[
  'src/pages/forderungspyramide/so-funktionierts/index.astro',
  'src/pages/forderungspyramide/meine-ranglisten/index.astro',
@@ -94,6 +95,15 @@ test('SuperAdmin alone can delete ladder players and correct completed results',
  assert.match(admin,/isSuperAdmin\?'<button class="button danger pyramid-admin-delete"/);
  assert.match(admin,/data-pyramid-admin-edit-result/);
  assert.match(admin,/pyramid_correct_completed_result/);
+});
+
+test('position-changing delete and correction RPCs rely on the initially deferred constraint',()=>{
+ assert.match(positionConstraintLookupFix,/create or replace function public\.pyramid_delete_entry/);
+ assert.match(positionConstraintLookupFix,/create or replace function public\.pyramid_delete_my_account/);
+ assert.match(positionConstraintLookupFix,/create or replace function public\.pyramid_correct_completed_result/);
+ assert.doesNotMatch(positionConstraintLookupFix,/set constraints pyramid_entries_unique_position deferred/);
+ assert.match(positionConstraintLookupFix,/if not private\.is_super_admin\(\)/);
+ assert.match(positionConstraintLookupFix,/withdrawn_at is null and position>e\.position/);
 });
 
 test('pyramid security hardening prevents cross-player challenge reads and closes internal RPCs',()=>{
