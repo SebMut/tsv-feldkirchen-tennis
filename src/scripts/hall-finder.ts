@@ -4,12 +4,12 @@ type Venue={id:string;short:string;name:string;distance:string;bookingUrl:string
 type LiveSlot={venueId:string;date:string;start:string;end:string;court?:string;availableCourts?:number;price?:string;bookingUrl:string};
 type LiveResponse={checkedAt:string;sources:Record<string,{status:string;message?:string}>;slots:LiveSlot[]};
 const venues:Venue[]=[
- {id:'aschheim',short:'Aschheim',name:'TC Aschheim',distance:'2,2 km Luftlinie',bookingUrl:'https://tcaschheim.ebusy.de/'},
- {id:'ismaning',short:'Ismaning',name:'TC Ismaning',distance:'11,2 km Luftlinie',bookingUrl:'https://tc-ismaning.ebusy.de/court-module/921'},
- {id:'sporttraum',short:'Sporttraum',name:'SPORTTRAUM',distance:'3,0 km Luftlinie',bookingUrl:'https://www.sporttraum.de/buchen/'},
- {id:'haar',short:'Haar',name:'Racket-Park TSV Haar',distance:'3,3 km Luftlinie',bookingUrl:'https://www.eversports.de/sb/racket-park-tsv-haar'},
- {id:'rothof',short:'Rothof',name:'Rothof München',distance:'7,2 km Luftlinie',bookingUrl:'https://rothof.de/online-buchen/'},
- {id:'kirchheim',short:'Kirchheim',name:'TC Kirchheim',distance:'4,6 km Luftlinie',bookingUrl:'https://tckirchheim.tennisplatz.info/reservierung?c=2015'}
+ {id:'aschheim',short:'Aschheim',name:'TC Aschheim',distance:'2,2 km Luftlinie von TSV Feldkirchen aus',bookingUrl:'https://tcaschheim.ebusy.de/'},
+ {id:'ismaning',short:'Ismaning',name:'TC Ismaning',distance:'11,2 km Luftlinie von TSV Feldkirchen aus',bookingUrl:'https://tc-ismaning.ebusy.de/court-module/921'},
+ {id:'sporttraum',short:'Sporttraum',name:'SPORTTRAUM',distance:'3,0 km Luftlinie von TSV Feldkirchen aus',bookingUrl:'https://www.sporttraum.de/buchen/'},
+ {id:'haar',short:'Haar',name:'Racket-Park TSV Haar',distance:'3,3 km Luftlinie von TSV Feldkirchen aus',bookingUrl:'https://www.eversports.de/sb/racket-park-tsv-haar'},
+ {id:'rothof',short:'Rothof',name:'Rothof München',distance:'7,2 km Luftlinie von TSV Feldkirchen aus',bookingUrl:'https://rothof.de/online-buchen/'},
+ {id:'kirchheim',short:'Kirchheim',name:'TC Kirchheim',distance:'4,6 km Luftlinie von TSV Feldkirchen aus',bookingUrl:'https://tckirchheim.tennisplatz.info/reservierung?c=2015'}
 ];
 const pad=(v:number)=>String(v).padStart(2,'0');
 const iso=(d:Date)=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
@@ -23,6 +23,10 @@ function fill(select:HTMLSelectElement,min:number,max:number,selected:number){fo
 function slotHour(value:string){return Number(value.slice(0,2))+Number(value.slice(3,5))/60}
 function byTime(a:LiveSlot,b:LiveSlot){
  return slotHour(a.start)-slotHour(b.start)||slotHour(a.end)-slotHour(b.end)||(a.court||'').localeCompare(b.court||'','de');
+}
+function isUpcoming(slot:LiveSlot){
+ const now=new Date(),today=iso(now),current=pad(now.getHours())+':'+pad(now.getMinutes());
+ return slot.date>today||(slot.date===today&&slot.start>current);
 }
 function slotText(slot:LiveSlot){
  const detail=slot.venueId==='aschheim'||slot.venueId==='ismaning'
@@ -40,7 +44,7 @@ function fallbackCard(d:Date,first:number,last:number){
 function liveCard(d:Date,first:number,last:number,live:LiveResponse){
  const date=iso(d);
  const cells=venues.map(v=>{
-  const slots=live.slots.filter(slot=>slot.venueId===v.id&&slot.date===date&&slotHour(slot.start)>=first&&slotHour(slot.end)<=last).sort(byTime);
+  const slots=live.slots.filter(slot=>isUpcoming(slot)&&slot.venueId===v.id&&slot.date===date&&slotHour(slot.start)>=first&&slotHour(slot.end)<=last).sort(byTime);
   const source=live.sources[v.id];
   const content=slots.length
    ? '<div class="hall-slot-times">'+slots.map(slotText).join('')+'</div>'
@@ -50,7 +54,7 @@ function liveCard(d:Date,first:number,last:number,live:LiveResponse){
   const href=slots[0]?.bookingUrl||bookingUrl(v,d);
   return '<div class="hall-slot">'+venueName(v)+'<div class="hall-slot__availability">'+content+'</div><a class="hall-slot__booking" data-hall-venue="'+esc(v.id)+'" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(v.name+' am '+long(d)+' im Buchungskalender prüfen')+'">Kalender <span aria-hidden="true">↗</span></a></div>';
  }).join('');
- const freeTimes=new Set(live.slots.filter(slot=>slot.date===date&&slotHour(slot.start)>=first&&slotHour(slot.end)<=last).map(slot=>slot.venueId+'|'+slot.start+'|'+slot.end)).size;
+ const freeTimes=new Set(live.slots.filter(slot=>isUpcoming(slot)&&slot.date===date&&slotHour(slot.start)>=first&&slotHour(slot.end)<=last).map(slot=>slot.venueId+'|'+slot.start+'|'+slot.end)).size;
  return '<article class="hall-day-card"><header><div><p>'+day(d)+'</p><span>'+time(first)+'–'+time(last)+' Uhr</span></div><span class="hall-day-card__count">'+freeTimes+' '+(freeTimes===1?'freie Zeit':'freie Zeiten')+'</span></header><div class="hall-day-card__venues">'+cells+'</div></article>';
 }
 export function initHallFinder(){
