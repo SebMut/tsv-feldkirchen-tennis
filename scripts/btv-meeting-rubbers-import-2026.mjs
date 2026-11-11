@@ -122,14 +122,22 @@ try{
    // replaces stale live-ticker placeholders only after the complete BTV report
    // passed all identity, score and completeness checks above.
    const publicRows=all.map(row=>publicEncounterFromOfficial(row,{matchId:m.id,isHome:m.is_home}));
-   const lineupFormat=parsed.singles.length===4&&parsed.doubles.length===2?'4_2':
+   // A BTV report can contain a formally abandoned second double without a
+   // countable result row (for example Herren 50 on 18.10.2026). It is still a
+   // regular 4+2 lineup; requiring two completed doubles would reject the
+   // complete official team result and hide the four singles plus Doppel 1.
+   const lineupFormat=parsed.singles.length===4&&parsed.doubles.length>=1&&parsed.doubles.length<=2?'4_2':
      parsed.singles.length===6&&parsed.doubles.length===3?'6_3':null;
    if(!lineupFormat)throw Error('PUBLIC_ENCOUNTER_FORMAT_UNSUPPORTED');
    const {data:oldPublic,error:oldPublicError}=await db.from('match_encounters')
-     .select('id,discipline,position').eq('match_id',m.id).limit(20);
+     .select('id,discipline,position,result_text').eq('match_id',m.id).limit(20);
    if(oldPublicError)throw Error('PUBLIC_ENCOUNTER_READ_FAILED');
    const officialKeys=new Set(publicRows.map(row=>row.discipline+':'+row.position));
-   const staleIds=oldPublic.filter(row=>!officialKeys.has(row.discipline+':'+row.position)).map(row=>row.id);
+   // Preserve a source-backed, manually recorded abandoned rubber. The BTV
+   // result widget omits such scoreless rows from its countable rubber table.
+   const staleIds=oldPublic.filter(row=>!officialKeys.has(row.discipline+':'+row.position))
+     .filter(row=>!/^abgebrochen\b/i.test(String(row.result_text||'')))
+     .map(row=>row.id);
    if(staleIds.length){
      const {error}=await db.from('match_encounters').delete().in('id',staleIds);
      if(error)throw Error('PUBLIC_ENCOUNTER_CLEANUP_FAILED');
