@@ -55,6 +55,8 @@ test('withdrawal maps only to exact opponent after withdrawal date',()=>{
 });
 test('official group URL, identity and season guard are strict',()=>{
   assert.equal(groupIdFromBtvUrl('https://www.btv.de/de/spielbetrieb/tabelle-spielplan.html?groupid=2160998'),2160998);
+  assert.equal(groupIdFromBtvUrl('https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?dokument=ScheduleReportFOP&group=2257681&etag=test'),2257681);
+  assert.equal(groupIdFromBtvUrl('https://btv.liga.nu/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument?dokument=Other&group=2257681'),null);
   assert.equal(groupIdFromBtvUrl('https://evil.test/?groupid=2160998'),null);
   const url=new URL(officialGroupPdfUrl(2160998));
   assert.equal(url.origin,'https://btv.liga.nu');

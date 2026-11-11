@@ -19,9 +19,13 @@ export function officialGroupPdfUrl(groupId){
 export function groupIdFromBtvUrl(url){
   try{
     const parsed=new URL(url);
-    if(parsed.origin!=='https://www.btv.de' ||
-       parsed.pathname!=='/de/spielbetrieb/tabelle-spielplan.html')return null;
-    const raw=parsed.searchParams.get('groupid');
+    const isBtvPage=parsed.origin==='https://www.btv.de' &&
+      parsed.pathname==='/de/spielbetrieb/tabelle-spielplan.html';
+    const isOfficialPdf=parsed.origin===ORIGIN &&
+      parsed.pathname==='/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument' &&
+      parsed.searchParams.get('dokument')==='ScheduleReportFOP';
+    if(!isBtvPage&&!isOfficialPdf)return null;
+    const raw=parsed.searchParams.get(isBtvPage?'groupid':'group');
     if(!/^[0-9]{7,8}$/.test(raw||''))return null;
     return Number(raw);
   }catch{return null;}
