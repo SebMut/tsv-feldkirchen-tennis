@@ -11,7 +11,7 @@ import {tmpdir} from 'node:os';
 import {canonicalRubberSnapshot,parseOfficialMeetingText} from './btv-meeting-rubbers-parser.mjs';
 
 const PROJECT_URL='https://eaurnufdochjapfzqwvm.supabase.co';
-const seasonCode=process.env.BTV_SEASON_CODE||'sommer-2026';
+const seasonCode=process.env.BTV_SEASON_CODE||'winter-2026-2027';
 if(!/^(?:sommer|winter)-20\d{2}(?:-20\d{2})?$/.test(seasonCode))throw Error('SEASON_CODE_INVALID');
 const seasonYears=[...seasonCode.matchAll(/20\d{2}/g)].map(x=>x[0]);
 const apply=process.argv.includes('--apply');

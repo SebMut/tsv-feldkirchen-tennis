@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {meetingIdsFromLinks,meetingIdsFromDocuments,matchOfficialReport,fiveSearchWays} from '../scripts/btv-meeting-discovery-core.mjs';
 
 test('accepts only explicit official meeting links and deduplicates them',()=>{
@@ -31,5 +32,16 @@ test('five search ways are distinct and group/season scoped',()=>{
  assert.equal(ways.length,5);assert.equal(new Set(ways.map(x=>x.way)).size,5);
  assert.match(ways[0].url,/club=23391.*season=18105/);assert.match(ways[1].url,/groupid=2155116/);
  assert.equal(ways[2].url,null);assert.match(ways[4].url,/group=2155116/);
+});
+
+test('scheduled discovery imports the active winter season and official group URLs',()=>{
+ const workflow=readFileSync(new URL('../.github/workflows/btv-meeting-rubbers-sync.yml',import.meta.url),'utf8');
+ const discovery=readFileSync(new URL('../scripts/btv-meeting-discovery.mjs',import.meta.url),'utf8');
+ const importer=readFileSync(new URL('../scripts/btv-meeting-rubbers-import-2026.mjs',import.meta.url),'utf8');
+ assert.match(workflow,/BTV_ACTIVE_SEASON_CODE \|\| 'winter-2026-2027'/);
+ assert.doesNotMatch(workflow,/BTV_ACTIVE_SEASON_CODE \|\| 'sommer-2026'/);
+ assert.match(discovery,/groupIdFromBtvUrl\(x\.btv_url\)/);
+ assert.match(discovery,/BTV_SEASON_CODE\|\|'winter-2026-2027'/);
+ assert.match(importer,/BTV_SEASON_CODE\|\|'winter-2026-2027'/);
 });
 

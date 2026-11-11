@@ -22,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       season_code:
-        description: Existing Supabase season code (for example sommer-2026)
+        description: Existing Supabase season code (for example winter-2026-2027)
         required: false
         type: string
   # Daily source revalidation: discover meetings first, then refresh every official rubber.
@@ -72,12 +72,12 @@ jobs:
           BTV_LOGIN_USERNAME: ${{ secrets.BTV_LOGIN_USERNAME }}
           BTV_LOGIN_PASSWORD: ${{ secrets.BTV_LOGIN_PASSWORD }}
           BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
-          BTV_SEASON_CODE: ${{ inputs.season_code || vars.BTV_ACTIVE_SEASON_CODE || 'sommer-2026' }}
+          BTV_SEASON_CODE: ${{ inputs.season_code || vars.BTV_ACTIVE_SEASON_CODE || 'winter-2026-2027' }}
         run: node scripts/btv-meeting-discovery.mjs --apply
       - name: Import source-verified single and double results privately
         env:
           GITHUB_REF: ${{ github.ref }}
           BTV_MEETING_RUBBERS_WRITE_ENABLED: 'true'
           BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
-          BTV_SEASON_CODE: ${{ inputs.season_code || vars.BTV_ACTIVE_SEASON_CODE || 'sommer-2026' }}
+          BTV_SEASON_CODE: ${{ inputs.season_code || vars.BTV_ACTIVE_SEASON_CODE || 'winter-2026-2027' }}
         run: node scripts/btv-meeting-rubbers-import-2026.mjs --apply

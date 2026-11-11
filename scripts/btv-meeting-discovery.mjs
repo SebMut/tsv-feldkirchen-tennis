@@ -6,9 +6,10 @@ import {mkdtempSync,rmSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {meetingIdsFromLinks,meetingIdsFromDocuments,matchOfficialReport} from './btv-meeting-discovery-core.mjs';
+import {groupIdFromBtvUrl} from './btv-withdrawal-source.mjs';
 
 const PROJECT_URL='https://eaurnufdochjapfzqwvm.supabase.co';
-const seasonCode=process.env.BTV_SEASON_CODE||'sommer-2026';
+const seasonCode=process.env.BTV_SEASON_CODE||'winter-2026-2027';
 const seasonMatch=seasonCode.match(/^(sommer|winter)-(20\d{2})(?:-(20\d{2}))?$/);
 if(!seasonMatch)throw Error('SEASON_CODE_INVALID');
 const startYear=Number(seasonMatch[2]),endYear=Number(seasonMatch[3]||seasonMatch[2]);
@@ -31,7 +32,7 @@ if(!season)throw Error('SELECTED_SEASON_MISSING');
 const matches=await query(db.from('matches').select('id,team_season_id,opponent,is_home,starts_at,btv_result_text')
   .in('team_season_id',(await query(db.from('team_seasons').select('id').eq('season_id',season.id).limit(100),'TEAM_SEASONS')).map(x=>x.id)).limit(300),'MATCHES');
 const teamSeasons=await query(db.from('team_seasons').select('id,btv_url').eq('season_id',season.id).limit(100),'TEAM_REFS');
-const groupByTeam=new Map(teamSeasons.map(x=>[x.id,String(x.btv_url||'').match(/groupid=(\d{7,8})/)?.[1]||null]));
+const groupByTeam=new Map(teamSeasons.map(x=>[x.id,groupIdFromBtvUrl(x.btv_url)]));
 const existing=await query(db.from('official_meeting_reports').select('source_meeting_id,match_id,verification_status').eq('season_id',season.id).limit(300),'EXISTING');
 const existingMeetings=new Set(existing.map(x=>Number(x.source_meeting_id)));
 const existingMatches=new Set(existing.map(x=>x.match_id).filter(Boolean));
