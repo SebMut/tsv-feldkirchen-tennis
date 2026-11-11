@@ -95,7 +95,9 @@ try{
    await page.goto(`https://www.btv.de/de/spielbetrieb/tabelle-spielplan.html?groupid=${groupId}`,
      {waitUntil:'domcontentloaded',timeout:30000}).catch(()=>{});
    await page.locator('iframe[src*="widget.btv.de/btvgroup/"]').waitFor({state:'attached',timeout:15000}).catch(()=>{});
-   const widget=page.frames().find(frame=>new URL(frame.url()).hostname==='widget.btv.de');
+   const widget=page.frames().find(frame=>{
+     try{return new URL(frame.url()).hostname==='widget.btv.de';}catch{return false;}
+   });
    if(!widget)continue;
    await widget.locator('.gbmeeting').first().waitFor({state:'attached',timeout:15000}).catch(()=>{});
    const rows=widget.locator('.gbmeeting');
