@@ -45,5 +45,8 @@ test('Sporttraum, Haar and Rothof use the public Eversports tennis calendar and 
  assert.match(edge,/data-price/);
  assert.match(edge,/fetchEversports\("sporttraum"/);assert.match(edge,/fetchEversports\("haar"/);assert.match(edge,/fetchEversports\("rothof"/);
  assert.match(edge,/rothof\.de\/online-buchen/);
+ assert.match(edge,/rothof:\s*\{\s*shortId:\s*"jmjffr",\s*facilityId:\s*"23288"/);
  assert.match(edge,/venueId === "rothof" && !\/\\\(Halle\\\)\/i\.test\(court \|\| ""\)/);
+ assert.match(edge,/const visiblePrice = cell\[3\]/);
+ assert.match(edge,/\(\?:€\|&euro;\)/);
 });
