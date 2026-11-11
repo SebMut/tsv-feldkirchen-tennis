@@ -67,9 +67,10 @@ test('repository and secret scope are strictly restricted, only score fields cha
   assert.match(workflow,/cron: '23 1,7,13,19 \* \* \*'/);
   assert.match(workflow,/github\.event_name == 'schedule'/);
   assert.match(workflow,/github\.ref == 'refs\/heads\/main'/);
-  assert.match(text,/const ACTIVE_SEASONS=SEASONS/);
+  assert.match(text,/const ACTIVE_SEASONS=SEASONS\.filter\(item=>item\.code==='winter-2026-2027'\)/);
   assert.doesNotMatch(workflow,/BTV_RESULTS_ONLY_SOMMER_2026/);
   assert.match(text,/ACTIVE_SEASONS\.map\(s=>s\.code\)/);
+  assert.match(workflow,/push:[\s\S]*scripts\/btv-results-import\.mjs/);
 });
 
 test('active winter import accepts an early-season result count',()=>{
