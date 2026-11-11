@@ -27,7 +27,7 @@ const eversportsVenues = {
   haar: { shortId: "hwhk63", facilityId: "24105", bookingUrl: EVERSPORTS_ORIGIN + "/sb/racket-park-tsv-haar" },
   // The official Rothof booking page embeds this public Eversports widget.
   // Its calendar already marks bookable cells as free, so no login is needed.
-  rothof: { shortId: "jmjffr", facilityId: null, bookingUrl: "https://rothof.de/online-buchen/" },
+  rothof: { shortId: "jmjffr", facilityId: "23288", bookingUrl: "https://rothof.de/online-buchen/" },
 } as const;
 
 function json(body: unknown, status = 200) {
@@ -189,7 +189,12 @@ function parseEversportsCalendar(
         const start = data["data-start"], end = data["data-end"];
         if (!/^\d{4}$/.test(start || "") || !/^\d{4}$/.test(end || "")) continue;
         if (booked.has(courtId + "|" + date + "|" + start)) continue;
-        const price = data["data-price"];
+        const visiblePrice = cell[3]
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&nbsp;/gi, " ")
+          .match(/(\d+(?:[.,]\d+)?)\s*(?:€|&euro;)/i)?.[1];
+        const attributePrice = /^\d+(?:[.,]\d+)?$/.test(data["data-price"] || "") ? data["data-price"] : undefined;
+        const price = attributePrice || visiblePrice;
         slots.push({
           venueId, date, start: compactTime(start), end: compactTime(end),
           ...(court ? { court } : {}),
