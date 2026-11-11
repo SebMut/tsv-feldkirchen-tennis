@@ -36,6 +36,13 @@ test('one unavailable BTV group cannot abort every other table',()=>{
   assert.match(importer,/groups===0/);
 });
 
+test('standings importer follows the configured winter season only',()=>{
+  const importer=readFileSync(new URL('../scripts/btv-standings-sync.mjs',import.meta.url),'utf8');
+  assert.match(importer,/ACTIVE_SEASON_TEAM_COUNTS=new Map\(\[\['winter-2026-2027',3\]\]\)/);
+  assert.doesNotMatch(importer,/\['sommer-2026','winter-2026-2027'\]/);
+  assert.doesNotMatch(importer,/teamSeasons\.length!==23/);
+});
+
 test('official small club report supplies complete summer group tables',()=>{
   const columns=[0,1,2,3].map((_,index)=>[
     `Herren Südliga 2 Gr. ${315+index}`,
