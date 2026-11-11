@@ -8,6 +8,8 @@ on:
     branches: [main]
     paths:
       - .github/workflows/btv-results-private-import.yml
+      - scripts/btv-results-import.mjs
+      - scripts/btv-results-match.mjs
   pull_request:
     paths:
       - .github/workflows/btv-results-private-import.yml
