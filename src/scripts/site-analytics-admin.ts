@@ -27,7 +27,7 @@ const label: Record<string,string> = {
   weitere_beitraege: 'Weitere Beiträge', ticker_reiter: 'Liveticker-Reiter',
   tv_vollbild: 'TV: Vollbild', tv_ansicht: 'TV: Ansicht wechseln', tag_oeffnen: 'Kalendertag öffnen',
   aschheim: 'TC Aschheim', ismaning: 'TC Ismaning', sporttraum: 'Sporttraum',
-  haar: 'Racket-Park TSV Haar', kirchheim: 'TC Kirchheim',
+  haar: 'Racket-Park TSV Haar', rothof: 'Rothof München', kirchheim: 'TC Kirchheim',
 };
 const named = (value: unknown) => label[String(value)] || (String(value).startsWith('/mannschaften/') ? 'Mannschaft · ' + String(value).split('/')[2] : String(value || 'Unbekannt').replace(/_/g,' '));
 const el = (id: string) => document.getElementById(id);
