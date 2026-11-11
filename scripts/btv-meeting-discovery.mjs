@@ -113,8 +113,11 @@ try{
      const row=rows.nth(index);
      const status=row.locator('.gb-status').first();
      if(await status.count()!==1)continue;
+     const detailResponse=page.waitForResponse(response=>response.url().includes('/zkau')&&
+       response.request().postData()?.includes('onOpen'),{timeout:12000}).catch(()=>null);
      await status.dispatchEvent('click').catch(()=>{});
-     await page.waitForTimeout(700);
+     const response=await detailResponse;
+     if(response)documents.push(await response.text().catch(()=>''));
      links.push(...await widget.locator('a[href*="MeetingReportFOP"][href*="meeting="]')
        .evaluateAll(as=>as.map(a=>a.href).filter(Boolean)).catch(()=>[]));
    }
