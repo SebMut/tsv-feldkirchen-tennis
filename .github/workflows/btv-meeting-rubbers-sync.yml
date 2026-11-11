@@ -6,8 +6,12 @@ on:
       - scripts/btv-meeting-discovery-core.mjs
       - scripts/btv-meeting-discovery.mjs
       - scripts/btv-meeting-rubbers-import-2026.mjs
+      - scripts/btv-results-import.mjs
+      - scripts/btv-results-match.mjs
       - tests/btv-meeting-discovery.test.mjs
       - tests/btv-meeting-rubbers-parser.test.mjs
+      - tests/btv-meeting-rubbers-import.test.mjs
+      - tests/btv-results-private-import.test.mjs
       - .github/workflows/btv-meeting-rubbers-sync.yml
   push:
     branches: [main]
@@ -16,8 +20,12 @@ on:
       - scripts/btv-meeting-discovery-core.mjs
       - scripts/btv-meeting-discovery.mjs
       - scripts/btv-meeting-rubbers-import-2026.mjs
+      - scripts/btv-results-import.mjs
+      - scripts/btv-results-match.mjs
       - tests/btv-meeting-discovery.test.mjs
       - tests/btv-meeting-rubbers-parser.test.mjs
+      - tests/btv-meeting-rubbers-import.test.mjs
+      - tests/btv-results-private-import.test.mjs
       - .github/workflows/btv-meeting-rubbers-sync.yml
   workflow_dispatch:
     inputs:
@@ -43,7 +51,11 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/btv-meeting-rubbers-parser.test.mjs
+      - run: node --test tests/btv-meeting-rubbers-import.test.mjs
       - run: node --test tests/btv-meeting-discovery.test.mjs
+      - run: node --test tests/btv-results-private-import.test.mjs
+      - run: node --check scripts/btv-results-match.mjs
+      - run: node --check scripts/btv-results-import.mjs
       - run: node --check scripts/btv-meeting-discovery.mjs
       - run: node --check scripts/btv-meeting-rubbers-import-2026.mjs
   import:
@@ -58,11 +70,16 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Import verified final team results
+        env:
+          BTV_RESULTS_WRITE_ENABLED: 'true'
+          BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: node scripts/btv-results-import.mjs --apply
       - name: Install pinned browser tooling (without secrets)
         run: |
           npm install --no-save --no-package-lock --ignore-scripts playwright@1.64.1
           npx --no-install playwright install --with-deps chromium
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - name: Discover official meeting IDs from BTV cockpit and public group reports
         # A temporarily unavailable BTV surface must not block revalidation of already known reports.
         continue-on-error: true
