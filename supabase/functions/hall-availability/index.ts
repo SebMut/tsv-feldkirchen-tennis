@@ -179,6 +179,11 @@ function parseEversportsCalendar(
       const courtId = courtMatch[1].match(/<td[^>]*data-court="(\d+)"[^>]*>/i)?.[1];
       const court = courtMatch[1].match(/class="court-name[^"]*"[^>]*>([^<]+)</i)?.[1]?.trim();
       if (!courtId) continue;
+      // Rothof exposes indoor and outdoor courts in the same tennis widget.
+      // The provider labels its six indoor courts explicitly with "(Halle)";
+      // reject every other/unknown court so Freiplätze can never leak into the
+      // Hallenfinder.
+      if (venueId === "rothof" && !/\(Halle\)/i.test(court || "")) continue;
       for (const cell of courtMatch[1].matchAll(/<td([^>]*)data-state="free"([^>]*)>([\s\S]*?)<\/td>/gi)) {
         const data = attrs("<td" + cell[1] + ' data-state="free"' + cell[2] + ">");
         const start = data["data-start"], end = data["data-end"];

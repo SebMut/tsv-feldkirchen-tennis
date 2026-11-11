@@ -4,12 +4,12 @@ type Venue={id:string;short:string;name:string;distance:string;bookingUrl:string
 type LiveSlot={venueId:string;date:string;start:string;end:string;court?:string;availableCourts?:number;price?:string;bookingUrl:string};
 type LiveResponse={checkedAt:string;sources:Record<string,{status:string;message?:string}>;slots:LiveSlot[]};
 const venues:Venue[]=[
- {id:'aschheim',short:'Aschheim',name:'TC Aschheim',distance:'ca. 7 km',bookingUrl:'https://tcaschheim.ebusy.de/'},
- {id:'ismaning',short:'Ismaning',name:'TC Ismaning',distance:'ca. 10 km',bookingUrl:'https://tc-ismaning.ebusy.de/court-module/921'},
- {id:'sporttraum',short:'Sporttraum',name:'SPORTTRAUM',distance:'ca. 5 km',bookingUrl:'https://www.sporttraum.de/buchen/'},
- {id:'haar',short:'Haar',name:'Racket-Park TSV Haar',distance:'ca. 8 km',bookingUrl:'https://www.eversports.de/sb/racket-park-tsv-haar'},
- {id:'rothof',short:'Rothof',name:'Rothof München',distance:'ca. 13 km',bookingUrl:'https://rothof.de/online-buchen/'},
- {id:'kirchheim',short:'Kirchheim',name:'TC Kirchheim',distance:'ca. 6 km',bookingUrl:'https://tckirchheim.tennisplatz.info/reservierung?c=2015'}
+ {id:'aschheim',short:'Aschheim',name:'TC Aschheim',distance:'2,2 km Luftlinie',bookingUrl:'https://tcaschheim.ebusy.de/'},
+ {id:'ismaning',short:'Ismaning',name:'TC Ismaning',distance:'11,2 km Luftlinie',bookingUrl:'https://tc-ismaning.ebusy.de/court-module/921'},
+ {id:'sporttraum',short:'Sporttraum',name:'SPORTTRAUM',distance:'3,0 km Luftlinie',bookingUrl:'https://www.sporttraum.de/buchen/'},
+ {id:'haar',short:'Haar',name:'Racket-Park TSV Haar',distance:'3,3 km Luftlinie',bookingUrl:'https://www.eversports.de/sb/racket-park-tsv-haar'},
+ {id:'rothof',short:'Rothof',name:'Rothof München',distance:'7,2 km Luftlinie',bookingUrl:'https://rothof.de/online-buchen/'},
+ {id:'kirchheim',short:'Kirchheim',name:'TC Kirchheim',distance:'4,6 km Luftlinie',bookingUrl:'https://tckirchheim.tennisplatz.info/reservierung?c=2015'}
 ];
 const pad=(v:number)=>String(v).padStart(2,'0');
 const iso=(d:Date)=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
