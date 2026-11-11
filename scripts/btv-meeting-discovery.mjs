@@ -17,7 +17,7 @@ const searchFrom=seasonMatch[1]==='sommer'?`${startYear}-04-01`:`${startYear}-09
 const searchUntil=seasonMatch[1]==='sommer'?`${endYear}-10-31`:`${endYear+(seasonMatch[3]?0:1)}-04-30`;
 const CLUB_COCKPIT='https://www.btv.de/de/mein-verein/vereins-cockpit.html';
 const AUTH_HOST='tende-id.liga.nu';
-const ALLOWED_HOSTS=new Set(['www.btv.de','btv.de','btv.liga.nu',AUTH_HOST]);
+const ALLOWED_HOSTS=new Set(['www.btv.de','btv.de','widget.btv.de','btv.liga.nu',AUTH_HOST]);
 const apply=process.argv.includes('--apply');
 if(apply&&(process.env.GITHUB_REF!=='refs/heads/main'||process.env.BTV_MEETING_DISCOVERY_WRITE_ENABLED!=='true'))
   throw Error('WRITE_RESTRICTED_TO_APPROVED_MAIN_WORKFLOW');
@@ -84,6 +84,33 @@ try{
  for(const frame of page.frames()){
    links.push(...await frame.locator('a').evaluateAll(as=>as.map(a=>a.href).filter(Boolean)).catch(()=>[]));
    documents.push(await frame.locator('html').evaluate(el=>el.outerHTML).catch(()=>''));
+ }
+
+ // The public BTV group widget exposes the official report only after a completed
+ // meeting is expanded. Discover those links as the primary, source-verifiable
+ // fallback when the cockpit search does not list the current winter round.
+ // Only TSV rows with the explicit public "anzeigen" state are opened.
+ for(const groupId of new Set([...groupByTeam.values()].filter(Boolean))){
+   await page.goto(`https://www.btv.de/de/spielbetrieb/tabelle-spielplan.html?groupid=${groupId}`,
+     {waitUntil:'domcontentloaded',timeout:30000}).catch(()=>{});
+   await page.waitForTimeout(3000);
+   const widget=page.frames().find(frame=>new URL(frame.url()).hostname==='widget.btv.de');
+   if(!widget)continue;
+   const rows=widget.locator('.gbmeeting');
+   const targets=[];
+   for(let i=0;i<await rows.count();i++){
+     const text=await rows.nth(i).innerText().catch(()=>'');
+     if(/TSV Feldkirchen/i.test(text)&&/\banzeigen\b/i.test(text))targets.push(i);
+   }
+   for(const index of targets){
+     const row=rows.nth(index);
+     const status=row.locator('.gb-status').first();
+     if(await status.count()!==1)continue;
+     await status.dispatchEvent('click').catch(()=>{});
+     await page.waitForTimeout(700);
+     links.push(...await widget.locator('a[href*="MeetingReportFOP"][href*="meeting="]')
+       .evaluateAll(as=>as.map(a=>a.href).filter(Boolean)).catch(()=>[]));
+   }
  }
  const byId=new Map([...meetingIdsFromLinks(links),...meetingIdsFromDocuments(documents)].map(x=>[x.meetingId,x]));
  const reports=[...byId.values()].sort((a,b)=>a.meetingId-b.meetingId);discovered=reports.length;

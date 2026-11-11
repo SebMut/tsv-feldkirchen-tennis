@@ -63,8 +63,8 @@ jobs:
           npm install --no-save --no-package-lock --ignore-scripts playwright@1.64.1
           npx --no-install playwright install --with-deps chromium
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
-      - name: Discover official meeting IDs from the authorized BTV cockpit
-        # A temporarily unavailable cockpit must not block revalidation of already known reports.
+      - name: Discover official meeting IDs from BTV cockpit and public group reports
+        # A temporarily unavailable BTV surface must not block revalidation of already known reports.
         continue-on-error: true
         env:
           GITHUB_REF: ${{ github.ref }}

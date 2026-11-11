@@ -41,6 +41,9 @@ test('scheduled discovery imports the active winter season and official group UR
  assert.match(workflow,/BTV_ACTIVE_SEASON_CODE \|\| 'winter-2026-2027'/);
  assert.doesNotMatch(workflow,/BTV_ACTIVE_SEASON_CODE \|\| 'sommer-2026'/);
  assert.match(discovery,/groupIdFromBtvUrl\(x\.btv_url\)/);
+ assert.match(discovery,/widget\.btv\.de/);
+ assert.match(discovery,/\.gbmeeting/);
+ assert.match(discovery,/MeetingReportFOP/);
  assert.match(discovery,/BTV_SEASON_CODE\|\|'winter-2026-2027'/);
  assert.match(importer,/BTV_SEASON_CODE\|\|'winter-2026-2027'/);
 });
