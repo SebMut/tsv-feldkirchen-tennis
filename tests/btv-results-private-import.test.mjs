@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import {selectOfficialResults} from '../scripts/btv-results-match.mjs';
 const text=readFileSync(new URL('../scripts/btv-results-import.mjs',import.meta.url),'utf8');
 const workflow=readFileSync(new URL('../.github/workflows/btv-results-private-import.yml',import.meta.url),'utf8');
+const dailyWorkflow=readFileSync(new URL('../.github/workflows/btv-meeting-rubbers-sync.yml',import.meta.url),'utf8');
 const ts=new Map([['herren','ts1']]);
 const now=Date.parse('2026-10-31T17:00:00Z');
 const match=(id,name,home,start,btv=null)=>({
@@ -63,9 +64,10 @@ test('repository and secret scope are strictly restricted, only score fields cha
   assert.match(workflow,/github\.event_name == 'push'/);
   assert.match(workflow,/secrets\.BTV_SUPABASE_SECRET_KEY/);
   assert.doesNotMatch(workflow,/upload-artifact/);
-  assert.match(workflow,/schedule:/);
-  assert.match(workflow,/cron: '23 1,7,13,19 \* \* \*'/);
-  assert.match(workflow,/github\.event_name == 'schedule'/);
+  assert.doesNotMatch(workflow,/^\s+schedule:/m);
+  assert.match(dailyWorkflow,/schedule:[\s\S]*cron: '17 3 \* \* \*'/);
+  assert.match(dailyWorkflow,/node scripts\/btv-results-import\.mjs --apply[\s\S]*node scripts\/btv-meeting-discovery\.mjs --apply[\s\S]*node scripts\/btv-meeting-rubbers-import-2026\.mjs --apply/);
+  assert.match(dailyWorkflow,/secrets\.BTV_SUPABASE_SECRET_KEY/);
   assert.match(workflow,/github\.ref == 'refs\/heads\/main'/);
   assert.match(text,/const ACTIVE_SEASONS=SEASONS\.filter\(item=>item\.code==='winter-2026-2027'\)/);
   assert.doesNotMatch(workflow,/BTV_RESULTS_ONLY_SOMMER_2026/);

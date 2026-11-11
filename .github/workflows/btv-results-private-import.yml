@@ -1,8 +1,7 @@
 name: BTV verified summer and winter final results import
 on:
-  # Recheck current official team results every six hours, also when no code changes.
-  schedule:
-    - cron: '23 1,7,13,19 * * *'
+  # Scheduled production imports run once daily in btv-meeting-rubbers-sync.yml,
+  # which imports final scores first and the associated lineups afterwards.
   workflow_dispatch:
   push:
     branches: [main]
