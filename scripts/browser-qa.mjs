@@ -92,6 +92,35 @@ async function deviceQA(device){
       await check(key+' images',()=>healthyImages(page,route),page);
     page.off('pageerror',listener);
   }
+  if(device.mobile) await check(device.name+' hall header does not cover its first venue',async()=>{
+    await page.goto(url('/hallenplaetze/'),{waitUntil:'domcontentloaded'});
+    const result=await page.evaluate(()=>{
+      const root=document.querySelector('#hall-finder');
+      if(!root)throw Error('Hall finder not mounted');
+      const fixture=document.createElement('div');
+      fixture.className='hall-results-grid';
+      fixture.innerHTML='<article class="hall-day-card"><header><div><p>Mi. 11.11.</p><span>07:00–23:00 Uhr</span></div><span class="hall-day-card__count">20 freie Zeiten</span></header><div class="hall-day-card__venues"><div class="hall-slot"><div class="hall-slot__venue"><strong>TC Aschheim</strong></div><div class="hall-slot__availability"><span>12:00–13:00</span></div></div></div></article>';
+      root.append(fixture);
+      const header=fixture.querySelector('.hall-day-card>header');
+      const first=fixture.querySelector('.hall-slot');
+      const position=getComputedStyle(header).position;
+      const initialHeader=header.getBoundingClientRect();
+      const initialFirst=first.getBoundingClientRect();
+      header.scrollIntoView({block:'start'});
+      scrollBy(0,40);
+      const scrolledHeader=header.getBoundingClientRect();
+      const scrolledFirst=first.getBoundingClientRect();
+      fixture.remove();
+      return {position,initialGap:initialFirst.top-initialHeader.bottom,
+        scrolledGap:scrolledFirst.top-scrolledHeader.bottom,
+        width:document.documentElement.scrollWidth,viewport:innerWidth};
+    });
+    assert.equal(result.position,'static','Hall heading must not be sticky on narrow screens');
+    assert.ok(result.initialGap>=-1,'Header overlaps the first hall card before scrolling: '+JSON.stringify(result));
+    assert.ok(result.scrolledGap>=-1,'Header overlaps the first hall card when scrolling: '+JSON.stringify(result));
+    assert.ok(result.width<=result.viewport+2,'Hall finder has horizontal overflow');
+  },page);
+
   // One event and two News cards must occupy the SAME grid row on desktop.
   // This fixture is only inserted into the local QA browser, never Supabase.
   if (!device.mobile) await check('Aktuelles: mixed event and news cards share desktop rows',async()=>{
