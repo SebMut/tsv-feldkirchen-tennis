@@ -223,6 +223,7 @@ jobs:
       # Publish tested homepage image priority: event hero, linked News hero (including Christmas party), technical fallback; deduplicated and browser-QA verified.
       # Publish expanded Tennis privacy information for Supabase, registration, Gmail, Turnstile, hosting, ICS, analytics and rights, after browser QA.
       # Fix global Datenschutz footer href to local Tennis policy instead of external main club; tested in responsive browser QA.
+      # Fix hall finder on mobile: day headers remain in document flow, first venue is never covered (390px / 320px browser tested).
       # User-approved hidden Forderungspyramide rollout: private login, delegated admin, modal results, guarded SQL/RLS and Gmail queue; browser QA passed.
       # Master v1.0: 14-day play / 3-day desired scheduling / 48h confirmed results / 7-day cooldowns / 28-day automatic un-neutralization; bottom-right Urlaub/Verletzung badges; desktop/mobile/small mobile QA green.
       # Password onboarding: email link -> verifyOtp -> updateUser -> open pyramid request form, tested with isolated synthetic browser account.
