@@ -8,7 +8,7 @@ import {createHash} from 'node:crypto';
 import {mkdtempSync,rmSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {canonicalRubberSnapshot,parseOfficialMeetingText} from './btv-meeting-rubbers-parser.mjs';
+import {canonicalRubberSnapshot,parseOfficialMeetingText,publicEncounterFromOfficial} from './btv-meeting-rubbers-parser.mjs';
 
 const PROJECT_URL='https://eaurnufdochjapfzqwvm.supabase.co';
 const seasonCode=process.env.BTV_SEASON_CODE||'winter-2026-2027';
@@ -117,6 +117,28 @@ try{
    const {data:storedRows,error:countError}=await db.from('official_report_rubbers')
      .select('id,discipline,position').eq('report_id',report.id).limit(30);
    if(countError||storedRows.length!==all.length)throw Error('RUBBER_COUNT_AFTER_WRITE_MISMATCH');
+
+   // Mirror the verified official result into the public match-detail model. This
+   // replaces stale live-ticker placeholders only after the complete BTV report
+   // passed all identity, score and completeness checks above.
+   const publicRows=all.map(row=>publicEncounterFromOfficial(row,{matchId:m.id,isHome:m.is_home}));
+   const lineupFormat=parsed.singles.length===4&&parsed.doubles.length===2?'4_2':
+     parsed.singles.length===6&&parsed.doubles.length===3?'6_3':null;
+   if(!lineupFormat)throw Error('PUBLIC_ENCOUNTER_FORMAT_UNSUPPORTED');
+   const {data:oldPublic,error:oldPublicError}=await db.from('match_encounters')
+     .select('id,discipline,position').eq('match_id',m.id).limit(20);
+   if(oldPublicError)throw Error('PUBLIC_ENCOUNTER_READ_FAILED');
+   const officialKeys=new Set(publicRows.map(row=>row.discipline+':'+row.position));
+   const staleIds=oldPublic.filter(row=>!officialKeys.has(row.discipline+':'+row.position)).map(row=>row.id);
+   if(staleIds.length){
+     const {error}=await db.from('match_encounters').delete().in('id',staleIds);
+     if(error)throw Error('PUBLIC_ENCOUNTER_CLEANUP_FAILED');
+   }
+   const {error:publicError}=await db.from('match_encounters')
+     .upsert(publicRows,{onConflict:'match_id,discipline,position'});
+   if(publicError)throw Error('PUBLIC_ENCOUNTER_UPSERT_FAILED');
+   const {error:formatError}=await db.from('matches').update({lineup_format:lineupFormat}).eq('id',m.id);
+   if(formatError)throw Error('PUBLIC_ENCOUNTER_FORMAT_UPDATE_FAILED');
    const {error:headerError}=await db.from('official_meeting_reports')
      .update({source_sha256:sha,parser_version:'btv-meeting-rubbers-v2',
        home_team:clubs[1].replace(/\s*\(\d{5}\)$/,'').trim(),
@@ -129,7 +151,7 @@ try{
      doubles:parsed.doubles.length,status:'verified'}));
   }catch(err){
    const reason=String(err?.message||err);
-   const safe=/^(?:REPORT_HTTP_\d{3}|MATCH_LINK_UNVERIFIED|UNVERIFIED_OFFICIAL_REPORT_URL|MATCH_SCORE_CONFLICT|REPORT_PDF_INVALID|OFFICIAL_REPORT_CHANGED_REVIEW_REQUIRED|REPORT_PAGES_INVALID|WRONG_TEAM_SEASON_OR_OPPONENT|HOME_AWAY_IDENTITY_CONFLICT|RUBBER_REPORT_INCOMPLETE|RUBBER_READ_FAILED|RUBBER_INSERT_FAILED|RUBBER_COUNT_AFTER_WRITE_MISMATCH|REPORT_VERIFICATION_UPDATE_FAILED)$/.test(reason)
+   const safe=/^(?:REPORT_HTTP_\d{3}|MATCH_LINK_UNVERIFIED|UNVERIFIED_OFFICIAL_REPORT_URL|MATCH_SCORE_CONFLICT|REPORT_PDF_INVALID|OFFICIAL_REPORT_CHANGED_REVIEW_REQUIRED|REPORT_PAGES_INVALID|WRONG_TEAM_SEASON_OR_OPPONENT|HOME_AWAY_IDENTITY_CONFLICT|RUBBER_REPORT_INCOMPLETE|RUBBER_READ_FAILED|RUBBER_INSERT_FAILED|RUBBER_COUNT_AFTER_WRITE_MISMATCH|PUBLIC_ENCOUNTER_(?:READ_FAILED|CLEANUP_FAILED|UPSERT_FAILED|FORMAT_UNSUPPORTED|FORMAT_UPDATE_FAILED)|REPORT_VERIFICATION_UPDATE_FAILED)$/.test(reason)
      ?reason:'SOURCE_OR_PARSE_UNAVAILABLE';
    console.log('BTV_RUBBER_PENDING='+JSON.stringify({meeting:id||null,reason:safe}));
    if(safe.includes('CONFLICT')||safe.includes('CHANGED'))conflicts++;

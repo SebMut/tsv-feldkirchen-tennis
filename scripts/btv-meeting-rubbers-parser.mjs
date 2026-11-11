@@ -48,6 +48,24 @@ export function canonicalRubberSnapshot(rows){
   }));
 }
 
+export function publicEncounterFromOfficial(row,{matchId,isHome}){
+  if(!matchId||!['single','double'].includes(row?.discipline))throw Error('PUBLIC_ENCOUNTER_SOURCE_INVALID');
+  const tsv=row[isHome?'home_participants':'away_participants']||[];
+  return {
+    match_id:matchId,
+    discipline:row.discipline==='single'?'singles':'doubles',
+    position:Number(row.position),
+    tsv_player_1_name:tsv[0]?.name||null,
+    tsv_player_2_name:tsv[1]?.name||null,
+    opponent_slot_1:Number(row.position),
+    opponent_slot_2:row.discipline==='double'?Number(row.position):null,
+    status:'finished',
+    result_text:row.result_text||null,
+    winner:row.winner_side===(isHome?'home':'away')?'tsv':'opponent',
+    sort_order:row.discipline==='single'?Number(row.position):100+Number(row.position)
+  };
+}
+
 export function parseOfficialMeetingText(text,{expectedHomePoints,expectedAwayPoints}={}){
   if(typeof text!=='string'||text.length<150||text.length>500000)throw Error('REPORT_TEXT_INVALID');
   const lines=text.split(/\r?\n/);

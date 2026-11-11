@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {canonicalRubberSnapshot,parseOfficialMeetingText} from '../scripts/btv-meeting-rubbers-parser.mjs';
+import {canonicalRubberSnapshot,parseOfficialMeetingText,publicEncounterFromOfficial} from '../scripts/btv-meeting-rubbers-parser.mjs';
 
 // Synthetic BTV PDF layout, no actual player names/IDs.
 function row(fields){
@@ -49,6 +49,20 @@ test('canonical snapshot ignores database metadata and JSON object key order',()
    home_participants:row.home_participants.map(x=>({name:x.name})),
    set_results:row.set_results.map(x=>({away:x.away,home:x.home}))}));
  assert.deepEqual(canonicalRubberSnapshot(stored),canonicalRubberSnapshot(original));
+});
+test('maps verified home and away rubbers to finished public encounters',()=>{
+ const parsed=parseOfficialMeetingText(report(singles),{expectedHomePoints:4,expectedAwayPoints:2});
+ const home=publicEncounterFromOfficial(parsed.singles[0],{matchId:'match-1',isHome:true});
+ assert.equal(home.discipline,'singles');
+ assert.equal(home.tsv_player_1_name,'Muster, Max');
+ assert.equal(home.winner,'opponent');
+ assert.equal(home.result_text,'3:6 3:6');
+ const away=publicEncounterFromOfficial(parsed.doubles[0],{matchId:'match-1',isHome:false});
+ assert.equal(away.discipline,'doubles');
+ assert.equal(away.tsv_player_1_name,'Gast, Eva');
+ assert.equal(away.tsv_player_2_name,'Gegen, Laura');
+ assert.equal(away.winner,'opponent');
+ assert.equal(away.sort_order,101);
 });
 test('incomplete report stays partial rather than inventing missing doubles',()=>{
  const t=report(singles).split('\n');
