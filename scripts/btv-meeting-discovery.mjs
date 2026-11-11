@@ -17,7 +17,8 @@ const searchFrom=seasonMatch[1]==='sommer'?`${startYear}-04-01`:`${startYear}-09
 const searchUntil=seasonMatch[1]==='sommer'?`${endYear}-10-31`:`${endYear+(seasonMatch[3]?0:1)}-04-30`;
 const CLUB_COCKPIT='https://www.btv.de/de/mein-verein/vereins-cockpit.html';
 const AUTH_HOST='tende-id.liga.nu';
-const ALLOWED_HOSTS=new Set(['www.btv.de','btv.de','widget.btv.de','btv.liga.nu',AUTH_HOST]);
+const ALLOWED_HOSTS=new Set(['www.btv.de','btv.de','widget.btv.de','btv.liga.nu',AUTH_HOST,
+  'consent.cookiebot.com','consentcdn.cookiebot.com','storage.googleapis.com']);
 const apply=process.argv.includes('--apply');
 if(apply&&(process.env.GITHUB_REF!=='refs/heads/main'||process.env.BTV_MEETING_DISCOVERY_WRITE_ENABLED!=='true'))
   throw Error('WRITE_RESTRICTED_TO_APPROVED_MAIN_WORKFLOW');
@@ -46,7 +47,7 @@ function reportMeta(text){
 }
 
 let browser;const folder=mkdtempSync(join(tmpdir(),'btv-meeting-discovery-'));
-let discovered=0,inserted=0,ambiguous=0,unavailable=0;
+let discovered=0,inserted=0,ambiguous=0,unavailable=0,publicGroups=0,publicRows=0;
 try{
  browser=await chromium.launch({headless:true});
  const context=await browser.newContext({acceptDownloads:false,serviceWorkers:'block',locale:'de-DE'});
@@ -93,15 +94,19 @@ try{
  for(const groupId of new Set([...groupByTeam.values()].filter(Boolean))){
    await page.goto(`https://www.btv.de/de/spielbetrieb/tabelle-spielplan.html?groupid=${groupId}`,
      {waitUntil:'domcontentloaded',timeout:30000}).catch(()=>{});
-   await page.waitForTimeout(3000);
+   await page.locator('iframe[src*="widget.btv.de/btvgroup/"]').waitFor({state:'attached',timeout:15000}).catch(()=>{});
    const widget=page.frames().find(frame=>new URL(frame.url()).hostname==='widget.btv.de');
    if(!widget)continue;
+   await widget.locator('.gbmeeting').first().waitFor({state:'attached',timeout:15000}).catch(()=>{});
    const rows=widget.locator('.gbmeeting');
+   if(await rows.count()===0)continue;
+   publicGroups++;
    const targets=[];
    for(let i=0;i<await rows.count();i++){
      const text=await rows.nth(i).innerText().catch(()=>'');
      if(/TSV Feldkirchen/i.test(text)&&/\banzeigen\b/i.test(text))targets.push(i);
    }
+   publicRows+=targets.length;
    for(const index of targets){
      const row=rows.nth(index);
      const status=row.locator('.gb-status').first();
@@ -138,6 +143,7 @@ try{
  }
  await context.close();
 }finally{rmSync(folder,{recursive:true,force:true});await browser?.close().catch(()=>{});}
-console.log('BTV_MEETING_DISCOVERY='+JSON.stringify({season:seasonCode,discovered,known:existingMeetings.size,inserted,ambiguous,unavailable,mode:apply?'apply':'dry-run'}));
+console.log('BTV_MEETING_DISCOVERY='+JSON.stringify({season:seasonCode,discovered,known:existingMeetings.size,inserted,ambiguous,unavailable,
+  publicGroups,publicRows,mode:apply?'apply':'dry-run'}));
 console.log('BTV_MEETING_DISCOVERY_PERSONAL_DATA_LOGGED=NO');
 
