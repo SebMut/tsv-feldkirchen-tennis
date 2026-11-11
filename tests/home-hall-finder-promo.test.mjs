@@ -10,7 +10,7 @@ test('homepage promotes the live hall finder inside the hero before the welcome 
   const welcome=home.indexOf('class="home-intro-grid"');
   assert.ok(promo>0&&promo<welcome);
   assert.match(home,/href="\/hallenplaetze\/"[\s\S]*?Hallenplätze in der Nähe/);
-  assert.match(home,/Freie Zeiten bei fünf Anlagen vergleichen/);
+  assert.match(home,/Freie Zeiten bei sechs Anlagen vergleichen/);
 });
 
 test('hall finder promotion is visually prominent and responsive',()=>{

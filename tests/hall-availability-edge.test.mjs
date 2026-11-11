@@ -39,10 +39,10 @@ test('Kirchheim prices are read from provider price classes and bound to availab
  assert.match(edge,/parseKirchheim\(html, new Set\(\[date\]\)\)/);
 });
 
-test('Sporttraum and Haar use the public Eversports tennis calendar and only free priced cells',()=>{
- assert.match(edge,/6yi8rm/);assert.match(edge,/hwhk63/);
+test('Sporttraum, Haar and Rothof use the public Eversports tennis calendar and only free cells',()=>{
+ assert.match(edge,/6yi8rm/);assert.match(edge,/hwhk63/);assert.match(edge,/jmjffr/);
  assert.match(edge,/data-state="free"/);
  assert.match(edge,/data-price/);
- assert.match(edge,/fetchEversports\("sporttraum"/);assert.match(edge,/fetchEversports\("haar"/);
- assert.doesNotMatch(edge,/rothof/i);
+ assert.match(edge,/fetchEversports\("sporttraum"/);assert.match(edge,/fetchEversports\("haar"/);assert.match(edge,/fetchEversports\("rothof"/);
+ assert.match(edge,/rothof\.de\/online-buchen/);
 });

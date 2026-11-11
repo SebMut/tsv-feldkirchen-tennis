@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 type Slot = {
-  venueId: "aschheim" | "ismaning" | "sporttraum" | "haar" | "kirchheim";
+  venueId: "aschheim" | "ismaning" | "sporttraum" | "haar" | "rothof" | "kirchheim";
   date: string;
   start: string;
   end: string;
@@ -25,6 +25,9 @@ const TENNIS = { id: "433", slug: "tennis", name: "Tennis", uuid: "b38729e9-69de
 const eversportsVenues = {
   sporttraum: { shortId: "6yi8rm", facilityId: "69336", bookingUrl: EVERSPORTS_ORIGIN + "/widget/w/6yi8rm" },
   haar: { shortId: "hwhk63", facilityId: "24105", bookingUrl: EVERSPORTS_ORIGIN + "/sb/racket-park-tsv-haar" },
+  // The official Rothof booking page embeds this public Eversports widget.
+  // Its calendar already marks bookable cells as free, so no login is needed.
+  rothof: { shortId: "jmjffr", facilityId: null, bookingUrl: "https://rothof.de/online-buchen/" },
 } as const;
 
 function json(body: unknown, status = 200) {
@@ -163,7 +166,7 @@ function compactTime(value: string) {
 
 function parseEversportsCalendar(
   html: string,
-  venueId: "sporttraum" | "haar",
+  venueId: "sporttraum" | "haar" | "rothof",
   bookingUrl: string,
   allowedDates: ReadonlySet<string>,
   booked: ReadonlySet<string>,
@@ -194,7 +197,7 @@ function parseEversportsCalendar(
   return slots;
 }
 
-async function fetchEversports(venueId: "sporttraum" | "haar", dates: string[]) {
+async function fetchEversports(venueId: "sporttraum" | "haar" | "rothof", dates: string[]) {
   const venue = eversportsVenues[venueId];
   const landing = await eversportsRequest("/widget/w/" + venue.shortId);
   if (!landing.ok) throw new Error("eversports_landing_" + landing.status);
@@ -214,17 +217,19 @@ async function fetchEversports(venueId: "sporttraum" | "haar", dates: string[]) 
   if (!calendar.ok) throw new Error("eversports_calendar_" + calendar.status);
   const html = await calendar.text();
   const courts = [...new Set([...html.matchAll(/<td[^>]*data-court="(\d+)"[^>]*>/gi)].map((match) => match[1]))];
-  const query = new URLSearchParams({ facilityId: venue.facilityId, sport: "tennis", startDate: dates[0] });
-  courts.forEach((court) => query.append("courts[]", court));
-  const occupancy = await eversportsRequest("/widget/api/slot?" + query, {}, cookie);
-  if (!occupancy.ok) throw new Error("eversports_slots_" + occupancy.status);
-  const payload = await occupancy.json();
   const booked = new Set<string>();
-  for (const slot of Array.isArray(payload?.slots) ? payload.slots : []) {
-    const court = String(slot.court ?? slot.courtId ?? slot.court_id ?? slot.court?.id ?? "");
-    const date = String(slot.date ?? slot.startDate ?? "").slice(0, 10);
-    const start = String(slot.start ?? "").replace(":", "").slice(0, 4);
-    if (court && date && start) booked.add(court + "|" + date + "|" + start);
+  if (venue.facilityId) {
+    const query = new URLSearchParams({ facilityId: venue.facilityId, sport: "tennis", startDate: dates[0] });
+    courts.forEach((court) => query.append("courts[]", court));
+    const occupancy = await eversportsRequest("/widget/api/slot?" + query, {}, cookie);
+    if (!occupancy.ok) throw new Error("eversports_slots_" + occupancy.status);
+    const payload = await occupancy.json();
+    for (const slot of Array.isArray(payload?.slots) ? payload.slots : []) {
+      const court = String(slot.court ?? slot.courtId ?? slot.court_id ?? slot.court?.id ?? "");
+      const date = String(slot.date ?? slot.startDate ?? "").slice(0, 10);
+      const start = String(slot.start ?? "").replace(":", "").slice(0, 4);
+      if (court && date && start) booked.add(court + "|" + date + "|" + start);
+    }
   }
   return parseEversportsCalendar(html, venueId, venue.bookingUrl, new Set(dates), booked);
 }
@@ -305,6 +310,7 @@ Deno.serve(async (req: Request) => {
   const sources: Record<string, { status: string; message?: string }> = {
     sporttraum: { status: "loading" },
     haar: { status: "loading" },
+    rothof: { status: "loading" },
   };
 
   const aschheimResults = await Promise.allSettled(dates.map(fetchAschheim));
@@ -322,9 +328,9 @@ Deno.serve(async (req: Request) => {
     : { status: "unavailable", message: "Anbieter derzeit nicht erreichbar" };
 
   const eversportsResults = await Promise.allSettled([
-    fetchEversports("sporttraum", dates), fetchEversports("haar", dates),
+    fetchEversports("sporttraum", dates), fetchEversports("haar", dates), fetchEversports("rothof", dates),
   ]);
-  (["sporttraum", "haar"] as const).forEach((venueId, index) => {
+  (["sporttraum", "haar", "rothof"] as const).forEach((venueId, index) => {
     const result = eversportsResults[index];
     if (result.status === "fulfilled") {
       slots.push(...result.value);

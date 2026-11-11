@@ -95,7 +95,7 @@ export function initSiteAnalytics() {
     if (elem.matches('#calendar-modal-details')) { track('calendar_click',pagePath,'tag_details'); return; }
     if (elem.matches('[data-news-more]')) { track('content_click',pagePath,'weitere_beitraege'); return; }
     const hallVenue = elem.dataset.hallVenue;
-    if (pagePath === '/hallenplaetze/' && hallVenue && /^(aschheim|ismaning|sporttraum|haar|kirchheim)$/.test(hallVenue)) {
+    if (pagePath === '/hallenplaetze/' && hallVenue && /^(aschheim|ismaning|sporttraum|haar|rothof|kirchheim)$/.test(hallVenue)) {
       track('action_click',pagePath,'halle:'+hallVenue);
       return;
     }
