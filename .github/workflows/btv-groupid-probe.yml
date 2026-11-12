@@ -1,0 +1,21 @@
+name: Verify BTV group IDs and results source
+on:
+  pull_request:
+    paths:
+      - 'scripts/btv-groupid-probe.mjs'
+      - '.github/workflows/btv-groupid-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Check groupIDs 2216736 and 2180636 at BTV public PDF source
+        run: node scripts/btv-groupid-probe.mjs 2216736 2180636

@@ -1,0 +1,19 @@
+name: Probe public club-to-group link sources
+on:
+  pull_request:
+    paths:
+      - 'scripts/btv-team-links-probe.mjs'
+      - '.github/workflows/btv-team-links-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/btv-team-links-probe.mjs
