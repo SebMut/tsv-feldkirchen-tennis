@@ -7,7 +7,7 @@ test('News pages avoid eagerly loading full article bodies',()=>{
   const part=js.slice(js.indexOf('export async function loadNews'),js.indexOf('export async function loadManagedPage'));
   assert.match(part,/const pageSize = 6/);
   assert.match(part,/\.range\(offset, offset \+ pageSize - 1\)/);
-  assert.match(part,/\.select\('id,slug,title,excerpt,hero_image_path,published_at'\)/);
+  assert.match(part,/\.select\('id,slug,title,excerpt,hero_image_path,published_at,button_label,button_url'\)/);
   assert.match(part,/data-news-body/);
   assert.match(part,/requestedNews/);
   assert.doesNotMatch(part,/\.select\('\*'\)/);

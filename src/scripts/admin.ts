@@ -1,3 +1,4 @@
+import { renderNewsAction, validateNewsAction } from '../lib/news-action';
 import { mediaUrl, supabase } from '../lib/supabase';
 import { explainAdminFunctionError } from '../lib/admin-function-errors';
 import { replaceMediaImage, removeMediaImage, uploadGalleryImages, removeOwnedMediaPaths } from '../lib/media-upload';
@@ -2250,6 +2251,8 @@ async function refreshNews(){
    editorialInput('news-title').value=item.title||'';
    editorialInput('news-excerpt').value=item.excerpt||'';
    editorialInput('news-body').value=item.body||'';
+   editorialInput('news-button-label').value=item.button_label||'';
+   editorialInput('news-button-url').value=item.button_url||'';
    editorialInput('news-team').value=item.team_id||'';
    renderNewsReferenceOptions(item.match_id || (item.related_event_id ? `event:${item.related_event_id}` : ''));
    editorialInput('news-status').value=item.status||'draft';
@@ -2305,7 +2308,10 @@ async function addNews(event: Event){
    if (existing.error) return status(existing.error.message,'error');
    originalPublishDate = existing.data?.published_at || null;
  }
- const patch={title,body,excerpt:editorialInput('news-excerpt')?.value.trim()||null,team_id:teamId,match_id:matchId,related_event_id:relatedEventId,status:publication,published_at:publication==='published'?(originalPublishDate||new Date().toISOString()):null};
+ const buttonLabel=editorialInput('news-button-label').value.trim();
+ const buttonUrl=editorialInput('news-button-url').value.trim();
+ try { validateNewsAction(buttonLabel,buttonUrl); } catch(error) { return status(error instanceof Error?error.message:'Ungültiger Button.','error'); }
+ const patch={title,body,button_label:buttonLabel||null,button_url:buttonUrl||null,excerpt:editorialInput('news-excerpt')?.value.trim()||null,team_id:teamId,match_id:matchId,related_event_id:relatedEventId,status:publication,published_at:publication==='published'?(originalPublishDate||new Date().toISOString()):null};
  const result=editId?await supabase.from('news').update(patch).eq('id',editId).select('id').single():await supabase.from('news').insert({...patch,slug:`${slugify(title)}-${Date.now().toString(36)}`,author_id:state.user.id}).select('id').single();
  if(result.error||!result.data)return status(result.error?.message||'Speichern fehlgeschlagen.','error');
  const newsId=result.data.id;
@@ -2718,6 +2724,9 @@ function bindForms() {
     if (!preview) return;
     preview.classList.remove('hidden');
     preview.textContent = ['news-title', 'news-excerpt', 'news-body'].map((id) => editorialInput(id).value).filter(Boolean).join('\n\n');
+    const label = editorialInput('news-button-label').value.trim(), url = editorialInput('news-button-url').value.trim();
+    try { validateNewsAction(label, url); } catch(error) { return status(error instanceof Error ? error.message : 'Ungültiger Button.', 'error'); }
+    preview.insertAdjacentHTML('beforeend', renderNewsAction({button_label:label, button_url:url}));
   });
   $<HTMLFormElement>('#gallery-form')?.addEventListener('submit', addGallery);
   $<HTMLSelectElement>('#gallery-team')?.addEventListener('change', renderGalleryMatchOptions);

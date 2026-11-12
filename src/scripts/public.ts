@@ -1,3 +1,4 @@
+import { renderNewsAction } from '../lib/news-action';
 import { calendarFeedUrl, calendarSubscriptionUrl, mediaUrl, supabase } from '../lib/supabase';
 import { formatIcsTime, inspectCalendarFeed } from '../lib/calendar-feed-diagnostics';
 import { escapeHtml, formatDateTime } from '../lib/ui';
@@ -1919,6 +1920,7 @@ export async function loadNews() {
       <p class="eyebrow">${item.published_at ? escapeHtml(formatDateTime(item.published_at)) : 'Aktuelles'}</p>
       <h2>${escapeHtml(item.title)}</h2>
       <p class="muted">${escapeHtml(item.excerpt || '')}</p>
+      ${renderNewsAction(item)}
       <details><summary>Weiterlesen</summary><p data-news-body="${escapeHtml(item.id)}" data-body-state="idle" style="white-space:pre-wrap">Vollständiger Beitrag wird beim Öffnen geladen.</p></details>
     </article>
   `;
@@ -1941,7 +1943,7 @@ export async function loadNews() {
     feedback.textContent = 'Beiträge werden geladen …';
     try {
       const { data, error } = await supabase.from('news')
-        .select('id,slug,title,excerpt,hero_image_path,published_at')
+        .select('id,slug,title,excerpt,hero_image_path,published_at,button_label,button_url')
         .eq('status', 'published')
         .order('published_at', { ascending: false })
         .order('id', { ascending: false })
@@ -1956,7 +1958,7 @@ export async function loadNews() {
       // Auch Direktlinks auf alte, veröffentlichte Beiträge müssen funktionieren.
       if (firstPage && /^[0-9a-f-]{36}$/i.test(requestedNews) && !shown.has(requestedNews)) {
         const { data: selected, error: selectedError } = await supabase.from('news')
-          .select('id,slug,title,excerpt,hero_image_path,published_at')
+          .select('id,slug,title,excerpt,hero_image_path,published_at,button_label,button_url')
           .eq('status', 'published').eq('id', requestedNews).maybeSingle();
         if (!selectedError && selected) append([selected]);
       }

@@ -1,3 +1,4 @@
+import { renderNewsAction, validateNewsAction } from '../lib/news-action';
 import { mediaUrl, supabase } from '../lib/supabase';
 import { replaceMediaImage } from '../lib/media-upload';
 import { escapeHtml, formatDateTime } from '../lib/ui';
@@ -68,6 +69,7 @@ export function initEditorialComposer(access: Access) {
     if (!access.canNews || editing?.kind === 'event') input('event').checked = true;
     input('event').disabled = !access.canEvents || !access.canNews || editing?.kind === 'event';
     el<HTMLElement>('editorial-compose-event-fields')!.hidden = !hasEvent();
+    el<HTMLElement>('editorial-compose-button-fields')!.hidden = hasEvent();
     el<HTMLElement>('editorial-compose-rsvp-fields')!.hidden = !(hasEvent() && on('rsvp'));
     el<HTMLElement>('editorial-compose-tournament-fields')!.hidden = !(hasEvent() && on('rsvp') && on('tournaments'));
     input('team').disabled = !!editing?.news?.match_id || !!editing?.news?.related_event_id;
@@ -104,6 +106,8 @@ export function initEditorialComposer(access: Access) {
     revokeImage();
     const record = entry.news || entry.event!;
     input('title').value = String(record.title || '');
+    input('button-label').value = String(entry.news?.button_label || '');
+    input('button-url').value = String(entry.news?.button_url || '');
     input('body').value = String(entry.news?.body || entry.event?.description || '');
     input('excerpt').value = String(entry.news?.excerpt || entry.event?.excerpt || '');
     input('team').value = String(record.team_id || '');
@@ -160,6 +164,7 @@ export function initEditorialComposer(access: Access) {
     }));
   };
   const validate = () => {
+    if (!hasEvent()) validateNewsAction(val('button-label'), val('button-url'));
     if (!val('title') || !val('body')) throw Error('Überschrift und Beitragstext sind erforderlich.');
     if (hasEvent()) {
       if (!access.canEvents) throw Error('Für einen Termin wird die Veranstaltungsberechtigung benötigt.');
@@ -193,6 +198,7 @@ export function initEditorialComposer(access: Access) {
       escapeHtml(formatDateTime(editing?.news?.published_at || new Date().toISOString())) + '</time></div><h2><a href="#">' +
       title + '</a></h2><p class="content-card__description">' +
       escapeHtml(plain(val('excerpt') || val('body').slice(0, 220))) + '</p>' +
+      renderNewsAction({ button_label: val('button-label'), button_url: val('button-url') }) +
       '<details class="content-card__details"><summary>Weiterlesen →</summary><p style="white-space:pre-wrap">' +
       body + '</p></details></div></article>';
   };
@@ -237,6 +243,7 @@ export function initEditorialComposer(access: Access) {
       // if a later image upload or linked event update fails.
       if (access.canNews && editing?.kind !== 'event') {
         const patch = { title: val('title'), body: val('body'), excerpt: val('excerpt') || null,
+          button_label: val('button-label') || null, button_url: val('button-url') || null,
           team_id: teamId, status: oldNews?.status || 'draft', published_at: oldNews?.published_at || null };
         const result = newsId
           ? await (oldNews?.updated_at

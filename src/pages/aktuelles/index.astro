@@ -260,6 +260,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
       body.appendChild(title);
     }
     if (excerpt) { excerpt.className = 'content-card__description'; excerpt.textContent = plainText(excerpt.textContent); body.appendChild(excerpt); }
+    const action = card.querySelector<HTMLElement>('.news-action');
+    if (action) body.appendChild(action);
     if (details) {
       details.className = 'content-card__details';
       details.dataset.expandedDetails = '';
