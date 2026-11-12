@@ -232,6 +232,14 @@ test('member pyramid shows the LK directly below each player name',()=>{
  assert.match(styles,/\.pyramid-entry-lk/);
 });
 
+test('browser demo includes a 30-person Summer 2027 LK test pyramid',()=>{
+ assert.match(client,/id:'demo-summer',title:'Testpyramide'/);
+ assert.match(client,/season_label:'Sommer 2027',starts_on:'2027-05-01'/);
+ assert.match(client,/display_name:'Test'\+\(index\+1\)/);
+ assert.match(client,/position:index\+1,lk_rating:lk/);
+ assert.match(client,/demoSwitchLadder\('demo-summer'\)/);
+});
+
 test('Superadmin can re-sort an existing ladder by LK',()=>{
  assert.match(admin,/sort\.disabled=!isSuperAdmin\|\|ranked\.length<2/);
  assert.match(admin,/Aktuelle Rangliste nach LK sortieren/);
