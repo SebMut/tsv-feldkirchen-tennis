@@ -17,6 +17,7 @@ export function parseBtvRosterPdfText(text) {
   let rankResets = 0;
   let unrecognizedHeaders = 0;
   let unassignedRows = 0;
+  let unknownSections = 0;
   let rankLast = 0;
 
   for (const line of text.split(/\r?\n/u)) {
@@ -34,6 +35,14 @@ export function parseBtvRosterPdfText(text) {
       unrecognizedHeaders++;
       activeClass = null;
       continue;
+    }
+    // Any other section-like heading ("<words> [age] | league") is unknown to
+    // the mapping. Only counted (parsing itself is unchanged); the
+    // later-season plausibility gate rejects any such heading.
+    if (line.includes('|') && line.length <= 110
+        && /^\s*\p{L}[\p{L} .-]*?(?:\s\d{1,2})?(?:\s*\((?:4|6)er\))?(?:\s+(?:I|II|III))?\s*\|/u.test(line)
+        && !/^\s*(?:Seite|Stand|Druck|Datum|Erstellt)\b/iu.test(line)) {
+      unknownSections++;
     }
     if (!/^\s*\d{1,3}[.)]?\s+\p{L}/u.test(line)) continue;
     numberedRows++;
@@ -88,6 +97,7 @@ export function parseBtvRosterPdfText(text) {
       rankResets,
       unassignedRows,
       unrecognizedHeaders,
+      unknownSections,
       classCount: knownClasses.filter(label => headings.get(label) > 0).length,
       headingCount: [...headings.values()].reduce((sum, n) => sum + n, 0),
       classCounts: counts,
@@ -136,6 +146,23 @@ export function assertVerifiedSummerSnapshot(parsed) {
     || actual.length !== CONFIRMED_SUMMER_CLASSES.length
     || CONFIRMED_SUMMER_CLASSES.some(name => !actual.includes(name))) {
     throw Error('UNVERIFIED_NMM_SNAPSHOT');
+  }
+  return parsed;
+}
+
+// Plausibility gate for later summer seasons (sommer-2027 onwards), whose
+// exact snapshot cannot be known in advance. Any structural doubt stops the
+// import before the database is touched.
+export function assertPlausibleSeasonRoster(parsed) {
+  const d = parsed?.diagnostics;
+  const nonEmpty = Object.keys(d?.classCounts || {}).filter(name => d.classCounts[name] > 0);
+  if (!d || d.unassignedRows !== 0 || d.unrecognizedHeaders !== 0 || d.unknownSections !== 0
+    || d.invalidFormat !== 0 || d.invalidRank !== 0 || d.invalidName > 3
+    || d.malformedRows !== d.invalidName
+    || d.numberedRows !== d.parsedRows + d.malformedRows
+    || d.parsedRows < 60 || d.parsedRows > 400 || d.rankResets > 30
+    || nonEmpty.length < 3 || nonEmpty.some(name => d.classCounts[name] > 100)) {
+    throw Error('UNVERIFIED_NMM_ROSTER');
   }
   return parsed;
 }

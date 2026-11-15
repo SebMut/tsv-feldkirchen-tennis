@@ -52,7 +52,7 @@ test('missing team mapping stops before any database access', () => {
     /TEAM_SEASON_MAPPING_INCOMPLETE/);
 });
 
-test('new memberships are always private; import only runs when started manually', () => {
+test('new memberships are always private; import never runs from pushes or PRs', () => {
   const code = readFileSync(new URL('../scripts/btv-roster-supabase-import.mjs', import.meta.url),'utf8');
   const workflow = readFileSync(new URL('../.github/workflows/btv-roster-private-import.yml', import.meta.url),'utf8');
   assert.match(code, /public_visible:false/);
@@ -62,5 +62,7 @@ test('new memberships are always private; import only runs when started manually
   assert.match(workflow, /github\.event_name == 'workflow_dispatch'/);
   assert.doesNotMatch(workflow, /github\.event_name == 'push'/);
   assert.match(workflow, /BTV_SUPABASE_SECRET_KEY/);
-  assert.doesNotMatch(workflow, /upload-artifact|cron:|schedule:/);
+  assert.doesNotMatch(workflow, /upload-artifact/);
+  // Scheduled runs never touch the verified sommer-2026 snapshot (season from 2027).
+  assert.match(workflow, /cron: '37 5 \* 3-9 1'/);
 });
