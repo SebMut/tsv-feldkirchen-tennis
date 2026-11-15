@@ -8,7 +8,7 @@ import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { ageClassFromPdfHeading, isYouthClass } from './btv-roster-age-classes.mjs';
-import { parseBtvRosterPdfText, assertVerifiedSummerSnapshot } from './btv-roster-pdf-parser.mjs';
+import { parseBtvRosterPdfText, assertVerifiedSummerSnapshot, assertPlausibleSeasonRoster } from './btv-roster-pdf-parser.mjs';
 
 const ENTRY = 'https://www.btv.de/de/mein-verein/vereins-cockpit.html';
 const LOGIN_HOST = 'tende-id.liga.nu';
@@ -17,6 +17,20 @@ const CLUB = /TSV\s+Feldkirchen/i;
 const CLUB_NUMBER = /\b01012\b/;
 const USERNAME = process.env.BTV_LOGIN_USERNAME;
 const PASSWORD = process.env.BTV_LOGIN_PASSWORD;
+// Summer season to read: sommer-2026 (verified snapshot) or a later summer
+// season (plausibility gate), e.g. BTV_ROSTER_SEASON=sommer-2027.
+const SEASON_CODE = process.env.BTV_ROSTER_SEASON || 'sommer-2026';
+const SEASON_YEAR = /^sommer-(\d{4})$/.exec(SEASON_CODE)?.[1];
+if (!SEASON_YEAR || Number(SEASON_YEAR) < 2026) {
+  console.error('BTV_ROSTER_DISCOVERY=ROSTER_SEASON_NOT_SUPPORTED');
+  process.exit(1);
+}
+const LEGACY_SEASON = SEASON_CODE === 'sommer-2026';
+const SEASON_TEXT = new RegExp('Sommer\\s*' + SEASON_YEAR, 'i');
+const SEASON_EXACT = new RegExp('^\\s*Sommer\\s*' + SEASON_YEAR + '\\s*$', 'i');
+const SEASON_PDF = new RegExp('Sommer\\s+' + SEASON_YEAR, 'i');
+// Before the BTV publishes the season's roster these codes only mean "not yet".
+const NOT_YET_PUBLISHED = new Set(['NMM_DOWNLOAD_NOT_DISCOVERED', 'SUMMER_NMM_LINK_NOT_FOUND']);
 
 class DiscoveryError extends Error {}
 function fail(code) { throw new DiscoveryError(code); }
@@ -125,7 +139,7 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   const nmmName = /Namentliche\s+Mannschaftsmeldung|Nam\.?\s*Meldung/i;
   async function findSummerRowLinks() {
     for (const { page } of pages) {
-      const rows = page.locator('tr').filter({ hasText: /Sommer\s*2026/i });
+      const rows = page.locator('tr').filter({ hasText: SEASON_TEXT });
       for (const row of await rows.all()) {
         const links = row.getByRole('link', { name: nmmName });
         if (await links.count() === 1) {
@@ -149,7 +163,7 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
         const matches = [];
         for (const option of options) {
           const label = (await option.textContent()) || '';
-          if (/^\s*Sommer\s*2026\s*$/i.test(label)) {
+          if (SEASON_EXACT.test(label)) {
             const value = await option.getAttribute('value');
             if (value) matches.push(value);
           }
@@ -163,7 +177,7 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
         }
       }
       if (!openedSummer) {
-        const link = page.getByRole('link', { name: /^\s*Sommer\s*2026\s*$/i }).first();
+        const link = page.getByRole('link', { name: SEASON_EXACT }).first();
         if (await link.count() === 1 && await link.isVisible()) {
           const href = await link.getAttribute('href');
           if (href && !/\.pdf(?:\?|#|$)/i.test(href)) {
@@ -180,7 +194,7 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
     if (!chosen && openedSummer) {
       const options = [];
       for (const { page, text } of pages) {
-        if (!/Sommer\s*2026/i.test(text)) continue;
+        if (!SEASON_TEXT.test(text)) continue;
         const links = page.getByRole('link', { name: nmmName });
         if (await links.count() === 1) options.push({ page, link: links.first() });
       }
@@ -188,7 +202,7 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
     }
   }
   if (!chosen) {
-    console.log('BTV_ARCHIVE_SUMMER_TEXT=' + (pages.some(({ text }) => /Sommer\s*2026/i.test(text)) ? 'YES' : 'NO'));
+    console.log('BTV_ARCHIVE_SUMMER_TEXT=' + (pages.some(({ text }) => SEASON_TEXT.test(text)) ? 'YES' : 'NO'));
     console.log('BTV_ARCHIVE_SUMMER_LINK=' + (archiveLinkFound ? 'YES' : 'NO'));
     console.log('BTV_ARCHIVE_SUMMER_SELECTOR=' + (archiveSelectorFound ? 'YES' : 'NO'));
     console.log('BTV_ARCHIVE_SEASON_VIEW=' + (openedSummer ? 'YES' : 'NO'));
@@ -215,7 +229,7 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   const text = execFileSync('pdftotext', ['-layout', file, '-'], {
     encoding: 'utf8', timeout: 25000, maxBuffer: 8 * 1024 * 1024,
   });
-  if (!/TSV\s+Feldkirchen/i.test(text) || !/01012/.test(text) || !/Sommer\s+2026/i.test(text)) {
+  if (!/TSV\s+Feldkirchen/i.test(text) || !/01012/.test(text) || !SEASON_PDF.test(text)) {
     fail('NMM_PDF_CLUB_OR_SEASON_NOT_CONFIRMED');
   }
   // Print only redacted typographic shapes (never names, dates or IDs).
@@ -286,7 +300,7 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   }
   const youth = [...headings].filter(isYouthClass).length;
   console.log('BTV_NMM_PDF_CLUB=TSV_01012');
-  console.log('BTV_NMM_PDF_SEASON=SOMMER_2026');
+  console.log('BTV_NMM_PDF_SEASON=SOMMER_' + SEASON_YEAR);
   console.log('BTV_NMM_PDF_PAGES=' + pagesCount);
   console.log('BTV_NMM_AGE_CLASSES=' + headings.size);
   console.log('BTV_NMM_YOUTH_AGE_CLASSES=' + youth);
@@ -304,12 +318,14 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
   console.log('BTV_PARSE_BAD_NAME=' + d.invalidName);
   console.log('BTV_PARSE_UNASSIGNED_ROWS=' + d.unassignedRows);
   console.log('BTV_PARSE_UNKNOWN_HEADERS=' + d.unrecognizedHeaders);
+  console.log('BTV_PARSE_UNKNOWN_SECTIONS=' + d.unknownSections);
   for (const [name, count] of Object.entries(d.classCounts)) {
     const label = name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
     console.log('BTV_PARSE_CLASS_' + label + '=' + count);
   }
   try {
-    assertVerifiedSummerSnapshot(parsed);
+    if (LEGACY_SEASON) assertVerifiedSummerSnapshot(parsed);
+    else assertPlausibleSeasonRoster(parsed);
     console.log('BTV_PARSE_VERIFIED_PARTIAL=YES');
     return parsed;
   } catch {
@@ -385,21 +401,25 @@ async function run() {
     // No PDF links are opened. Neither names nor generated document URLs are logged.
     const content = downloadPage.text;
     console.log('BTV_NMM_DOWNLOAD=AVAILABLE');
-    console.log('BTV_SUMMER_2026_LISTED=' + (/Sommer\s*2026/i.test(content) ? 'YES' : 'UNCONFIRMED'));
+    console.log('BTV_SUMMER_' + SEASON_YEAR + '_LISTED=' + (SEASON_TEXT.test(content) ? 'YES' : 'UNCONFIRMED'));
     console.log('BTV_WINTER_2026_27_LISTED=' + (/Winter\s*2026\s*\/\s*2027/i.test(content) ? 'YES' : 'UNCONFIRMED'));
     const verified = await inspectVerifiedSummerPdf(context, downloadPage.page);
     if (process.argv.includes('--apply')) {
       if (process.env.BTV_ROSTER_WRITE_ENABLED !== 'true') fail('ROSTER_WRITE_NOT_ENABLED');
       try {
         const { importVerifiedPrivateRosters } = await import('./btv-roster-supabase-import.mjs');
-        const summary = await importVerifiedPrivateRosters(verified, process.env.BTV_SUPABASE_SECRET_KEY);
+        const summary = await importVerifiedPrivateRosters(verified, process.env.BTV_SUPABASE_SECRET_KEY, SEASON_CODE);
         console.log('BTV_ROSTER_IMPORT=SUCCESS');
         console.log('BTV_ROSTER_IMPORTED_CLASSES=' + summary.ageClasses);
         console.log('BTV_ROSTER_DISTINCT_NAMES=' + summary.distinctNames);
         console.log('BTV_ROSTER_NEW_PLAYERS=' + summary.newPlayers);
         console.log('BTV_ROSTER_NEW_TEAM_ASSIGNMENTS=' + summary.newMemberships);
+        console.log('BTV_ROSTER_SKIPPED_CLASSES_WITHOUT_TEAM=' + summary.skippedClasses);
         console.log('BTV_ROSTER_PUBLIC_VISIBILITY=NONE_NEW');
-      } catch {
+      } catch (error) {
+        // Only the script's own fixed error codes are logged, never messages.
+        const reason = /^[A-Z0-9_]{3,60}$/.test(error?.message || '') ? error.message : 'UNSPECIFIED';
+        console.log('BTV_ROSTER_IMPORT_REASON=' + reason);
         fail('ROSTER_DATABASE_IMPORT_FAILED');
       }
     } else {
@@ -416,6 +436,11 @@ try {
 } catch (error) {
   // No exception stack/message: browser errors can contain secret-bearing URLs.
   const code = error instanceof DiscoveryError ? error.message : 'BROWSER_OR_PAGE_ERROR';
-  console.error('BTV_ROSTER_DISCOVERY=' + code);
-  process.exitCode = 1;
+  if (NOT_YET_PUBLISHED.has(code) && process.env.BTV_ROSTER_SOFT_UNPUBLISHED === 'true') {
+    // Scheduled weekly check before the BTV has published this season.
+    console.log('BTV_ROSTER_SEASON_NOT_PUBLISHED=' + SEASON_CODE.toUpperCase().replace('-', '_'));
+  } else {
+    console.error('BTV_ROSTER_DISCOVERY=' + code);
+    process.exitCode = 1;
+  }
 }

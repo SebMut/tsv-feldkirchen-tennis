@@ -104,3 +104,15 @@ export function planPrivateRosterImport({ seasonCode, ageClass, names, existingT
     names: normalizeRosterNames(names),
   };
 }
+
+// Later summer seasons (sommer-2027 onwards): an age-class roster applies to
+// every same-age TSV team that actually exists for that season in the
+// database. Teams are never created from a roster.
+export const isLaterSummerSeason = seasonCode =>
+  /^sommer-(\d{4})$/.test(seasonCode || '') && Number(seasonCode.slice(7)) >= 2027;
+export function laterSummerRosterTeams(ageClass, seasonCode, existingTeams) {
+  if (!isLaterSummerSeason(seasonCode)) return [];
+  const canonical = canonicalAgeClass(ageClass);
+  if (!canonical || !Array.isArray(existingTeams)) return [];
+  return AGE_CLASSES[canonical].filter(slug => existingTeams.includes(slug));
+}

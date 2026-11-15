@@ -1,24 +1,43 @@
-name: BTV 2026 verifizierte Kader intern importieren
+name: BTV Kader intern importieren (Sommer, wöchentlich ab März 2027)
 
-# One-time Sommer 2026 roster import (done 2026-10-31: five nonempty BTV classes,
-# 172 validated names). The write job now only runs when started manually, so
-# editing this file can never re-trigger a production write. The season
-# sommer-2026 no longer exists in the database; a manual run would stop at the
-# season lookup before writing anything.
+# Weekly import of the official TSV summer rosters (namentliche Mannschafts-
+# meldung) into private Supabase rosters.
+# - Scheduled: every Monday from March to September, starting with sommer-2027.
+#   The season is derived from the current year (sommer-<year>).
+# - The run ends quietly while the season has no TSV teams in the database or
+#   the BTV has not published the season's roster yet.
+# - Once both exist, every weekly run imports only new names/team assignments
+#   (idempotent, new memberships always private). Nothing is ever deleted.
+# - Any structural doubt in the PDF stops the run before the database is
+#   touched (plausibility gate); GitHub then reports the failed run.
+# - sommer-2026 was imported once on 2026-10-31 (172 names) and no longer
+#   exists in the database. Editing this file never triggers a write.
 # Pull requests only run synthetic tests and never receive Secrets.
 on:
+  schedule:
+    # Mondays 05:37 UTC (06:37 CET / 07:37 CEST), March to September.
+    - cron: '37 5 * 3-9 1'
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Summer season code, e.g. sommer-2027'
+        required: true
+        default: 'sommer-2027'
+        type: string
   push:
     branches: [main]
     paths:
       - .github/workflows/btv-roster-private-import.yml
-  workflow_dispatch:
   pull_request:
     paths:
       - .github/workflows/btv-roster-private-import.yml
       - scripts/btv-roster-supabase-import.mjs
       - scripts/btv-roster-pdf-parser.mjs
       - scripts/btv-roster-pdf-audit.mjs
+      - scripts/btv-roster-age-classes.mjs
+      - scripts/btv-roster-season-ready.mjs
       - tests/btv-roster-supabase-import.test.mjs
+      - tests/btv-roster-season-import.test.mjs
 
 permissions:
   contents: read
@@ -29,6 +48,8 @@ concurrency:
 
 jobs:
   validate:
+    # Code is unchanged on scheduled runs.
+    if: ${{ github.event_name != 'schedule' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -41,12 +62,35 @@ jobs:
           node --check scripts/btv-roster-pdf-parser.mjs
           node --check scripts/btv-roster-supabase-import.mjs
           node --check scripts/btv-roster-pdf-audit.mjs
+          node --check scripts/btv-roster-season-ready.mjs
       - name: Verify synthetic PDF and private assignment plan
-        run: node --test tests/btv-roster-pdf-parser.test.mjs tests/btv-roster-supabase-import.test.mjs
+        run: node --test tests/btv-roster-pdf-parser.test.mjs tests/btv-roster-supabase-import.test.mjs tests/btv-roster-season-import.test.mjs
+
+  ready:
+    # No BTV login: checks whether the season has TSV teams in the database.
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      ready: ${{ steps.ready.outputs.ready }}
+      season: ${{ steps.ready.outputs.season }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - id: ready
+        name: Determine season and check TSV teams in the database
+        env:
+          BTV_ROSTER_SEASON_INPUT: ${{ inputs.season }}
+          BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: node scripts/btv-roster-season-ready.mjs
 
   import:
-    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
-    needs: validate
+    if: ${{ !cancelled() && (needs.validate.result == 'success' || needs.validate.result == 'skipped') && needs.ready.outputs.ready == 'true' && github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    needs: [validate, ready]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -72,4 +116,7 @@ jobs:
           BTV_LOGIN_PASSWORD: ${{ secrets.BTV_LOGIN_PASSWORD }}
           BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
           BTV_ROSTER_WRITE_ENABLED: 'true'
+          BTV_ROSTER_SEASON: ${{ needs.ready.outputs.season }}
+          # Weekly runs before the BTV publication end quietly.
+          BTV_ROSTER_SOFT_UNPUBLISHED: ${{ github.event_name == 'schedule' }}
         run: node scripts/btv-roster-pdf-audit.mjs --apply
