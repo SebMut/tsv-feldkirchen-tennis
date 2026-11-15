@@ -52,14 +52,15 @@ test('missing team mapping stops before any database access', () => {
     /TEAM_SEASON_MAPPING_INCOMPLETE/);
 });
 
-test('new memberships are always private; workflow can never import from PRs', () => {
+test('new memberships are always private; import only runs when started manually', () => {
   const code = readFileSync(new URL('../scripts/btv-roster-supabase-import.mjs', import.meta.url),'utf8');
   const workflow = readFileSync(new URL('../.github/workflows/btv-roster-private-import.yml', import.meta.url),'utf8');
   assert.match(code, /public_visible:false/);
   assert.match(code, /ROSTER_WRITE_NOT_ENABLED/);
   assert.match(code, /eaurnufdochjapfzqwvm/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
-  assert.match(workflow, /github\.event_name == 'push'/);
+  assert.match(workflow, /github\.event_name == 'workflow_dispatch'/);
+  assert.doesNotMatch(workflow, /github\.event_name == 'push'/);
   assert.match(workflow, /BTV_SUPABASE_SECRET_KEY/);
   assert.doesNotMatch(workflow, /upload-artifact|cron:|schedule:/);
 });

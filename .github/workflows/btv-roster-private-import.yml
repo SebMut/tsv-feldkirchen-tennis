@@ -1,12 +1,17 @@
 name: BTV 2026 verifizierte Kader intern importieren
 
-# One protected write after review and merge: five nonempty BTV classes, 172 validated names.
+# One-time Sommer 2026 roster import (done 2026-10-31: five nonempty BTV classes,
+# 172 validated names). The write job now only runs when started manually, so
+# editing this file can never re-trigger a production write. The season
+# sommer-2026 no longer exists in the database; a manual run would stop at the
+# season lookup before writing anything.
 # Pull requests only run synthetic tests and never receive Secrets.
 on:
   push:
     branches: [main]
     paths:
       - .github/workflows/btv-roster-private-import.yml
+  workflow_dispatch:
   pull_request:
     paths:
       - .github/workflows/btv-roster-private-import.yml
@@ -40,7 +45,7 @@ jobs:
         run: node --test tests/btv-roster-pdf-parser.test.mjs tests/btv-roster-supabase-import.test.mjs
 
   import:
-    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 20
