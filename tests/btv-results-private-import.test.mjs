@@ -65,7 +65,8 @@ test('repository and secret scope are strictly restricted, only score fields cha
   assert.match(workflow,/secrets\.BTV_SUPABASE_SECRET_KEY/);
   assert.doesNotMatch(workflow,/upload-artifact/);
   assert.doesNotMatch(workflow,/^\s+schedule:/m);
-  assert.match(dailyWorkflow,/schedule:[\s\S]*cron: '17 3 \* \* \*'/);
+  assert.match(dailyWorkflow,/schedule:[\s\S]*cron: '17 \*\/8 \* \* \*'/);
+  assert.match(dailyWorkflow,/needs\.matchday-window\.outputs\.active == 'true'/);
   assert.match(dailyWorkflow,/node scripts\/btv-results-import\.mjs --apply[\s\S]*node scripts\/btv-meeting-discovery\.mjs --apply[\s\S]*node scripts\/btv-meeting-rubbers-import-2026\.mjs --apply/);
   assert.match(dailyWorkflow,/secrets\.BTV_SUPABASE_SECRET_KEY/);
   assert.match(workflow,/github\.ref == 'refs\/heads\/main'/);

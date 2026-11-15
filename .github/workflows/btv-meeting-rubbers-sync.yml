@@ -1,4 +1,4 @@
-name: Daily sync of verified BTV meetings and rubbers
+name: Matchday sync of verified BTV meetings and rubbers
 on:
   pull_request:
     paths:
@@ -13,6 +13,8 @@ on:
       - tests/btv-meeting-rubbers-import.test.mjs
       - tests/btv-results-private-import.test.mjs
       - .github/workflows/btv-meeting-rubbers-sync.yml
+      - scripts/btv-matchday-window.mjs
+      - tests/btv-matchday-window.test.mjs
   push:
     branches: [main]
     paths:
@@ -27,15 +29,21 @@ on:
       - tests/btv-meeting-rubbers-import.test.mjs
       - tests/btv-results-private-import.test.mjs
       - .github/workflows/btv-meeting-rubbers-sync.yml
+      - scripts/btv-matchday-window.mjs
+      - tests/btv-matchday-window.test.mjs
   workflow_dispatch:
     inputs:
       season_code:
         description: Existing Supabase season code (for example winter-2026-2027)
         required: false
         type: string
-  # Daily source revalidation: discover meetings first, then refresh every official rubber.
+  # Every 8 hours, but the import only runs on the two days after a TSV
+  # match day (see matchday-window job), plus a weekly Thursday safety run. Discover meetings first, then
+  # refresh every official rubber.
   schedule:
-    - cron: '17 3 * * *'
+    - cron: '17 */8 * * *'
+    # Weekly safety run (Thursday, 07:xx Berlin) – always syncs.
+    - cron: '23 6 * * 4'
 permissions:
   contents: read
 concurrency:
@@ -43,6 +51,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   test:
+    # Code is unchanged on scheduled runs; tests run on PRs, pushes and manual runs.
+    if: ${{ github.event_name != 'schedule' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -50,6 +60,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: node --test tests/btv-matchday-window.test.mjs
       - run: node --test tests/btv-meeting-rubbers-parser.test.mjs
       - run: node --test tests/btv-meeting-rubbers-import.test.mjs
       - run: node --test tests/btv-meeting-discovery.test.mjs
@@ -58,9 +69,30 @@ jobs:
       - run: node --check scripts/btv-results-import.mjs
       - run: node --check scripts/btv-meeting-discovery.mjs
       - run: node --check scripts/btv-meeting-rubbers-import-2026.mjs
-  import:
+  matchday-window:
+    # Scheduled runs only sync on the two Berlin days after a TSV match day.
     if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
-    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      active: ${{ steps.window.outputs.active }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - id: window
+        name: Check matchday follow-up window
+        env:
+          BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+          BTV_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          BTV_WEEKLY_SAFETY_CRON: '23 6 * * 4'
+        run: node scripts/btv-matchday-window.mjs
+  import:
+    if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'skipped') && needs.matchday-window.outputs.active == 'true' && github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    needs: [test, matchday-window]
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -76,6 +108,11 @@ jobs:
           BTV_RESULTS_WRITE_ENABLED: 'true'
           BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
         run: node scripts/btv-results-import.mjs --apply
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-1.64.1-${{ runner.os }}
       - name: Install pinned browser tooling (without secrets)
         run: |
           npm install --no-save --no-package-lock --ignore-scripts playwright@1.64.1

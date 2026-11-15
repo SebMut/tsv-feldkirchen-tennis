@@ -1,6 +1,6 @@
 name: BTV club fixture sync
 
-# Four checks daily, at 00:17 / 06:17 / 12:17 / 18:17 UTC.
+# One check daily at 05:17 UTC (06:17/07:17 Berlin).
 # GitHub's schedule event only runs on the DEFAULT branch.
 # On the protected development branch tests have no Supabase write access.
 on:
@@ -35,7 +35,7 @@ on:
         default: '2026'
         type: string
   schedule:
-    - cron: '17 */6 * * *'
+    - cron: '17 5 * * *'
 
 permissions:
   contents: read

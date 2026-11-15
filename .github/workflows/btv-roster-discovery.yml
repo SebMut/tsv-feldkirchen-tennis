@@ -47,6 +47,11 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-1.64.1-${{ runner.os }}
       - name: Install pinned browser tooling before secrets are available
         run: |
           npm ci

@@ -51,6 +51,11 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-1.64.1-${{ runner.os }}
       - name: Install PDF reader and pinned browser before injecting secrets
         run: |
           npm ci

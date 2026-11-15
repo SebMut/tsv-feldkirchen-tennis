@@ -1,19 +1,27 @@
 name: BTV public team standings sync
 on:
+  # Every 8 hours; the import only runs on the two days after a TSV match day,
+  # plus a weekly Thursday safety run.
   schedule:
-    - cron: '41 4 * * *'
+    - cron: '41 */8 * * *'
+    # Weekly safety run (Thursday, 07:xx Berlin) – always syncs.
+    - cron: '53 6 * * 4'
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - scripts/btv-standings-*.mjs
       - .github/workflows/btv-standings-sync.yml
+      - scripts/btv-matchday-window.mjs
+      - tests/btv-matchday-window.test.mjs
       - supabase/migrations/20261031235500_public_team_standings.sql
   pull_request:
     paths:
       - scripts/btv-standings-*.mjs
       - tests/btv-standings-source.test.mjs
       - .github/workflows/btv-standings-sync.yml
+      - scripts/btv-matchday-window.mjs
+      - tests/btv-matchday-window.test.mjs
 
 permissions:
   contents: read
@@ -23,6 +31,7 @@ concurrency:
 
 jobs:
   validate:
+    if: ${{ github.event_name != 'schedule' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,9 +39,31 @@ jobs:
         with: {node-version: '22'}
       - run: node --check scripts/btv-standings-source.mjs && node --check scripts/btv-standings-sync.mjs
       - run: node --test tests/btv-standings-source.test.mjs
+      - run: node --test tests/btv-matchday-window.test.mjs
+  matchday-window:
+    # Scheduled runs only sync on the two Berlin days after a TSV match day.
+    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      active: ${{ steps.window.outputs.active }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - id: window
+        name: Check matchday follow-up window
+        env:
+          BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+          BTV_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          BTV_WEEKLY_SAFETY_CRON: '53 6 * * 4'
+        run: node scripts/btv-matchday-window.mjs
   import:
-    if: ${{ github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' }}
-    needs: validate
+    if: ${{ !cancelled() && (needs.validate.result == 'success' || needs.validate.result == 'skipped') && needs.matchday-window.outputs.active == 'true' && github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' }}
+    needs: [validate, matchday-window]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

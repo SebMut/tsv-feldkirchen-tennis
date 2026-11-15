@@ -34,9 +34,9 @@ test('six-hour sync has independent season handling and preserves hall locations
   assert.doesNotMatch(script,/venue_address:\s*fixture\./);
 });
 
-test('schedule checks every six hours, with no secret exposure in pull requests', () => {
+test('schedule checks once daily, with no secret exposure in pull requests', () => {
   const workflow = readFileSync(new URL('../.github/workflows/btv-club-sync.yml',import.meta.url),'utf8');
-  assert.match(workflow,/cron: '17 \*\/6 \* \* \*'/);
+  assert.match(workflow,/cron: '17 5 \* \* \*'/);
   assert.match(workflow,/BTV_SEASON_CODE: winter-2026-2027/);
   assert.match(workflow,/vars\.BTV_IMPORT_ENABLED == 'true'/);
   assert.match(workflow,/vars\.BTV_IMPORT_ENABLED != 'true'/);
