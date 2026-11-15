@@ -38,10 +38,12 @@ on:
         required: false
         type: string
   # Every 8 hours, but the import only runs on the two days after a TSV
-  # match day (see matchday-window job). Discover meetings first, then
+  # match day (see matchday-window job), plus a weekly Thursday safety run. Discover meetings first, then
   # refresh every official rubber.
   schedule:
     - cron: '17 */8 * * *'
+    # Weekly safety run (Thursday, 07:xx Berlin) – always syncs.
+    - cron: '23 6 * * 4'
 permissions:
   contents: read
 concurrency:
@@ -85,6 +87,8 @@ jobs:
         name: Check matchday follow-up window
         env:
           BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+          BTV_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          BTV_WEEKLY_SAFETY_CRON: '23 6 * * 4'
         run: node scripts/btv-matchday-window.mjs
   import:
     if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'skipped') && needs.matchday-window.outputs.active == 'true' && github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}

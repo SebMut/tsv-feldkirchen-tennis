@@ -1,8 +1,11 @@
 name: BTV public team standings sync
 on:
-  # Every 8 hours; the import only runs on the two days after a TSV match day.
+  # Every 8 hours; the import only runs on the two days after a TSV match day,
+  # plus a weekly Thursday safety run.
   schedule:
     - cron: '41 */8 * * *'
+    # Weekly safety run (Thursday, 07:xx Berlin) – always syncs.
+    - cron: '53 6 * * 4'
   workflow_dispatch:
   push:
     branches: [main]
@@ -55,6 +58,8 @@ jobs:
         name: Check matchday follow-up window
         env:
           BTV_SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+          BTV_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          BTV_WEEKLY_SAFETY_CRON: '53 6 * * 4'
         run: node scripts/btv-matchday-window.mjs
   import:
     if: ${{ !cancelled() && (needs.validate.result == 'success' || needs.validate.result == 'skipped') && needs.matchday-window.outputs.active == 'true' && github.repository == 'SebMut/tsv-feldkirchen-tennis' && github.ref == 'refs/heads/main' }}

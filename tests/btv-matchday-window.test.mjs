@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {followUpDays,isMatchdayFollowUp} from '../scripts/btv-matchday-window.mjs';
+import {followUpDays,isMatchdayFollowUp,isWeeklySafetyRun} from '../scripts/btv-matchday-window.mjs';
 
 const monday=Date.parse('2026-11-16T08:00:00Z');
 const tuesday=Date.parse('2026-11-17T08:00:00Z');
@@ -34,4 +34,10 @@ test('handles the DST switch at the end of October',()=>{
   // Tuesday 23:30 Berlin (CET) is still in the window, Wednesday 00:30 is not.
   assert.equal(isMatchdayFollowUp([sunday],Date.parse('2026-10-27T22:30:00Z')),true);
   assert.equal(isMatchdayFollowUp([sunday],Date.parse('2026-10-27T23:30:00Z')),false);
+});
+
+test('weekly safety cron always runs, the 8-hour cron does not',()=>{
+  assert.equal(isWeeklySafetyRun('23 6 * * 4','23 6 * * 4'),true);
+  assert.equal(isWeeklySafetyRun('17 */8 * * *','23 6 * * 4'),false);
+  assert.equal(isWeeklySafetyRun('23 6 * * 4',''),false);
 });

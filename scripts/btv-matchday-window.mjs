@@ -1,6 +1,7 @@
 // Matchday window gate for scheduled BTV result syncs.
 // Scheduled syncs only need to run on the two days AFTER a TSV match day
-// (Europe/Berlin calendar days). Manual runs and pushes always run.
+// (Europe/Berlin calendar days), plus one weekly safety run on Thursdays.
+// Manual runs and pushes always run.
 // Fail-open: if the database cannot be read, the sync runs anyway.
 import {appendFileSync} from 'node:fs';
 
@@ -26,6 +27,10 @@ export const isMatchdayFollowUp=(matchStarts,now=Date.now())=>{
   return matchStarts.some(start=>start&&window.has(berlinDate(start)));
 };
 
+// A separate weekly cron (Thursdays) always syncs, so results that BTV
+// publishes later than two days after a match day are still picked up.
+export const isWeeklySafetyRun=(eventSchedule,safetyCron)=>Boolean(safetyCron)&&eventSchedule===safetyCron;
+
 const setOutput=active=>{
   console.log('BTV_MATCHDAY_WINDOW_ACTIVE='+active);
   if(process.env.GITHUB_OUTPUT)appendFileSync(process.env.GITHUB_OUTPUT,`active=${active}\n`);
@@ -34,6 +39,10 @@ const setOutput=active=>{
 const main=async()=>{
   if(process.env.GITHUB_EVENT_NAME!=='schedule'){
     console.log('Not a scheduled run: sync always runs.');
+    return setOutput(true);
+  }
+  if(isWeeklySafetyRun(process.env.BTV_EVENT_SCHEDULE,process.env.BTV_WEEKLY_SAFETY_CRON)){
+    console.log('Weekly Thursday safety run: sync always runs (catches late BTV entries).');
     return setOutput(true);
   }
   const key=process.env.BTV_SUPABASE_SECRET_KEY;
