@@ -22,9 +22,10 @@ test('parses only a verified group table with contiguous ranks',()=>{
   assert.throws(()=>parseBtvStandings(text,{seasonCode:'sommer-2026',groupName:'Gr. 316'}),/MISMATCH/);
 });
 
-test('daily workflow writes only on main with the server key',()=>{
+test('matchday workflow writes only on main with the server key',()=>{
   const workflow=readFileSync(new URL('../.github/workflows/btv-standings-sync.yml',import.meta.url),'utf8');
-  assert.match(workflow,/cron: '41 4 \* \* \*'/);
+  assert.match(workflow,/cron: '41 \*\/8 \* \* \*'/);
+  assert.match(workflow,/needs\.matchday-window\.outputs\.active == 'true'/);
   assert.match(workflow,/github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow,/BTV_SUPABASE_SECRET_KEY/);
 });
