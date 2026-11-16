@@ -2,11 +2,10 @@
 
 ## Frontend (Entwicklungsbranch)
 Die öffentliche Übersicht `/mannschaften/` bietet drei direkt sichtbare Saison-Kacheln:
-- **Saison 2026**: bereits gemeldete 20 Sommermannschaften
 - **Winter 2026/2027**: getrennte Saison; die Wintermannschaften wurden inzwischen aus dem offiziellen BTV-Mannschafts-Widget ausgelesen; **3 Mannschaften sind dieser Saison in Supabase zugeordnet**
 - **Sommer 2027**: getrennte Saison, Spielplan noch nicht veröffentlicht
 
-Saisons sind unter `seasons.code` eindeutig hinterlegt (`sommer-2026`, `winter-2026-2027`, `sommer-2027`); `year` ist aus Kompatibilitätsgründen erhalten, für die Winterrunde aktuell das Endjahr 2027. Die Saisons 2026 und 2027 dürfen nie ausschließlich per `year` gematcht werden. Zusätzliche Felder: `season_type`, `end_year`, `display_order`, `is_published`.
+Saisons sind unter `seasons.code` eindeutig hinterlegt (`winter-2026-2027`, `sommer-2027`); `year` ist aus Kompatibilitätsgründen erhalten, für die Winterrunde aktuell das Endjahr 2027. Die Saisons 2026 und 2027 dürfen nie ausschließlich per `year` gematcht werden. Zusätzliche Felder: `season_type`, `end_year`, `display_order`, `is_published`.
 
 Die Mannschaftskarten, Kategoriechips und die Mannschaftsdetailseite respektieren die aktuelle Saison (`?season=<code>`). Ein nicht eingetragenes Winterteam wird **nicht** durch Sommerdaten ersetzt. Sobald verifizierte `team_seasons` mit `is_published=true` angelegt werden, erscheinen die Teams automatisch.
 
@@ -34,7 +33,7 @@ Die Datenbankfunktion `public.import_team_player_name(uuid,text)` prüft die Tea
 - Ohne die offizielle nMM (berechtigter Vereinszugriff) können noch **keine vollständigen Winter- oder Sommerkader** importiert werden; der Import ist vorbereitet, **nicht erfolgt**.
 - Homonyme Personen werden nicht saisonübergreifend automatisch zusammengeführt, weil ohne stabile öffentliche Spieler-ID keine eindeutige Identifikation möglich ist.
 - Öffentliche Anzeige, insbesondere von Kindern und Jugendlichen, erst nach gesonderter Prüfung und Freigabe im geschützten Vereinsbereich.
-- Die bestehende GitHub-Actions-BTV-Sechsstundenprüfung auf `main` bleibt bis auf eine separate Freigabe unverändert und prüft ausschließlich Sommer 2026.
+- Der tägliche GitHub-Actions-BTV-Abgleich auf `main` prüft die aktive Saison (Winter 2026/27). Sommer 2026 ist abgeschlossen und aus Datenbank und Code entfernt.
 - Sommer 2027 wird gemäß Auftrag erst ab Ende Februar 2027 auf eine offizielle Veröffentlichung geprüft.
 - Kein Merge nach `main`, keine Produktionsveröffentlichung.
 
@@ -57,7 +56,7 @@ Die Zuordnung der beiden H00-Gruppen zu Herren / Herren II beruht auf ihrer Reih
 
 Migrationsdatei: `supabase/migrations/20261031210000_official_winter_2026_27_teams.sql`. Sie wurde im erlaubten Supabase-Projekt angewandt. Sie legt **nur** die drei `team_seasons` an, ohne vorhandene Spieltage, Kader, Ergebnisse oder Sommermeldungen zu verändern. Die `btv_url` verweist auf die permanente offizielle Vereinsübersicht, nicht auf eine nicht verifizierte Einzelmannschafts-URL.
 
-Kontrollierte Daten nach Import: Sommer 2026: 20; Winter 2026/27: 3; Sommer 2027: 0. **15 Winterspiele wurden mittlerweile aus den drei offiziell verifizierten Gruppen importiert.** Namentliche Kader sind nicht importiert, da die öffentlich zugänglichen Porträts keine vollständig prüfbare Mannschaftsmeldung liefern. Der bestehende Standardbranch-Cronjob prüft weiterhin nur Sommer 2026.
+Kontrollierte Daten nach Import: Winter 2026/27: 3; Sommer 2027: 0. **15 Winterspiele wurden mittlerweile aus den drei offiziell verifizierten Gruppen importiert.** Namentliche Kader sind nicht importiert, da die öffentlich zugänglichen Porträts keine vollständig prüfbare Mannschaftsmeldung liefern. Der bestehende Standardbranch-Cronjob prüft weiterhin nur Sommer 2026.
 
 Öffentliche Quelle: https://www.btv.de/de/mein-verein/vereinsseite/tsv-feldkirchen.html#Mannschaften
 
@@ -71,10 +70,9 @@ Die drei offiziellen, **öffentlichen** BTV-Gruppen-PDFs sind nach Vereinsnummer
 
 Jede Liga enthält 15 Begegnungen, darunter genau fünf TSV-Spiele. **15/15 TSV-Winterspiele** wurden über die Migration `20261031220000_winter_2026_27_matches.sql` idempotent in Supabase gespeichert. BTV-Links direkt pro Mannschaft wurden über `20261031231000_winter_team_group_links.sql` aktualisiert. Der Spielstand der bereits vergangenen Begegnungen ist ausschließlich als BTV-Quellentext gespeichert; Liveticker-Endstände werden nicht erfunden.
 
-Die Datenbank-Migration `20261031230000_btv_season_scoping.sql` trennt die privaten BTV-Snapshots, Prüfläufe und Verlegungsprotokolle über `season_code` in **sommer-2026**, **winter-2026-2027** und künftig **sommer-2027**. Der bestehende, getestete Verlegungs-Trigger schützt manuelle Änderungen und Liveticker, archiviert nur frühere *automatische* Verlegungs-News und veröffentlicht beim ersten Snapshot keine News.
+Die Datenbank-Migration `20261031230000_btv_season_scoping.sql` trennt die privaten BTV-Snapshots, Prüfläufe und Verlegungsprotokolle über `season_code` in **winter-2026-2027** und künftig **sommer-2027**. Der bestehende, getestete Verlegungs-Trigger schützt manuelle Änderungen und Liveticker, archiviert nur frühere *automatische* Verlegungs-News und veröffentlicht beim ersten Snapshot keine News.
 
 Die Erweiterung des 6-Stunden-GitHub-Cronjobs wurde read-only erfolgreich getestet:
-- Sommer 2026: 120 Spiele / 20 Teams
 - Winter 2026/27: 15 Spiele / 3 Teams
 
 **Wichtig:** Der Pull Request [#3](https://github.com/SebMut/tsv-feldkirchen-tennis/pull/3) enthält ausschließlich drei BTV-Dateien und ist **noch nicht** nach `main` gemergt. Die automatische Winter-Prüfung startet erst nach dieser getrennten Freigabe. Kein Homepage-Go-live.
@@ -99,4 +97,3 @@ Die Spielort- und Routenanzeige ist auf Teamübersicht, Mannschaftsdetail, Spiel
 
 Im Bereich `Mein TSV → Spiele & Liveticker` kann ein berechtigter Verantwortlicher den tatsächlichen Spielort und dessen Straße/Ort pro Spiel korrigieren, ohne dabei Heim/Auswärts, Liveticker oder Ergebnisse zu verändern. Auch beim manuellen Anlegen neuer Spiele sind Halle und Anschrift eigene Felder.
 
-**Sommer 2026:** Bereits gepflegte Spielorte bleiben unverändert. Wo bislang keine zuverlässige Adresse vorliegt, wird kein Feldkirchen-Standort vorgetäuscht. Vor der Veröffentlichung neuer Saisonspiele sollten die Hallen-/Anlagennamen weiterhin mit dem BTV abgeglichen werden.

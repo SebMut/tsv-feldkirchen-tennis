@@ -150,12 +150,14 @@ async function checkDevice(name,viewport,isMobile){
     assert.equal(await publicPage.locator('#pyramid-public-board button').count(),0,
       'Guests must not challenge players');
     assert.equal(await publicPage.locator('#pyramid-avatar-panel').isVisible(),false);
+    // Since the member portal split (08.11.2026) guests get the rules as the
+    // onepager before the public ladder; full rules live in the member area.
     const order=await publicPage.evaluate(()=>{
-      const rules=document.querySelector('.pyramid-rules');
+      const rules=document.querySelector('.pyramid-onepager');
       const board=document.querySelector('#pyramid-public-panel');
       return !!rules&&!!board&&!!(rules.compareDocumentPosition(board)&Node.DOCUMENT_POSITION_FOLLOWING);
     });
-    assert.ok(order,'Rule bullet points must appear before public ladder and login');
+    assert.ok(order,'Rules onepager must appear before public ladder and login');
     assert.ok((await publicPage.locator('.pyramid-rules-list li').count())>=9);
     const guestWidth=await publicPage.evaluate(()=>({
       scroll:document.documentElement.scrollWidth,viewport:innerWidth

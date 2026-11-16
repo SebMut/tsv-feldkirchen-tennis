@@ -47,7 +47,6 @@ Nicht eindeutige Gegnerzuordnungen, manuell geänderte Spieltermine und laufende
 ## Implementiert und technisch geprüft
 
 - `scripts/btv-schedule.mjs`: offizielles PDF mit nur einem Request, strenge Vereins- und Saisonprüfung, Zuordnung der 20 Teams.
-- `scripts/check-btv-parser.mjs`: liest und prüft alle 20 Mannschaften, 120 Partien und 0 unzugeordnete Begegnungen für Sommer 2026.
 - `scripts/sync-btv.mjs`: lesender Standardlauf; serverseitiger Schreibmodus nur mit zusätzlicher Freigabe/Secret; wiederholbarer Abgleich.
 - `.github/workflows/btv-club-sync.yml`: Cron alle sechs Stunden, gleichzeitige Läufe gesperrt.
 - `supabase/migrations/20261031140000_btv_schedule_import.sql`: Quellenidentität/Importberichte.
