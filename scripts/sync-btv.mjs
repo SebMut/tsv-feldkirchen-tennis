@@ -3,7 +3,7 @@
 // (sommer-YYYY) whose league season ID is configured in btv-schedule.mjs.
 // Safe by default: --apply plus BTV_IMPORT_ENABLED=true and server-only key
 // required for *any* DB access. Never retries or bypasses BTV rate limits.
-import { getClubSchedule, normalizedName } from './btv-schedule.mjs';
+import { getClubSchedule, normalizedName, resolveLeagueSeason } from './btv-schedule.mjs';
 import { getWinterSchedule, WINTER_CODE, WINTER_YEAR } from './btv-winter-schedule.mjs';
 
 const apply = process.argv.includes('--apply');
@@ -15,7 +15,21 @@ const year = isWinter ? WINTER_YEAR : Number(summerYear);
 const seasonCode = isWinter ? WINTER_CODE : 'sommer-' + year;
 if (!Number.isInteger(year) || year < 2025 || year > 2100) throw new Error('Invalid BTV season year');
 if (apply && process.env.BTV_IMPORT_ENABLED !== 'true') throw new Error('BTV_IMPORT_ENABLED=true is required to write');
-const schedule = isWinter ? await getWinterSchedule() : await getClubSchedule(year);
+// BTV_SUMMER_OPTIONAL=true (daily job): the summer round is only checked once the
+// club has entered its BTV season ID and teams in the website admin.
+const optionalSummer = !isWinter && process.env.BTV_SUMMER_OPTIONAL === 'true';
+let leagueSeasonId = null;
+if (!isWinter) {
+  leagueSeasonId = await resolveLeagueSeason(year);
+  if (!leagueSeasonId) {
+    if (optionalSummer) {
+      console.log(`BTV ${seasonCode}: noch keine BTV-Saison-ID im Admin-Bereich hinterlegt – kein Abgleich.`);
+      process.exit(0);
+    }
+    throw new Error('BTV season ID for ' + seasonCode + ' is not configured (Admin → Saisonverwaltung). No import.');
+  }
+}
+const schedule = isWinter ? await getWinterSchedule() : await getClubSchedule(year, leagueSeasonId);
 const counts = new Map();
 for (const fixture of schedule.fixtures) counts.set(fixture.slug, (counts.get(fixture.slug) || 0) + 1);
 console.log(`BTV ${seasonCode} / TSV 01012: ${schedule.fixtures.length} fixtures, ${counts.size} teams, ${isWinter ? 3 : schedule.pages} PDF pages.`);
@@ -51,10 +65,20 @@ try {
     get(db.from('teams').select('id,slug'), 'Teams'),
     get(db.from('team_seasons').select('id,team_id,season_id,btv_url'), 'Team seasons'),
   ]);
-  if (seasons.length !== 1) throw new Error('No unique configured competition ' + seasonCode);
+  if (seasons.length !== 1) {
+    if (optionalSummer) {
+      console.log(`BTV ${seasonCode}: Saison ist in der Datenbank nicht angelegt – kein Abgleich.`);
+      process.exit(0);
+    }
+    throw new Error('No unique configured competition ' + seasonCode);
+  }
   const teamsBySlug = new Map(teams.map(team => [team.slug, team]));
   const registered = new Map(teamSeasons
     .filter(row => row.season_id === seasons[0].id).map(row => [row.team_id, row]));
+  if (optionalSummer && registered.size === 0) {
+    console.log(`BTV ${seasonCode}: noch keine Mannschaften im Admin-Bereich gemeldet – kein Abgleich.`);
+    process.exit(0);
+  }
   const missing = [...counts.keys()].filter(slug =>
     !teamsBySlug.has(slug) || !registered.has(teamsBySlug.get(slug).id));
   if (missing.length) throw new Error('Unmapped TSV season teams: ' + missing.join(', '));
