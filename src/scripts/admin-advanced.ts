@@ -43,32 +43,86 @@ function canEditTeam(base: BaseState, teamId?: string | null) {
   );
 }
 
+const LEAGUE_SEASONS_KEY = 'btv_league_seasons';
+
+function seasonTypeLabel(season: Row) {
+  return season.season_type === 'winter' ? 'Winter' : 'Sommer';
+}
+
+// Mannschaften, die für eine Saison gemeldet sind (team_seasons).
+function seasonTeamIds(base: BaseState, seasonId: string) {
+  return new Set(base.teamSeasons.filter((row) => row.season_id === seasonId).map((row) => row.team_id));
+}
+
+async function loadLeagueSeasonIds(): Promise<Record<string, string>> {
+  const { data } = await supabase.from('site_settings').select('value').eq('key', LEAGUE_SEASONS_KEY).maybeSingle();
+  const value = data?.value;
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, string> : {};
+}
+
 async function loadSeasons(base: BaseState) {
   if (!base.isSuper) return;
-  const { data, error } = await supabase.from('seasons').select('*').order('year', { ascending: false });
+  const [{ data, error }, teamSeasonsResult, leagueIds] = await Promise.all([
+    supabase.from('seasons').select('*').order('display_order').order('year', { ascending: false }),
+    supabase.from('team_seasons').select('*'),
+    loadLeagueSeasonIds(),
+  ]);
   if (error) return reportStatus(error.message, 'error');
   base.seasons = data ?? [];
+  if (!teamSeasonsResult.error) base.teamSeasons = teamSeasonsResult.data ?? [];
   const target = $('#seasons-list');
   if (!target) return;
+  const teams = [...base.teams].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || String(a.name).localeCompare(String(b.name), 'de'));
 
-  target.innerHTML = base.seasons.map((season) => `
+  target.innerHTML = base.seasons.map((season) => {
+    const registered = seasonTeamIds(base, season.id);
+    const isSummer = season.season_type !== 'winter';
+    const leagueId = isSummer ? String(leagueIds[String(season.year)] ?? '') : '';
+    const ready = registered.size > 0 && (!isSummer || /^\d{4,6}$/.test(leagueId));
+    const syncHint = isSummer
+      ? (ready ? 'BTV-Abgleich bereit: Spielplan und Kader werden automatisch übernommen.'
+        : 'Für den automatischen BTV-Abgleich fehlen noch ' + [registered.size ? '' : 'Mannschaften', leagueId ? '' : 'die BTV-Saison-ID'].filter(Boolean).join(' und ') + '.')
+      : (registered.size ? registered.size + ' Mannschaften gemeldet.' : 'Noch keine Mannschaften gemeldet.');
+    return `
     <article class="card flat" data-season="${season.id}">
       <div class="page-head">
         <div>
           <strong>${escapeHtml(season.name)}</strong>
-          <div class="match-meta">${escapeHtml(String(season.year))}${season.archived_at ? ' · archiviert' : ''}</div>
+          <div class="match-meta">${escapeHtml(seasonTypeLabel(season))} · ${escapeHtml(season.code || String(season.year))}${season.archived_at ? ' · archiviert' : ''}</div>
         </div>
         <span class="status-pill ${season.is_current ? 'live' : ''}">${season.is_current ? 'Aktuell' : 'Saison'}</span>
       </div>
+      <p class="match-meta" data-season-sync-hint>${escapeHtml(syncHint)}</p>
+      ${isSummer ? `
+      <form class="form-grid" data-league-form>
+        <div class="field">
+          <label for="league-${season.id}">BTV-Saison-ID (Vereinsspielplan)</label>
+          <input id="league-${season.id}" data-league-id inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="z. B. 18105" value="${escapeHtml(leagueId)}" />
+          <p class="match-meta">Steht beim BTV im Link zum Vereinsspielplan (PDF) als <code>season=…</code>. Leer lassen, solange der BTV die Saison noch nicht veröffentlicht hat.</p>
+        </div>
+        <div class="field"><button class="button secondary" type="submit">BTV-Saison-ID speichern</button></div>
+      </form>` : ''}
+      <details class="season-teams" ${registered.size ? '' : 'open'}>
+        <summary>Gemeldete Mannschaften (${registered.size})</summary>
+        <form class="stack" data-season-teams-form>
+          <div class="grid two">
+            ${teams.map((team) => `<label><input type="checkbox" value="${team.id}" ${registered.has(team.id) ? 'checked' : ''} /> ${escapeHtml(team.name)}</label>`).join('')}
+          </div>
+          <p class="match-meta">Nur Mannschaften, die beim BTV für diese Saison gemeldet sind. Der Abgleich legt die Spiele neu gemeldeter Mannschaften automatisch an; Mannschaften mit bereits erfassten Spielen werden nicht entfernt.</p>
+          <div><button class="button secondary" type="submit">Mannschaften speichern</button></div>
+        </form>
+      </details>
       <div class="actions">
         ${season.is_current ? '' : '<button class="button secondary" data-set-current>Als aktuell setzen</button>'}
         <button class="button ghost" data-toggle-archive>${season.archived_at ? 'Reaktivieren' : 'Archivieren'}</button>
       </div>
     </article>
-  `).join('');
+    `;
+  }).join('');
 
   target.querySelectorAll<HTMLElement>('[data-season]').forEach((card) => {
     const id = card.dataset.season!;
+    const season = base.seasons.find((row) => row.id === id);
     card.querySelector<HTMLButtonElement>('[data-set-current]')?.addEventListener('click', async () => {
       const { error: resetError } = await supabase.from('seasons').update({ is_current: false }).neq('id', id);
       if (resetError) return reportStatus(resetError.message, 'error');
@@ -78,7 +132,6 @@ async function loadSeasons(base: BaseState) {
       await loadSeasons(base);
     });
     card.querySelector<HTMLButtonElement>('[data-toggle-archive]')?.addEventListener('click', async () => {
-      const season = base.seasons.find((row) => row.id === id);
       const archived = season?.archived_at ? null : new Date().toISOString();
       const patch: Row = { archived_at: archived };
       if (archived) patch.is_current = false;
@@ -87,22 +140,73 @@ async function loadSeasons(base: BaseState) {
       reportStatus(archived ? 'Saison archiviert.' : 'Saison reaktiviert.', 'success');
       await loadSeasons(base);
     });
+
+    card.querySelector<HTMLFormElement>('[data-league-form]')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!season) return;
+      const raw = card.querySelector<HTMLInputElement>('[data-league-id]')?.value.trim() ?? '';
+      if (raw && !/^\d{4,6}$/.test(raw)) return reportStatus('Die BTV-Saison-ID besteht aus 4 bis 6 Ziffern.', 'error');
+      const current = await loadLeagueSeasonIds();
+      const next: Record<string, string> = { ...current };
+      if (raw) next[String(season.year)] = raw; else delete next[String(season.year)];
+      const { error: saveError } = await supabase.from('site_settings')
+        .upsert({ key: LEAGUE_SEASONS_KEY, value: next, is_public: true }, { onConflict: 'key' });
+      if (saveError) return reportStatus('BTV-Saison-ID konnte nicht gespeichert werden: ' + saveError.message, 'error');
+      reportStatus(raw ? 'BTV-Saison-ID für ' + season.name + ' gespeichert.' : 'BTV-Saison-ID für ' + season.name + ' entfernt.', 'success');
+      await loadSeasons(base);
+    });
+
+    card.querySelector<HTMLFormElement>('[data-season-teams-form]')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!season) return;
+      const form = event.currentTarget as HTMLFormElement;
+      const wanted = new Set([...form.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:checked')].map((input) => input.value));
+      const existing = base.teamSeasons.filter((row) => row.season_id === id);
+      const toAdd = [...wanted].filter((teamId) => !existing.some((row) => row.team_id === teamId))
+        .map((teamId) => ({ team_id: teamId, season_id: id, is_published: true }));
+      const toRemove = existing.filter((row) => !wanted.has(row.team_id));
+      const kept: string[] = [];
+      for (const row of toRemove) {
+        const { count, error: countError } = await supabase.from('matches').select('id', { count: 'exact', head: true }).eq('team_season_id', row.id);
+        if (countError) return reportStatus(countError.message, 'error');
+        if ((count ?? 0) > 0) { kept.push(teamName(base, row.team_id)); continue; }
+        const { error: deleteError } = await supabase.from('team_seasons').delete().eq('id', row.id);
+        if (deleteError) return reportStatus(deleteError.message, 'error');
+      }
+      if (toAdd.length) {
+        const { error: insertError } = await supabase.from('team_seasons').insert(toAdd);
+        if (insertError) return reportStatus('Mannschaften konnten nicht gespeichert werden: ' + insertError.message, 'error');
+      }
+      reportStatus(kept.length
+        ? 'Gespeichert. Nicht entfernt, weil bereits Spiele erfasst sind: ' + kept.join(', ') + '.'
+        : 'Mannschaften für ' + season.name + ' gespeichert.', kept.length ? 'info' : 'success');
+      await loadSeasons(base);
+    });
   });
 }
 
 async function createSeason(event: Event, base: BaseState) {
   event.preventDefault();
   const year = Number($<HTMLInputElement>('#season-year')?.value);
-  const name = $<HTMLInputElement>('#season-name')?.value.trim() || `Saison ${year}`;
+  const type = $<HTMLSelectElement>('#season-type')?.value === 'winter' ? 'winter' : 'summer';
+  if (!year) return;
+  // Winter seasons are stored with their ending year (e.g. Winter 2026/27 -> 2027).
+  const code = type === 'winter' ? `winter-${year}-${year + 1}` : `sommer-${year}`;
+  const storedYear = type === 'winter' ? year + 1 : year;
+  const defaultName = type === 'winter' ? `Winter ${year}/${year + 1}` : `Sommer ${year}`;
+  const name = $<HTMLInputElement>('#season-name')?.value.trim() || defaultName;
   const startsOn = $<HTMLInputElement>('#season-start')?.value || null;
   const endsOn = $<HTMLInputElement>('#season-end')?.value || null;
   const makeCurrent = $<HTMLInputElement>('#season-current')?.checked ?? false;
   const clone = $<HTMLInputElement>('#season-clone')?.checked ?? true;
-  if (!year) return;
 
-  const sourceSeason = base.seasons.find((season) => season.is_current) ?? base.seasons[0];
+  // Teams are copied from the latest season of the same type, never across types.
+  const sourceSeason = base.seasons
+    .filter((season) => (season.season_type ?? 'summer') === type)
+    .sort((a, b) => Number(b.year) - Number(a.year))[0];
   const { data: season, error } = await supabase.from('seasons').insert({
-    name, year, starts_on: startsOn, ends_on: endsOn, is_current: false,
+    name, year: storedYear, end_year: storedYear, season_type: type, code,
+    starts_on: startsOn, ends_on: endsOn, is_current: false,
   }).select().single();
   if (error || !season) return reportStatus(error?.message || 'Saison konnte nicht angelegt werden.', 'error');
 
