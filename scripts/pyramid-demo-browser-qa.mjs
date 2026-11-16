@@ -278,12 +278,15 @@ async function checkOnboarding(){
     await page.locator('#pyramid-new-password').fill('CorrectHorseBattery2026!');
     await page.locator('#pyramid-confirm-password').fill('CorrectHorseBattery2026!');
     await page.locator('#pyramid-password-setup-save').click();
-    await page.locator('#pyramid-join-panel').waitFor({state:'visible',timeout:15000});
+    // Since 09.11.2026 new members apply through the first-join dialog that
+    // opens right after the password is set (the join panel itself lives on
+    // "Meine Ranglisten").
+    await page.locator('#pyramid-first-join-dialog').waitFor({state:'visible',timeout:15000});
     assert.equal(passwordSaved,true,'Password updateUser not reached');
-    assert.equal(await page.locator('#pyramid-ladder-select').inputValue(),ladderId);
-    assert.equal(await page.locator('#pyramid-join-panel').isVisible(),true);
-    await page.locator('#pyramid-display-name').fill('Muster-Neumitglied');
-    await page.locator('#pyramid-join-form button[type="submit"]').click();
+    assert.equal(await page.locator('#pyramid-first-join-ladder').inputValue(),ladderId);
+    await page.locator('#pyramid-first-join-name').fill('Muster-Neumitglied');
+    await page.locator('#pyramid-first-join-form button[type="submit"]').click();
+    await page.locator('#pyramid-first-join-dialog').waitFor({state:'hidden',timeout:10000});
     await page.waitForFunction(()=>{
       return document.querySelector('#pyramid-join-state')?.textContent?.includes('wartet auf Freigabe');
     },undefined,{timeout:10000});
