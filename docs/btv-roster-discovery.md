@@ -34,8 +34,6 @@ werden nicht protokolliert.
 - `BTV_NMM_DOWNLOAD=AVAILABLE`: Die Bezeichnung einer namentlichen
   Mannschaftsmeldung wurde im Downloadbereich gefunden; der Inhalt wurde
   noch nicht gelesen.
-- `BTV_SUMMER_2026_LISTED=YES|UNCONFIRMED`: Saisonbezeichnung erkannt oder
-  nicht bestätigt.
 - `BTV_WINTER_2026_27_LISTED=YES|UNCONFIRMED`: Saisonbezeichnung erkannt
   oder nicht bestätigt.
 - `BTV_ROSTER_TRANSFER=NONE`: Kein Spielerdaten-Import ausgeführt.

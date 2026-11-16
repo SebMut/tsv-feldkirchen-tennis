@@ -9,7 +9,9 @@ import { createHash } from 'node:crypto';
 
 export const CLUB_ID = '01012';
 export const NULIGA_CLUB = '23391';
-export const LEAGUE_SEASONS = Object.freeze({ 2026: '18105' });
+// BTV summer league season IDs per year. Sommer 2026 is closed and removed;
+// add the verified ID for 2027 once the BTV publishes the summer round.
+export const LEAGUE_SEASONS = Object.freeze({});
 export const SOURCE_ORIGIN = 'https://btv.liga.nu';
 const PDF_PATH = '/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument';
 export function sourceForYear(year) {

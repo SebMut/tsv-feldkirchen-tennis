@@ -1,10 +1,8 @@
 // Verify public BTV competition results without storing player information.
 // This job is read-only and accepts only known TSV seasons and teams.
-import { getClubSchedule } from './btv-schedule.mjs';
 import { getWinterSchedule } from './btv-winter-schedule.mjs';
 
 const sources = [
-  { code:'sommer-2026', expected:120, get:()=>getClubSchedule(2026) },
   { code:'winter-2026-2027', expected:15, get:getWinterSchedule },
 ];
 for (const source of sources) {

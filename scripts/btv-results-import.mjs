@@ -1,15 +1,11 @@
 // Official BTV final-score import, read-only unless explicitly enabled on main.
 // Never changes fixture times, locations, home/away, lineup or live ticker.
-import {getClubSchedule} from './btv-schedule.mjs';
 import {parseScore,selectOfficialResults} from './btv-results-match.mjs';
 import {getWinterSchedule} from './btv-winter-schedule.mjs';
 
 const PROJECT='https://eaurnufdochjapfzqwvm.supabase.co';
-const SEASONS=[{code:'sommer-2026',expected:120,source:()=>getClubSchedule(2026)},
-  {code:'winter-2026-2027',expected:15,source:getWinterSchedule}];
-// Only competitions that still exist in the production database are active.
-// Historic results already stored in matches remain untouched.
-const ACTIVE_SEASONS=SEASONS.filter(item=>item.code==='winter-2026-2027');
+// Active competitions only. Sommer 2026 is closed and removed from the database.
+const ACTIVE_SEASONS=[{code:'winter-2026-2027',expected:15,teams:3,source:getWinterSchedule}];
 const apply=process.argv.includes('--apply');
 if(apply && process.env.BTV_RESULTS_WRITE_ENABLED!=='true')throw Error('WRITE_FLAG_REQUIRED');
 const sources=[];
@@ -19,7 +15,6 @@ for(const item of ACTIVE_SEASONS) {
   const published=report.fixtures.filter(f=>parseScore(f.score)).length;
   console.log('BTV_RESULTS_SOURCE_'+item.code+'='+report.fixtures.length);
   console.log('BTV_RESULTS_SCORED_SOURCE_'+item.code+'='+published);
-  if(item.code==='sommer-2026' && published<100)throw Error('SUMMER_BTV_RESULTS_INCOMPLETE');
   // Winter results appear gradually during the active round. The verified
   // fixture count above protects the source shape; zero or a few final scores
   // are a valid early-season state and must not fail the scheduled import.
@@ -45,7 +40,7 @@ for(const source of sources){
   const season=seasons.filter(s=>s.code===source.code);
   if(season.length!==1)throw Error('SEASON_NOT_UNIQUE');
   const active=teamSeasons.filter(ts=>ts.season_id===season[0].id);
-  if(active.length!==(source.code==='sommer-2026'?20:3))throw Error('TEAM_SEASON_COUNT_MISMATCH');
+  if(active.length!==source.teams)throw Error('TEAM_SEASON_COUNT_MISMATCH');
   const mapped=new Map(active.map(ts=>[byTeam.get(ts.team_id),ts.id]));
   if(mapped.size!==active.length)throw Error('TEAM_SEASON_DUPLICATE');
   const ids=active.map(ts=>ts.id);
@@ -53,19 +48,15 @@ for(const source of sources){
     .in('team_season_id',ids).limit(400),'MATCHES');
   const states=await query(db.from('match_live_state').select('match_id,status,home_score,away_score')
     .in('match_id',matches.map(m=>m.id)).limit(400),'STATES');
-  // Sommer 2026 had BTV-verified postponements from May into late July
-  // (up to 78+ days). Exact club, team, side and opponent still have to match.
-  // Preserve the tighter default for the winter round.
-  const selected=selectOfficialResults(source.fixtures,matches,mapped,states,Date.now(),
-    source.code==='sommer-2026'?120:45);
+  // Exact club, team, side and opponent have to match; postponements are
+  // accepted within 45 days (winter round).
+  const selected=selectOfficialResults(source.fixtures,matches,mapped,states,Date.now(),45);
   console.log('BTV_RESULTS_MATCHES_'+source.code+'='+matches.length);
   console.log('BTV_RESULTS_SAFE_UPDATES_'+source.code+'='+selected.updates.length);
   console.log('BTV_RESULTS_UNMATCHED_'+source.code+'='+selected.unmatched);
   console.log('BTV_RESULTS_AMBIGUOUS_'+source.code+'='+selected.ambiguous);
   console.log('BTV_RESULTS_PREEXISTING_'+source.code+'='+selected.existing);
   console.log('BTV_RESULTS_CONFLICTS_'+source.code+'='+selected.oldConflict);
-  if (source.code==='sommer-2026' && selected.updates.length+selected.existing<60)
-    throw Error('TOO_FEW_VERIFIED_MATCHES');
   if(selected.oldConflict>0)console.log('BTV_RESULTS_MANUAL_REVIEW_REQUIRED='+selected.oldConflict);
   totals.matched+=selected.updates.length+selected.existing;
   totals.unmatched+=selected.unmatched;

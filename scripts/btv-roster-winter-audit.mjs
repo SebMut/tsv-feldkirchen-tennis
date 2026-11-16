@@ -323,7 +323,6 @@ async function run() {
     // No PDF links are opened. Neither names nor generated document URLs are logged.
     const content = downloadPage.text;
     console.log('BTV_NMM_DOWNLOAD=AVAILABLE');
-    console.log('BTV_SUMMER_2026_LISTED=' + (/Sommer\s*2026/i.test(content) ? 'YES' : 'UNCONFIRMED'));
     console.log('BTV_WINTER_2026_27_LISTED=' + (/Winter\s*2026\s*\/\s*2027/i.test(content) ? 'YES' : 'UNCONFIRMED'));
     // Winter mode deliberately has no importer; reject any --apply flag.
     if (process.argv.includes('--apply')) fail('WINTER_IMPORT_NOT_ENABLED');

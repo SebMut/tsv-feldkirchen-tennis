@@ -27,7 +27,7 @@ const output=(name,value)=>{
 const main=async()=>{
   const season=seasonForRun({eventName:process.env.GITHUB_EVENT_NAME,requestedSeason:process.env.BTV_ROSTER_SEASON_INPUT});
   if(!season){output('ready','false');output('season','none');console.log('Scheduled roster import starts with sommer-'+FIRST_SCHEDULED_YEAR+'.');return;}
-  if(season!=='sommer-2026'&&!isLaterSummerSeason(season))throw Error('ROSTER_SEASON_NOT_SUPPORTED');
+  if(!isLaterSummerSeason(season))throw Error('ROSTER_SEASON_NOT_SUPPORTED');
   output('season',season);
   const key=process.env.BTV_SUPABASE_SECRET_KEY;
   if(!key)throw Error('ROSTER_SUPABASE_KEY_REQUIRED');

@@ -70,48 +70,21 @@ test('repository and secret scope are strictly restricted, only score fields cha
   assert.match(dailyWorkflow,/node scripts\/btv-results-import\.mjs --apply[\s\S]*node scripts\/btv-meeting-discovery\.mjs --apply[\s\S]*node scripts\/btv-meeting-rubbers-import-2026\.mjs --apply/);
   assert.match(dailyWorkflow,/secrets\.BTV_SUPABASE_SECRET_KEY/);
   assert.match(workflow,/github\.ref == 'refs\/heads\/main'/);
-  assert.match(text,/const ACTIVE_SEASONS=SEASONS\.filter\(item=>item\.code==='winter-2026-2027'\)/);
+  assert.match(text,/const ACTIVE_SEASONS=\[\{code:'winter-2026-2027',expected:15,teams:3/);
+  assert.doesNotMatch(text,/sommer-2026/);
   assert.doesNotMatch(workflow,/BTV_RESULTS_ONLY_SOMMER_2026/);
   assert.match(text,/ACTIVE_SEASONS\.map\(s=>s\.code\)/);
   assert.match(workflow,/push:[\s\S]*scripts\/btv-results-import\.mjs/);
 });
 
 test('active winter import accepts an early-season result count',()=>{
-  assert.match(text,/\{code:'winter-2026-2027',expected:15,source:getWinterSchedule\}/);
+  assert.match(text,/\{code:'winter-2026-2027',expected:15,teams:3,source:getWinterSchedule\}/);
   assert.doesNotMatch(text,/WINTER_BTV_RESULTS_INCOMPLETE/);
   assert.match(text,/BTV_RESULTS_SCORED_SOURCE_/);
 });
 
 
-test('Sommer 2026 rescheduled 84-day official result is matched only when explicitly enabled',()=>{
-  const original='2026-05-02T07:00:00Z';
-  const official='2026-07-25T07:00:00Z';
-  const source=[fixture('TS Jahn München II',false,official,'4:2')];
-  const saved=[match('m1','TS Jahn München II',false,original)];
-  const regular=selectOfficialResults(source,saved,ts,[],now);
-  assert.equal(regular.updates.length,0);
-  assert.equal(regular.farDate,1);
-  const summer=selectOfficialResults(source,saved,ts,[],now,120);
-  assert.deepEqual(summer.updates.map(x=>[x.id,x.score]),[['m1','4:2']]);
-});
-
-test('2026 extended window still excludes conflicting or ambiguous matches',()=>{
-  const official='2026-07-25T07:00:00Z';
-  const source=[fixture('TS Jahn München II',false,official,'4:2')];
-  const original='2026-05-02T07:00:00Z';
-  const wrongSide=[match('m1','TS Jahn München II',true,original)];
-  assert.equal(selectOfficialResults(source,wrongSide,ts,[],now,120).updates.length,0);
-  const duplicate=[match('m1','TS Jahn München II',false,original),
-    match('m2','TS Jahn München II',false,original)];
-  assert.equal(selectOfficialResults(source,duplicate,ts,[],now,120).updates.length,0);
-  const tooFar=match('m3','TS Jahn München II',false,'2026-01-01T07:00:00Z');
-  assert.equal(selectOfficialResults(source,[tooFar],ts,[],now,120).updates.length,0);
-  assert.throws(()=>selectOfficialResults(source,[tooFar],ts,[],now,121),/INVALID_OFFICIAL_MATCH_DATE_WINDOW/);
-  assert.match(text,/source\.code==='sommer-2026'\?120:45/);
-});
-
-
-test('both 2026 opponent-club fixtures are matched only to exact TSV team and home/away',()=>{
+test('opponent-club fixtures are matched only to exact TSV team and home/away',()=>{
   const teams=new Map([['herren-50-ii','ts50'],['knaben-15-ii','ts15']]);
   const official=[
     {slug:'herren-50-ii',opponent:'ETC Siegertsbrunn II',isHome:false,

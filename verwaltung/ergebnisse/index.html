@@ -156,7 +156,7 @@ async function loadData(){
   const seasons=[...new Map(fixtures.map(m=>[m.season_code,m.season_name])).entries()];
   $("season").replaceChildren();
   for(const [code,name] of seasons) $("season").append(option(code,name));
-  if(seasons.some(([code])=>code==="sommer-2026")) $("season").value="sommer-2026";
+  if(seasons.some(([code])=>code==="winter-2026-2027")) $("season").value="winter-2026-2027";
   if(fixtures.length===0) feedback("Für dieses Konto sind derzeit keine Begegnungen zur Bearbeitung freigegeben. Bitte den TSV-Superadmin um Mannschaftsrechte bitten.","error");
   else feedback("");
   render();

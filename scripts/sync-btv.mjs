@@ -1,15 +1,18 @@
-// Six-hourly BTV schedule monitor for TSV Feldkirchen (01012).
+// Daily BTV schedule monitor for TSV Feldkirchen (01012).
+// BTV_SEASON_CODE is required: the winter competition or a summer season
+// (sommer-YYYY) whose league season ID is configured in btv-schedule.mjs.
 // Safe by default: --apply plus BTV_IMPORT_ENABLED=true and server-only key
 // required for *any* DB access. Never retries or bypasses BTV rate limits.
 import { getClubSchedule, normalizedName } from './btv-schedule.mjs';
 import { getWinterSchedule, WINTER_CODE, WINTER_YEAR } from './btv-winter-schedule.mjs';
 
 const apply = process.argv.includes('--apply');
-const isWinter = process.env.BTV_SEASON_CODE === WINTER_CODE;
-const year = isWinter ? WINTER_YEAR : Number(process.env.BTV_SEASON_YEAR || 2026);
+const requestedSeason = process.env.BTV_SEASON_CODE || '';
+const isWinter = requestedSeason === WINTER_CODE;
+const summerYear = /^sommer-(\d{4})$/.exec(requestedSeason)?.[1];
+if (!isWinter && !summerYear) throw new Error('BTV_SEASON_CODE (winter or sommer-YYYY) is required; refusing import');
+const year = isWinter ? WINTER_YEAR : Number(summerYear);
 const seasonCode = isWinter ? WINTER_CODE : 'sommer-' + year;
-if (process.env.BTV_SEASON_CODE && process.env.BTV_SEASON_CODE !== WINTER_CODE)
-  throw new Error('Unverified BTV competition code; refusing import');
 if (!Number.isInteger(year) || year < 2025 || year > 2100) throw new Error('Invalid BTV season year');
 if (apply && process.env.BTV_IMPORT_ENABLED !== 'true') throw new Error('BTV_IMPORT_ENABLED=true is required to write');
 const schedule = isWinter ? await getWinterSchedule() : await getClubSchedule(year);
@@ -17,7 +20,6 @@ const counts = new Map();
 for (const fixture of schedule.fixtures) counts.set(fixture.slug, (counts.get(fixture.slug) || 0) + 1);
 console.log(`BTV ${seasonCode} / TSV 01012: ${schedule.fixtures.length} fixtures, ${counts.size} teams, ${isWinter ? 3 : schedule.pages} PDF pages.`);
 if (isWinter && (schedule.fixtures.length !== 15 || counts.size !== 3)) throw new Error('Expected 15 fixtures across 3 verified winter teams');
-if (!isWinter && year === 2026 && counts.size !== 20) throw new Error('Expected exactly 20 TSV summer teams; stopping');
 if (!apply) {
   console.log('PREVIEW ONLY: source verified; no Supabase access and no news published.');
   process.exit(0);
@@ -103,7 +105,7 @@ try {
     }
 
     if (!matched && !same.length && sourceIdentities.get(matchKey) === 1) {
-      // Existing seasons curated by club volunteers (2026) are protected.
+      // Existing seasons curated by club volunteers are protected.
       // Future newly created seasons with no games may import complete fixtures.
       if ((countPerSeason.get(season.id) || 0) === 0) {
         candidates.push({

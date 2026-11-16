@@ -8,7 +8,7 @@ import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { ageClassFromPdfHeading, isYouthClass } from './btv-roster-age-classes.mjs';
-import { parseBtvRosterPdfText, assertVerifiedSummerSnapshot, assertPlausibleSeasonRoster } from './btv-roster-pdf-parser.mjs';
+import { parseBtvRosterPdfText, assertPlausibleSeasonRoster } from './btv-roster-pdf-parser.mjs';
 
 const ENTRY = 'https://www.btv.de/de/mein-verein/vereins-cockpit.html';
 const LOGIN_HOST = 'tende-id.liga.nu';
@@ -17,15 +17,13 @@ const CLUB = /TSV\s+Feldkirchen/i;
 const CLUB_NUMBER = /\b01012\b/;
 const USERNAME = process.env.BTV_LOGIN_USERNAME;
 const PASSWORD = process.env.BTV_LOGIN_PASSWORD;
-// Summer season to read: sommer-2026 (verified snapshot) or a later summer
-// season (plausibility gate), e.g. BTV_ROSTER_SEASON=sommer-2027.
-const SEASON_CODE = process.env.BTV_ROSTER_SEASON || 'sommer-2026';
+// Summer season to read (plausibility gate), e.g. BTV_ROSTER_SEASON=sommer-2027.
+const SEASON_CODE = process.env.BTV_ROSTER_SEASON || '';
 const SEASON_YEAR = /^sommer-(\d{4})$/.exec(SEASON_CODE)?.[1];
-if (!SEASON_YEAR || Number(SEASON_YEAR) < 2026) {
+if (!SEASON_YEAR || Number(SEASON_YEAR) < 2027) {
   console.error('BTV_ROSTER_DISCOVERY=ROSTER_SEASON_NOT_SUPPORTED');
   process.exit(1);
 }
-const LEGACY_SEASON = SEASON_CODE === 'sommer-2026';
 const SEASON_TEXT = new RegExp('Sommer\\s*' + SEASON_YEAR, 'i');
 const SEASON_EXACT = new RegExp('^\\s*Sommer\\s*' + SEASON_YEAR + '\\s*$', 'i');
 const SEASON_PDF = new RegExp('Sommer\\s+' + SEASON_YEAR, 'i');
@@ -324,8 +322,7 @@ async function inspectVerifiedSummerPdf(context, downloadsPage) {
     console.log('BTV_PARSE_CLASS_' + label + '=' + count);
   }
   try {
-    if (LEGACY_SEASON) assertVerifiedSummerSnapshot(parsed);
-    else assertPlausibleSeasonRoster(parsed);
+    assertPlausibleSeasonRoster(parsed);
     console.log('BTV_PARSE_VERIFIED_PARTIAL=YES');
     return parsed;
   } catch {

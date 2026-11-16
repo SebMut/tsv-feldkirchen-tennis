@@ -26,7 +26,8 @@ test('group URLs use public verified PDF source and reject unknown competition',
 
 test('six-hour sync has independent season handling and preserves hall locations', () => {
   const script = readFileSync(new URL('../scripts/sync-btv.mjs',import.meta.url),'utf8');
-  assert.match(script,/BTV_SEASON_CODE === WINTER_CODE/);
+  assert.match(script,/requestedSeason === WINTER_CODE/);
+  assert.doesNotMatch(script,/BTV_SEASON_YEAR|year === 2026/);
   assert.match(script,/\.eq\('code', seasonCode\)/);
   assert.match(script,/isWinter \|\| fixture\.four \? '4_2' : '6_3'/);
   assert.match(script,/season_code: seasonCode/);
