@@ -661,17 +661,19 @@ import '../../styles/pyramid.css';
               <div class="card">
                 <h2>Saison anlegen</h2>
                 <form id="season-form" class="form-grid">
-                  <div class="field"><label>Jahr</label><input id="season-year" type="number" min="2020" max="2100" required /></div>
-                  <div class="field"><label>Name</label><input id="season-name" placeholder="Saison 2027" required /></div>
+                  <div class="field"><label for="season-type">Art</label><select id="season-type"><option value="summer">Sommer</option><option value="winter">Winter</option></select></div>
+                  <div class="field"><label for="season-year">Jahr (Winter: Startjahr)</label><input id="season-year" type="number" min="2020" max="2100" required /></div>
+                  <div class="field"><label for="season-name">Name</label><input id="season-name" placeholder="z. B. Sommer 2028 (optional)" /></div>
                   <div class="field"><label>Beginn</label><input id="season-start" type="date" /></div>
                   <div class="field"><label>Ende</label><input id="season-end" type="date" /></div>
                   <div class="field"><label><input id="season-current" type="checkbox" /> als aktuelle Saison setzen</label></div>
-                  <div class="field"><label><input id="season-clone" type="checkbox" checked /> Mannschaften der letzten Saison übernehmen</label></div>
+                  <div class="field"><label><input id="season-clone" type="checkbox" checked /> Mannschaften der letzten Saison derselben Art übernehmen</label></div>
                   <div class="field full"><button class="button" type="submit">Saison anlegen</button></div>
                 </form>
               </div>
               <div class="card">
                 <h2>Saisonverwaltung</h2>
+                <p class="muted">Pro Saison: gemeldete Mannschaften und – im Sommer – die BTV-Saison-ID. Sobald beides gepflegt ist, übernehmen die täglichen BTV-Abgleiche Spielplan und Kader automatisch.</p>
                 <div id="seasons-list" class="stack"></div>
               </div>
             </div>
