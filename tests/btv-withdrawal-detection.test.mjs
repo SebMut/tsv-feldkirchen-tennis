@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
   parseGroupWithdrawals,normalizeBtvTeam,officialGroupPdfUrl,
-  groupIdFromBtvUrl,matchWithdrawalToFixture
+  groupIdFromBtvUrl,matchWithdrawalToFixture,isOwnTeamWithdrawal
 } from '../scripts/btv-withdrawal-source.mjs';
 
 const officialText=[
@@ -74,7 +74,51 @@ test('server-side import has explicit evidence, gated writes and private status'
   assert.match(code,/BTV_BLOCKED_OR_RATE_LIMITED/);
   assert.match(code,/verification_status:'official_verified'/);
   assert.match(code,/source_kind:'btv_group_schedule'/);
-  assert.doesNotMatch(code,/\.from\('matches'\)\.update|\.from\('match_live_state'\)\.update/);
+  // Never writes scores or the live ticker; the only match update allowed is
+  // hiding unplayed games of an officially withdrawn own team.
+  assert.doesNotMatch(code,/\.from\('match_live_state'\)/);
+  assert.doesNotMatch(code,/btv_result_text\s*:/);
+  assert.equal((code.match(/\.update\(/g)||[]).length,1);
+  assert.match(code,/\.update\(\{is_published:false\}\)/);
   assert.match(sql,/row level security/i);
   assert.match(sql,/private\.is_super_admin\(\)/);
+});
+
+// Real Winter 2026/27 layout (Gr. 020): the marker stands on the line BELOW
+// the ranked team row, with a quoted date.
+const winterText=[
+  'Südbayern Winterrunde | Winter 2026/2027',
+  'Herren Südliga 2 Gr. 020',
+  'Tabelle und Spielplan',
+  '   Rang Mannschaft                                              Beg.   Punkte Matches Sätze   Spiele   Termin',
+  '    1 TC Aschheim II (01002)                                     2      4:0    11:1   23:3    138:41   Sa. 03.10.2026 16:00   FC Forstern   TS Jahn München II   4:2',
+  '    5 TS Jahn München II (01027)                                 2      0:4    2:10   7:21    76:124   So. 04.10.2026 10:00   TC Aschheim II   TF Markt Schwaben   6:0',
+  '    6 TSV Feldkirchen II (01012)                                 0      0:0     0:0    0:0     0:0                            Halle: TC Aschheim',
+  "            zurückgezogen/gesperrt am '24.10.2026'",
+  '                                                                                                       Sa. 07.11.2026 16:00   TF Markt Schwaben   TSV Feldkirchen II   z',
+  '                                                                                                       z...Mannschaft zurückgezogen',
+].join('\n');
+
+test('winter layout: marker on the line below the ranked own-team row',()=>{
+  const entries=parseGroupWithdrawals(winterText,{seasonCode:'winter-2026-2027',groupName:'Herren Südliga 2 Gr. 020'});
+  assert.deepEqual(entries,[{team:'tsv feldkirchen ii',displayName:'TSV Feldkirchen II',clubCode:'01012',withdrawnOn:'2026-10-24'}]);
+  assert.equal(isOwnTeamWithdrawal(entries[0],'Herren II'),true);
+  assert.equal(isOwnTeamWithdrawal(entries[0],'Herren'),false);
+  const away={opponent:'TF Markt Schwaben',is_home:false,starts_at:'2026-11-07T15:00:00Z',btv_result_text:null};
+  assert.equal(matchWithdrawalToFixture(entries[0],away,'Herren II'),'away');
+  const before={opponent:'TC Unterföhring II',is_home:true,starts_at:'2026-10-03T15:00:00Z',btv_result_text:null};
+  assert.equal(matchWithdrawalToFixture(entries[0],before,'Herren II'),null);
+});
+
+test('a lone marker without a ranked row directly above is ignored',()=>{
+  const broken=winterText.replace(/\n    6 TSV Feldkirchen II \(01012\)[^\n]*/,'\nSpielleiter');
+  assert.deepEqual(parseGroupWithdrawals(broken,{seasonCode:'winter-2026-2027',groupName:'Gr. 020'}),[]);
+});
+
+test('own-team withdrawal hides only unplayed matches after the official date',()=>{
+  const code=readFileSync(new URL('../scripts/btv-withdrawal-sync.mjs',import.meta.url),'utf8');
+  assert.match(code,/isOwnTeamWithdrawal\(entry,plan\.team_name\)/);
+  assert.match(code,/\.update\(\{is_published:false\}\)/);
+  assert.match(code,/\.is\('btv_result_text',null\)/);
+  assert.doesNotMatch(code,/\.delete\(/);
 });

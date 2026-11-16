@@ -63,13 +63,26 @@ export function parseGroupWithdrawals(text,{seasonCode,groupName}){
     const marker=line.search(/\bzurückgezogen\s*\/\s*gesperrt\s+am\b/i);
     if(marker<0)continue;
     const before=line.slice(0,marker).trim();
-    const rank=before.match(/^(\d{1,2})\s+(.+)$/);
+    let rank=before.match(/^(\d{1,2})\s+(.+)$/);
+    let rankCode=null;
+    if(!before){
+      // Winter layout: the marker stands alone on the line BELOW the ranked
+      // team row "6 TSV Feldkirchen II (01012)  0  0:0 ...". Only the directly
+      // preceding non-empty line may be used, and it must be a ranked row.
+      for(let j=i-1;j>=Math.max(0,i-2);j--){
+        const prev=lines[j].trim();
+        if(!prev)continue;
+        const row=prev.match(/^(\d{1,2})\s+(.+?)\s*\((\d{5})\)/);
+        if(row){rank=[row[0],row[1],row[2]];rankCode=row[3];}
+        break;
+      }
+    }
     if(!rank)continue; // fail closed: do not mistake paragraph or legend for team
     const rawName=rank[2].replace(/\s*\(\d{5}\)\s*$/,'').trim();
     if(!rawName || rawName.length>85 || /^(?:legende|spielleiter|gruppe)\b/i.test(rawName))continue;
     const context=lines.slice(i,Math.min(i+3,lines.length)).join(' ');
     const dateMatch=context.match(/\b(\d{2}\.\d{2}\.\d{4})\b/);
-    const codeMatch=context.match(/\((\d{5})\)/);
+    const codeMatch=rankCode?[null,rankCode]:context.match(/\((\d{5})\)/);
     const withdrawnOn=dateMatch?validISO(dateMatch[1]):null;
     if(!withdrawnOn||!codeMatch)continue; // explicit team date and club-code evidence
     const team=normalizeBtvTeam(rawName);
@@ -78,6 +91,13 @@ export function parseGroupWithdrawals(text,{seasonCode,groupName}){
     entries.push({team,displayName:rawName,clubCode:codeMatch[1],withdrawnOn});
   }
   return entries;
+}
+
+// True when the official withdrawal entry is the TSV team of this group itself.
+export function isOwnTeamWithdrawal(flag,teamName){
+  if(!flag||flag.clubCode!=='01012')return false;
+  const suffix=String(teamName).match(/\s+(II|III|IV)$/)?.[1]||'';
+  return flag.team===normalizeBtvTeam('TSV Feldkirchen'+(suffix?' '+suffix:''));
 }
 
 export function matchWithdrawalToFixture(flag,match,teamName){
