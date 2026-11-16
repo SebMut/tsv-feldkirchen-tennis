@@ -9,13 +9,33 @@ import { createHash } from 'node:crypto';
 
 export const CLUB_ID = '01012';
 export const NULIGA_CLUB = '23391';
-// BTV summer league season IDs per year. Sommer 2026 is closed and removed;
-// add the verified ID for 2027 once the BTV publishes the summer round.
+// BTV summer league season IDs per year. They are maintained by the club in
+// the website admin (Saisonverwaltung) and stored in the public site setting
+// `btv_league_seasons`, e.g. {"2027":"12345"}. A value here would override it.
 export const LEAGUE_SEASONS = Object.freeze({});
+const PROJECT = 'https://eaurnufdochjapfzqwvm.supabase.co';
+// Public (publishable) key of the website; reads only public site settings.
+const PUBLISHABLE_KEY = 'sb_publishable_HlsXh7GAiHvydk9rTve8Hg_r9PNTjw9';
+
+export function leagueSeasonFromSetting(value, year) {
+  const id = value && typeof value === 'object' && !Array.isArray(value) ? String(value[String(year)] ?? '') : '';
+  return /^\d{4,6}$/.test(id) ? id : null;
+}
+
+// Resolves the BTV league season ID for a summer year, or null if the club has
+// not entered it yet. Throws only if the setting cannot be read at all.
+export async function resolveLeagueSeason(year) {
+  if (LEAGUE_SEASONS[year]) return LEAGUE_SEASONS[year];
+  const url = PROJECT + '/rest/v1/site_settings?select=value&key=eq.btv_league_seasons';
+  const response = await fetch(url, { headers: { apikey: PUBLISHABLE_KEY, Authorization: 'Bearer ' + PUBLISHABLE_KEY } });
+  if (!response.ok) throw new Error('BTV_LEAGUE_SEASONS_SETTING_UNAVAILABLE');
+  const rows = await response.json();
+  return leagueSeasonFromSetting(rows?.[0]?.value, year);
+}
 export const SOURCE_ORIGIN = 'https://btv.liga.nu';
 const PDF_PATH = '/cgi-bin/WebObjects/nuLigaDokumentTENDE.woa/wa/nuDokument';
-export function sourceForYear(year) {
-  const season = LEAGUE_SEASONS[year];
+export function sourceForYear(year, seasonId = LEAGUE_SEASONS[year]) {
+  const season = seasonId;
   if (!season) throw new Error('BTV season ID for year ' + year + ' is not verified/configured. No import.');
   const url = new URL(PDF_PATH, SOURCE_ORIGIN);
   url.searchParams.set('club', NULIGA_CLUB);
@@ -122,8 +142,8 @@ export function parseClubSchedulePdf(file,year) {
     throw new Error(`Unmatched team names: ${unrecognized.length} of ${rawRows}: ${JSON.stringify(unrecognized.slice(0,5))}`);
   return {fixtures:parsed,rawRows,unrecognized,pages,sourceFile:'BTV Sommer '+year+' Vereinsspielplan'};
 }
-export async function getClubSchedule(year) {
-  const url=sourceForYear(year);
+export async function getClubSchedule(year, seasonId) {
+  const url=sourceForYear(year, seasonId ?? await resolveLeagueSeason(year));
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),25000);
   let response;

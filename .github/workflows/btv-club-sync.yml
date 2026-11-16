@@ -1,8 +1,10 @@
 name: BTV club fixture sync
 
-# One check daily at 05:17 UTC (06:17/07:17 Berlin) of the current
-# competition, Winter 2026/27 (3 TSV teams). Sommer 2026 is closed and no
-# longer exists in the database, so it is no longer checked.
+# One check daily at 05:17 UTC (06:17/07:17 Berlin):
+# - Winter 2026/27 (3 verified TSV groups).
+# - The summer round of the current year (sommer-YYYY), but only once the club
+#   has entered the BTV season ID and the registered teams in the website admin
+#   (Saisonverwaltung). Until then this step ends quietly.
 # GitHub's schedule event only runs on the DEFAULT branch.
 # On the protected development branch tests have no Supabase write access.
 on:
@@ -23,6 +25,7 @@ on:
       - scripts/sync-btv.mjs
       - .github/workflows/btv-club-sync.yml
       - tests/btv-winter-source.test.mjs
+      - tests/btv-summer-admin-setup.test.mjs
   workflow_dispatch:
     inputs:
       mode:
@@ -59,6 +62,11 @@ jobs:
         env:
           BTV_SEASON_CODE: winter-2026-2027
         run: node scripts/sync-btv.mjs
+      - name: Verify current summer club schedule once configured (read-only)
+        if: ${{ !cancelled() }}
+        env:
+          BTV_SUMMER_OPTIONAL: 'true'
+        run: BTV_SEASON_CODE="sommer-$(TZ=Europe/Berlin date +%Y)" node scripts/sync-btv.mjs
 
   import:
     # No write unless *all* checks hold. This job does not run on the
@@ -83,3 +91,13 @@ jobs:
           BTV_IMPORT_ENABLED: ${{ vars.BTV_IMPORT_ENABLED }}
           SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
         run: node scripts/sync-btv.mjs --apply
+      - name: Check current summer round once configured in the website admin
+        # Runs even if the winter step failed; ends quietly until the club has
+        # entered the BTV season ID and teams (Admin -> Saisonverwaltung).
+        # For newly registered teams without matches the schedule is imported.
+        if: ${{ !cancelled() }}
+        env:
+          BTV_SUMMER_OPTIONAL: 'true'
+          BTV_IMPORT_ENABLED: ${{ vars.BTV_IMPORT_ENABLED }}
+          SUPABASE_SECRET_KEY: ${{ secrets.BTV_SUPABASE_SECRET_KEY }}
+        run: BTV_SEASON_CODE="sommer-$(TZ=Europe/Berlin date +%Y)" node scripts/sync-btv.mjs --apply
