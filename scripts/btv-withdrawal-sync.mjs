@@ -3,7 +3,7 @@
 import {createClient} from '@supabase/supabase-js';
 import {fetchClubGroupReport} from './btv-withdrawal-club-report.mjs';
 import {
-  groupIdFromBtvUrl,readBtvGroupWithdrawals,matchWithdrawalToFixture
+  groupIdFromBtvUrl,readBtvGroupWithdrawals,matchWithdrawalToFixture,isOwnTeamWithdrawal
 } from './btv-withdrawal-source.mjs';
 
 const PROJECT='https://eaurnufdochjapfzqwvm.supabase.co';
@@ -47,7 +47,7 @@ for(const p of groupPlans){
   if(seen.has(key))throw Error('DUPLICATE_OFFICIAL_GROUP_REF_'+key);
   seen.add(key);
 }
-let checked=0,withdrawals=0,candidates=0,stored=0,ignored=0,blocked=0;
+let checked=0,withdrawals=0,candidates=0,stored=0,ignored=0,blocked=0,unpublished=0;
 const clubReports=new Map();
 const sourceSeasonCodes=[...new Set(groupPlans.map(p=>p.season_code))];
 for(const seasonCode of sourceSeasonCodes){
@@ -145,10 +145,22 @@ for(const plan of groupPlans){
     const {error}=await db.from('match_withdrawal_flags').upsert(record,{onConflict:'match_id'});
     if(error)throw Error('BTV_WITHDRAWAL_WRITE_FAILED: '+error.message);
     stored++;
+    // Own TSV team officially withdrawn: its matches from the withdrawal date
+    // on (without result) will not take place, so they are no longer shown
+    // as upcoming/open games. The flag above keeps the official evidence;
+    // republishing is a single is_published=true update.
+    if(isOwnTeamWithdrawal(entry,plan.team_name)){
+      const {data:hidden,error:hideError}=await db.from('matches')
+        .update({is_published:false})
+        .eq('id',m.id).eq('is_published',true).is('btv_result_text',null)
+        .select('id');
+      if(hideError)throw Error('BTV_WITHDRAWAL_UNPUBLISH_FAILED: '+hideError.message);
+      unpublished+=hidden?.length||0;
+    }
   }
   // No rapid-fire scraping; no retry when sources are unavailable.
   await new Promise(resolve=>setTimeout(resolve,1250));
 }
 console.log('BTV_WITHDRAWAL_RESULT='+JSON.stringify({
-  checked,withdrawals,candidates,stored,ignored,blocked,clubReports:clubReports.size,mode:apply?'apply':'dry-run'
+  checked,withdrawals,candidates,stored,ignored,blocked,unpublished,clubReports:clubReports.size,mode:apply?'apply':'dry-run'
 }));
