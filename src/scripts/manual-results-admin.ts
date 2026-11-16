@@ -247,7 +247,7 @@ async function loadMatches() {
     seasonSelect.replaceChildren();
     for (const [code, name] of seasons) seasonSelect.append(option(code, name));
     if (seasons.has(previous)) seasonSelect.value = previous;
-    else if (seasons.has('sommer-2026')) seasonSelect.value = 'sommer-2026';
+    else if (seasons.has('winter-2026-2027')) seasonSelect.value = 'winter-2026-2027';
   }
   if (selected) {
     if (fixtures.some(m => m.match_id === selected?.match_id)) selectMatch(selected.match_id);

@@ -7,8 +7,8 @@
   aktualisiert das Widget automatisch auf die aktuelle Saison. Dieses
   Widget ist eine externe Anzeige, keine interne TSV-Datenbank-API.
 - **BTV-/nuLiga-Spielplandokumente:** Saisonbezogene Termine, Gegner und
-  Heim-/Auswärts-Eigenschaft. Der sechs-Stunden-Abgleich auf GitHub main
-  unterscheidet Sommer 2026 von Winter 2026/27. Schreibvorgänge bleiben
+  Heim-/Auswärts-Eigenschaft. Der tägliche Abgleich auf GitHub main
+  prüft die aktive Saison (derzeit Winter 2026/27). Schreibvorgänge bleiben
   durch die bestehende ausdrückliche Importfreigabe geschützt.
 - **Geschützte offizielle BTV-Mannschaftsmeldungen:** Verifizierte
   Spielerkader einschließlich Jugend. Nur intern berechtigte Mitarbeiter

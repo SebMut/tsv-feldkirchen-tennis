@@ -1003,6 +1003,8 @@ export async function loadTeamDetail(slug: string) {
     supabase.from('team_standings').select('rank,team_name,club_code,standing_text,source_url,synced_at').eq('team_season_id', current.id).order('rank'),
   ]);
 
+  injectTeamEventsJsonLd(matches ?? [], team.name);
+
   const standingsTarget = document.querySelector<HTMLElement>('#team-standings');
   if (standingsTarget) {
     const standings = standingsResult.data ?? [];
@@ -2323,4 +2325,40 @@ export async function loadLiveTicker(matchId: string | null) {
     window.clearInterval(interval);
     if (scheduledRefresh != null) window.clearTimeout(scheduledRefresh);
   }, { once: true });
+}
+
+// Structured data (schema.org SportsEvent) for upcoming published matches of a
+// team, so search engines can show them as events. Data blocks are not
+// executed; values come from the published match rows only.
+function injectTeamEventsJsonLd(matches: Row[], teamName: unknown) {
+  document.getElementById('team-events-ld')?.remove();
+  const now = Date.now();
+  const upcoming = matches
+    .filter((m: Row) => typeof m.starts_at === 'string' && Date.parse(m.starts_at) > now)
+    .slice(0, 10);
+  if (!upcoming.length) return;
+  const tsv = { '@type': 'SportsTeam', name: `TSV Feldkirchen ${String(teamName ?? '')}`.trim() };
+  const events = upcoming.map((m: Row) => {
+    const opponent = { '@type': 'SportsTeam', name: String(m.opponent ?? '') };
+    const event: Record<string, unknown> = {
+      '@type': 'SportsEvent',
+      name: m.is_home ? `${tsv.name} – ${opponent.name}` : `${opponent.name} – ${tsv.name}`,
+      sport: 'Tennis',
+      startDate: m.starts_at,
+      eventStatus: 'https://schema.org/EventScheduled',
+      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      homeTeam: m.is_home ? tsv : opponent,
+      awayTeam: m.is_home ? opponent : tsv,
+      organizer: { '@type': 'SportsOrganization', name: 'TSV Feldkirchen Tennis', url: 'https://www.tennis-tsvfeldkirchen.de/' },
+      url: location.origin + location.pathname,
+    };
+    if (m.ends_at) event.endDate = m.ends_at;
+    if (m.venue_name) event.location = { '@type': 'Place', name: String(m.venue_name), ...(m.venue_address ? { address: String(m.venue_address) } : {}) };
+    return event;
+  });
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.id = 'team-events-ld';
+  script.textContent = JSON.stringify({ '@context': 'https://schema.org', '@graph': events }).replace(/</g, '\\u003c');
+  document.head.appendChild(script);
 }
