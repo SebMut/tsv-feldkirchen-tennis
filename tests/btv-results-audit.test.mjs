@@ -4,11 +4,10 @@ import {readFileSync} from 'node:fs';
 const script=readFileSync(new URL('../scripts/btv-results-audit.mjs',import.meta.url),'utf8');
 const workflow=readFileSync(new URL('../.github/workflows/btv-results-verification.yml',import.meta.url),'utf8');
 
-test('read-only source includes known 120 summer and 15 winter TSV matches',()=>{
-  assert.match(script,/code:'sommer-2026', expected:120/);
+test('read-only source checks the 15 known winter TSV matches',()=>{
   assert.match(script,/code:'winter-2026-2027', expected:15/);
-  assert.match(script,/getClubSchedule\(2026\)/);
   assert.match(script,/get:getWinterSchedule/);
+  assert.doesNotMatch(script,/sommer-2026|getClubSchedule/);
 });
 test('do not infer results from old fixture dates or emit private player data',()=>{
   assert.match(script,/const score = f\.score/);

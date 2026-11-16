@@ -10,8 +10,7 @@ name: BTV Kader intern importieren (Sommer, wöchentlich ab März 2027)
 #   (idempotent, new memberships always private). Nothing is ever deleted.
 # - Any structural doubt in the PDF stops the run before the database is
 #   touched (plausibility gate); GitHub then reports the failed run.
-# - sommer-2026 was imported once on 2026-10-31 (172 names) and no longer
-#   exists in the database. Editing this file never triggers a write.
+# - Editing this file never triggers a write.
 # Pull requests only run synthetic tests and never receive Secrets.
 on:
   schedule:

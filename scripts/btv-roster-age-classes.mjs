@@ -19,8 +19,6 @@ export const YOUTH_CLASSES = Object.freeze([
   'Junioren 18', 'Knaben 15', 'Mädchen 15', 'Bambini 12', 'Kleinfeld U9',
 ]);
 export const YOUTH_TEAM_SLUGS = Object.freeze(YOUTH_CLASSES.flatMap(name => AGE_CLASSES[name]));
-export const SUMMER_2026_TEAM_SLUGS = Object.freeze(Object.values(AGE_CLASSES).flat());
-export const WINTER_2026_27_TEAM_SLUGS = Object.freeze(['herren', 'herren-ii', 'herren-50']);
 
 const normalized = (value) => String(value).normalize('NFKC')
   .toLocaleLowerCase('de-DE').replace(/\s+/gu, ' ').trim();
@@ -55,17 +53,6 @@ export function ageClassFromPdfHeading(line) {
   return canonicalAgeClass(heading);
 }
 
-export function rosterTeams(ageClass, seasonCode) {
-  const canonical = canonicalAgeClass(ageClass);
-  if (!canonical) return [];
-  const selected = AGE_CLASSES[canonical];
-  if (seasonCode === 'sommer-2026') return [...selected];
-  if (seasonCode === 'winter-2026-2027') {
-    return selected.filter(slug => WINTER_2026_27_TEAM_SLUGS.includes(slug));
-  }
-  return [];
-}
-
 export function isYouthClass(ageClass) {
   return YOUTH_CLASSES.includes(canonicalAgeClass(ageClass));
 }
@@ -86,23 +73,6 @@ export function normalizeRosterNames(names) {
     if (!unique.has(key)) unique.set(key, name);
   }
   return [...unique.values()];
-}
-
-export function planPrivateRosterImport({ seasonCode, ageClass, names, existingTeams }) {
-  const teamSlugs = rosterTeams(ageClass, seasonCode);
-  if (!teamSlugs.length) throw new Error('UNRECOGNIZED_SEASON_OR_CLASS');
-  if (!Array.isArray(existingTeams) || teamSlugs.some(slug => !existingTeams.includes(slug))) {
-    throw new Error('TEAM_SEASON_MAPPING_INCOMPLETE');
-  }
-  return {
-    seasonCode,
-    ageClass: canonicalAgeClass(ageClass),
-    isYouth: isYouthClass(ageClass),
-    // Never assume a parental consent to participate implies public publishing.
-    publicVisible: false,
-    teamSlugs,
-    names: normalizeRosterNames(names),
-  };
 }
 
 // Later summer seasons (sommer-2027 onwards): an age-class roster applies to

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parseBtvRosterPdfText, assertPlausibleSeasonRoster } from '../scripts/btv-roster-pdf-parser.mjs';
-import { laterSummerRosterTeams, isLaterSummerSeason, rosterTeams } from '../scripts/btv-roster-age-classes.mjs';
+import { laterSummerRosterTeams, isLaterSummerSeason } from '../scripts/btv-roster-age-classes.mjs';
 import { buildSeasonRosterPlan } from '../scripts/btv-roster-supabase-import.mjs';
 import { seasonForRun } from '../scripts/btv-roster-season-ready.mjs';
 
@@ -26,13 +26,11 @@ function fixture({ season = 'Sommer 2027', extra = [] } = {}) {
   return lines.concat(extra).join('\n');
 }
 
-test('later summer seasons are recognized, 2026 keeps its own exact path', () => {
+test('only summer seasons from 2027 on are accepted', () => {
   assert.equal(isLaterSummerSeason('sommer-2027'), true);
   assert.equal(isLaterSummerSeason('sommer-2030'), true);
   assert.equal(isLaterSummerSeason('sommer-2026'), false);
   assert.equal(isLaterSummerSeason('winter-2027-2028'), false);
-  // The strict legacy mapping stays unchanged for unknown seasons.
-  assert.deepEqual(rosterTeams('Bambini 12', 'sommer-2027'), []);
 });
 
 test('age classes map only to teams that exist for the season', () => {

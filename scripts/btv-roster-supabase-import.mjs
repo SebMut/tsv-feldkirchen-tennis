@@ -1,37 +1,12 @@
-// Server-side one-time TSV Feldkirchen roster import.
+// Server-side TSV Feldkirchen summer roster import (sommer-2027 onwards).
 // Only verified adult and youth NAME fields, no birth data, LK, player IDs or raw PDFs.
 // Never run from a public page; the service key exists only inside GitHub Actions.
-import { assertVerifiedSummerSnapshot, assertPlausibleSeasonRoster, CONFIRMED_SUMMER_CLASSES } from './btv-roster-pdf-parser.mjs';
-import { rosterTeams, planPrivateRosterImport, isLaterSummerSeason, laterSummerRosterTeams,
-  normalizeRosterNames } from './btv-roster-age-classes.mjs';
+import { assertPlausibleSeasonRoster } from './btv-roster-pdf-parser.mjs';
+import { isLaterSummerSeason, laterSummerRosterTeams, normalizeRosterNames } from './btv-roster-age-classes.mjs';
 
 const PROJECT = 'https://eaurnufdochjapfzqwvm.supabase.co';
-const SEASON = 'sommer-2026';
 const normalize = value => String(value).normalize('NFKC')
   .replace(/\s+/gu, ' ').trim().toLocaleLowerCase('de-DE');
-
-export function buildPrivateRosterPlan(parsed, availableTeamSlugs) {
-  assertVerifiedSummerSnapshot(parsed);
-  const players = new Map();
-  const pairs = new Map();
-  for (const ageClass of CONFIRMED_SUMMER_CLASSES) {
-    const selection = planPrivateRosterImport({
-      seasonCode: SEASON, ageClass, names: parsed.rows[ageClass],
-      existingTeams: availableTeamSlugs,
-    });
-    for (const name of selection.names) {
-      const id = normalize(name);
-      if (!players.has(id)) players.set(id, name);
-      for (const slug of rosterTeams(ageClass, SEASON)) {
-        pairs.set(slug + '|' + id, {slug, nameKey:id});
-      }
-    }
-  }
-  if (players.size < 50 || players.size > 250 || pairs.size < players.size || pairs.size > 900) {
-    throw Error('ROSTER_IMPORT_PLAN_OUT_OF_RANGE');
-  }
-  return { players, pairs:[...pairs.values()] };
-}
 
 // Later summer seasons (sommer-2027 onwards): every non-empty age class is
 // assigned to the same-age TSV teams that exist for that season. Classes
@@ -59,15 +34,13 @@ export function buildSeasonRosterPlan(parsed, seasonCode, availableTeamSlugs) {
   return { players, pairs:[...pairs.values()], skippedClasses, importedClasses };
 }
 
-export async function importVerifiedPrivateRosters(parsed, secretKey, seasonCode = SEASON) {
+export async function importVerifiedPrivateRosters(parsed, secretKey, seasonCode) {
   if (process.env.BTV_ROSTER_WRITE_ENABLED !== 'true') throw Error('ROSTER_WRITE_NOT_ENABLED');
   if (!secretKey) throw Error('ROSTER_SERVICE_KEY_MISSING');
 
   // Do source validation before creating the server client or writing any rows.
-  const legacy = seasonCode === SEASON;
-  if (legacy) assertVerifiedSummerSnapshot(parsed);
-  else if (isLaterSummerSeason(seasonCode)) assertPlausibleSeasonRoster(parsed);
-  else throw Error('ROSTER_SEASON_NOT_SUPPORTED');
+  if (!isLaterSummerSeason(seasonCode)) throw Error('ROSTER_SEASON_NOT_SUPPORTED');
+  assertPlausibleSeasonRoster(parsed);
   const { createClient } = await import('@supabase/supabase-js');
   const db = createClient(PROJECT, secretKey, {
     auth: { persistSession:false, autoRefreshToken:false },
@@ -86,9 +59,8 @@ export async function importVerifiedPrivateRosters(parsed, secretKey, seasonCode
       'TEAM_SEASONS_LOOKUP_FAILED'),
     read(db.from('players').select('id,display_name').limit(2000), 'PLAYERS_LOOKUP_FAILED'),
   ]);
-  if (!legacy && memberships.length === 0) throw Error('ROSTER_SEASON_HAS_NO_TEAMS');
-  if (teams.length >= 500 || existingPlayers.length >= 2000
-    || (legacy ? memberships.length !== 20 : memberships.length > 40)) {
+  if (memberships.length === 0) throw Error('ROSTER_SEASON_HAS_NO_TEAMS');
+  if (teams.length >= 500 || existingPlayers.length >= 2000 || memberships.length > 40) {
     throw Error('ROSTER_DATABASE_SHAPE_UNEXPECTED');
   }
   const byTeamId = new Map(teams.map(t => [t.id, t.slug]));
@@ -96,9 +68,7 @@ export async function importVerifiedPrivateRosters(parsed, secretKey, seasonCode
   if (teamSeasons.size !== memberships.length || [...teamSeasons.keys()].some(x => !x)) {
     throw Error('ROSTER_TEAM_SEASON_MAPPING_INVALID');
   }
-  const planned = legacy
-    ? buildPrivateRosterPlan(parsed, [...teamSeasons.keys()])
-    : buildSeasonRosterPlan(parsed, seasonCode, [...teamSeasons.keys()]);
+  const planned = buildSeasonRosterPlan(parsed, seasonCode, [...teamSeasons.keys()]);
   const existingByName = new Map();
   for (const player of existingPlayers) {
     const k = normalize(player.display_name);
@@ -141,7 +111,7 @@ export async function importVerifiedPrivateRosters(parsed, secretKey, seasonCode
     if (inserted.length !== toInsert.length) throw Error('ROSTER_MEMBERSHIP_COUNT_MISMATCH');
   }
   return {
-    ageClasses:legacy ? CONFIRMED_SUMMER_CLASSES.length : planned.importedClasses,
+    ageClasses:planned.importedClasses,
     distinctNames:planned.players.size, newPlayers:newNames.length,
     newMemberships:toInsert.length, totalMemberships:planned.pairs.length,
     skippedClasses:planned.skippedClasses?.length ?? 0,

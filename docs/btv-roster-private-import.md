@@ -1,49 +1,36 @@
-# Geschützter BTV-Kaderimport Sommer 2026
+# Geschützter BTV-Kaderimport (Sommer, ab 2027)
 
-Der PDF-Download über die offiziellen, berechtigten BTV-Seiten funktioniert.
-Die verwendete Quelle wurde als TSV Feldkirchen (01012), Sommer 2026,
-mit sieben PDF-Seiten bestätigt.
+Workflow: `.github/workflows/btv-roster-private-import.yml`
 
-## Verifizierte Teildaten
+## Ablauf
 
-- Zehn dokumentierte Mannschaftsabschnitte mit sechs Altersklassenüberschriften.
-  **Nur fünf Altersklassen enthalten auslesbare Spielernamen**: Herren (49),
-  Herren 40 (54), Junioren 18 (23), Knaben 15 (25), Bambini 12 (21).
-  Damen 40 ist als Überschrift vorhanden, hat aber im Bericht keinen Eintrag.
-- 173 nummerierte Zeilen, davon 172 mit gültig extrahierbaren Spielernamen.
-- Eine Zeile wird ausdrücklich ausgeschlossen, weil das Namensformat
-  nicht eindeutig der erlaubten Struktur entspricht.
-- Die übrigen sechs TSV-Altersklassen sind noch **nicht verifiziert**,
-  insbesondere Mädchen 15 und Kleinfeld U9.
-- Dieselbe bestätigte nMM-Altersklasse kann mehrere Mannschaften I/II/III
-  umfassen. Der Import erweitert nur die Auswahl berechtigter Spieler,
-  nicht die tagesaktuelle Aufstellung.
+- **Zeitplan:** montags von März bis September, ab `sommer-2027`. Die Saison
+  ergibt sich aus dem aktuellen Jahr (`sommer-<Jahr>`).
+- **Readiness-Check (ohne BTV-Login):** Hat die Saison in der Datenbank noch
+  keine TSV-Mannschaften (`team_seasons`), endet der Lauf ruhig.
+- **BTV:** Ist die namentliche Mannschaftsmeldung der Saison noch nicht
+  veröffentlicht, endet der wöchentliche Lauf ruhig.
+- **Plausibilitäts-Gate** (`assertPlausibleSeasonRoster`): keine unbekannten
+  Abschnitte oder Überschriften, keine unzugeordneten Zeilen, kein Format- oder
+  Rangfehler, höchstens 3 ungültige Namen, 60–400 Namen, mindestens 3 Klassen
+  mit Namen, höchstens 100 pro Klasse. Bei Zweifel bricht der Lauf vor jedem
+  Datenbankzugriff ab.
+- **Import:** idempotent, nur neue Namen und Zuordnungen. Namen werden nur
+  Mannschaften zugeordnet, die für die Saison existieren; Klassen ohne
+  Mannschaft werden übersprungen und gemeldet. Mannschaften werden nie
+  automatisch angelegt.
 
-## Vorgehen
+## Datenschutz
 
-1. GitHub-PR prüft nur synthetische Datensätze, ohne Secrets.
-2. Nach der Zusammenführung auf `main` wird einmalig die echte
-   PDF-Quelle geladen und erneut gegen feste Strukturwerte geprüft.
-3. Nur wenn der Bericht **exakt** zum überprüften Snapshot passt,
-   werden Namen in das Projekt `eaurnufdochjapfzqwvm` übertragen.
-4. Es werden ausschließlich Namen und Kaderzuordnungen geschrieben.
-   Keine Spielerausweise, Geburtsdaten, LK, Kontakt- oder Zugangsdaten.
-5. Neue Zuordnungen setzen ausdrücklich `public_visible=false` (in
-   der aktuellen Datenbank ist der Standardwert dagegen `true`).
-6. Bestehende öffentliche Freigaben werden beim Abgleich nie zurückgesetzt.
-7. Der Import ist wiederholbar und ergänzt nur fehlende Zuordnungen.
-8. Arbeitsdatei und Session bleiben nur im flüchtigen GitHub-Runner;
-   es werden keine Namen in Logs, Commits oder Artefakte übernommen.
+- Es werden ausschließlich Namen und Kaderzuordnungen geschrieben. Keine
+  Spielerausweise, Geburtsdaten, LK, Kontakt- oder Zugangsdaten.
+- Neue Zuordnungen setzen ausdrücklich `public_visible=false`. Bestehende
+  öffentliche Freigaben werden nie zurückgesetzt, gelöscht wird nichts.
+- PDF und Namen bleiben nur im flüchtigen GitHub-Runner; Logs enthalten nur
+  feste Codes und Anzahlen.
+- Die Einwilligung der Eltern zur internen Verwendung der Jugendkader wurde
+  vom Vereinsverantwortlichen bestätigt. Öffentliche Sichtbarkeit wird davon
+  unabhängig separat verwaltet.
 
-## Offene Nacharbeiten
-
-Die bislang nicht abgedeckten Altersklassen einschließlich Damen 40, Mädchen 15 und Kleinfeld U9 sowie der eine
-nicht lesbare Eintrag müssen über weitere verifizierte BTV-Dokumente
-beziehungsweise die TSV-Mannschaftsverwaltung abgeglichen werden.
-
-Die Einwilligung der Eltern zur Verwendung der Jugendkader wurde
-vom Vereinsverantwortlichen bestätigt. Öffentliche Sichtbarkeit
-wird davon unabhängig separat verwaltet.
-
-Dieser Workflow veröffentlicht die Homepage nicht und verändert
-keine Spielergebnisse.
+Pushes und Pull Requests führen nur synthetische Tests aus und schreiben nie.
+Manuell: `workflow_dispatch` mit der Eingabe `season` (z. B. `sommer-2027`).

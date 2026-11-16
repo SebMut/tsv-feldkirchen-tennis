@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { AGE_CLASSES } from '../scripts/btv-roster-age-classes.mjs';
-import { parseBtvRosterPdfText, assertCompleteSummerRoster, assertVerifiedSummerSnapshot } from '../scripts/btv-roster-pdf-parser.mjs';
+import { parseBtvRosterPdfText, assertCompleteSummerRoster } from '../scripts/btv-roster-pdf-parser.mjs';
 
 function fixture() {
   const rows = [];
@@ -14,7 +14,7 @@ function fixture() {
       }
     }
   }
-  return 'TSV Feldkirchen 01012 Sommer 2026\n' + rows.join('\n');
+  return 'TSV Feldkirchen 01012 Sommer 2027\n' + rows.join('\n');
 }
 
 test('all 20 team headings and twelve age classes match', () => {
@@ -40,37 +40,3 @@ test('incomplete or unrecognized reports are rejected', () => {
 });
 
 
-test('verified snapshot accepts only the ten confirmed squad sections and 173 rows', () => {
-  const groups = [
-    'Herren II', 'Herren 40', 'Herren 40 II', 'Damen 40',
-    'Junioren 18', 'Knaben 15', 'Knaben 15 II',
-    'Bambini 12', 'Bambini 12 II', 'Bambini 12 III',
-  ];
-  const report = ['TSV Feldkirchen (01012), Sommer 2026'];
-  const letters = (value) => {
-    let n = value, out = '';
-    do {
-      out = String.fromCharCode(65 + n % 26) + out;
-      n = Math.floor(n / 26) - 1;
-    } while (n >= 0);
-    return out;
-  };
-  groups.forEach((name, i) => {
-    report.push(name + ' | Südligagruppe');
-    const size = [49, 27, 27, 0, 23, 13, 12, 7, 7, 8][i];
-    for (let n = 1; n <= size; n++) {
-      report.push(n + ' Muster' + letters(i + 1) + letters(n) + ', ' + (i === 9 && n === 8 ? 'Alpha7' : 'Alpha' + letters(n)) + '  GER  12345678');
-    }
-  });
-  const parsed = assertVerifiedSummerSnapshot(parseBtvRosterPdfText(report.join('\n')));
-  assert.equal(parsed.diagnostics.numberedRows, 173);
-  assert.equal(parsed.diagnostics.parsedRows, 172);
-  assert.equal(parsed.diagnostics.invalidName, 1);
-  assert.equal(parsed.diagnostics.classCount, 6);
-  assert.equal(parsed.diagnostics.headingCount, 10);
-  assert.equal(parsed.diagnostics.classCounts['Damen 40'], 0);
-  assert.equal(parsed.diagnostics.classCounts['Herren'], 49);
-  assert.equal(parsed.diagnostics.classCounts['Bambini 12'], 21);
-  assert.throws(() => assertVerifiedSummerSnapshot(parseBtvRosterPdfText(fixture())),
-    /UNVERIFIED_NMM_SNAPSHOT/);
-});

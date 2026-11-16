@@ -8,7 +8,7 @@
 ## Bedienung
 
 1. Mit einem bestehenden berechtigten TSV-Konto per Passwort oder optional per E-Mail-Anmeldelink anmelden. Es wird kein neuer Benutzer durch die Eingabemaske registriert.
-2. Saison auswählen (standardmäßig Sommer 2026), nach Mannschaft/Gegner suchen und eine offene Begegnung auswählen.
+2. Saison auswählen (standardmäßig die laufende Wintersaison 2026/27), nach Mannschaft/Gegner suchen und eine offene Begegnung auswählen.
 3. Spielstatus angeben. Bei normalem Spiel **Heim : Gast** mit zwei Punktwerten eingeben (0:0 ist als reguläres Endergebnis unzulässig); bei Rückzug, Nichtantritt, Verschiebung oder ungeklärter Wertung dürfen die Punktfelder leer bleiben.
 4. Quelle wählen, möglichst offiziellen BTV-/tennis.de-Link ergänzen, Fakten kontrollieren und speichern. Der Nachtrag bleibt `manual_pending` und wird nicht ungeprüft veröffentlicht.
 5. Bestehende Nachträge können von berechtigten Personen korrigiert werden. Ein bereits in `btv_result_text` hinterlegtes offizielles Ergebnis sperrt weitere manuelle Nachträge.
@@ -26,6 +26,5 @@
 ## Prüfstand 31.10.2026
 
 - Nach RLS-Migration: Anonyme Benutzer haben weder Lesezugriff auf die Tabelle noch die Admin-Ansicht.
-- In einer simulierten Superadmin-Sitzung zeigt die Ansicht genau **14** Sommer-2026-Begegnungen ohne BTV-Ergebnis.
 - Test-INSERT und Test-UPDATE im `authenticated`-Rollenkontext erfolgreich; Transaktion vollständig zurückgerollt. **0 reale manuelle Ergebnisse** gespeichert.
 - UI-Quellcode statisch geprüft; die tatsächliche Anmeldung mit einem Browserkonto und das GitHub-Pages-Deployment sind gesondert im Vorschau-Frontend zu prüfen.

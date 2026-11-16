@@ -43,6 +43,6 @@ test('user-controlled Secrets can run only on trusted main, never on pull reques
 test('does not write PDFs, credentials or people data to a GitHub artifact', () => {
   assert.doesNotMatch(workflow, /uses:.*upload-artifact|git push|supabase/i);
   assert.match(code, /BTV_NMM_DOWNLOAD=AVAILABLE/);
-  assert.match(code, /BTV_SUMMER_2026_LISTED=/);
+  assert.doesNotMatch(code, /BTV_SUMMER_2026_LISTED=/);
   assert.match(code, /BTV_WINTER_2026_27_LISTED=/);
 });

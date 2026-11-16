@@ -23,15 +23,9 @@ using (exists (
  where ts.id = team_season_id and ts.is_published = true
 ));
 
--- Verifiable 2026 sources, obtained from BTV ScheduleReportFOP.
+-- Verifiable sources of the active competition, obtained from BTV ScheduleReportFOP.
 with evidence(season_code,team_name,group_text,group_number,group_id) as (
  values
- ('sommer-2026','Bambini 12','Gr. 849',849,'2216734'),
- ('sommer-2026','Bambini 12 II','Gr. 852',852,'2216737'),
- ('sommer-2026','Bambini 12 III','Gr. 850',850,'2216736'),
- ('sommer-2026','Damen 40','Gr. 095 SU',95,'2165644'),
- ('sommer-2026','Herren','Gr. 021 SU',21,'2165579'),
- ('sommer-2026','Herren 40','Gr. 039 SU',39,'2165602'),
  ('winter-2026-2027','Herren','Gr. 018',18,'2257673'),
  ('winter-2026-2027','Herren 50','Gr. 166',166,'2257828'),
  ('winter-2026-2027','Herren II','Gr. 020',20,'2257681')
