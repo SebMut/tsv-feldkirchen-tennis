@@ -241,6 +241,9 @@
   .pyramid-dialog-actions .button{
     position:relative;z-index:1;width:100%;min-height:40px;
   }
+  /* Compact quick score buttons so the whole grid fits without overlap. */
+  .pyramid-result-quick{gap:6px}
+  .pyramid-result-quick button{min-height:44px;padding:0;font-size:.9rem;width:100%;min-width:0}
 }
 
 
