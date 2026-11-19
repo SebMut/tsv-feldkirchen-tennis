@@ -47,3 +47,73 @@
   .rsvp-export-card__stats>div{padding:11px 4px}
   .rsvp-export-card__stats span{font-size:.65rem}
 }
+
+
+/* Inline RSVP management: TSV red accents, forest-green text, mobile cards. */
+.rsvp-export-card__buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.rsvp-export-card__buttons>.button{min-width:0;min-height:46px;white-space:normal;overflow-wrap:anywhere}
+.rsvp-export-card.is-open{grid-column:1/-1}
+.rsvp-manage-inline{grid-column:1/-1;border-top:2px solid #c21b2d;margin-top:2px;padding-top:20px;min-width:0}
+.rsvp-manage-inline[hidden],.rsvp-manage-dialog [hidden]{display:none!important}
+.rsvp-manage-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.rsvp-manage-head h4{margin:0;color:#153d2b;font-size:1.2rem}
+.rsvp-manage-head p{margin:5px 0 0}
+.rsvp-manage-controls{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;margin:15px 0}
+.rsvp-manage-controls label,.rsvp-manage-dialog label{display:grid;gap:6px;color:#284835;font-weight:600;font-size:.87rem;min-width:0}
+.rsvp-manage-controls input,.rsvp-manage-controls select,.rsvp-manage-dialog input,
+.rsvp-manage-dialog select,.rsvp-manage-dialog textarea{min-width:0;width:100%;border:1px solid #bccdc0;border-radius:9px;padding:10px;min-height:42px;background:white;font:inherit;color:#203b2b}
+.rsvp-manage-controls input:focus,.rsvp-manage-dialog input:focus,.rsvp-manage-dialog select:focus,
+.rsvp-manage-dialog textarea:focus{outline:2px solid #b51527;outline-offset:1px}
+#rsvp-manage-feedback{margin:12px 0 7px;line-height:1.45}
+#rsvp-manage-feedback.is-error{color:#a91b2c;font-weight:700}
+#rsvp-manage-retry{margin-bottom:12px}
+.rsvp-manage-table-wrap{max-width:100%;overflow-x:auto}
+.rsvp-manage-table{width:100%;border-collapse:collapse;text-align:left;font-size:.86rem;table-layout:fixed}
+.rsvp-manage-table thead{background:#e9f0ea;color:#173e2b}
+.rsvp-manage-table th,.rsvp-manage-table td{padding:12px 9px;border-bottom:1px solid #e0e8e1;vertical-align:top;overflow-wrap:anywhere}
+.rsvp-manage-table th:first-child{width:24%}
+.rsvp-manage-table th:last-child{width:118px}
+.rsvp-manage-table td small{display:block;margin-top:5px;color:#5d7162;line-height:1.45;overflow-wrap:anywhere}
+.rsvp-manage-edit{min-height:42px;width:100%}
+.rsvp-manage-pill{display:inline-block;border-radius:22px;padding:5px 9px;background:#eef2ef;color:#244a33;font-size:.77rem;font-weight:700}
+.rsvp-manage-pill.is-yes{background:#e0f2e7;color:#185033}
+.rsvp-manage-pill.is-no{background:#f9e5e8;color:#9e1729}
+.rsvp-manage-pill.is-maybe{background:#fcf2dc;color:#6a5118}
+.rsvp-manage-dialog{border:0;border-radius:18px;max-width:min(760px,calc(100vw - 24px));width:100%;max-height:min(90dvh,900px);padding:0;box-shadow:0 24px 60px #06200e55;color:#153b2a}
+.rsvp-manage-dialog::backdrop{background:#082018aa}
+.rsvp-manage-dialog form{padding:clamp(16px,3vw,30px);max-height:min(90dvh,900px);overflow-y:auto}
+.rsvp-manage-dialog__head{display:flex;align-items:start;justify-content:space-between;gap:10px;border-bottom:3px solid #b51224;padding-bottom:15px;margin-bottom:20px}
+.rsvp-manage-dialog__head h3{font-size:clamp(1.2rem,3vw,1.65rem);margin:6px 0}
+.rsvp-manage-dialog__head p.muted{font-size:.83rem;overflow-wrap:anywhere}
+.rsvp-manage-close{width:42px;height:42px;flex-shrink:0;border:1px solid #d4dcd7;background:#fff;color:#9c1928;border-radius:50%;font-size:1.7rem;cursor:pointer}
+.rsvp-manage-edit-fields{display:grid;gap:14px;grid-template-columns:minmax(0,2fr) minmax(120px,1fr)}
+.rsvp-manage-yes-details{grid-column:1/-1;display:grid;gap:15px}
+.rsvp-manage-inline-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rsvp-manage-checks{display:flex;flex-wrap:wrap;gap:20px}
+.rsvp-manage-checks label{display:flex;align-items:center;gap:8px}
+.rsvp-manage-checks input{width:auto;min-height:unset}
+.rsvp-manage-dialog fieldset{min-width:0;border:1px solid #d7e3d9;border-radius:12px;padding:12px}
+.rsvp-manage-dialog legend{font-weight:700;padding:0 6px}
+.rsvp-manage-youth-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) auto;gap:8px;margin-bottom:8px}
+.rsvp-manage-dialog__actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:17px;border-top:1px solid #dbe5dd;margin-top:14px}
+.rsvp-manage-danger{background:#a91c2d;color:white;border:1px solid #a91c2d}
+.rsvp-manage-danger:hover{background:#8a1524}
+.rsvp-manage-confirm{padding:20px;border-radius:12px;background:#fff3f3;border:1px solid #f1ced1}
+.rsvp-manage-confirm h4{color:#961829;margin:0 0 8px}
+#rsvp-manage-dialog-message{font-size:.85rem;min-height:1.25em;color:#a0182b;margin:10px 0 0;font-weight:700}
+@media(max-width:700px){
+ .rsvp-export-card__buttons,.rsvp-manage-controls{grid-template-columns:minmax(0,1fr)}
+ .rsvp-manage-table-wrap{overflow-x:visible}
+ .rsvp-manage-table,.rsvp-manage-table tbody,.rsvp-manage-table tr,.rsvp-manage-table td{display:block;width:100%}
+ .rsvp-manage-table thead{display:none}
+ .rsvp-manage-table tr{border:1px solid #dbe5dd;border-radius:12px;margin:12px 0;padding:9px 13px;background:#fff}
+ .rsvp-manage-table td{display:grid;grid-template-columns:115px minmax(0,1fr);gap:6px;border:0;padding:8px 0}
+ .rsvp-manage-table td::before{content:attr(data-label);font-size:.75rem;color:#607364;font-weight:700}
+ .rsvp-manage-table td small{word-break:break-word}
+ .rsvp-manage-table td:last-child{display:block}
+ .rsvp-manage-table td:last-child::before{display:none}
+ .rsvp-manage-edit{width:100%}
+ .rsvp-manage-inline-fields,.rsvp-manage-edit-fields{grid-template-columns:minmax(0,1fr)}
+ .rsvp-manage-youth-row{grid-template-columns:minmax(0,1fr)}
+ .rsvp-manage-dialog__actions>.button{flex:1 1 125px;min-height:44px}
+}
