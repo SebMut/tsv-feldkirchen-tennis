@@ -1,0 +1,1 @@
+import{i as e,n as t,o as n,r,s as i,t as a}from"./browser.BfcG5Jn8.js";i();export{a as Headers,t as Request,r as Response,e as default,n as fetch};

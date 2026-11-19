@@ -1,0 +1,62 @@
+# Astro first: a remaining WordPress index.php must not override index.html.
+DirectoryIndex index.html index.php
+RewriteEngine On
+RewriteCond %{HTTP_HOST} ^tennis-tsvfeldkirchen\.de$ [NC]
+RewriteRule ^ https://www.tennis-tsvfeldkirchen.de%{REQUEST_URI} [R=301,L]
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP_HOST} ^www\.tennis-tsvfeldkirchen\.de$ [NC]
+RewriteRule ^ https://www.tennis-tsvfeldkirchen.de%{REQUEST_URI} [R=301,L]
+
+# Alte WordPress-Hauptseiten
+Redirect 301 /front_page/ /
+Redirect 301 /herrenmannschaften/ /mannschaften/
+Redirect 301 /damenmannschaften/ /mannschaften/
+Redirect 301 /jugendmannschaften/ /mannschaften/
+Redirect 301 /spielplaene/ /termine/
+Redirect 301 /kalender-downloaden/ /termine/#abos
+Redirect 301 /unterstuetzer/ /sponsoren/
+# /ueber-uns/ is now a dedicated Astro page; do not redirect it.
+Redirect 301 /impressum/ https://tsvfeldkirchen.de/impressum
+# Datenschutz is served directly by Astro at /datenschutz/index.html.
+# Do not redirect it to the main club; legacy 301 responses may persist in browsers.
+
+# Alte redaktionelle Beiträge
+Redirect 301 /schnuppertag/ /aktuelles/
+Redirect 301 /kalender-fuer-alle-mannschaften/ /termine/#abos
+Redirect 301 /aufbau-der-plaetze/ /aktuelles/
+RedirectMatch 301 ^/jahreshauptversammlung-fuer-die-geschaeftsjahre-2024-und-2025.*$ /aktuelles/
+
+# The Events Calendar: einzelne alte Terminseiten auf die neue Terminübersicht
+RewriteRule ^termine/.+$ /termine/ [R=301,L,NE]
+
+# Alte automatisch erzeugte Punktspiel-Beiträge
+RewriteRule ^(herren|damen|junioren-18|knaben-15|maedchen-15|bambini-12|kleinfeld-u9|u9).*(heimspiel|auswaertsspiel)-gegen-.*$ /termine/ [R=301,L,NE]
+
+# Alte Mannschaftskalender werden auf die neuen Supabase-ICS-Feeds umgeleitet
+RewriteRule ^mannschaft-kalender/alle-mannschaften-2026\.ics$ https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/calendar-feed?type=matches [R=301,L,NE]
+RewriteRule ^mannschaft-kalender/u9\.ics$ https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/calendar-feed?type=matches&team=kleinfeld-u9 [R=301,L,NE]
+RewriteRule ^mannschaft-kalender/([^/]+)\.ics$ https://eaurnufdochjapfzqwvm.supabase.co/functions/v1/calendar-feed?type=matches&team=$1 [R=301,L,NE]
+
+Options -Indexes
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/avif "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType application/manifest+json "access plus 1 week"
+</IfModule>
+<IfModule mod_headers.c>
+  <FilesMatch "\.(?:avif|webp|svg|png|css|js|woff2)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "\.(?:html|xml)$">
+    Header set Cache-Control "public, max-age=300, must-revalidate"
+  </FilesMatch>
+</IfModule>
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml application/javascript application/json application/xml application/manifest+json image/svg+xml
+</IfModule>
