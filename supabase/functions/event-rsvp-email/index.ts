@@ -372,6 +372,20 @@ async function adminRsvpAction(
       &&!profile.global_permissions?.includes('events')))
     return {status:403,data:{error:'Keine Berechtigung zum Verwalten von Veranstaltungsanmeldungen.'}};
   const action=String(body.action||'');
+  if(action==='admin-rsvp-notifications'){
+    if(!uuid(body.event_id))return {status:400,data:{error:'Ungültige Veranstaltung.'}};
+    // Recover interrupted sends after ten minutes; retries always remain manual.
+    const stale=new Date(Date.now()-10*60_000).toISOString();
+    await db.from('event_rsvp_admin_notifications')
+      .update({mail_status:'failed',last_error:'send_interrupted'})
+      .eq('event_id',body.event_id).eq('mail_status','sending').lt('updated_at',stale);
+    const {data:unsent,error:unsentError}=await db.from('event_rsvp_admin_notifications')
+      .select('id,recipient_email,action,created_at,mail_status')
+      .eq('event_id',body.event_id).in('mail_status',['pending','failed'])
+      .order('created_at',{ascending:false}).limit(25);
+    if(unsentError)return {status:503,data:{error:'Offene E-Mail-Benachrichtigungen konnten nicht geladen werden.'}};
+    return {status:200,data:{unsent:unsent||[]}};
+  }
   if(action==='admin-rsvp-retry'){
     if(!uuid(body.notification_id))return {status:400,data:{error:'Ungültige Benachrichtigung.'}};
     const result=await sendAdminRsvpNotice(db,body.notification_id as string);
