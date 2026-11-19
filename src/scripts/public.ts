@@ -93,6 +93,20 @@ const fallbackImage =
   'data:image/svg+xml;charset=UTF-8,' +
   encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540"><rect width="100%" height="100%" fill="#e7f0ed"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="38" fill="#216052">TSV Feldkirchen Tennis</text></svg>');
 
+function isWithdrawnTeamSeason(season: Row | undefined | null) {
+  return /zurückgezogen/i.test(String(season?.summary || ''));
+}
+
+function seasonStatusNote(season: Row | undefined | null) {
+  const note = String(season?.summary || '').trim();
+  if (!note) return '';
+  const withdrawn = isWithdrawnTeamSeason(season);
+  return `<p class="team-season-notice ${withdrawn ? 'team-season-notice--withdrawn' : ''}" role="status">
+    ${withdrawn ? '<span aria-hidden="true">ℹ</span>' : ''}
+    <span>${escapeHtml(note)}</span>
+  </p>`;
+}
+
 function teamFallbackImage(team: Row) {
   if (team.gender === 'men') return mediaUrl('teams/herren.png');
   if (team.gender === 'women') return mediaUrl('teams/damen.png');
@@ -861,7 +875,7 @@ export async function loadTeams() {
       const teamMatches = matches.filter((m: Row) => m.team_season_id === ts.id);
       const liveMatch = teamMatches.find((m: Row) => states.get(m.id)?.status === 'live');
       const next = teamMatches.find((m: Row) => new Date(m.starts_at).getTime() >= now && states.get(m.id)?.status !== 'finished');
-      const featured = liveMatch || next;
+      const featured = isWithdrawnTeamSeason(ts) ? undefined : liveMatch || next;
       const currentState = featured ? states.get(featured.id) : null;
       const isLive = currentState?.status === 'live';
       const clubScore = featured ? (featured.is_home ? currentState?.home_score : currentState?.away_score) : null;
@@ -880,7 +894,8 @@ export async function loadTeams() {
             ${!btvTarget.isDirect ? '<small class="muted">Direkter Gruppenlink noch nicht bestätigt</small>' : ''}
           </div>
           <p class="muted">${escapeHtml([ts.league, ts.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p>
-          ${featured ? `
+          ${seasonStatusNote(ts)}
+          ${isWithdrawnTeamSeason(ts) ? '' : featured ? `
             <div class="team-overview-next ${isLive ? 'is-live' : ''}">
               <span class="status-pill ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'Nächstes Spiel'}</span>
               <strong>gegen ${escapeHtml(featured.opponent)}</strong>
@@ -982,7 +997,7 @@ export async function loadTeamDetail(slug: string) {
   const head = document.querySelector<HTMLElement>('#team-header');
   if (head) head.innerHTML = `
     <section class="hero">
-      <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p><div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${current && tennisDeTarget ? `<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer">tennis.de Mannschaftsporträt ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({team: slug}))}">Mannschaftskalender abonnieren</a></div></div>
+      <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p>${seasonStatusNote(current)}<div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${current && tennisDeTarget ? `<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer">tennis.de Mannschaftsporträt ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({team: slug}))}">Mannschaftskalender abonnieren</a></div></div>
       <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" width="1280" height="720" decoding="async" fetchpriority="high" /></div>
     </section>
   `;
@@ -1102,7 +1117,7 @@ export async function loadTeamDetail(slug: string) {
     const upcomingMatch = allMatchesForTeam
       .filter((match: Row) => match.is_published !== false && new Date(match.starts_at).getTime() > now)
       .sort((a: Row, b: Row) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())[0];
-    const featuredMatch = liveMatch ?? upcomingMatch;
+    const featuredMatch = isWithdrawnTeamSeason(current) ? undefined : liveMatch ?? upcomingMatch;
 
     if (featuredMatch) {
       const state = liveStates.find((row: Row) => row.match_id === featuredMatch.id);
