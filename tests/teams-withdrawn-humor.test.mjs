@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const page=read('src/scripts/public.ts');
 const css=read('src/styles/global.css');
-const migration=read('supabase/migrations/20261119230000_herren_ii_withdrawn_herren_50_humor_image.sql');
+const migration=read('supabase/migrations/20261119230535_herren_ii_withdrawn_herren_50_humor_image.sql');
 
 test('Herren II withdrawn status is season-specific, visible on card and detail, and does not show a false upcoming game',()=>{
   assert.match(migration,/team_seasons set\s+summary='Mannschaft zurückgezogen\./);
