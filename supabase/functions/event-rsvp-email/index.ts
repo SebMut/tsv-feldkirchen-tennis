@@ -351,7 +351,8 @@ async function sendAdminRsvpNotice(db:ReturnType<typeof createClient>,id:string)
   const notificationDelivery=await sendGmail(notice.recipient_email,plain,html,
     deleted?'TSV Feldkirchen: Anmeldung geloescht':'TSV Feldkirchen: Anmeldung aktualisiert');
   const update=notificationDelivery.sent
-    ?{mail_status:'sent',sent_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()}
+    ?{mail_status:'sent',sent_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString(),
+      recipient_email:'',before_data:{},after_data:null} // Erase confidential snapshots after successful delivery.
     :{mail_status:'failed',last_error:notificationDelivery.code||'send_failed',updated_at:new Date().toISOString()};
   const {error:saveError}=await db.from('event_rsvp_admin_notifications').update(update).eq('id',id);
   if(saveError)return {sent:false,code:'mail_status_not_saved'};
