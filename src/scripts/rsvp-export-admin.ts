@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { escapeHtml } from '../lib/ui';
 import { fetchVerifiedEventRsvps } from './event-rsvp-admin';
 import { downloadRsvpPdf } from './rsvp-report-pdf';
+import { openRsvpManager } from './rsvp-manage-admin';
 
 type EventRow = {
   id: string; title: string; slug: string; starts_at: string;
@@ -72,8 +73,11 @@ function render(){
         '<div><strong>'+fmt(count.children)+'</strong><span>Kinder</span></div></div>'+
       '<p class="rsvp-export-card__foot">'+fmt(count.maybe)+' Vielleicht · '+fmt(count.no)+' Absagen'+
         (count.responses===0?' · Noch keine bestätigten Antworten':'')+'</p>'+
+      '<div class="rsvp-export-card__buttons"><button type="button" class="button secondary" data-manage-event="'+escapeHtml(event.id)+'">'+
+        'Anmeldungen ansehen & bearbeiten</button>'+ 
       '<button type="button" class="button rsvp-export-card__download" data-export-event="'+escapeHtml(event.id)+'">'+
-        '<span aria-hidden="true">↓</span> PDF herunterladen</button>'+
+        '<span aria-hidden="true">↓</span> PDF herunterladen</button></div>'+ 
+      '<div class="rsvp-manage-inline" data-rsvp-manage-inline="'+escapeHtml(event.id)+'" hidden></div>'+
       '</article>';
   }).join(''):'<div class="card rsvp-export-empty"><h3>Keine Veranstaltungen gefunden</h3><p class="muted">'+
       (search||filter!=='all'?'Versuche einen anderen Suchbegriff oder wähle „Alle Veranstaltungen“.':'Sobald eine Veranstaltung mit Anmeldung vorhanden ist, wird sie hier angezeigt.')+
@@ -138,6 +142,19 @@ async function refresh(){
   }
 }
 
+async function manage(eventId:string) {
+  const event=events.find(item=>item.id===eventId);
+  const host=$<HTMLElement>('rsvp-export-cards')?.querySelector<HTMLElement>('[data-rsvp-manage-inline="'+eventId+'"]');
+  if(!event||!host)return;
+  if(!host.hidden){host.hidden=true;host.innerHTML='';host.closest('.rsvp-export-card')?.classList.remove('is-open');return;}
+  await openRsvpManager(event,host,async changedEventId=>{
+    await refresh();
+    const fresh=events.find(item=>item.id===changedEventId);
+    const freshHost=$<HTMLElement>('rsvp-export-cards')?.querySelector<HTMLElement>('[data-rsvp-manage-inline="'+changedEventId+'"]');
+    if(fresh&&freshHost)await openRsvpManager(fresh,freshHost,async id=>{await refresh();await manage(id);});
+  });
+}
+
 async function download(eventId:string,button:HTMLButtonElement){
   const event=events.find(row=>row.id===eventId);
   if(!event||button.disabled)return;
@@ -173,6 +190,8 @@ export function initRsvpExportAdmin(canEvents:boolean){
   $<HTMLButtonElement>('rsvp-export-reload')?.addEventListener('click',()=>void refresh());
   $<HTMLElement>('rsvp-export-cards')?.addEventListener('click',(event)=>{
     if(!(event.target instanceof Element))return;
+    const manager=event.target.closest<HTMLButtonElement>('button[data-manage-event]');
+    if(manager?.dataset.manageEvent){void manage(manager.dataset.manageEvent);return;}
     const btn=event.target.closest<HTMLButtonElement>('button[data-export-event]');
     const id=btn?.dataset.exportEvent;
     if(btn&&id)void download(id,btn);
