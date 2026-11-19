@@ -66,6 +66,6 @@ test('TSV-branded responsive mobile card and dismissable modal',()=>{
   assert.match(css,/#b51224|#af1526|#c21b2d/);
   assert.match(css,/\.rsvp-manage-dialog::backdrop/);
   assert.match(css,/@media\(max-width:700px\)/);
-  assert.match(css,/\.rsvp-manage-table tr\{display:block/);
+  assert.match(css,/\.rsvp-manage-table tr\{border:/);
   assert.match(css,/\.rsvp-manage-edit-fields\{grid-template-columns:minmax\(0,1fr\)/);
 });
