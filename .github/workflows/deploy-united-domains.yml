@@ -228,6 +228,7 @@ jobs:
       # Master v1.0: 14-day play / 3-day desired scheduling / 48h confirmed results / 7-day cooldowns / 28-day automatic un-neutralization; bottom-right Urlaub/Verletzung badges; desktop/mobile/small mobile QA green.
       # Password onboarding: email link -> verifyOtp -> updateUser -> open pyramid request form, tested with isolated synthetic browser account.
       # Auth delivery repair: GoTrue opaque tokens, honest resend status, server-error email cooldown refund. Build and desktop/mobile QA passed.
+      # Explicit user-approved 2026-11-19 rollout: inline RSVP participant edit/delete, protected notifications and unchanged PDF export; CI build, audit and Chromium QA checked.
       - name: Verify live website and login shell via HTTPS
         run: |
           set -euo pipefail
