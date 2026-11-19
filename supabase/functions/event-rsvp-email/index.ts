@@ -6,6 +6,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.75.0';
 // Only the account granted Gmail API gmail.send may send confirmation emails.
 const env = (key: string) => Deno.env.get(key)?.trim() || '';
 const GMAIL_SENDER = 'tsvfeldkirchen.tennis@gmail.com';
+const TEMPORARILY_UNAVAILABLE = 'Die Online-Anmeldung ist gerade kurzzeitig nicht verfügbar. Wir kümmern uns darum und sind bald wieder für dich da. Bitte versuche es später noch einmal.';
 // Require an exact base URL: a stray word or slash must never enter
 // a confirmation link that is already delivered by email.
 const allowedRsvpBases = new Set([
@@ -169,10 +170,10 @@ async function gmailOauthHealth():Promise<GmailDelivery> {
       const reason=typeof auth?.error==='string'?auth.error:'unknown';
       console.warn('rsvp_gmail_health_failure',JSON.stringify({http:oauth.status,code:reason}));
       result=reason==='invalid_grant'
-        ? {sent:false,code:'gmail_invalid_grant',message:'Gmail-Zugriff abgelaufen oder widerrufen. Bitte den Google Refresh Token erneuern und den OAuth-Veröffentlichungsstatus prüfen.'}
+        ? {sent:false,code:'gmail_invalid_grant',message:TEMPORARILY_UNAVAILABLE}
         : reason==='invalid_client'
-          ? {sent:false,code:'gmail_invalid_client',message:'Gmail-Anmeldung abgelehnt: OAuth Client ID und Client Secret passen nicht zusammen.'}
-          : {sent:false,code:'gmail_auth_failed',message:'Google hat den Gmail-Zugriff abgelehnt. Bitte die Google-Cloud-Einstellungen prüfen.'};
+          ? {sent:false,code:'gmail_invalid_client',message:TEMPORARILY_UNAVAILABLE}
+          : {sent:false,code:'gmail_auth_failed',message:TEMPORARILY_UNAVAILABLE};
     }
   }
   gmailHealthCache={expires:Date.now()+(result.sent?5*60_000:30_000),result};
@@ -201,13 +202,13 @@ async function sendGmail(to:string,plain:string,html:string):Promise<GmailDelive
     console.warn('rsvp_gmail_auth_failure',JSON.stringify({http:oauth.status,code:reason}));
     switch(reason) {
       case 'invalid_client':
-        return {sent:false,code:'gmail_invalid_client',message:'Gmail-Anmeldung abgelehnt: OAuth Client ID und Client Secret passen nicht zusammen. Bitte die beiden Supabase-Secrets prüfen.'};
+        return {sent:false,code:'gmail_invalid_client',message:TEMPORARILY_UNAVAILABLE};
       case 'invalid_grant':
-        return {sent:false,code:'gmail_invalid_grant',message:'Gmail-Zugriff abgelaufen oder widerrufen. Bitte den Google Refresh Token erneuern und den OAuth-Veröffentlichungsstatus prüfen.'};
+        return {sent:false,code:'gmail_invalid_grant',message:TEMPORARILY_UNAVAILABLE};
       case 'unauthorized_client':
-        return {sent:false,code:'gmail_unauthorized_client',message:'Google erlaubt diesem OAuth-Client den Zugriff noch nicht. Bitte OAuth-Client und Gmail-Berechtigung prüfen.'};
+        return {sent:false,code:'gmail_unauthorized_client',message:TEMPORARILY_UNAVAILABLE};
       default:
-        return {sent:false,code:'gmail_auth_failed',message:'Google hat den Gmail-Zugriff abgelehnt (OAuth-Fehler). Bitte die Google-Cloud-Einstellungen prüfen.'};
+        return {sent:false,code:'gmail_auth_failed',message:TEMPORARILY_UNAVAILABLE};
     }
   }
   if(typeof auth?.access_token!=='string'||!auth.access_token){

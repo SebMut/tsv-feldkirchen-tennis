@@ -20,6 +20,7 @@ const YOUTH_CATEGORIES = [
   { value: 'u18-m', label: 'U18 · männlich' },
   { value: 'u18-w', label: 'U18 · weiblich' },
 ] as const;
+const TEMPORARILY_UNAVAILABLE = 'Die Online-Anmeldung ist gerade kurzzeitig nicht verfügbar. Wir kümmern uns darum und sind bald wieder für dich da. Bitte versuche es später noch einmal.';
 
 export async function initEventRsvp() {
   const form = byId<HTMLFormElement>('rsvp-form');
@@ -244,14 +245,14 @@ export async function initEventRsvp() {
     try {
       const { data, error } = await supabase.functions.invoke('event-rsvp-email',{body:{action:'config'}});
       if (error || !data?.enabled || !data.siteKey) {
-        showFeedback(data?.message || 'Die E-Mail-Bestätigung und Cloudflare Turnstile müssen vor der Anmeldung noch eingerichtet werden.',true);
+        showFeedback(TEMPORARILY_UNAVAILABLE,true);
       } else {
         await loadTurnstile(String(data.siteKey));
         enabled = true;
         submit.disabled = false;
       }
     } catch {
-      showFeedback('Die Cloudflare-Menschprüfung konnte nicht geladen werden. Die Anmeldung ist derzeit geschlossen.',true);
+      showFeedback(TEMPORARILY_UNAVAILABLE,true);
     }
   }
 
@@ -297,7 +298,7 @@ export async function initEventRsvp() {
       return;
     }
     if (!enabled) {
-      showFeedback('Die E-Mail-Bestätigung ist noch nicht eingerichtet. Bitte beim Verein nachfragen.',true);
+      showFeedback(TEMPORARILY_UNAVAILABLE,true);
       return;
     }
     if (!turnstileToken) {

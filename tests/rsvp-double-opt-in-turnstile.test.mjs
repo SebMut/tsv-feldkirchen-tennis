@@ -128,12 +128,15 @@ test('Gmail provider errors are safe, distinguish bad client from expired grant 
   assert.ok(edge.includes("console.warn('rsvp_gmail_auth_failure'"));
   assert.ok(edge.includes("console.warn('rsvp_gmail_send_failure'"));
   assert.ok(edge.includes("return reply(503,{error:delivery.message,code:delivery.code},origin)"));
+  assert.ok(edge.includes('Die Online-Anmeldung ist gerade kurzzeitig nicht verfügbar.'));
+  assert.doesNotMatch(edge,/Gmail-Zugriff abgelaufen oder widerrufen/);
   assert.ok(edge.includes("if(!delivery.sent){"));
   assert.ok(edge.includes("db.from('event_rsvp_pending').delete().eq('id',pending.id)"));
   assert.ok(!edge.includes("console.log(auth)"));
   assert.ok(!edge.includes("console.log(access)"));
 });
 test('Browser displays safe provider error body even when HTTP status is 503',()=>{
+  assert.ok(publicCode.includes('Die Online-Anmeldung ist gerade kurzzeitig nicht verfügbar.'));
   assert.ok(publicCode.includes("error.context instanceof Response"));
   assert.ok(publicCode.includes("error.context.clone().json()"));
   assert.ok(publicCode.includes("typeof failure?.error === 'string'"));
