@@ -75,7 +75,7 @@ test('Gmail MIME is UTF-8 safe, includes text and HTML and a valid sender',()=>{
   assert.ok(edge.includes('Content-Type: text/html; charset=UTF-8'));
   assert.ok(edge.includes('Content-Type: text/plain; charset=UTF-8'));
   assert.ok(edge.includes("base64Utf8(lines.join("));
-  assert.ok(edge.includes('raw:mimeMessage(to,plain,html)'));
+  assert.match(edge,/raw:mimeMessage\(to,plain,html(?:,subject)?\)/);;
   assert.ok(edge.includes("'From: TSV Feldkirchen Tennis <'+GMAIL_SENDER+'>'"));
 });
 
