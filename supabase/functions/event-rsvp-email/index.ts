@@ -145,6 +145,39 @@ function mimeMessage(to:string,plain:string,html:string):string {
   return base64Utf8(lines.join('\r\n')).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
 }
 type GmailDelivery = { sent:true } | { sent:false; code:string; message:string };
+let gmailHealthCache:{expires:number;result:GmailDelivery}|null=null;
+/** Validate the stored refresh token without sending an e-mail. The short cache
+ * avoids hitting Google's token endpoint on every public form page load. */
+async function gmailOauthHealth():Promise<GmailDelivery> {
+  if(gmailHealthCache&&gmailHealthCache.expires>Date.now()) return gmailHealthCache.result;
+  const oauth=await fetch('https://oauth2.googleapis.com/token',{
+    method:'POST',
+    headers:{'content-type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({
+      client_id:env('GMAIL_CLIENT_ID'),
+      client_secret:env('GMAIL_CLIENT_SECRET'),
+      refresh_token:env('GMAIL_REFRESH_TOKEN'),
+      grant_type:'refresh_token',
+    }),
+  }).catch(()=>null);
+  let result:GmailDelivery;
+  if(!oauth) result={sent:false,code:'gmail_auth_unreachable',message:'Google OAuth ist vorübergehend nicht erreichbar. Bitte später erneut versuchen.'};
+  else {
+    const auth=await oauth.json().catch(()=>null);
+    if(oauth.ok&&typeof auth?.access_token==='string'&&auth.access_token) result={sent:true};
+    else {
+      const reason=typeof auth?.error==='string'?auth.error:'unknown';
+      console.warn('rsvp_gmail_health_failure',JSON.stringify({http:oauth.status,code:reason}));
+      result=reason==='invalid_grant'
+        ? {sent:false,code:'gmail_invalid_grant',message:'Gmail-Zugriff abgelaufen oder widerrufen. Bitte den Google Refresh Token erneuern und den OAuth-Veröffentlichungsstatus prüfen.'}
+        : reason==='invalid_client'
+          ? {sent:false,code:'gmail_invalid_client',message:'Gmail-Anmeldung abgelehnt: OAuth Client ID und Client Secret passen nicht zusammen.'}
+          : {sent:false,code:'gmail_auth_failed',message:'Google hat den Gmail-Zugriff abgelehnt. Bitte die Google-Cloud-Einstellungen prüfen.'};
+    }
+  }
+  gmailHealthCache={expires:Date.now()+(result.sent?5*60_000:30_000),result};
+  return result;
+}
 /** Report safe provider error codes, never OAuth secrets, tokens or user addresses. */
 async function sendGmail(to:string,plain:string,html:string):Promise<GmailDelivery> {
   const oauth=await fetch('https://oauth2.googleapis.com/token',{
@@ -222,9 +255,13 @@ Deno.serve(async request=>{
     &&env('GMAIL_CLIENT_ID')&&env('GMAIL_CLIENT_SECRET')&&env('GMAIL_REFRESH_TOKEN')
     &&base&&env('SUPABASE_URL')&&env('SUPABASE_SERVICE_ROLE_KEY'));
   if(action==='config') {
-    return reply(200,configured?{
-      enabled:true,siteKey:env('TURNSTILE_SITE_KEY'),sender:GMAIL_SENDER,
-    }:{enabled:false,message:!base
+    if(configured) {
+      const gmail=await gmailOauthHealth();
+      return reply(200,gmail.sent?{
+        enabled:true,siteKey:env('TURNSTILE_SITE_KEY'),sender:GMAIL_SENDER,
+      }:{enabled:false,code:gmail.code,message:gmail.message},origin);
+    }
+    return reply(200,{enabled:false,message:!base
       ? 'Die Supabase-Einstellung RSVP_BASE_URL ist ungültig. Bitte die vollständige Live-Domain inklusive https:// und abschließendem Schrägstrich eintragen.'
       : 'Gmail-Zugriff und Cloudflare-Menschprüfung müssen vor der Anmeldung noch vom Verein freigegeben werden.'},origin);
   }
