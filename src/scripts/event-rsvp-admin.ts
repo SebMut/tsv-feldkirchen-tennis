@@ -15,7 +15,7 @@ const message = (text: string, error = false) => {
   el.classList.toggle('is-error', error);
 };
 
-const VERIFIED_RSVP_COLUMNS='member_name,member_email,attendance,party_size,adults_count,children_count,dessert_contribution,salad_contribution,help_setup,help_cleanup,youth_registrations,women_registrations,men_registrations,updated_at';
+const VERIFIED_RSVP_COLUMNS='id,event_id,member_name,member_email,attendance,party_size,adults_count,children_count,dessert_contribution,salad_contribution,help_setup,help_cleanup,youth_registrations,women_registrations,men_registrations,updated_at';
 
 /** Shared live, RLS-protected query for both the existing admin form and the direct PDF page.
  *  Paging avoids dropping registrations when a celebration grows beyond 1,000 answers. */
