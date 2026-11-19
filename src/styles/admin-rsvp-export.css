@@ -117,3 +117,7 @@
  .rsvp-manage-youth-row{grid-template-columns:minmax(0,1fr)}
  .rsvp-manage-dialog__actions>.button{flex:1 1 125px;min-height:44px}
 }
+
+.rsvp-manage-unsent{border:1px solid #e8bcc2;background:#fff5f6;border-radius:12px;padding:13px;margin:10px 0 14px;color:#8f1c2a;display:grid;gap:10px}
+.rsvp-manage-unsent__item{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:.84rem;overflow-wrap:anywhere}
+.rsvp-manage-unsent__item .button{min-height:40px}
