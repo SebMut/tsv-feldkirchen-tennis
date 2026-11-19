@@ -28,6 +28,9 @@ test('admin management includes edit, deletion warning and retryable notificatio
   assert.match(manager,/Anmeldung wirklich löschen/);
   assert.match(manager,/Speichern & E-Mail senden/);
   assert.match(manager,/rsvp-manage-retry/);
+  assert.match(manager,/admin-rsvp-notifications/);
+  assert.match(manager,/rsvp-manage-unsent/);
+  assert.match(manager,/data-rsvp-resend/);
   assert.match(manager,/rsvp-manage-dialog/);
   assert.match(manager,/dialog\.showModal\(\)/);
   assert.match(manager,/if\(e\.target===dialog\)dialog\.close\(\)/);
