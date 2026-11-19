@@ -59,6 +59,7 @@ test('changes are atomic with pending mail; failed mail may be retried without e
   assert.match(edge,/\.in\('mail_status',\['pending','failed'\]\)/);
   assert.match(edge,/mail_status:'failed'/);
   assert.match(edge,/mail_status:'sent'/);
+  assert.match(edge,/recipient_email:'',before_data:\{\},after_data:null/);
   assert.match(edge,/sendGmail\(notice\.recipient_email,plain,html/);
   assert.match(edge,/admin-rsvp-retry/);
   assert.match(edge,/notice\.recipient_email/);
