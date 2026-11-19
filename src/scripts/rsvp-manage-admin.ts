@@ -77,6 +77,27 @@ function renderRows(){
     }).join('')+'</tbody></table></div>'
     :'<p class="muted">Keine Rückmeldungen für diesen Filter gefunden.</p>';
 }
+async function loadUnsentNotices(){
+  if(!currentEvent)return;
+  const target=$<HTMLElement>('rsvp-manage-unsent');
+  if(!target)return;
+  try{
+    const data=await invokeAdmin({action:'admin-rsvp-notifications',event_id:currentEvent.id});
+    const rows=Array.isArray(data.unsent)?data.unsent as Array<Record<string,unknown>>:[];
+    target.innerHTML=rows.length
+      ?'<div class="rsvp-manage-unsent"><strong>Offene E-Mail-Benachrichtigungen</strong>'
+        +rows.map(row=>'<div class="rsvp-manage-unsent__item"><span>'
+          +escapeHtml(String(row.recipient_email||''))+' · '
+          +(row.action==='delete'?'Löschung':'Änderung')+' · '
+          +(row.mail_status==='failed'?'Versand fehlgeschlagen':'Versand offen')
+          +'</span><button type="button" class="button secondary" data-rsvp-resend="'
+          +escapeHtml(String(row.id||''))+'">Erneut senden</button></div>').join('')+'</div>'
+      :'';
+  }catch(err){
+    target.textContent='Offene E-Mail-Benachrichtigungen konnten nicht geprüft werden: '
+      +(err instanceof Error?err.message:'Unbekannter Fehler');
+  }
+}
 async function loadRows(){
   if(!currentEvent||loading)return;
   loading=true;
@@ -87,6 +108,7 @@ async function loadRows(){
     currentRows=sortRsvpBySurname((data||[]) as RsvpEntry[]) as RsvpEntry[];
     renderRows();
     setNotice('Anmeldungen geladen. Änderungen lösen eine E-Mail an die bestehende bestätigte Adresse aus.');
+    await loadUnsentNotices();
   }catch(err){
     setNotice('Anmeldungen konnten nicht geladen werden: '+(err instanceof Error?err.message:'Unbekannter Fehler'),true);
   }finally{loading=false;}
@@ -202,9 +224,9 @@ async function modify(action:'admin-rsvp-update'|'admin-rsvp-delete'){
       err instanceof Error?err.message:'Änderung fehlgeschlagen.';
   }finally{saving=false;if(button)button.disabled=false;}
 }
-async function retryNotice(){
-  if(!noticeToRetry||saving)return;
-  const id=noticeToRetry;
+async function retryNotice(notificationId=noticeToRetry){
+  if(!notificationId||saving)return;
+  const id=notificationId;
   saving=true;
   const retry=$<HTMLButtonElement>('rsvp-manage-retry');
   if(retry)retry.disabled=true;
@@ -212,6 +234,7 @@ async function retryNotice(){
     const response=await invokeAdmin({action:'admin-rsvp-retry',notification_id:id});
     const success=response.notification_sent===true;
     setNotice(String(response.message||'Benachrichtigung geprüft.'),!success,success?'':id);
+    await loadUnsentNotices();
   }catch(err){setNotice('E-Mail konnte nicht erneut versendet werden: '+(err instanceof Error?err.message:''),true,id);}
   finally{saving=false;if(retry)retry.disabled=false;}
 }
@@ -290,6 +313,7 @@ export async function openRsvpManager(event:EventDetails,host:HTMLElement,afterM
     +'<label>Teilnahme<select id="rsvp-manage-attendance"><option value="all">Alle Antworten</option>'
     +'<option value="yes">Zusagen</option><option value="maybe">Vielleicht</option><option value="no">Absagen</option></select></label></div>'
     +'<p id="rsvp-manage-feedback" class="muted" role="status" aria-live="polite"></p>'
+    +'<div id="rsvp-manage-unsent" role="status" aria-live="polite"></div>'
     +'<button id="rsvp-manage-retry" type="button" class="button secondary" hidden>E-Mail erneut senden</button>'
     +'<div id="rsvp-manage-entries"></div>';
   host.querySelector('[data-rsvp-hide]')?.addEventListener('click',()=>{
@@ -299,6 +323,11 @@ export async function openRsvpManager(event:EventDetails,host:HTMLElement,afterM
   host.querySelector('#rsvp-manage-person-search')?.addEventListener('input',renderRows);
   host.querySelector('#rsvp-manage-attendance')?.addEventListener('change',renderRows);
   host.querySelector('#rsvp-manage-retry')?.addEventListener('click',()=>void retryNotice());
+  host.querySelector('#rsvp-manage-unsent')?.addEventListener('click',event=>{
+    if(!(event.target instanceof Element))return;
+    const id=event.target.closest<HTMLElement>('[data-rsvp-resend]')?.dataset.rsvpResend;
+    if(id)void retryNotice(id);
+  });
   host.querySelector('#rsvp-manage-entries')?.addEventListener('click',evt=>{
     if(!(evt.target instanceof Element))return;
     const id=evt.target.closest<HTMLElement>('[data-rsvp-edit]')?.dataset.rsvpEdit;
