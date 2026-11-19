@@ -2976,3 +2976,11 @@ body:has(.matchday-page--ticker .matchday-live-center.is-loading) .site-footer{
 .news-action{margin:16px 0 0;min-width:0}.news-action .button{max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:center}
 
 .editorial-compose__button-toggle{display:flex;align-items:center;gap:10px;cursor:pointer}.editorial-compose__button-toggle input{width:21px;height:21px;flex:0 0 auto;accent-color:#c20d20}
+
+/* Seasonal team notices: prominent but compact on mobile and detail pages. */
+.team-season-notice{display:flex;align-items:flex-start;gap:9px;max-width:100%;margin:8px 0 12px!important;padding:11px 13px;border:1px solid #d9e5dc;border-left:4px solid #366d4f;border-radius:11px;background:#f3f7f4;color:#1f4b35;font-weight:600;font-size:.92rem;line-height:1.45;overflow-wrap:anywhere}
+.team-season-notice--withdrawn{border-color:#edc8ce;border-left-color:#bf172a;background:#fff0f1;color:#8d1424}
+.team-season-notice [aria-hidden]{font-size:1.1rem;line-height:1.2}
+.team-overview-card .team-season-notice{font-size:.85rem;padding:10px 12px}
+.team-detail-page .hero .team-season-notice{margin:13px 0!important;max-width:55ch}
+@media(max-width:540px){.team-season-notice{padding:10px 11px;font-size:.86rem}}
