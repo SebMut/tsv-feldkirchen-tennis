@@ -40,7 +40,7 @@ declare
   notice_id uuid;
   adults integer;
   children integer;
-  attendance text;
+  v_attendance text;
   name text;
 begin
   if p_rsvp_id is null or p_expected_updated_at is null or p_editor_user_id is null
@@ -59,7 +59,7 @@ begin
 
   if p_action = 'update' then
     name := btrim(coalesce(p_values->>'member_name',''));
-    attendance := p_values->>'attendance';
+    v_attendance := p_values->>'attendance';
     if p_values is null
        or jsonb_typeof(p_values->'adults_count') <> 'number'
        or jsonb_typeof(p_values->'children_count') <> 'number'
@@ -69,7 +69,7 @@ begin
        or jsonb_typeof(p_values->'women_registrations') <> 'array'
        or jsonb_typeof(p_values->'men_registrations') <> 'array'
        or char_length(name) not between 2 and 100
-       or attendance not in ('yes','maybe','no')
+       or v_attendance not in ('yes','maybe','no')
        or char_length(coalesce(p_values->>'dessert_contribution','')) > 180
        or char_length(coalesce(p_values->>'salad_contribution','')) > 180
        or jsonb_array_length(p_values->'youth_registrations') > 12
@@ -80,9 +80,9 @@ begin
     adults := (p_values->>'adults_count')::integer;
     children := (p_values->>'children_count')::integer;
     if adults < 0 or children < 0 or adults + children > 20
-       or (attendance = 'yes' and adults+children < 1)
-       or (attendance <> 'yes' and adults+children <> 0)
-       or (attendance <> 'yes' and (
+       or (v_attendance = 'yes' and adults+children < 1)
+       or (v_attendance <> 'yes' and adults+children <> 0)
+       or (v_attendance <> 'yes' and (
          p_values->>'dessert_contribution' <> '' or p_values->>'salad_contribution' <> ''
          or (p_values->>'help_setup')::boolean or (p_values->>'help_cleanup')::boolean
          or jsonb_array_length(p_values->'youth_registrations') > 0
@@ -91,7 +91,7 @@ begin
        )) then raise exception 'RSVP_INVALID'; end if;
 
     after_json := jsonb_build_object(
-      'member_name', name, 'attendance', attendance,
+      'member_name', name, 'attendance', v_attendance,
       'adults_count', adults, 'children_count', children, 'party_size', adults+children,
       'dessert_contribution', coalesce(p_values->>'dessert_contribution',''),
       'salad_contribution', coalesce(p_values->>'salad_contribution',''),
@@ -105,7 +105,7 @@ begin
       return jsonb_build_object('unchanged', true);
     end if;
     update public.event_rsvps set
-      member_name = name, attendance = attendance, party_size = adults+children,
+      member_name = name, attendance = v_attendance, party_size = adults+children,
       adults_count = adults, children_count = children,
       dessert_contribution = after_json->>'dessert_contribution',
       salad_contribution = after_json->>'salad_contribution',
