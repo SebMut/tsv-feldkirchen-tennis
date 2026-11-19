@@ -230,6 +230,48 @@ async function deviceQA(device){
     const columns=await exportPanel.locator('#rsvp-export-cards').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(/\s+/).filter(Boolean).length);
     assert.equal(columns,device.mobile?1:2,'RSVP export cards must be responsive');
     await noOverflow(page,'/admin/ RSVP export');
+    // Safe visual fixture: mobile participant cards and native dialog,
+    // with no login, network writes or actual participant information.
+    await page.evaluate(()=>{
+      const card=document.querySelector('#rsvp-export-cards .rsvp-export-card');
+      if(!card)throw Error('RSVP card missing');
+      card.classList.add('is-open');
+      const panel=document.createElement('div');
+      panel.className='rsvp-manage-inline';
+      panel.innerHTML='<div class="rsvp-manage-head"><h4>Bestätigte Anmeldungen</h4></div>'
+        +'<div class="rsvp-manage-table-wrap"><table class="rsvp-manage-table">'
+        +'<thead><tr><th>Name & E-Mail</th><th>Teilnahme</th><th>Erw. / Kinder</th>'
+        +'<th>Beiträge & Helfer</th><th>Meisterschaften</th><th>Aktionen</th></tr></thead>'
+        +'<tbody><tr><td data-label="Name & E-Mail"><strong>Max Mustermann</strong>'
+        +'<small>test@example.invalid</small></td><td data-label="Teilnahme">Dabei</td>'
+        +'<td data-label="Erw. / Kinder">2 / 1</td><td data-label="Beiträge & Helfer">–</td>'
+        +'<td data-label="Meisterschaften">–</td><td data-label="Aktionen">'
+        +'<button type="button" class="button">Bearbeiten</button></td></tr></tbody></table></div>';
+      card.append(panel);
+    });
+    await noOverflow(page,'/admin/ RSVP participant cards');
+    if(device.mobile){
+      const row=page.locator('.rsvp-manage-table tbody tr');
+      assert.equal(await row.evaluate(el=>getComputedStyle(el).display),'block',
+        'RSVP participant list must become stacked cards on mobile');
+    }
+    await page.evaluate(()=>{
+      const dialog=document.createElement('dialog');
+      dialog.id='qa-rsvp-dialog';dialog.className='rsvp-manage-dialog';
+      dialog.innerHTML='<form><header class="rsvp-manage-dialog__head"><h3>Anmeldung bearbeiten</h3>'
+        +'<button type="button">×</button></header><div class="rsvp-manage-edit-fields">'
+        +'<label>Name<input value="Max Mustermann"></label><label>Teilnahme<select><option>Dabei</option></select></label>'
+        +'</div><footer class="rsvp-manage-dialog__actions"><button class="button" type="button">'
+        +'Speichern & E-Mail senden</button></footer></form>';
+      document.body.append(dialog);
+      dialog.showModal();
+    });
+    assert.equal(await page.locator('#qa-rsvp-dialog').isVisible(),true);
+    await noOverflow(page,'/admin/ RSVP edit modal');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#qa-rsvp-dialog').evaluate(el=>el.open),false,
+      'Escape must close the native RSVP modal');
+    await page.evaluate(()=>document.querySelector('#qa-rsvp-dialog')?.remove());
     await page.evaluate(()=>{
       document.querySelector('#panel-rsvp-export')?.classList.remove('active');
       document.querySelector('#rsvp-export-cards')?.replaceChildren();
