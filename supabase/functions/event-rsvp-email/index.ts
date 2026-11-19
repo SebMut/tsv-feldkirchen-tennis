@@ -348,14 +348,14 @@ async function sendAdminRsvpNotice(db:ReturnType<typeof createClient>,id:string)
     +'<p style="font-size:14px;line-height:1.6;margin-top:24px">Bei Fragen kannst du auf diese E-Mail antworten.</p>'
     +'</div><div style="border-top:4px solid #af1526;padding:16px 26px;font-size:12px;color:#587061">'
     +'TSV Feldkirchen Tennis · Vereinsverwaltung</div></div></div>';
-  const delivery=await sendGmail(notice.recipient_email,plain,html,
+  const notificationDelivery=await sendGmail(notice.recipient_email,plain,html,
     deleted?'TSV Feldkirchen: Anmeldung geloescht':'TSV Feldkirchen: Anmeldung aktualisiert');
-  const update=delivery.sent
+  const update=notificationDelivery.sent
     ?{mail_status:'sent',sent_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()}
-    :{mail_status:'failed',last_error:delivery.code||'send_failed',updated_at:new Date().toISOString()};
+    :{mail_status:'failed',last_error:notificationDelivery.code||'send_failed',updated_at:new Date().toISOString()};
   const {error:saveError}=await db.from('event_rsvp_admin_notifications').update(update).eq('id',id);
   if(saveError)return {sent:false,code:'mail_status_not_saved'};
-  return delivery.sent?{sent:true}:{sent:false,code:delivery.code};
+  return notificationDelivery.sent?{sent:true}:{sent:false,code:notificationDelivery.code};
 }
 async function adminRsvpAction(
   request:Request,body:Record<string,unknown>,db:ReturnType<typeof createClient>
