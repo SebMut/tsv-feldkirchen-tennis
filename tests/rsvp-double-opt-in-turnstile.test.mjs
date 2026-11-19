@@ -35,6 +35,9 @@ test('server fails closed if Turnstile or e-mail settings not installed',()=>{
     assert.ok(edge.includes("env('"+secret+"')"),secret);
   assert.ok(edge.includes('if (!configured) return reply(503'));
   assert.ok(edge.includes("action==='config'"));
+  assert.ok(edge.includes('gmailOauthHealth()'));
+  assert.ok(edge.includes("enabled:false,code:gmail.code,message:gmail.message"));
+  assert.ok(edge.includes('5*60_000'));
   assert.ok(edge.includes('enabled:false'));
   assert.ok(config.includes('[functions.event-rsvp-email]'));
   assert.ok(config.includes('verify_jwt = false'));
