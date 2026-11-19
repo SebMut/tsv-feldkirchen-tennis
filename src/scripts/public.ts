@@ -107,6 +107,16 @@ function seasonStatusNote(season: Row | undefined | null) {
   </p>`;
 }
 
+function teamImageIsIllustration(team: Row, imagePath: string | null | undefined) {
+  return team.slug === 'herren-50' && String(imagePath || '').includes('/herren50-humor-');
+}
+
+function teamImageAlt(team: Row, imagePath: string | null | undefined) {
+  return teamImageIsIllustration(team, imagePath)
+    ? 'Humorvolles KI-Platzhalterbild der Herren 50 mit älteren Tennisspielern und Gehstock'
+    : `Mannschaftsfoto ${team.name}`;
+}
+
 function teamFallbackImage(team: Row) {
   if (team.gender === 'men') return mediaUrl('teams/herren.png');
   if (team.gender === 'women') return mediaUrl('teams/damen.png');
@@ -885,7 +895,8 @@ export async function loadTeams() {
       const tennisDeTarget = tennisDeTeamDestination(ts);
       return `
         <article class="card team-card team-overview-card">
-          <a href="${detailUrl}" class="team-card__image-link" aria-label="${escapeHtml(team.name)} öffnen"><img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" loading="lazy" decoding="async" fetchpriority="low" width="1280" height="720" /></a>
+          <a href="${detailUrl}" class="team-card__image-link" aria-label="${escapeHtml(team.name)} öffnen"><img src="${escapeHtml(mediaUrl(ts.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="${escapeHtml(teamImageAlt(team, ts.team_image_path || team.image_path))}" loading="lazy" decoding="async" fetchpriority="low" width="1280" height="720" /></a>
+          ${teamImageIsIllustration(team, ts.team_image_path || team.image_path) ? '<small class="team-image-disclaimer">Humorvolles KI-Platzhalterbild · keine echten Mannschaftsspieler</small>' : ''}
           <div>
             <p class="eyebrow">${escapeHtml(title)}</p>
             <h3><a href="${detailUrl}" class="text-link">${escapeHtml(team.name)}</a></h3>
@@ -998,7 +1009,7 @@ export async function loadTeamDetail(slug: string) {
   if (head) head.innerHTML = `
     <section class="hero">
       <div><p class="eyebrow">Mannschaft</p><h1>${escapeHtml(team.name)}</h1><p class="hero__lead">${escapeHtml(team.description || [current?.league, current?.group_name].filter(Boolean).join(' · ') || 'TSV Feldkirchen Tennis')}</p>${seasonStatusNote(current)}<div class="actions">${current ? `<a class="button" href="${escapeHtml(btvTarget.href)}" target="_blank" rel="noopener noreferrer">${btvTarget.isDirect ? 'BTV Spielplan ↗' : 'BTV Vereinsübersicht ↗'}</a>` : ''}${current && tennisDeTarget ? `<a class="button ghost" href="${escapeHtml(tennisDeTarget.href)}" target="_blank" rel="noopener noreferrer">tennis.de Mannschaftsporträt ↗</a>` : ''}<a class="button secondary" href="${escapeHtml(calendarSubscriptionUrl({team: slug}))}">Mannschaftskalender abonnieren</a></div></div>
-      <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="Mannschaftsfoto ${escapeHtml(team.name)}" width="1280" height="720" decoding="async" fetchpriority="high" /></div>
+      <div class="card"><img src="${escapeHtml(mediaUrl(current?.team_image_path || team.image_path) || teamFallbackImage(team))}" alt="${escapeHtml(teamImageAlt(team, current?.team_image_path || team.image_path))}" width="1280" height="720" decoding="async" fetchpriority="high" />${teamImageIsIllustration(team, current?.team_image_path || team.image_path) ? '<small class="team-image-disclaimer">Humorvolles KI-Platzhalterbild · keine echten Mannschaftsspieler</small>' : ''}</div>
     </section>
   `;
 
