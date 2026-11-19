@@ -277,6 +277,7 @@ function createDialog(){
 export async function openRsvpManager(event:EventDetails,host:HTMLElement,afterMutation:(eventId:string)=>Promise<void>){
   if(currentHost&&currentHost!==host){
     currentHost.hidden=true;
+    currentHost.innerHTML=''; // Remove old IDs before showing another event's editor.
     currentHost.closest('.rsvp-export-card')?.classList.remove('is-open');
   }
   currentEvent=event;currentHost=host;currentRows=[];onMutation=afterMutation;noticeToRetry='';
