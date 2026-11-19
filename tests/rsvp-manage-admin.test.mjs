@@ -7,7 +7,7 @@ const exportUi=read('src/scripts/rsvp-export-admin.ts');
 const manager=read('src/scripts/rsvp-manage-admin.ts');
 const shared=read('src/scripts/event-rsvp-admin.ts');
 const edge=read('supabase/functions/event-rsvp-email/index.ts');
-const sql=read('supabase/migrations/20261119210000_event_rsvp_admin_manage_email.sql');
+const sql=read('supabase/migrations/20261119200044_event_rsvp_admin_manage_email.sql');
 const css=read('src/styles/admin-rsvp-export.css');
 
 test('existing protected RSVP PDF panel also shows registrants by event',()=>{
