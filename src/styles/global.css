@@ -2984,3 +2984,7 @@ body:has(.matchday-page--ticker .matchday-live-center.is-loading) .site-footer{
 .team-overview-card .team-season-notice{font-size:.85rem;padding:10px 12px}
 .team-detail-page .hero .team-season-notice{margin:13px 0!important;max-width:55ch}
 @media(max-width:540px){.team-season-notice{padding:10px 11px;font-size:.86rem}}
+
+/* Avoid presenting the playful Herren-50 placeholder as an actual team photo. */
+.team-image-disclaimer{display:block;margin:5px 0 2px;font-size:.71rem;line-height:1.35;color:#69756e;font-style:italic}
+.team-detail-page .team-image-disclaimer{padding:6px 5px 0}
